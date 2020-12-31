@@ -1,0 +1,83 @@
+package fst
+
+import (
+	"net/http"
+	"regexp"
+)
+
+// 所有注册的 Context handlers 都要通过此函数来注册
+func (gp *RouterGroup) register(httpMethod, relPath string, hds CHandlers) *RouterItem {
+	ifPanic(len(hds) <= 0, "there must be at least one handler")
+	absPath := gp.fixAbsolutePath(relPath)
+
+	// TODO：新添加一个 GroupItem，记录所有的处理函数
+	ri := &RouterItem{
+		parent: gp,
+	}
+	ri.eHds = addCHandlers(hds)
+
+	gp.faster.regRoute(httpMethod, absPath, ri)
+	fstMem.hdsItemCt++
+	return ri
+}
+
+// TODO: 有个问题，httpMethod参数没有做枚举校验，可以创建任意名称的method路由数，真要这么自由吗???
+func (gp *RouterGroup) Method(httpMethod, relPath string, handlers ...CHandler) *RouterItem {
+	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
+		panic("http method " + httpMethod + " is not valid")
+	}
+	return gp.register(httpMethod, relPath, handlers)
+}
+
+func (gp *RouterGroup) Get(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodGet, relPath, handlers)
+}
+
+// POST is a shortcut for router.Handle("POST", path, handle).
+func (gp *RouterGroup) Post(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodPost, relPath, handlers)
+}
+
+// DELETE is a shortcut for router.Handle("DELETE", path, handle).
+func (gp *RouterGroup) Delete(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodDelete, relPath, handlers)
+}
+
+// PATCH is a shortcut for router.Handle("PATCH", path, handle).
+func (gp *RouterGroup) Patch(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodPatch, relPath, handlers)
+}
+
+// PUT is a shortcut for router.Handle("PUT", path, handle).
+func (gp *RouterGroup) Put(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodPut, relPath, handlers)
+}
+
+// OPTIONS is a shortcut for router.Handle("OPTIONS", path, handle).
+func (gp *RouterGroup) Options(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodOptions, relPath, handlers)
+}
+
+// HEAD is a shortcut for router.Handle("HEAD", path, handle).
+func (gp *RouterGroup) Head(relPath string, handlers ...CHandler) *RouterItem {
+	return gp.register(http.MethodHead, relPath, handlers)
+}
+
+// Any registers a route that matches all the HTTP methods.
+// GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE, CONNECT, TRACE.
+func (gp *RouterGroup) All(relPath string, handlers ...CHandler) {
+	gp.register(http.MethodGet, relPath, handlers)
+	gp.register(http.MethodPost, relPath, handlers)
+	gp.register(http.MethodPut, relPath, handlers)
+	gp.register(http.MethodPatch, relPath, handlers)
+	gp.register(http.MethodHead, relPath, handlers)
+	gp.register(http.MethodOptions, relPath, handlers)
+	gp.register(http.MethodDelete, relPath, handlers)
+	gp.register(http.MethodConnect, relPath, handlers)
+	gp.register(http.MethodTrace, relPath, handlers)
+}
+
+func (gp *RouterGroup) GetPost(relPath string, handlers ...CHandler) {
+	gp.register(http.MethodGet, relPath, handlers)
+	gp.register(http.MethodPost, relPath, handlers)
+}
