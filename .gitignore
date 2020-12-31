@@ -1,0 +1,11 @@
+.git
+.github
+.idea
+*.test
+*.prof
+nohup.out
+.DS_Store
+vendor/*/
+vendor
+.dockerignore
+go.sum
