@@ -27,12 +27,13 @@ package main
 import (
 	"gofast/fst"
 	"log"
+	"net/http"
 )
 
 func main() {
 	app, home := fst.CreateServer(&fst.AppConfig{
 		PrintRouteTrees: true,
-		RunMode:        "debug",
+		RunMode:         "debug",
 	})
 	var handler = func(str string) func(c *fst.Context) {
 		return func(c *fst.Context) {
@@ -41,15 +42,26 @@ func main() {
 	}
 
 	// 根路由
-	home.Method("GET", "/user/:name", handler("home handler 1"))
-	home.Before(handler("home before 1")).After(handler("home after 1"))
-	home.Get("/user/:name/age", handler("home handler 2"))
+	home.NoRoute(func(ctx *fst.Context) {
+		ctx.JSON(http.StatusNotFound, "404-Can't find the path.")
+	})
+	home.NoMethod(func(ctx *fst.Context) {
+		ctx.JSON(http.StatusMethodNotAllowed, "405-Method not allowed.")
+	})
 
-	// 分组路由
-	adm := home.AddGroup("/admin/cd")
-	adm.Before(handler("before admin 1")).After(handler("after admin 1"), handler("after admin 2"))
-	ul := adm.Get("/user_list", handler("user_list handler"))
-	ul.After(handler("user_list after 1"))
+	home.Post("/root", handler("root"))
+	home.Before(handler("before root")).After(handler("after root"))
+
+	// 分组路由1
+	adm := home.AddGroup("/admin").After(handler("after admin"))
+	adm.Get("/chende", handler("chende")).After(handler("after chende"))
+
+	// 分组路由2
+	adm2 := home.AddGroup("/admin2").Before(handler("before admin2"))
+	adm2.Get("/zht", handler("zht")).After(handler("after zht"))
+
+	adm22 := adm2.AddGroup("/group2").Before(handler("before group2"))
+	adm22.Get("/lmx", handler("lmx")).Before(handler("before lmx"))
 
 	// 开始监听接收请求
 	log.Printf("Listening and serving HTTP on %s\n", "127.0.0.1:8099")
@@ -66,29 +78,29 @@ $ go run example.go
 在控制台启动后台Web服务器之后，你会看到底层的路由树构造结果：
 
 ```
-2020/12/31 13:50:27 Listening and serving HTTP on 127.0.0.1:8099
 ++++++++++The route tree:
 
 (GET)
-└── /                                                            [false-ua]
-    ├── user/                                                    [false-]
-    │   └── :name                                                [true-/]
-    │       └── /age                                             [true-]
-    └── admin/cd/user_list                                       [true-]
+└── /admin                                                       [false-/2]
+    ├── /chende                                                  [true-]
+    └── 2/                                                       [false-zg]
+        ├── zht                                                  [true-]
+        └── group2/lmx                                           [true-]
+(POST)
+└── /root                                                        [true-]
 
 ++++++++++THE END.
+2021/01/04 01:18:24 Listening and serving HTTP on 127.0.0.1:8099
 ```
 
-浏览器输入网址访问地址：127.0.0.1:8099/admin/cd/user_list，日志会输出：
+浏览器输入网址访问地址：`127.0.0.1:8099/admin/chende`，日志会输出：
 
 ```
-2020/12/31 13:50:31 home before 1
-2020/12/31 13:50:31 before admin 1
-2020/12/31 13:50:31 user_list handler
-2020/12/31 13:50:31 user_list after 1
-2020/12/31 13:50:31 after admin 1
-2020/12/31 13:50:31 after admin 2
-2020/12/31 13:50:31 home after 1
+2021/01/04 01:20:38 before root
+2021/01/04 01:20:38 chende
+2021/01/04 01:20:38 after chende
+2021/01/04 01:20:38 after admin
+2021/01/04 01:20:38 after root
 ```
 
 （其它介绍陆续补充...）
