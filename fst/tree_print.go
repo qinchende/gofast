@@ -8,17 +8,17 @@ import (
 )
 
 // 打印 路由树
-func (ft *Faster) printRouteTrees() {
+func (gft *GoFast) printRouteTrees() {
 	strTree := new(strings.Builder)
 	strTree.WriteString("++++++++++The route tree:\n\n")
 
-	if ft.treeGet != nil {
-		printTree(ft.treeGet, strTree)
+	if gft.treeGet != nil {
+		printTree(gft.treeGet, strTree)
 	}
-	if ft.treePost != nil {
-		printTree(ft.treePost, strTree)
+	if gft.treePost != nil {
+		printTree(gft.treePost, strTree)
 	}
-	for _, tree := range ft.treeOthers {
+	for _, tree := range gft.treeOthers {
 		printTree(&tree, strTree)
 	}
 	strTree.WriteString("\n++++++++++THE END.")

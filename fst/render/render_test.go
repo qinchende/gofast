@@ -245,7 +245,7 @@ b:
 type fail struct{}
 
 // Hook MarshalYAML
-func (ft *fail) MarshalYAML() (interface{}, error) {
+func (gft *fail) MarshalYAML() (interface{}, error) {
 	return nil, errors.New("fail")
 }
 

@@ -1,3 +1,5 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a BSD-style license
 package fst
 
 import (
@@ -10,9 +12,9 @@ import (
 // Context is the most important part of gin. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
-	faster    *Faster
-	resW      proto.FResWriter
-	Reply     proto.FIResWriter
+	gftApp    *GoFast
+	resW      proto.InnerResWrite
+	Reply     proto.FResponseWriter
 	Request   *http.Request
 	Params    Params
 	isAborted bool
@@ -61,7 +63,7 @@ func (c *Context) reset() {
 // This has to be used when the context has to be passed to a goroutine.
 func (c *Context) Copy() *Context {
 	cp := Context{
-		faster:    c.faster,
+		gftApp:    c.gftApp,
 		isAborted: c.isAborted,
 		resW:      c.resW,
 		Request:   c.Request,

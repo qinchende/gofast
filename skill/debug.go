@@ -5,12 +5,16 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 var isDebug bool = false
-
+var _once sync.Once
+// 每个程序只设置一次debug标志位，后面的设置都失效
 func SetDebugStatus(yn bool) {
-	isDebug = yn
+	_once.Do(func() {
+		isDebug = yn
+	})
 }
 
 func DebugPrint(format string, values ...interface{}) {

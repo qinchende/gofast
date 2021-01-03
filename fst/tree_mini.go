@@ -2,10 +2,10 @@
 // Use of this source code is governed by a BSD-style license
 package fst
 
-// 用新的数据结构重建整颗路由树，用数组实现的树结构
+// 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
-type miniNode struct {
+type radixMiniNode struct {
 	// 前缀字符（3字节）
 	matchLen   uint8
 	matchStart uint16
@@ -14,9 +14,9 @@ type miniNode struct {
 	childLen   uint8
 	childStart uint16
 
-	// 分组事件索引+当前路由事件索引（4字节）
-	hdsGroupIdx uint16
-	hdsItemIdx  uint16
+	// 分组事件索引+当前路由匹配节点事件索引（4字节）
+	hdsGroupIdx int16
+	hdsItemIdx  int16
 
 	// 节点类型 （1字节）
 	nType uint8
@@ -28,16 +28,16 @@ func rebuildMethodTree(mTree *methodTree) {
 	if mTree.root == nil {
 		return
 	}
-	rootNodeIdx := fstMem.allMiniLen
-	fstMem.allMiniLen += 1
+	rootNodeIdx := fstMem.allRadixMiniLen
+	fstMem.allRadixMiniLen += 1
 	mTree.root.rebuildNode(rootNodeIdx)
-	mTree.miniRoot = &fstMem.allMiniNodes[rootNodeIdx]
+	mTree.miniRoot = &fstMem.allRadixMiniNodes[rootNodeIdx]
 }
 
 // 将原始路由树节点 转换成 mini版本的节点
 func (n *radixNode) rebuildNode(idx uint16) {
 	// 通过索引，找到新节点的存储位置
-	newMini := &fstMem.allMiniNodes[idx]
+	newMini := &fstMem.allRadixMiniNodes[idx]
 
 	// 处理前缀字符串
 	mLen := uint8(len(n.match))
@@ -47,9 +47,9 @@ func (n *radixNode) rebuildNode(idx uint16) {
 	fstMem.treeCharsLen += uint16(mLen)
 
 	// 为子节点分配内存位置
-	newMini.childStart = fstMem.allMiniLen
+	newMini.childStart = fstMem.allRadixMiniLen
 	newMini.childLen = uint8(len(n.children))
-	fstMem.allMiniLen += uint16(newMini.childLen)
+	fstMem.allRadixMiniLen += uint16(newMini.childLen)
 
 	for i := uint16(0); i < uint16(newMini.childLen); i++ {
 		n.children[i].rebuildNode(newMini.childStart + i)
@@ -57,8 +57,8 @@ func (n *radixNode) rebuildNode(idx uint16) {
 
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
 	if n.routerItem != nil {
-		newMini.hdsGroupIdx = n.routerItem.parent.hdsGroupIdx
-		newMini.hdsItemIdx = n.routerItem.rebuildHandlers()
+		newMini.hdsGroupIdx = n.routerItem.parent.hdsGroupIdx // 记录“分组”事件在 全局 事件队列中的 起始位置
+		newMini.hdsItemIdx = n.routerItem.rebuildHandlers()   // 记录“节点”事件在 全局 事件队列中的 起始位置
 	}
 	// 第二种：按顺序合并所有事件
 	//if n.routerItem != nil {
@@ -71,114 +71,165 @@ func (n *radixNode) rebuildNode(idx uint16) {
 	newMini.nType = n.nType
 	//newMini.wildChild = n.wildChild
 }
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 重建特殊节点
+func rebuildDefaultHandlers(home *HomeSite) {
+	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
+	home.miniNode404 = &radixMiniNode{}
+	home.miniNode404.hdsGroupIdx = home.routerItem404.parent.hdsGroupIdx
+	home.miniNode404.hdsItemIdx = home.routerItem404.rebuildHandlers()
+
+	home.miniNode405 = &radixMiniNode{}
+	home.miniNode405.hdsGroupIdx = home.routerItem405.parent.hdsGroupIdx
+	home.miniNode405.hdsItemIdx = home.routerItem405.rebuildHandlers()
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 将所有的 中间件函数 放入一个大的数组当中，以后都是通过数组索引来访问函数
-func addCHandlers(hds CHandlers) (idxes []uint16) {
+func addCtxHandlers(hds CtxHandlers) (idxes []uint16) {
 	// 所有处理函数的切片
-	fstMem.allCHandlers = append(fstMem.allCHandlers, hds...)
+	fstMem.allCtxHandlers = append(fstMem.allCtxHandlers, hds...)
 	hLen := uint16(len(hds))
 	idxes = make([]uint16, hLen, hLen)
 	for i := uint16(0); i < hLen; i++ {
-		idxes[i] = fstMem.allCHdsLen + i
+		idxes[i] = fstMem.allCtxHdsLen + i
 	}
-	fstMem.allCHdsLen += hLen
+	fstMem.allCtxHdsLen += hLen
 	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // TODO: 重新生成路由树相关数据结构
-func (ft *Faster) rebuildRoutes() {
+func (gft *GoFast) rebuildRoutes() {
+	// 合并分组事件到下一级分组当中，返回所有节点新增父级节点事件的和
+	parentHandlerSum := gpCombineHandlers(&gft.home.RouterGroup)
+	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小
+	fstMem.hdsListLen = parentHandlerSum + fstMem.allCtxHdsLen
 	// 分配内存空间
-	allocateMemSpace(ft)
-	// 合并分组事件到最后一个分组当中
-	gpHandlersCombine(ft.home)
+	allocateMemSpace(gft)
 
-	// 重建路由树
-	rebuildMethodTree(ft.treeGet)
-	rebuildMethodTree(ft.treePost)
-	for _, mTree := range ft.treeOthers {
+	// 1. 将分组事件 转换到 新版全局数组中
+	gpRebuildHandlers(&gft.home.RouterGroup)
+	// 2. 重建路由树 （这里面将节点事件 转换到 新版全局数组中）
+	rebuildMethodTree(gft.treeGet)
+	rebuildMethodTree(gft.treePost)
+	for _, mTree := range gft.treeOthers {
 		rebuildMethodTree(&mTree)
 	}
+	// 3. 重建特殊节点，比如 NoRoute | NoMethod
+	rebuildDefaultHandlers(gft.home)
 
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
 	fstMem.treeCharT = nil
 
 	// TODO: 释放掉原始树的资源
-	ft.treeGet.root = nil
-	ft.treePost.root = nil
-	for _, mTree := range ft.treeOthers {
+	gft.treeGet.root = nil
+	gft.treePost.root = nil
+	for _, mTree := range gft.treeOthers {
 		mTree.root = nil
 	}
-	ft.home = nil
+	//gft.home = nil
 }
 
 // 计算所有要预分配的内存空间
-func allocateMemSpace(ft *Faster) {
-	totalNodes := ft.treeGet.nodeCt
-	nodeStrLen := ft.treeGet.nodeStrLen
+func allocateMemSpace(gft *GoFast) {
+	totalNodes := gft.treeGet.nodeCt
+	nodeStrLen := gft.treeGet.nodeStrLen
 
-	totalNodes += ft.treePost.nodeCt
-	nodeStrLen += ft.treePost.nodeStrLen
+	totalNodes += gft.treePost.nodeCt
+	nodeStrLen += gft.treePost.nodeStrLen
 
-	for _, mTree := range ft.treeOthers {
+	for _, mTree := range gft.treeOthers {
 		totalNodes += mTree.nodeCt
 		nodeStrLen += mTree.nodeStrLen
 	}
 
 	// 第一种：处理函数节点空间
+	// 所有承载事件处理函数的Node个数（包括Group 和 Item）
 	hdsNodesCt := fstMem.hdsGroupCt + fstMem.hdsItemCt
-	fstMem.hdsNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
+	fstMem.hdsMiniNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
 	// 第二种：处理事件
-	//fstMem.hdsNodesMini = make([]handlersNodeMini, fstMem.hdsItemCt, fstMem.hdsItemCt)
+	// fstMem.hdsNodesPlan2 = make([]handlersNodePlan2, fstMem.hdsItemCt, fstMem.hdsItemCt)
 
-	// 新的函数指针数组
-	fstMem.hdsList = make(CHandlers, fstMem.allCHdsLen, fstMem.allCHdsLen)
+	// 新的 handlers 指针数组
+	fstMem.hdsList = make(CtxHandlers, fstMem.hdsListLen, fstMem.hdsListLen)
+	fstMem.hdsListLen = 0 // 下标重置成0，后面从这里把事件加入 hdsList
+
 	// 路由树 字符串
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
-	fstMem.allMiniNodes = make([]miniNode, totalNodes, totalNodes)
+	fstMem.allRadixMiniNodes = make([]radixMiniNode, totalNodes, totalNodes)
 }
 
-// 合并所有路由分组的事件到 最后的一个分组中
-func gpHandlersCombine(gp *RouterGroup) {
+// 合并所有路由分组的事件到下一级的分组当中
+// 返回所有节点新增加处理函数个数的和
+func gpCombineHandlers(gp *RouterGroup) uint16 {
+	// 所有分组个数
+	fstMem.hdsGroupCt++
 	if gp.children == nil {
-		gp.rebuildHandlers()
-		fstMem.hdsGroupCt++
+		return gp.parentHdsLen
+	}
+	var allChildrenHdsCount uint16 = 0
+	for _, chGroup := range gp.children {
+		hdsCount := 0
+
+		// TODO: 这里要补充完整所有的事件类型
+		hdsCount += len(gp.eValidHds)
+		chGroup.eValidHds = combineHandlers(gp.eValidHds, chGroup.eValidHds)
+
+		hdsCount += len(gp.eBeforeHds)
+		chGroup.eBeforeHds = combineHandlers(gp.eBeforeHds, chGroup.eBeforeHds)
+
+		// 分水岭 -> item (not group) handlers
+
+		hdsCount += len(gp.eAfterHds)
+		chGroup.eAfterHds = append(chGroup.eAfterHds, gp.eAfterHds...)
+
+		hdsCount += len(gp.eSendHds)
+		chGroup.eSendHds = append(chGroup.eSendHds, gp.eSendHds...)
+
+		hdsCount += len(gp.eAfterSendHds)
+		chGroup.eAfterSendHds = append(chGroup.eAfterSendHds, gp.eAfterSendHds...)
+
+		chGroup.parentHdsLen = uint16(hdsCount)
+		allChildrenHdsCount += gpCombineHandlers(chGroup)
+	}
+	return allChildrenHdsCount + gp.parentHdsLen
+}
+
+// 将分组事件 转换到 新版全局数组中
+func gpRebuildHandlers(gp *RouterGroup) {
+	// 每一个分组的事件都去注册
+	gp.rebuildHandlers()
+	if gp.children == nil {
 		return
 	}
-	for _, ch := range gp.children {
-		// TODO: 这里要补充完整所有的事件类型
-		ch.eValidHds = append(gp.eValidHds, ch.eValidHds...)
-		ch.eBeforeHds = append(gp.eBeforeHds, ch.eBeforeHds...)
-		// 分水岭
-		ch.eAfterHds = append(ch.eAfterHds, gp.eAfterHds...)
-		ch.eSendHds = append(ch.eSendHds, gp.eSendHds...)
-		//ch.eResponseHds = append(ch.eResponseHds, gp.eResponseHds...)
-
-		gpHandlersCombine(ch)
+	for _, chGroup := range gp.children {
+		gpRebuildHandlers(chGroup)
 	}
 }
 
 // 第一套 分开方案
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 为每个最后一级的分组，生成mini版的事件节点
+// 为每个最后一级的分组，将 routeEvent 变成内存占用更小的 handlersNode
 func (gp *RouterGroup) rebuildHandlers() {
 	setNewNode(&gp.routeEvents)
 
-	gp.hdsGroupIdx = fstMem.hdsNodesLen
-	fstMem.hdsNodesLen++
+	gp.hdsGroupIdx = int16(fstMem.hdsMiniNodesLen)
+	fstMem.hdsMiniNodesLen++
 }
 
-func (ri *RouterItem) rebuildHandlers() (idx uint16) {
+// 为每个路由节点，将 routeEvent 变成内存占用更小的 handlersNode
+func (ri *RouterItem) rebuildHandlers() (idx int16) {
 	setNewNode(&ri.routeEvents)
-	idx = fstMem.hdsNodesLen
-	fstMem.hdsNodesLen++
+	idx = int16(fstMem.hdsMiniNodesLen)
+	fstMem.hdsMiniNodesLen++
 	return
 }
 
+// 将 routeEvents 中不同的事件类型对应的事件处理函数，全部存入全局数组中。
 func setNewNode(re *routeEvents) {
-	node := &fstMem.hdsNodes[fstMem.hdsNodesLen]
+	node := &fstMem.hdsMiniNodes[fstMem.hdsMiniNodesLen]
 
 	// 获取所有的 handlers
 	node.hdsLen, node.hdsIdx = tidyEventHandlers(&re.eHds)
@@ -186,48 +237,49 @@ func setNewNode(re *routeEvents) {
 	node.afterLen, node.afterIdx = tidyEventHandlers(&re.eAfterHds)
 	node.validLen, node.validIdx = tidyEventHandlers(&re.eValidHds)
 	node.sendLen, node.sendIdx = tidyEventHandlers(&re.eSendHds)
-	//node.responseLen, node.responseIdx = tidyEventHandlers(&re.eResponseHds)
+	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(&re.eAfterSendHds)
 }
 
+// allCtxHandlers 中无序存放的 handlers 转入 有序的 hdsList 中
 func tidyEventHandlers(hds *[]uint16) (ct uint8, startIdx uint16) {
 	ct = uint8(len(*hds))
 	startIdx = fstMem.hdsListLen
 	for i := uint8(0); i < ct; i++ {
-		fstMem.hdsList[fstMem.hdsListLen] = fstMem.allCHandlers[(*hds)[i]]
+		fstMem.hdsList[fstMem.hdsListLen] = fstMem.allCtxHandlers[(*hds)[i]]
 		fstMem.hdsListLen++
 	}
 	return
 }
 
-// 第二套 合并 方案
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouterItem) combineHandlers() (idx uint16) {
-	node := &fstMem.hdsNodesMini[fstMem.hdsNodesMiniLen]
-	gp := ri.parent
-
-	node.startIdx = fstMem.hdsListLen
-	node.hdsLen += tidyEventHandlersMini(&gp.eValidHds)
-	node.hdsLen += tidyEventHandlersMini(&ri.eValidHds)
-	node.hdsLen += tidyEventHandlersMini(&gp.eBeforeHds)
-	node.hdsLen += tidyEventHandlersMini(&ri.eBeforeHds)
-	node.hdsLen += tidyEventHandlersMini(&ri.eHds)
-	node.hdsLen += tidyEventHandlersMini(&ri.eAfterHds)
-	node.hdsLen += tidyEventHandlersMini(&gp.eAfterHds)
-	node.hdsLen += tidyEventHandlersMini(&ri.eSendHds)
-	node.hdsLen += tidyEventHandlersMini(&gp.eSendHds)
-	//node.hdsLen += tidyEventHandlersMini(&ri.eResponseHds)
-	//node.hdsLen += tidyEventHandlersMini(&gp.eResponseHds)
-
-	idx = fstMem.hdsNodesMiniLen
-	fstMem.hdsNodesMiniLen++
-	return
-}
-
-func tidyEventHandlersMini(hds *[]uint16) (ct uint8) {
-	ct = uint8(len(*hds))
-	for i := uint8(0); i < ct; i++ {
-		fstMem.hdsList[fstMem.hdsListLen] = fstMem.allCHandlers[(*hds)[i]]
-		fstMem.hdsListLen++
-	}
-	return
-}
+//// 第二套 合并 方案
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func (ri *RouterItem) combineHandlers() (idx uint16) {
+//	node := &fstMem.hdsNodesPlan2[fstMem.hdsNodesPlan2Len]
+//	gp := ri.parent
+//
+//	node.startIdx = fstMem.hdsListLen
+//	node.hdsLen += tidyEventHandlersMini(&gp.eValidHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.eValidHds)
+//	node.hdsLen += tidyEventHandlersMini(&gp.eBeforeHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.eBeforeHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.eHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.eAfterHds)
+//	node.hdsLen += tidyEventHandlersMini(&gp.eAfterHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.eSendHds)
+//	node.hdsLen += tidyEventHandlersMini(&gp.eSendHds)
+//	//node.hdsLen += tidyEventHandlersMini(&ri.eResponseHds)
+//	//node.hdsLen += tidyEventHandlersMini(&gp.eResponseHds)
+//
+//	idx = fstMem.hdsNodesPlan2Len
+//	fstMem.hdsNodesPlan2Len++
+//	return
+//}
+//
+//func tidyEventHandlersMini(hds *[]uint16) (ct uint8) {
+//	ct = uint8(len(*hds))
+//	for i := uint8(0); i < ct; i++ {
+//		fstMem.hdsList[fstMem.hdsListLen] = fstMem.allCtxHandlers[(*hds)[i]]
+//		fstMem.hdsListLen++
+//	}
+//	return
+//}

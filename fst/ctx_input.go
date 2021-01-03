@@ -1,9 +1,12 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a BSD-style license
 package fst
 
 import (
 	"gofast/fst/binding"
 	"gofast/skill"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"net"
 	"net/http"
@@ -146,7 +149,7 @@ func (c *Context) getFormCache() {
 	if c.formCache == nil {
 		c.formCache = make(url.Values)
 		req := c.Request
-		if err := req.ParseMultipartForm(c.faster.MaxMultipartMemory); err != nil {
+		if err := req.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
 				skill.DebugPrint("error on parse multipart form array: %v", err)
 			}
@@ -196,7 +199,7 @@ func (c *Context) get(m map[string][]string, key string) (map[string]string, boo
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 	if c.Request.MultipartForm == nil {
-		if err := c.Request.ParseMultipartForm(c.faster.MaxMultipartMemory); err != nil {
+		if err := c.Request.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			return nil, err
 		}
 	}
@@ -210,7 +213,7 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 
 // MultipartForm is the parsed multipart form, including file uploads.
 func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.Request.ParseMultipartForm(c.faster.MaxMultipartMemory)
+	err := c.Request.ParseMultipartForm(c.gftApp.MaxMultipartMemory)
 	return c.Request.MultipartForm, err
 }
 
@@ -232,7 +235,7 @@ func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error
 	return err
 }
 
-// Bind checks the Content-Type to select a binding ft automatically,
+// Bind checks the Content-Type to select a binding gftApp automatically,
 // Depending the "Content-Type" header different bindings are used:
 //     "application/json" --> JSON binding
 //     "application/xml"  --> XML binding
@@ -280,7 +283,7 @@ func (c *Context) BindUri(obj interface{}) error {
 	return nil
 }
 
-// MustBindWith binds the passed struct pointer using the specified binding ft.
+// MustBindWith binds the passed struct pointer using the specified binding gftApp.
 // It will abort the request with HTTP 400 if any error occurs.
 // See the binding package.
 func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
@@ -291,7 +294,7 @@ func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
 	return nil
 }
 
-// ShouldBind checks the Content-Type to select a binding ft automatically,
+// ShouldBind checks the Content-Type to select a binding gftApp automatically,
 // Depending the "Content-Type" header different bindings are used:
 //     "application/json" --> JSON binding
 //     "application/xml"  --> XML binding
@@ -329,7 +332,7 @@ func (c *Context) ShouldBindHeader(obj interface{}) error {
 	return c.ShouldBindWith(obj, binding.Header)
 }
 
-// ShouldBindUri binds the passed struct pointer using the specified binding ft.
+// ShouldBindUri binds the passed struct pointer using the specified binding gftApp.
 func (c *Context) ShouldBindUri(obj interface{}) error {
 	m := make(map[string][]string)
 	for _, v := range c.Params {
@@ -338,39 +341,39 @@ func (c *Context) ShouldBindUri(obj interface{}) error {
 	return binding.Uri.BindUri(m, obj)
 }
 
-// ShouldBindWith binds the passed struct pointer using the specified binding ft.
+// ShouldBindWith binds the passed struct pointer using the specified binding gftApp.
 // See the binding package.
 func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
 	return b.Bind(c.Request, obj)
 }
 
-//// ShouldBindBodyWith is similar with ShouldBindWith, but it stores the request
-//// body into the context, and reuse when it is called again.
-////
-//// NOTE: This method reads the body before binding. So you should use
-//// ShouldBindWith for better performance if you need to call only once.
-//func (c *Context) ShouldBindBodyWith(obj interface{}, bb binding.BindingBody) (err error) {
-//	var body []byte
-//	if cb, ok := c.Get(BodyBytesKey); ok {
-//		if cbb, ok := cb.([]byte); ok {
-//			body = cbb
-//		}
-//	}
-//	if body == nil {
-//		body, err = ioutil.ReadAll(c.Request.Body)
-//		if err != nil {
-//			return err
-//		}
-//		c.Set(BodyBytesKey, body)
-//	}
-//	return bb.BindBody(body, obj)
-//}
+// ShouldBindBodyWith is similar with ShouldBindWith, but it stores the request
+// body into the context, and reuse when it is called again.
+//
+// NOTE: This method reads the body before binding. So you should use
+// ShouldBindWith for better performance if you need to call only once.
+func (c *Context) ShouldBindBodyWith(obj interface{}, bb binding.BindingBody) (err error) {
+	var body []byte
+	if cb, ok := c.Get(BodyBytesKey); ok {
+		if cbb, ok := cb.([]byte); ok {
+			body = cbb
+		}
+	}
+	if body == nil {
+		body, err = ioutil.ReadAll(c.Request.Body)
+		if err != nil {
+			return err
+		}
+		c.Set(BodyBytesKey, body)
+	}
+	return bb.BindBody(body, obj)
+}
 
 // ClientIP implements a best effort algorithm to return the real client IP, it parses
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
-	if c.faster.ForwardedByClientIP {
+	if c.gftApp.ForwardedByClientIP {
 		clientIP := c.requestHeader("X-Forwarded-For")
 		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
 		if clientIP == "" {

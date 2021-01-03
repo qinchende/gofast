@@ -3,13 +3,13 @@
 package fst
 
 type matchVal struct {
-	ptrNode *miniNode
+	ptrNode *radixMiniNode
 	params  Params
 	tsr     bool // 是否可以通过重定向，URL最后加入一个 ‘/’ 访问到有处理函数的节点
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，避免函数调用的开销
-func (n *miniNode) matchRoute(path string, p Params) (ret matchVal) {
+func (n *radixMiniNode) matchRoute(path string, p Params) (ret matchVal) {
 	ret.params = p
 nextLoop:
 	var pLen = uint8(len(path))
@@ -37,7 +37,7 @@ nextLoop:
 				// 匹配后面的节点，后面肯定只能是一个 '/' 开头的节点
 				path = path[pos:]
 				for id := uint8(0); id < n.childLen; id++ {
-					n = &fstMem.allMiniNodes[n.childStart+uint16(id)]
+					n = &fstMem.allRadixMiniNodes[n.childStart+uint16(id)]
 					if fstMem.treeChars[n.matchStart] == path[0] {
 						goto nextLoop
 					}
@@ -81,9 +81,9 @@ nextLoop:
 	}
 
 	path = path[n.matchLen:]
-	var pNode *miniNode
+	var pNode *radixMiniNode
 	for id := uint8(0); id < n.childLen; id++ {
-		pNode = &fstMem.allMiniNodes[n.childStart+uint16(id)]
+		pNode = &fstMem.allRadixMiniNodes[n.childStart+uint16(id)]
 		if pNode.nType >= param || fstMem.treeChars[pNode.matchStart] == path[0] {
 			n = pNode
 			goto nextLoop

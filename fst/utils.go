@@ -6,12 +6,10 @@ package fst
 
 import (
 	"encoding/xml"
-	"gofast/skill"
 	"net/http"
 	"os"
 	"path"
-	"reflect"
-	"runtime"
+	"strings"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -55,7 +53,7 @@ func (f neuteredReaddirFile) Readdir(count int) ([]os.FileInfo, error) {
 //const BindKey = "_gin-gonic/gin/bindkey"
 //
 //// Bind is a Kelper function for given interface object and returns a Gin middleware.
-//func Bind(val interface{}) CHandler {
+//func Bind(val interface{}) CtxHandler {
 //	value := reflect.ValueOf(val)
 //	if value.Kind() == reflect.Ptr {
 //		panic(`Bind struct can not be a pointer. Example:
@@ -71,15 +69,15 @@ func (f neuteredReaddirFile) Readdir(count int) ([]os.FileInfo, error) {
 //	}
 //}
 //
-//// WrapF is a helper function for wrapping http.CHandler and returns a Gin middleware.
-//func WrapF(f http.HandlerFunc) CHandler {
+//// WrapF is a helper function for wrapping http.CtxHandler and returns a Gin middleware.
+//func WrapF(f http.HandlerFunc) CtxHandler {
 //	return func(c *Context) {
 //		f(c.Reply, c.Request)
 //	}
 //}
 //
 //// WrapH is a helper function for wrapping http.Handler and returns a Gin middleware.
-//func WrapH(h http.Handler) CHandler {
+//func WrapH(h http.Handler) CtxHandler {
 //	return func(c *Context) {
 //		h.ServeHTTP(c.Reply, c.Request)
 //	}
@@ -107,6 +105,12 @@ func (h KV) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(xml.EndElement{Name: start.Name})
 }
 
+func assert1(guard bool, text string) {
+	if !guard {
+		panic(text)
+	}
+}
+
 func ifPanic(yn bool, text string) {
 	if yn {
 		panic(text)
@@ -122,27 +126,27 @@ func filterFlags(content string) string {
 	return content
 }
 
-//
-//func chooseData(custom, wildcard interface{}) interface{} {
-//	if custom == nil {
-//		if wildcard == nil {
-//			panic("negotiation config is invalid")
-//		}
-//		return wildcard
-//	}
-//	return custom
-//}
-//
-//func parseAccept(acceptHeader string) []string {
-//	parts := strings.Split(acceptHeader, ",")
-//	out := make([]string, 0, len(parts))
-//	for _, part := range parts {
-//		if part = strings.TrimSpace(strings.Split(part, ";")[0]); part != "" {
-//			out = append(out, part)
-//		}
-//	}
-//	return out
-//}
+
+func chooseData(custom, wildcard interface{}) interface{} {
+	if custom == nil {
+		if wildcard == nil {
+			panic("negotiation config is invalid")
+		}
+		return wildcard
+	}
+	return custom
+}
+
+func parseAccept(acceptHeader string) []string {
+	parts := strings.Split(acceptHeader, ",")
+	out := make([]string, 0, len(parts))
+	for _, part := range parts {
+		if part = strings.TrimSpace(strings.Split(part, ";")[0]); part != "" {
+			out = append(out, part)
+		}
+	}
+	return out
+}
 
 func lastChar(str string) uint8 {
 	if str == "" {
@@ -164,22 +168,14 @@ func joinPaths(absolutePath, relativePath string) string {
 	return finalPath
 }
 
-func resolveAddress(addr []string) string {
-	switch len(addr) {
-	case 0:
-		if port := os.Getenv("PORT"); port != "" {
-			skill.DebugPrint("Environment variable PORT=\"%s\"", port)
-			return ":" + port
-		}
-		skill.DebugPrint("Environment variable PORT is undefined. Using port :8099 by default")
-		return ":8099"
-	case 1:
-		return addr[0]
-	default:
-		panic("Too many parameters")
+// 合并两个 事件数组 到一个新的数组
+func combineHandlers(a, b []uint16) []uint16 {
+	size := len(a) + len(b)
+	if size <= 0 {
+		return nil
 	}
-}
-
-func nameOfFunc(f interface{}) string {
-	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
+	merge := make([]uint16, size)
+	copy(merge, a)
+	copy(merge[len(a):], b)
+	return merge
 }

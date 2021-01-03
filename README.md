@@ -30,9 +30,9 @@ import (
 )
 
 func main() {
-	app, home := fst.CreateServer(&fst.FConfig{
+	app, home := fst.CreateServer(&fst.AppConfig{
 		PrintRouteTrees: true,
-		CurrMode:        "debug",
+		RunMode:        "debug",
 	})
 	var handler = func(str string) func(c *fst.Context) {
 		return func(c *fst.Context) {

@@ -1,3 +1,5 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a BSD-style license
 package fst
 
 import (
@@ -5,60 +7,47 @@ import (
 )
 
 // 所有注册路由方法都走这个函数
-func (ft *Faster) regRoute(method, path string, ri *RouterItem) {
+func (gft *GoFast) regRoute(method, path string, ri *RouterItem) {
 	ifPanic(path[0] != '/', "Path must begin with '/'")
-	ifPanic(len(path) > math.MaxUint8, "The path length is more than 255 chars")
+	ifPanic(len(path) > math.MaxUint8, "The path is more than 255 chars")
 	ifPanic(len(method) == 0, "HTTP method can not be empty")
 
-	mTree := ft.getMethodTree(method)
+	mTree := gft.getMethodTree(method)
 	if mTree == nil {
 		mTree = &methodTree{method: method, root: nil}
-		ft.treeOthers = append(ft.treeOthers, *mTree)
+		gft.treeOthers = append(gft.treeOthers, *mTree)
 	}
 	mTree.regRoute(path, ri)
 }
 
-//
-//// NoRoute adds handlers for NoRoute. It return a 404 code by default.
-//func (ft *Faster) NoRoute(handlers ...CHandler) {
-//	ft.noRoute = handlers
-//	ft.rebuild404Handlers()
-//}
-//
-//// NoMethod sets the handlers called when... TODO.
-//func (ft *Faster) NoMethod(handlers ...CHandler) {
-//	ft.noMethod = handlers
-//	ft.rebuild405Handlers()
-//}
-
-func (ft *Faster) getMethodMiniRoot(method string) (tRoot *miniNode) {
+func (gft *GoFast) getMethodMiniRoot(method string) (tRoot *radixMiniNode) {
 	switch method[0] {
 	case 'P':
 		if method[1] == 'O' {
-			tRoot = ft.treePost.miniRoot
+			tRoot = gft.treePost.miniRoot
 		} else {
-			tRoot = ft.treeOthers.getTreeMiniRoot(method)
+			tRoot = gft.treeOthers.getTreeMiniRoot(method)
 		}
 	case 'G':
-		tRoot = ft.treeGet.miniRoot
+		tRoot = gft.treeGet.miniRoot
 	default:
-		tRoot = ft.treeOthers.getTreeMiniRoot(method)
+		tRoot = gft.treeOthers.getTreeMiniRoot(method)
 	}
 	return
 }
 
-func (ft *Faster) getMethodTree(method string) (tree *methodTree) {
+func (gft *GoFast) getMethodTree(method string) (tree *methodTree) {
 	switch method[0] {
 	case 'P':
 		if method[1] == 'O' {
-			tree = ft.treePost
+			tree = gft.treePost
 		} else {
-			tree = ft.treeOthers.getTree(method)
+			tree = gft.treeOthers.getTree(method)
 		}
 	case 'G':
-		tree = ft.treeGet
+		tree = gft.treeGet
 	default:
-		tree = ft.treeOthers.getTree(method)
+		tree = gft.treeOthers.getTree(method)
 	}
 	return
 }

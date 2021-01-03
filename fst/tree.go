@@ -14,7 +14,7 @@ const (
 type methodTree struct {
 	method     string
 	root       *radixNode
-	miniRoot   *miniNode
+	miniRoot   *radixMiniNode
 	nodeCt     uint16
 	nodeStrLen uint16
 }
@@ -30,7 +30,7 @@ func (trees methodTrees) getTreeRoot(method string) *radixNode {
 	return nil
 }
 
-func (trees methodTrees) getTreeMiniRoot(method string) *miniNode {
+func (trees methodTrees) getTreeMiniRoot(method string) *radixMiniNode {
 	tree := trees.getTree(method)
 	if tree != nil {
 		return tree.miniRoot

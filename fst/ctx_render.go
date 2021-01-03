@@ -1,8 +1,13 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a BSD-style license
 package fst
 
 import (
+	"errors"
 	"fmt"
+	"gofast/fst/binding"
 	"gofast/fst/render"
+	"gofast/fst/sse"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -110,7 +115,7 @@ func (c *Context) Render(code int, r render.Render) {
 //// It also updates the HTTP code and sets the Content-Type as "text/html".
 //// See http://golang.org/doc/articles/wiki/
 func (c *Context) HTML(code int, name string, obj interface{}) {
-	instance := c.faster.HTMLRender.Instance(name, obj)
+	instance := c.gftApp.HTMLRender.Instance(name, obj)
 	c.Render(code, instance)
 }
 
@@ -126,7 +131,7 @@ func (c *Context) IndentedJSON(code int, obj interface{}) {
 // Default prepends "while(1)," to response body if the given struct is array values.
 // It also sets the Content-Type as "application/json".
 func (c *Context) SecureJSON(code int, obj interface{}) {
-	c.Render(code, render.SecureJSON{Prefix: c.faster.secureJsonPrefix, Data: obj})
+	c.Render(code, render.SecureJSON{Prefix: c.gftApp.SecureJsonPrefix, Data: obj})
 }
 
 // JSONP serializes the given struct as JSON into the response body.
@@ -230,105 +235,105 @@ func (c *Context) FileAttachment(filepath, filename string) {
 	http.ServeFile(c.Reply, c.Request, filepath)
 }
 
-//
-//// SSEvent writes a Server-Sent Event into the body stream.
-//func (c *Context) SSEvent(name string, message interface{}) {
-//	c.Render(-1, sse.Event{
-//		Event: name,
-//		Data:  message,
-//	})
-//}
-//
-//// Stream sends a streaming response and returns a boolean
-//// indicates "Is client disconnected in middle of stream"
-//func (c *Context) Stream(step func(w io.Res) bool) bool {
-//	w := c.Reply
-//	clientGone := w.CloseNotify()
-//	for {
-//		select {
-//		case <-clientGone:
-//			return true
-//		default:
-//			keepOpen := step(w)
-//			w.Flush()
-//			if !keepOpen {
-//				return false
-//			}
-//		}
-//	}
-//}
 
-///************************************/
-///******** CONTENT NEGOTIATION *******/
-///************************************/
-//
-//// Negotiate contains all negotiations data.
-//type Negotiate struct {
-//	Offered  []string
-//	HTMLName string
-//	HTMLData interface{}
-//	JSONData interface{}
-//	XMLData  interface{}
-//	YAMLData interface{}
-//	Data     interface{}
-//}
-//
-//// Negotiate calls different Render according acceptable Accept format.
-//func (c *Context) Negotiate(code int, config Negotiate) {
-//	switch c.NegotiateFormat(config.Offered...) {
-//	case binding.MIMEJSON:
-//		data := chooseData(config.JSONData, config.Data)
-//		c.JSON(code, data)
-//
-//	case binding.MIMEHTML:
-//		data := chooseData(config.HTMLData, config.Data)
-//		c.HTML(code, config.HTMLName, data)
-//
-//	case binding.MIMEXML:
-//		data := chooseData(config.XMLData, config.Data)
-//		c.XML(code, data)
-//
-//	case binding.MIMEYAML:
-//		data := chooseData(config.YAMLData, config.Data)
-//		c.YAML(code, data)
-//
-//	default:
-//		c.AbortWithError(http.StatusNotAcceptable, errors.New("the accepted formats are not offered by the server")) // nolint: errcheck
-//	}
-//}
-//
-//// NegotiateFormat returns an acceptable Accept format.
-//func (c *Context) NegotiateFormat(offered ...string) string {
-//	assert1(len(offered) > 0, "you must provide at least one offer")
-//
-//	if c.Accepted == nil {
-//		c.Accepted = parseAccept(c.requestHeader("Accept"))
-//	}
-//	if len(c.Accepted) == 0 {
-//		return offered[0]
-//	}
-//	for _, accepted := range c.Accepted {
-//		for _, offer := range offered {
-//			// According to RFC 2616 and RFC 2396, non-ASCII characters are not allowed in headers,
-//			// therefore we can just iterate over the string without casting it into []rune
-//			i := 0
-//			for ; i < len(accepted); i++ {
-//				if accepted[i] == '*' || offer[i] == '*' {
-//					return offer
-//				}
-//				if accepted[i] != offer[i] {
-//					break
-//				}
-//			}
-//			if i == len(accepted) {
-//				return offer
-//			}
-//		}
-//	}
-//	return ""
-//}
-//
-//// SetAccepted sets Accept header data.
-//func (c *Context) SetAccepted(formats ...string) {
-//	c.Accepted = formats
-//}
+// SSEvent writes a Server-Sent Event into the body stream.
+func (c *Context) SSEvent(name string, message interface{}) {
+	c.Render(-1, sse.Event{
+		Event: name,
+		Data:  message,
+	})
+}
+
+// Stream sends a streaming response and returns a boolean
+// indicates "Is client disconnected in middle of stream"
+func (c *Context) Stream(step func(w io.Writer) bool) bool {
+	w := c.Reply
+	clientGone := w.CloseNotify()
+	for {
+		select {
+		case <-clientGone:
+			return true
+		default:
+			keepOpen := step(w)
+			w.Flush()
+			if !keepOpen {
+				return false
+			}
+		}
+	}
+}
+
+/************************************/
+/******** CONTENT NEGOTIATION *******/
+/************************************/
+
+// Negotiate contains all negotiations data.
+type Negotiate struct {
+	Offered  []string
+	HTMLName string
+	HTMLData interface{}
+	JSONData interface{}
+	XMLData  interface{}
+	YAMLData interface{}
+	Data     interface{}
+}
+
+// Negotiate calls different Render according acceptable Accept format.
+func (c *Context) Negotiate(code int, config Negotiate) {
+	switch c.NegotiateFormat(config.Offered...) {
+	case binding.MIMEJSON:
+		data := chooseData(config.JSONData, config.Data)
+		c.JSON(code, data)
+
+	case binding.MIMEHTML:
+		data := chooseData(config.HTMLData, config.Data)
+		c.HTML(code, config.HTMLName, data)
+
+	case binding.MIMEXML:
+		data := chooseData(config.XMLData, config.Data)
+		c.XML(code, data)
+
+	case binding.MIMEYAML:
+		data := chooseData(config.YAMLData, config.Data)
+		c.YAML(code, data)
+
+	default:
+		c.AbortWithError(http.StatusNotAcceptable, errors.New("the accepted formats are not offered by the server")) // nolint: errcheck
+	}
+}
+
+// NegotiateFormat returns an acceptable Accept format.
+func (c *Context) NegotiateFormat(offered ...string) string {
+	assert1(len(offered) > 0, "you must provide at least one offer")
+
+	if c.Accepted == nil {
+		c.Accepted = parseAccept(c.requestHeader("Accept"))
+	}
+	if len(c.Accepted) == 0 {
+		return offered[0]
+	}
+	for _, accepted := range c.Accepted {
+		for _, offer := range offered {
+			// According to RFC 2616 and RFC 2396, non-ASCII characters are not allowed in headers,
+			// therefore we can just iterate over the string without casting it into []rune
+			i := 0
+			for ; i < len(accepted); i++ {
+				if accepted[i] == '*' || offer[i] == '*' {
+					return offer
+				}
+				if accepted[i] != offer[i] {
+					break
+				}
+			}
+			if i == len(accepted) {
+				return offer
+			}
+		}
+	}
+	return ""
+}
+
+// SetAccepted sets Accept header data.
+func (c *Context) SetAccepted(formats ...string) {
+	c.Accepted = formats
+}

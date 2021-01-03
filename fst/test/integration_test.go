@@ -29,7 +29,7 @@ var thirdSeg = [1]string{":third"}
 var forthSeg = [10]string{"third2", "chende2", "shuo2", "no2", "finished2", "xin2", "kankan2", "yes2", "child2", "tidy2"}
 
 // routeCt <= 10 && >= 1
-func addRoutes(gp *fst.RouterGroup, routeCt int, hd fst.CHandler) {
+func addRoutes(gp *fst.HomeSite, routeCt int, hd fst.CtxHandler) {
 	var a, b, c, d string
 	for i := 0; i < routeCt; i++ {
 		a = "/" + firstSeg[i]
@@ -46,29 +46,29 @@ func addRoutes(gp *fst.RouterGroup, routeCt int, hd fst.CHandler) {
 	}
 }
 
-func addUseHandlers(home *fst.RouterGroup, ct int) {
+func addUseHandlers(home *fst.HomeSite, ct int) {
 	for i := 0; i < ct; i++ {
 		home.Before(fstHandle)
 	}
 }
 
-var app *fst.Faster
+var gft *fst.GoFast
 
 func initServer() {
 	// 新建Server
-	app2, home := fst.CreateServer(&fst.FConfig{
-		CurrMode: fst.ProductMode,
+	app2, home := fst.CreateServer(&fst.AppConfig{
+		RunMode: fst.ProductMode,
 	})
-	app = app2
+	gft = app2
 	addUseHandlers(home, 10)
 	addRoutes(home, 10, fstHandle)
-	app.ReadyToListen()
+	gft.ReadyToListen()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func BenchmarkGoFastWeb(b *testing.B) {
 	r, _ := http.NewRequest("GET", "/first/xin/no/chende2", nil)
-	benchRequest(b, app, r)
+	benchRequest(b, gft, r)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

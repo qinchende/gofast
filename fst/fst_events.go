@@ -1,3 +1,5 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a BSD-style license
 package fst
 
 const (
@@ -7,29 +9,26 @@ const (
 )
 
 type appEvents struct {
-	eReadyHds FHandlers
-	eRouteHds FHandlers
-	eCloseHds FHandlers
+	eReadyHds AppHandlers
+	eRouteHds AppHandlers
+	eCloseHds AppHandlers
 }
 
-func (ft *Faster) On(eType string, handles ...FHandler) {
+func (gft *GoFast) On(eType string, handles ...AppHandler) {
 	switch eType {
 	case EReady:
-		ft.eReadyHds = append(ft.eReadyHds, handles...)
+		gft.eReadyHds = append(gft.eReadyHds, handles...)
 	case ERoute:
-		ft.eRouteHds = append(ft.eRouteHds, handles...)
+		gft.eRouteHds = append(gft.eRouteHds, handles...)
 	case EClose:
-		ft.eCloseHds = append(ft.eCloseHds, handles...)
+		gft.eCloseHds = append(gft.eCloseHds, handles...)
 	default:
 		panic("Server event type error, can't find this type.")
 	}
 }
 
-func (ft *Faster) execHandlers(hds FHandlers) {
+func (gft *GoFast) execHandlers(hds AppHandlers) {
 	for i, hLen := 0, len(hds); i < hLen; i++ {
-		hds[i](ft)
+		hds[i](gft)
 	}
-	//for _, next := range hds {
-	//	next(ft)
-	//}
 }

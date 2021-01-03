@@ -1,3 +1,5 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a BSD-style license
 package fst
 
 import (
@@ -6,10 +8,12 @@ import (
 	"strings"
 )
 
-func (gp *RouterGroup) AddGroup(relPath string, handlers ...CHandler) *RouterGroup {
+func (gp *RouterGroup) AddGroup(relPath string, handlers ...CtxHandler) *RouterGroup {
+	// TODO：如果分组已经存在，需要报错
 	gpNew := &RouterGroup{
 		prefix: gp.fixAbsolutePath(relPath),
-		faster: gp.faster,
+		gftApp: gp.gftApp,
+		hdsGroupIdx: -1,
 	}
 	gp.children = append(gp.children, gpNew)
 	return gpNew
@@ -60,7 +64,7 @@ func (gp *RouterGroup) StaticFS(relPath string, fs http.FileSystem) *RouterGroup
 	return gp
 }
 
-func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) CHandler {
+func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) CtxHandler {
 	absPath := gp.fixAbsolutePath(relPath)
 	fileServer := http.StripPrefix(absPath, http.FileServer(fs))
 
@@ -74,8 +78,9 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 		f, err := fs.Open(file)
 		if err != nil {
 			c.Reply.WriteHeader(http.StatusNotFound)
-			//c.handlers = gp.faster.noRoute
-			// Reset index
+			//c.handlers = gp.gftApp.noRoute
+			//// Reset index
+			//c.index = -1
 			return
 		}
 		f.Close()
@@ -87,12 +92,3 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 func (gp *RouterGroup) fixAbsolutePath(relPath string) string {
 	return joinPaths(gp.prefix, relPath)
 }
-
-//
-//func (ft *Faster) rebuild404Handlers() {
-//	ft.allNoRoute = ft.combineHandlers(ft.noRoute)
-//}
-//
-//func (ft *Faster) rebuild405Handlers() {
-//	ft.allNoMethod = ft.combineHandlers(ft.noMethod)
-//}
