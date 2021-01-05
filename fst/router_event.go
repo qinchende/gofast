@@ -4,58 +4,45 @@ package fst
 
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
-	EValid     = "onValid"
+	EPreValid  = "onPreValid"
 	EBefore    = "onBefore"
-	EHandler   = "onHandler"
+	//EHandler   = "onHandler"
 	EAfter     = "onAfter"
-	ESend      = "onSend"
+	EPreSend   = "onPreSend"
 	EAfterSend = "onAfterSend"
-
-	EPreHandler       = "onPreHandler"
-	EPreSerialization = "onPreSerialization"
-	ERequest          = "onRequest"
-	EPreParsing       = "onPreParsing"
-	ETimeout          = "onTimeout"
-	EError            = "onError"
 )
 
-// 分组只能通过这里注册事件处理函数
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 Context handlers 都要通过此函数来注册
-func (gp *RouterGroup) eventRegister(eType string, hds CtxHandlers) *RouterGroup {
+// 包括 RouterGroup 和 RouterItem
+func (re *routeEvents) RegCtxHandler(eType string, hds CtxHandlers) *routeEvents {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
 
 	switch eType {
-	case EHandler:
-		gp.eHds = append(gp.eHds, addCtxHandlers(hds)...)
+	case EPreValid:
+		re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(hds)...)
 	case EBefore:
-		gp.eBeforeHds = append(gp.eBeforeHds, addCtxHandlers(hds)...)
+		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(hds)...)
+	//case EHandler:
+	//	re.eHds = append(re.eHds, addCtxHandlers(hds)...)
 	case EAfter:
-		gp.eAfterHds = append(gp.eAfterHds, addCtxHandlers(hds)...)
-
-	//case ERequest:
-	//	gp.eRequestHds = append(gp.eRequestHds, addCtxHandlers(hds)...)
-	//case EPreParsing:
-	//	gp.ePreHandlerHds = append(gp.ePreHandlerHds, addCtxHandlers(hds)...)
-	case EValid:
-		gp.eValidHds = append(gp.eValidHds, addCtxHandlers(hds)...)
-	//case EPreHandler:
-	//	gp.ePreHandlerHds = append(gp.ePreHandlerHds, addCtxHandlers(hds)...)
-	//case EPreSerialization:
-	//	gp.ePreSerializationHds = append(gp.ePreSerializationHds, addCtxHandlers(hds)...)
-	case ESend:
-		gp.eSendHds = append(gp.eSendHds, addCtxHandlers(hds)...)
-	//case EAfterSend:
-	//	gp.eAfterSendHds = append(gp.eAfterSendHds, addCtxHandlers(hds)...)
+		re.eAfterHds = append(re.eAfterHds, addCtxHandlers(hds)...)
+	case EPreSend:
+		re.ePreSendHds = append(re.ePreSendHds, addCtxHandlers(hds)...)
 	case EAfterSend:
-		gp.eAfterSendHds = append(gp.eAfterSendHds, addCtxHandlers(hds)...)
-	//case ETimeout:
-	//	gp.eTimeoutHds = append(gp.eTimeoutHds, addCtxHandlers(hds)...)
-	//case EError:
-	//	gp.eErrorHds = append(gp.eErrorHds, addCtxHandlers(hds)...)
+		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(hds)...)
+
 	default:
 		panic("Event type error, can't find this type.")
 	}
 
+	return re
+}
+
+// RouterGroup
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (gp *RouterGroup) regGroupCtxHandler(eType string, hds CtxHandlers) *RouterGroup {
+	gp.RegCtxHandler(eType, hds)
 	// 记录分组中一共加入的 处理 函数个数
 	gp.selfHdsLen += uint16(len(hds))
 	return gp
@@ -63,83 +50,49 @@ func (gp *RouterGroup) eventRegister(eType string, hds CtxHandlers) *RouterGroup
 
 // 注册节点的所有事件
 func (gp *RouterGroup) Before(hds ...CtxHandler) *RouterGroup {
-	return gp.eventRegister(EBefore, hds)
+	return gp.regGroupCtxHandler(EBefore, hds)
 }
 
 func (gp *RouterGroup) After(hds ...CtxHandler) *RouterGroup {
-	return gp.eventRegister(EAfter, hds)
+	return gp.regGroupCtxHandler(EAfter, hds)
 }
 
-func (gp *RouterGroup) Valid(hds ...CtxHandler) *RouterGroup {
-	return gp.eventRegister(EValid, hds)
+func (gp *RouterGroup) PreValid(hds ...CtxHandler) *RouterGroup {
+	return gp.regGroupCtxHandler(EPreValid, hds)
 }
 
 func (gp *RouterGroup) Send(hds ...CtxHandler) *RouterGroup {
-	return gp.eventRegister(ESend, hds)
+	return gp.regGroupCtxHandler(EPreSend, hds)
 }
 
 func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
-	return gp.eventRegister(EAfterSend, hds)
+	return gp.regGroupCtxHandler(EAfterSend, hds)
 }
 
+// RouterItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-// 所有注册的 Context handlers 都要通过此函数来注册
-func (ri *RouterItem) itemRegister(eType string, hds CtxHandlers) *RouterItem {
-	ifPanic(len(hds) <= 0, "there must be at least one handler")
-
-	switch eType {
-	case EHandler:
-		ri.eHds = append(ri.eHds, addCtxHandlers(hds)...)
-	case EBefore:
-		ri.eBeforeHds = append(ri.eBeforeHds, addCtxHandlers(hds)...)
-	case EAfter:
-		ri.eAfterHds = append(ri.eAfterHds, addCtxHandlers(hds)...)
-
-	//case ERequest:
-	//	ri.eRequestHds = append(ri.eRequestHds, addCtxHandlers(hds)...)
-	//case EPreParsing:
-	//	ri.ePreHandlerHds = append(ri.ePreHandlerHds, addCtxHandlers(hds)...)
-	case EValid:
-		ri.eValidHds = append(ri.eValidHds, addCtxHandlers(hds)...)
-	//case EPreHandler:
-	//	ri.ePreHandlerHds = append(ri.ePreHandlerHds, addCtxHandlers(hds)...)
-	//case EPreSerialization:
-	//	ri.ePreSerializationHds = append(ri.ePreSerializationHds, addCtxHandlers(hds)...)
-	case ESend:
-		ri.eSendHds = append(ri.eSendHds, addCtxHandlers(hds)...)
-	//case EAfterSend:
-	//	ri.eAfterSendHds = append(ri.eAfterSendHds, addCtxHandlers(hds)...)
-	case EAfterSend:
-		ri.eAfterSendHds = append(ri.eAfterSendHds, addCtxHandlers(hds)...)
-	//case ETimeout:
-	//	ri.eTimeoutHds = append(ri.eTimeoutHds, addCtxHandlers(hds)...)
-	//case EError:
-	//	ri.eErrorHds = append(ri.eErrorHds, addCtxHandlers(hds)...)
-	default:
-		panic("Event type error, can't find this type.")
-	}
-
+func (ri *RouterItem) regItemCtxHandler(eType string, hds CtxHandlers) *RouterItem {
+	ri.RegCtxHandler(eType, hds)
 	return ri
 }
 
 // 注册节点的所有事件
 func (ri *RouterItem) Before(hds ...CtxHandler) *RouterItem {
-	return ri.itemRegister(EBefore, hds)
+	return ri.regItemCtxHandler(EBefore, hds)
 }
 
 func (ri *RouterItem) After(hds ...CtxHandler) *RouterItem {
-	return ri.itemRegister(EAfter, hds)
+	return ri.regItemCtxHandler(EAfter, hds)
 }
 
-func (ri *RouterItem) Valid(hds ...CtxHandler) *RouterItem {
-	return ri.itemRegister(EValid, hds)
+func (ri *RouterItem) PreValid(hds ...CtxHandler) *RouterItem {
+	return ri.regItemCtxHandler(EPreValid, hds)
 }
 
 func (ri *RouterItem) Send(hds ...CtxHandler) *RouterItem {
-	return ri.itemRegister(ESend, hds)
+	return ri.regItemCtxHandler(EPreSend, hds)
 }
 
 func (ri *RouterItem) AfterSend(hds ...CtxHandler) *RouterItem {
-	return ri.itemRegister(EAfterSend, hds)
+	return ri.regItemCtxHandler(EAfterSend, hds)
 }

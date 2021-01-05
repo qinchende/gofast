@@ -54,6 +54,8 @@ func (n *radixNode) regSegment(mTree *methodTree, seg string, ri *RouterItem) {
 	// 匹配之后剩余的 seg, 要成为 n 的一个子节点
 	if i < len(seg) {
 		seg = seg[i:]
+		// fix by sdx on 2021.01.06
+		// n.regSegment(mTree, seg, ri)
 		n.addNormalChild(mTree, seg, ri)
 		return
 	}
@@ -95,7 +97,7 @@ func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *Router
 
 // 只能添加 wildcard path
 func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouterItem) {
-	ifPanic(n.children != nil, "当前节点已含有子节点，不可能再加入能通配的路由")
+	ifPanic(n.children != nil || n.routerItem != nil, spf("已存在%s，不可能再加入%s", n.match, seg))
 
 	emptySub := &radixNode{}
 	mTree.nodeCt++
@@ -104,8 +106,9 @@ func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouterItem) 
 	emptySub.bindSegment(mTree, seg, ri)
 }
 
+// 只能添加 非 wildcard path
 func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem) {
-	c := seg[0]
+	ifPanic(isBeginWildcard(seg), spf("当前路由'%s'与已注册的'%s'冲突\n", seg, n.match))
 
 	// 如果子节点是通配符节点，直接循环下一次
 	if n.wildChild {
@@ -113,6 +116,7 @@ func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem
 		return
 	}
 
+	c := seg[0]
 	// 查询当前节点的子节点是否有可能已存在的分支
 	lenIdx := len(n.indices)
 	for i := 0; i < lenIdx; i++ {
@@ -136,7 +140,7 @@ func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem
 // path: /xxx/:name/age
 // path: wx/:name/xxx/*others
 // path: /:name/xxx/*others
-// path: :name/xxx/*others ->可能吗？不可能是这种！
+// path: :name/xxx/*others ->可能吗？不可能是这种！# 如果出现就是出错了（2021.01.06）
 func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouterItem) {
 	var wildCt, slashCt, lastI int
 	var wildParts []string

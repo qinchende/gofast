@@ -71,6 +71,7 @@ func (n *radixNode) rebuildNode(idx uint16) {
 	newMini.nType = n.nType
 	//newMini.wildChild = n.wildChild
 }
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 重建特殊节点
 func rebuildDefaultHandlers(home *HomeSite) {
@@ -174,8 +175,8 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 		hdsCount := 0
 
 		// TODO: 这里要补充完整所有的事件类型
-		hdsCount += len(gp.eValidHds)
-		chGroup.eValidHds = combineHandlers(gp.eValidHds, chGroup.eValidHds)
+		hdsCount += len(gp.ePreValidHds)
+		chGroup.ePreValidHds = combineHandlers(gp.ePreValidHds, chGroup.ePreValidHds)
 
 		hdsCount += len(gp.eBeforeHds)
 		chGroup.eBeforeHds = combineHandlers(gp.eBeforeHds, chGroup.eBeforeHds)
@@ -185,8 +186,8 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 		hdsCount += len(gp.eAfterHds)
 		chGroup.eAfterHds = append(chGroup.eAfterHds, gp.eAfterHds...)
 
-		hdsCount += len(gp.eSendHds)
-		chGroup.eSendHds = append(chGroup.eSendHds, gp.eSendHds...)
+		hdsCount += len(gp.ePreSendHds)
+		chGroup.ePreSendHds = append(chGroup.ePreSendHds, gp.ePreSendHds...)
 
 		hdsCount += len(gp.eAfterSendHds)
 		chGroup.eAfterSendHds = append(chGroup.eAfterSendHds, gp.eAfterSendHds...)
@@ -235,8 +236,8 @@ func setNewNode(re *routeEvents) {
 	node.hdsLen, node.hdsIdx = tidyEventHandlers(&re.eHds)
 	node.beforeLen, node.beforeIdx = tidyEventHandlers(&re.eBeforeHds)
 	node.afterLen, node.afterIdx = tidyEventHandlers(&re.eAfterHds)
-	node.validLen, node.validIdx = tidyEventHandlers(&re.eValidHds)
-	node.sendLen, node.sendIdx = tidyEventHandlers(&re.eSendHds)
+	node.validLen, node.validIdx = tidyEventHandlers(&re.ePreValidHds)
+	node.sendLen, node.sendIdx = tidyEventHandlers(&re.ePreSendHds)
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(&re.eAfterSendHds)
 }
 
@@ -258,15 +259,15 @@ func tidyEventHandlers(hds *[]uint16) (ct uint8, startIdx uint16) {
 //	gp := ri.parent
 //
 //	node.startIdx = fstMem.hdsListLen
-//	node.hdsLen += tidyEventHandlersMini(&gp.eValidHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.eValidHds)
+//	node.hdsLen += tidyEventHandlersMini(&gp.ePreValidHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.ePreValidHds)
 //	node.hdsLen += tidyEventHandlersMini(&gp.eBeforeHds)
 //	node.hdsLen += tidyEventHandlersMini(&ri.eBeforeHds)
 //	node.hdsLen += tidyEventHandlersMini(&ri.eHds)
 //	node.hdsLen += tidyEventHandlersMini(&ri.eAfterHds)
 //	node.hdsLen += tidyEventHandlersMini(&gp.eAfterHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.eSendHds)
-//	node.hdsLen += tidyEventHandlersMini(&gp.eSendHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.ePreSendHds)
+//	node.hdsLen += tidyEventHandlersMini(&gp.ePreSendHds)
 //	//node.hdsLen += tidyEventHandlersMini(&ri.eResponseHds)
 //	//node.hdsLen += tidyEventHandlersMini(&gp.eResponseHds)
 //

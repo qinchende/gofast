@@ -75,6 +75,23 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 		gp.afterSendIdx++
 	}
 }
+//
+//func (c *Context) execPreValidHandlers(ptrMini *radixMiniNode) {
+//	it := fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
+//	gp := fstMem.hdsMiniNodes[ptrMini.hdsGroupIdx]
+//
+//	// 1.valid
+//	for gp.validLen > 0 {
+//		fstMem.hdsList[gp.validIdx](c)
+//		gp.validLen--
+//		gp.validIdx++
+//	}
+//	for it.validLen > 0 {
+//		fstMem.hdsList[it.validIdx](c)
+//		it.validLen--
+//		it.validIdx++
+//	}
+//}
 
 // 方案2. 基于已经将所有的事件函数组织成了一个有序的索引数组。只需要一次循环就执行所有的中间件函数
 // 这种实现其实不现实，不同类型的事件是在框架封装过程中分开执行的

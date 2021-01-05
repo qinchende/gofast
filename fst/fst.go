@@ -3,14 +3,22 @@
 package fst
 
 import (
+	"context"
+	"fmt"
 	"gofast/skill"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"sync"
+	"syscall"
+	"time"
 )
 
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
+	srv *http.Server
 	*AppConfig
 	appEvents
 
@@ -77,14 +85,49 @@ func (gft *GoFast) ReadyToListen() {
 	gft.execHandlers(gft.eReadyHds)
 }
 
+//func (gft *GoFast) Listen(addr ...string) (err error) {
+//	gft.ReadyToListen()
+//
+//	defer func() { skill.DebugPrintError(err) }()
+//	err = http.ListenAndServe(skill.ResolveAddress(addr), gft)
+//	return
+//}
+
 // 第二步：启动端口监听
 // 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
 func (gft *GoFast) Listen(addr ...string) (err error) {
 	gft.ReadyToListen()
 
 	defer func() { skill.DebugPrintError(err) }()
-	err = http.ListenAndServe(skill.ResolveAddress(addr), gft)
+	gft.srv = &http.Server{Addr: skill.ResolveAddress(addr), Handler: gft}
+
+	// 设置关闭前等待时间
+	go func() {
+		err = gft.srv.ListenAndServe()
+	}()
+	gft.GracefulShutdown()
 	return
+}
+
+// 优雅关闭
+func (gft *GoFast) GracefulShutdown() {
+	quit := make(chan os.Signal)
+	// kill (no param) default send syscanll.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown Server ...")
+
+	// 执行 onClose 事件订阅函数
+	gft.execHandlers(gft.eCloseHds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Second)
+	defer cancel()
+	if err := gft.srv.Shutdown(ctx); err != nil {
+		fmt.Sprintln("Server Shutdown Error: ", err)
+	}
+	<-ctx.Done()
 }
 
 // http服务器，所有请求的入口，底层是用 goroutine 发起的一个协程任务

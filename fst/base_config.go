@@ -13,6 +13,7 @@ type AppConfig struct {
 	SecureJsonPrefix       string
 	HTMLRender             render.HTMLRender
 	MaxMultipartMemory     int64
+	SecondsBeforeShutdown  int64
 	RedirectTrailingSlash  bool
 	RedirectFixedPath      bool
 	HandleMethodNotAllowed bool

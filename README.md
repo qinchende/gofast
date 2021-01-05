@@ -30,16 +30,25 @@ import (
 	"net/http"
 )
 
+var handler = func(str string) func(ctx *fst.Context) {
+	return func(ctx *fst.Context) {
+		log.Println(str)
+	}
+}
+
 func main() {
 	app, home := fst.CreateServer(&fst.AppConfig{
 		PrintRouteTrees: true,
 		RunMode:         "debug",
 	})
-	var handler = func(str string) func(c *fst.Context) {
-		return func(c *fst.Context) {
-			log.Println(str)
-		}
-	}
+
+	// 应用级事件
+	app.OnReady(func(fast *fst.GoFast) {
+		log.Println("App OnReady Call.")
+	})
+	app.OnClose(func(fast *fst.GoFast) {
+		log.Println("App OnClose Call.")
+	})
 
 	// 根路由
 	home.NoRoute(func(ctx *fst.Context) {

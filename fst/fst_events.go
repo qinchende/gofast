@@ -4,22 +4,28 @@ package fst
 
 const (
 	EReady = "onReady"
-	ERoute = "onRoute"
+	//ERoute = "onRoute"
 	EClose = "onClose"
 )
 
 type appEvents struct {
 	eReadyHds AppHandlers
-	eRouteHds AppHandlers
+	//eRouteHds AppHandlers
 	eCloseHds AppHandlers
+}
+
+func (gft *GoFast) execHandlers(hds AppHandlers) {
+	for i, hLen := 0, len(hds); i < hLen; i++ {
+		hds[i](gft)
+	}
 }
 
 func (gft *GoFast) On(eType string, handles ...AppHandler) {
 	switch eType {
 	case EReady:
 		gft.eReadyHds = append(gft.eReadyHds, handles...)
-	case ERoute:
-		gft.eRouteHds = append(gft.eRouteHds, handles...)
+	//case ERoute:
+	//	gft.eRouteHds = append(gft.eRouteHds, handles...)
 	case EClose:
 		gft.eCloseHds = append(gft.eCloseHds, handles...)
 	default:
@@ -27,8 +33,10 @@ func (gft *GoFast) On(eType string, handles ...AppHandler) {
 	}
 }
 
-func (gft *GoFast) execHandlers(hds AppHandlers) {
-	for i, hLen := 0, len(hds); i < hLen; i++ {
-		hds[i](gft)
-	}
+func (gft *GoFast) OnReady(hds ...AppHandler) {
+	gft.On(EReady, hds...)
+}
+
+func (gft *GoFast) OnClose(hds ...AppHandler) {
+	gft.On(EClose, hds...)
 }

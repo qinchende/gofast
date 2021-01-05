@@ -7,20 +7,12 @@ package fst
 // 事件要尽量少一些，每个路由节点都要分配一个对象
 type routeEvents struct {
 	// 下面的事件类型，按照执行顺序排列
-	eValidHds     []uint16
+	ePreValidHds  []uint16
 	eBeforeHds    []uint16
 	eHds          []uint16
 	eAfterHds     []uint16
-	eSendHds      []uint16
+	ePreSendHds   []uint16
 	eAfterSendHds []uint16
-
-	//eRequestHds          []uint16
-	//ePreParsingHds       []uint16
-	//ePreHandlerHds    []uint16
-	//ePreSerializationHds []uint16
-	//eAfterSendHds []uint16
-	//eTimeoutHds          []uint16
-	//eErrorHds            []uint16
 }
 
 type RouterGroup struct {
@@ -28,8 +20,8 @@ type RouterGroup struct {
 	gftApp       *GoFast
 	prefix       string
 	children     []*RouterGroup
-	hdsGroupIdx  int16 	// 记录当前分组 对应新事件数组中的起始位置索引
-	selfHdsLen   uint16	//
+	hdsGroupIdx  int16  // 记录当前分组 对应新事件数组中的起始位置索引
+	selfHdsLen   uint16 //
 	parentHdsLen uint16 //
 }
 
