@@ -38,14 +38,14 @@ type handlersNode struct {
 	beforeIdx    uint16
 	hdsIdx       uint16
 	afterIdx     uint16
-	sendIdx      uint16
+	preSendIdx   uint16
 	afterSendIdx uint16
 
 	validLen     uint8
 	beforeLen    uint8
 	afterLen     uint8
 	hdsLen       uint8
-	sendLen      uint8
+	preSendLen   uint8
 	afterSendLen uint8
 }
 

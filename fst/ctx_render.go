@@ -94,11 +94,12 @@ func (c *Context) Cookie(name string) (string, error) {
 	return val, nil
 }
 
-//
 // Render writes the response headers and calls render.Render to render data.
 func (c *Context) Render(code int, r render.Render) {
-	c.Status(code)
+	// add preSend & afterSend events by sdx on 2021.01.06
+	c.execPreSendHandlers()
 
+	c.Status(code)
 	if !bodyAllowedForStatus(code) {
 		r.WriteContentType(c.Reply)
 		c.Reply.WriteHeaderNow()
@@ -108,12 +109,13 @@ func (c *Context) Render(code int, r render.Render) {
 	if err := r.Render(c.Reply); err != nil {
 		panic(err)
 	}
+	// add preSend & afterSend events by sdx on 2021.01.06
+	c.execAfterSendHandlers()
 }
 
-//
-//// HTML renders the HTTP template specified by its file name.
-//// It also updates the HTTP code and sets the Content-Type as "text/html".
-//// See http://golang.org/doc/articles/wiki/
+// HTML renders the HTTP template specified by its file name.
+// It also updates the HTTP code and sets the Content-Type as "text/html".
+// See http://golang.org/doc/articles/wiki/
 func (c *Context) HTML(code int, name string, obj interface{}) {
 	instance := c.gftApp.HTMLRender.Instance(name, obj)
 	c.Render(code, instance)
@@ -234,7 +236,6 @@ func (c *Context) FileAttachment(filepath, filename string) {
 	c.Reply.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	http.ServeFile(c.Reply, c.Request, filepath)
 }
-
 
 // SSEvent writes a Server-Sent Event into the body stream.
 func (c *Context) SSEvent(name string, message interface{}) {

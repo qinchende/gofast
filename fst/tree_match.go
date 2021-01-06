@@ -2,15 +2,15 @@
 // Use of this source code is governed by a BSD-style license
 package fst
 
-type matchVal struct {
+type matchResult struct {
 	ptrNode *radixMiniNode
 	params  Params
 	tsr     bool // 是否可以通过重定向，URL最后加入一个 ‘/’ 访问到有处理函数的节点
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，避免函数调用的开销
-func (n *radixMiniNode) matchRoute(path string, p Params) (ret matchVal) {
-	ret.params = p
+func (n *radixMiniNode) matchRoute(path string, mr *matchResult) {
+	//ret.params = p
 nextLoop:
 	var pLen = uint8(len(path))
 	// 当前是通配符节点
@@ -32,7 +32,7 @@ nextLoop:
 		if hasSlash {
 			switch n.nType {
 			case param:
-				ret.params = append(ret.params, Param{Key: keyName, Value: path[:pos]})
+				mr.params = append(mr.params, Param{Key: keyName, Value: path[:pos]})
 
 				// 匹配后面的节点，后面肯定只能是一个 '/' 开头的节点
 				path = path[pos:]
@@ -50,8 +50,8 @@ nextLoop:
 			}
 		} else {
 			// 说明完全匹配当前 通配字段
-			ret.params = append(ret.params, Param{Key: keyName, Value: path})
-			ret.ptrNode = n
+			mr.params = append(mr.params, Param{Key: keyName, Value: path})
+			mr.ptrNode = n
 			return
 		}
 	}
@@ -73,7 +73,7 @@ nextLoop:
 	// 2. 当前节点所有字符都匹配成功，要开始查找下一个可能的节点
 	// 2.1 如果完全匹配了，已经找到节点
 	if n.matchLen == pLen {
-		ret.ptrNode = n
+		mr.ptrNode = n
 		return
 	}
 	if n.childLen <= 0 {

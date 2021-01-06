@@ -8,18 +8,6 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 	it := fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
 	gp := fstMem.hdsMiniNodes[ptrMini.hdsGroupIdx]
 
-	// 1.valid
-	for gp.validLen > 0 {
-		fstMem.hdsList[gp.validIdx](c)
-		gp.validLen--
-		gp.validIdx++
-	}
-	for it.validLen > 0 {
-		fstMem.hdsList[it.validIdx](c)
-		it.validLen--
-		it.validIdx++
-	}
-
 	// 2.before
 	for gp.beforeLen > 0 {
 		fstMem.hdsList[gp.beforeIdx](c)
@@ -50,18 +38,54 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 		gp.afterLen--
 		gp.afterIdx++
 	}
+}
 
-	// 5.send
-	for it.sendLen > 0 {
-		fstMem.hdsList[it.sendIdx](c)
-		it.sendLen--
-		it.sendIdx++
+func (c *Context) execPreValidHandlers() {
+	if c.matchRst.ptrNode == nil {
+		return
 	}
-	for gp.sendLen > 0 {
-		fstMem.hdsList[gp.sendIdx](c)
-		gp.sendLen--
-		gp.sendIdx++
+	it := fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
+	gp := fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
+
+	// 1.valid
+	for gp.validLen > 0 {
+		fstMem.hdsList[gp.validIdx](c)
+		gp.validLen--
+		gp.validIdx++
 	}
+	for it.validLen > 0 {
+		fstMem.hdsList[it.validIdx](c)
+		it.validLen--
+		it.validIdx++
+	}
+}
+
+func (c *Context) execPreSendHandlers() {
+	if c.matchRst.ptrNode == nil {
+		return
+	}
+	it := fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
+	gp := fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
+
+	// 5.preSend
+	for it.preSendLen > 0 {
+		fstMem.hdsList[it.preSendIdx](c)
+		it.preSendLen--
+		it.preSendIdx++
+	}
+	for gp.preSendLen > 0 {
+		fstMem.hdsList[gp.preSendIdx](c)
+		gp.preSendLen--
+		gp.preSendIdx++
+	}
+}
+
+func (c *Context) execAfterSendHandlers() {
+	if c.matchRst.ptrNode == nil {
+		return
+	}
+	it := fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
+	gp := fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
 
 	// 6.afterSend
 	for it.afterSendLen > 0 {
@@ -75,23 +99,6 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 		gp.afterSendIdx++
 	}
 }
-//
-//func (c *Context) execPreValidHandlers(ptrMini *radixMiniNode) {
-//	it := fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
-//	gp := fstMem.hdsMiniNodes[ptrMini.hdsGroupIdx]
-//
-//	// 1.valid
-//	for gp.validLen > 0 {
-//		fstMem.hdsList[gp.validIdx](c)
-//		gp.validLen--
-//		gp.validIdx++
-//	}
-//	for it.validLen > 0 {
-//		fstMem.hdsList[it.validIdx](c)
-//		it.validLen--
-//		it.validIdx++
-//	}
-//}
 
 // 方案2. 基于已经将所有的事件函数组织成了一个有序的索引数组。只需要一次循环就执行所有的中间件函数
 // 这种实现其实不现实，不同类型的事件是在框架封装过程中分开执行的

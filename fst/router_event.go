@@ -6,7 +6,7 @@ package fst
 const (
 	EPreValid  = "onPreValid"
 	EBefore    = "onBefore"
-	//EHandler   = "onHandler"
+	EHandler   = "onHandler"
 	EAfter     = "onAfter"
 	EPreSend   = "onPreSend"
 	EAfterSend = "onAfterSend"
@@ -61,7 +61,7 @@ func (gp *RouterGroup) PreValid(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EPreValid, hds)
 }
 
-func (gp *RouterGroup) Send(hds ...CtxHandler) *RouterGroup {
+func (gp *RouterGroup) PreSend(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EPreSend, hds)
 }
 
@@ -89,7 +89,7 @@ func (ri *RouterItem) PreValid(hds ...CtxHandler) *RouterItem {
 	return ri.regItemCtxHandler(EPreValid, hds)
 }
 
-func (ri *RouterItem) Send(hds ...CtxHandler) *RouterItem {
+func (ri *RouterItem) PreSend(hds ...CtxHandler) *RouterItem {
 	return ri.regItemCtxHandler(EPreSend, hds)
 }
 

@@ -30,9 +30,16 @@ import (
 	"net/http"
 )
 
-var handler = func(str string) func(ctx *fst.Context) {
-	return func(ctx *fst.Context) {
+var handler = func(str string) func(c *fst.Context) {
+	return func(c *fst.Context) {
 		log.Println(str)
+	}
+}
+
+var handlerRender = func(str string) func(c *fst.Context) {
+	return func(c *fst.Context) {
+		log.Println(str)
+		c.JSON(200, fst.KV{"data": str})
 	}
 }
 
@@ -40,14 +47,6 @@ func main() {
 	app, home := fst.CreateServer(&fst.AppConfig{
 		PrintRouteTrees: true,
 		RunMode:         "debug",
-	})
-
-	// 应用级事件
-	app.OnReady(func(fast *fst.GoFast) {
-		log.Println("App OnReady Call.")
-	})
-	app.OnClose(func(fast *fst.GoFast) {
-		log.Println("App OnClose Call.")
 	})
 
 	// 根路由
@@ -62,8 +61,15 @@ func main() {
 	home.Before(handler("before root")).After(handler("after root"))
 
 	// 分组路由1
-	adm := home.AddGroup("/admin").After(handler("after admin"))
-	adm.Get("/chende", handler("chende")).After(handler("after chende"))
+	adm := home.AddGroup("/admin")
+	adm.After(handler("after group admin")).Before(handler("before group admin"))
+
+	tst := adm.Get("/chende", handlerRender("handle chende"))
+	// 添加路由处理事件
+	tst.Before(handler("before tst_url"))
+	tst.After(handler("after tst_url"))
+	tst.PreSend(handler("preSend tst_url"))
+	tst.AfterSend(handler("afterSend tst_url"))
 
 	// 分组路由2
 	adm2 := home.AddGroup("/admin2").Before(handler("before admin2"))
@@ -72,9 +78,16 @@ func main() {
 	adm22 := adm2.AddGroup("/group2").Before(handler("before group2"))
 	adm22.Get("/lmx", handler("lmx")).Before(handler("before lmx"))
 
+	// 应用级事件
+	app.OnReady(func(fast *fst.GoFast) {
+		log.Println("App OnReady Call.")
+		log.Printf("Listening and serving HTTP on %s\n", "127.0.0.1:8099")
+	})
+	app.OnClose(func(fast *fst.GoFast) {
+		log.Println("App OnClose Call.")
+	})
 	// 开始监听接收请求
-	log.Printf("Listening and serving HTTP on %s\n", "127.0.0.1:8099")
-	log.Fatal(app.Listen("127.0.0.1:8099"))
+	app.Listen("127.0.0.1:8099")
 }
 
 ```
@@ -105,11 +118,45 @@ $ go run example.go
 浏览器输入网址访问地址：`127.0.0.1:8099/admin/chende`，日志会输出：
 
 ```
-2021/01/04 01:20:38 before root
-2021/01/04 01:20:38 chende
-2021/01/04 01:20:38 after chende
-2021/01/04 01:20:38 after admin
-2021/01/04 01:20:38 after root
+2021/01/06 17:35:40 before root
+2021/01/06 17:35:40 before group admin
+2021/01/06 17:35:40 before tst_url
+2021/01/06 17:35:40 handle chende
+2021/01/06 17:35:40 preSend tst_url
+2021/01/06 17:35:40 afterSend tst_url
+2021/01/06 17:35:40 after tst_url
+2021/01/06 17:35:40 after group admin
+2021/01/06 17:35:40 after root
+```
+
+## 核心特性
+
+#### 继承Gin的很多特性
+GoFast目前复用了Gin的很多特性，除特别说明之外，使用方式一样。
+
+#### 应用级事件
+
+应用启动之后，在开始监听端口之后调用OnReady事件，应用关闭退出之前调用OnClose事件
+```go
+app.OnReady(func(fast *fst.GoFast) {
+	log.Println("App OnReady Call.")
+	log.Printf("Listening and serving HTTP on %s\n", "127.0.0.1:8099")
+})
+
+app.OnClose(func(fast *fst.GoFast) {
+	log.Println("App OnClose Call.")
+})
+
+```
+
+#### 路由事件
+
+分组或路由项事件是一样的，现在支持下面四个，以后慢慢扩展和调整
+```go
+tst.Before(handler("before tst_url"))
+tst.After(handler("after tst_url"))
+tst.PreSend(handler("preSend tst_url"))
+tst.AfterSend(handler("afterSend tst_url"))
 ```
 
 （其它介绍陆续补充...）

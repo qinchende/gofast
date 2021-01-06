@@ -18,6 +18,7 @@ type Context struct {
 	Request   *http.Request
 	Params    Params
 	isAborted bool
+	matchRst  matchResult
 
 	// This mutex protect Keys map
 	mu sync.RWMutex
@@ -52,6 +53,11 @@ func (c *Context) reset() {
 	c.Params = c.Params[0:0]
 	c.isAborted = false
 
+	// add by sdx 2021.01.06
+	c.matchRst.ptrNode = nil
+	c.matchRst.params = c.Params
+	c.matchRst.tsr = false
+
 	c.Keys = nil
 	c.Errors = c.Errors[0:0]
 	c.Accepted = nil
@@ -68,6 +74,7 @@ func (c *Context) Copy() *Context {
 		resW:      c.resW,
 		Request:   c.Request,
 		Params:    c.Params,
+		matchRst:  c.matchRst,
 	}
 	cp.resW.ResponseWriter = nil
 	cp.Reply = &cp.resW

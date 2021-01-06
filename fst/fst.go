@@ -161,13 +161,15 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 看能不能找到 http method 对应的路由树
 	miniRoot := gft.getMethodMiniRoot(httpMethod)
 	if miniRoot != nil {
-		nodeVal := miniRoot.matchRoute(rPath, c.Params)
+		// 开始在路由树中匹配 url path
+		miniRoot.matchRoute(rPath, &c.matchRst)
+
 		// 如果能匹配到路径
-		if nodeVal.ptrNode != nil {
-			c.Params = nodeVal.params
+		if c.matchRst.ptrNode != nil {
+			c.Params = c.matchRst.params
 
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
-			c.execHandlers(nodeVal.ptrNode)
+			c.execHandlers(c.matchRst.ptrNode)
 			// 第二种方案
 			//c.execHandlersMini(nodeVal.ptrNode)
 
@@ -176,7 +178,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		}
 		// 匹配不到 先考虑 重定向
 		if httpMethod != "CONNECT" && rPath != "/" {
-			if nodeVal.tsr && gft.RedirectTrailingSlash {
+			if c.matchRst.tsr && gft.RedirectTrailingSlash {
 				redirectTrailingSlash(c)
 				return
 			}
@@ -186,13 +188,16 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		}
 	}
 
+	// 如果需要查找非本Method中的路由匹配，就尝试去找。
+	// 找到了：就给出Method错误提示
+	// 找不到：就走后面路由没匹配的逻辑
 	if gft.HandleMethodNotAllowed {
 		for _, tree := range gft.treeOthers {
 			if tree.method == httpMethod {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if nodeVal := tree.miniRoot.matchRoute(rPath, c.Params); nodeVal.ptrNode != nil {
+			if tree.miniRoot.matchRoute(rPath, &c.matchRst); c.matchRst.ptrNode != nil {
 				c.execHandlers(gft.home.miniNode405)
 				return
 			}

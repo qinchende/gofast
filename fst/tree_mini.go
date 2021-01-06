@@ -237,7 +237,7 @@ func setNewNode(re *routeEvents) {
 	node.beforeLen, node.beforeIdx = tidyEventHandlers(&re.eBeforeHds)
 	node.afterLen, node.afterIdx = tidyEventHandlers(&re.eAfterHds)
 	node.validLen, node.validIdx = tidyEventHandlers(&re.ePreValidHds)
-	node.sendLen, node.sendIdx = tidyEventHandlers(&re.ePreSendHds)
+	node.preSendLen, node.preSendIdx = tidyEventHandlers(&re.ePreSendHds)
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(&re.eAfterSendHds)
 }
 
