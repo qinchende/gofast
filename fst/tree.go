@@ -55,7 +55,7 @@ func (tr *methodTree) regRoute(path string, ri *RouterItem) {
 		tr.root.bindSegment(tr, path, ri)
 		return
 	}
-	tr.root.regSegment(tr, path, ri)
+	tr.root.regSegment(tr, nil, path, ri)
 }
 
 type Param struct {
