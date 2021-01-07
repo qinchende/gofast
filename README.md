@@ -159,4 +159,34 @@ tst.PreSend(handler("preSend tst_url"))
 tst.AfterSend(handler("afterSend tst_url"))
 ```
 
+## benchmark
+> Gin是非常优秀的框架，GoFast主要与Gin做性能上的比较，力争进一步提高处理能力。
+
+`gofast/fst/test/performance` 目录中有一套简单的基准测试代码，大家可以在自己的机器上试试看。
+
+在该目录下运行命令：`go test -bench=. -benchtime=10s`
+
+我笔记本的运行结果如下：
+```go
+goos: windows
+goarch: amd64
+pkg: gofast/fst/test/performance
+BenchmarkGinWebRouter-2         70346450               165 ns/op               0 B/op          0 allocs/op
+BenchmarkGoFastWebRouter-2      133092091               89.9 ns/op             0 B/op          0 allocs/op
+PASS
+ok      gofast/fst/test/performance     33.007s
+
+```
+经过多次测试发现相比Gin，GoFast处理能力提升60%以上。
+
+测试过程中有些参数可以调整，对实际测试结果影响比较大的是`middlewareNum`参数，说明Gin中嵌套执行中间件函数的方式性能不好。类似递归调用，层级太多影响性能。
+```go
+// router_helper.go
+var routersLevel = 1                 // 路由数量的基数，实际值=routersSum
+var routersSum = 1000 * routersLevel // 1000*routersNum
+var middlewareNum = 10               // 中间件函数的数量
+var reqPoolSize = routersSum         // 内置请求对象，用于模拟发起的不同Router请求
+var differentReqNum = 1              // 用多少个不同路由的请求来测试
+```
+
 （其它介绍陆续补充...）
