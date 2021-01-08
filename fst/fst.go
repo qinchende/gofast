@@ -20,17 +20,14 @@ import (
 type GoFast struct {
 	srv *http.Server
 	*AppConfig
+	*HomeRouter
 	appEvents
 
-	home       *HomeSite
-	treeGet    *methodTree
-	treePost   *methodTree
-	treeOthers methodTrees
-	pool       sync.Pool
+	pool sync.Pool
 }
 
 // 站点根目录是一个特殊的分组
-type HomeSite struct {
+type HomeRouter struct {
 	RouterGroup
 	// 有两个特殊 RouterItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
@@ -38,10 +35,14 @@ type HomeSite struct {
 	miniNode404   *radixMiniNode
 	routerItem405 *RouterItem
 	miniNode405   *radixMiniNode
+
+	treeGet    *methodTree
+	treePost   *methodTree
+	treeOthers methodTrees
 }
 
 // 第一步：初始化一个 WebServer , 配置各种参数
-func CreateServer(cfg *AppConfig) (*GoFast, *HomeSite) {
+func CreateServer(cfg *AppConfig) *GoFast {
 	// 初始化当前环境变量
 	gft := new(GoFast)
 	if cfg == nil {
@@ -51,14 +52,14 @@ func CreateServer(cfg *AppConfig) (*GoFast, *HomeSite) {
 	}
 	gft.initServerEnv()
 
-	// 初始化 HomeSite
+	// 初始化 HomeRouter
 	// 启动的时候，根分组"/"默认就有了，而且我们把他当做是一种特殊的最后一级节点
 	// 方便将来加入 NoRoute、NoMethod 的处理Item
-	hm := &HomeSite{}
+	hm := &HomeRouter{}
 	hm.hdsGroupIdx = -1
 	hm.prefix = "/"
 	hm.gftApp = gft
-	gft.home = hm
+	gft.HomeRouter = hm
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民.
 	gft.treeGet = &methodTree{method: http.MethodGet}
@@ -68,7 +69,15 @@ func CreateServer(cfg *AppConfig) (*GoFast, *HomeSite) {
 	gft.pool.New = func() interface{} {
 		return &Context{gftApp: gft}
 	}
-	return gft, gft.home
+	return gft
+}
+
+func Default() *GoFast {
+	skill.DebugPrintWARNINGDefault()
+	app := CreateServer(&AppConfig{
+
+	})
+	return app
 }
 
 // Ready to listen the ip address
@@ -198,12 +207,12 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
 			if tree.miniRoot.matchRoute(rPath, &c.matchRst); c.matchRst.ptrNode != nil {
-				c.execHandlers(gft.home.miniNode405)
+				c.execHandlers(gft.miniNode405)
 				return
 			}
 		}
 	}
 
 	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
-	c.execHandlers(gft.home.miniNode404)
+	c.execHandlers(gft.miniNode404)
 }

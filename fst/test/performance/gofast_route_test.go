@@ -15,13 +15,12 @@ var gftApp *fst.GoFast
 
 func initGoFastServer() {
 	// 新建Server
-	app, home := fst.CreateServer(&fst.AppConfig{
+	gftApp = fst.CreateServer(&fst.AppConfig{
 		RunMode: fst.ProductMode,
 	})
-	gftApp = app
 
-	gftAddMiddlewareHandlers(home, middlewareNum)
-	gftAddRoutes(home, routersLevel, gftHandle2)
+	gftAddMiddlewareHandlers(middlewareNum)
+	gftAddRoutes(routersLevel, gftHandle2)
 	gftApp.ReadyToListen()
 }
 
@@ -37,7 +36,7 @@ func gftHandleWrite(c *fst.Context) {
 }
 
 // routeCt <= 10 && >= 1
-func gftAddRoutes(gp *fst.HomeSite, routeCt int, hd fst.CtxHandler) {
+func gftAddRoutes(routeCt int, hd fst.CtxHandler) {
 	//rtStrings = make([]string, 0 , reqPoolSize)
 	reqPool = make([]*http.Request, 0, reqPoolSize)
 
@@ -53,16 +52,16 @@ func gftAddRoutes(gp *fst.HomeSite, routeCt int, hd fst.CtxHandler) {
 					//rtStrings = append(rtStrings, d)
 					r, _ := http.NewRequest("GET", d, nil)
 					reqPool = append(reqPool, r)
-					gp.Method(http.MethodGet, d, hd)
+					gftApp.Method(http.MethodGet, d, hd)
 				}
 			}
 		}
 	}
 }
 
-func gftAddMiddlewareHandlers(home *fst.HomeSite, ct int) {
+func gftAddMiddlewareHandlers(ct int) {
 	for i := 0; i < ct; i++ {
-		home.Before(gftMiddlewareHandle)
+		gftApp.Before(gftMiddlewareHandle)
 	}
 }
 

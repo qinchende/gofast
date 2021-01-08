@@ -74,7 +74,7 @@ func (n *radixNode) rebuildNode(idx uint16) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 重建特殊节点
-func rebuildDefaultHandlers(home *HomeSite) {
+func rebuildDefaultHandlers(home *GoFast) {
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
 	home.miniNode404 = &radixMiniNode{}
 	home.miniNode404.hdsGroupIdx = home.routerItem404.parent.hdsGroupIdx
@@ -103,14 +103,14 @@ func addCtxHandlers(hds CtxHandlers) (idxes []uint16) {
 // TODO: 重新生成路由树相关数据结构
 func (gft *GoFast) rebuildRoutes() {
 	// 合并分组事件到下一级分组当中，返回所有节点新增父级节点事件的和
-	parentHandlerSum := gpCombineHandlers(&gft.home.RouterGroup)
+	parentHandlerSum := gpCombineHandlers(&gft.RouterGroup)
 	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小
 	fstMem.hdsListLen = parentHandlerSum + fstMem.allCtxHdsLen
 	// 分配内存空间
 	allocateMemSpace(gft)
 
 	// 1. 将分组事件 转换到 新版全局数组中
-	gpRebuildHandlers(&gft.home.RouterGroup)
+	gpRebuildHandlers(&gft.RouterGroup)
 	// 2. 重建路由树 （这里面将节点事件 转换到 新版全局数组中）
 	rebuildMethodTree(gft.treeGet)
 	rebuildMethodTree(gft.treePost)
@@ -118,7 +118,7 @@ func (gft *GoFast) rebuildRoutes() {
 		rebuildMethodTree(&mTree)
 	}
 	// 3. 重建特殊节点，比如 NoRoute | NoMethod
-	rebuildDefaultHandlers(gft.home)
+	rebuildDefaultHandlers(gft)
 
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
@@ -130,7 +130,6 @@ func (gft *GoFast) rebuildRoutes() {
 	for _, mTree := range gft.treeOthers {
 		mTree.root = nil
 	}
-	//gft.home = nil
 }
 
 // 计算所有要预分配的内存空间

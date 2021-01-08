@@ -6,19 +6,6 @@ import (
 	"testing"
 )
 
-func Add(a, b int) int {
-	return a + b
-}
-
-func TestAdd(t *testing.T) {
-	sum := Add(1, 2)
-	if sum == 3 {
-		t.Log("the result is ok")
-	} else {
-		t.Fatal("the result is wrong")
-	}
-}
-
 func fib(n int) int {
 	if n == 0 || n == 1 {
 		return n

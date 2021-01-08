@@ -44,24 +44,24 @@ var handlerRender = func(str string) func(c *fst.Context) {
 }
 
 func main() {
-	app, home := fst.CreateServer(&fst.AppConfig{
+	gft := fst.CreateServer(&fst.AppConfig{
 		PrintRouteTrees: true,
 		RunMode:         "debug",
 	})
 
 	// 根路由
-	home.NoRoute(func(ctx *fst.Context) {
+	gft.NoRoute(func(ctx *fst.Context) {
 		ctx.JSON(http.StatusNotFound, "404-Can't find the path.")
 	})
-	home.NoMethod(func(ctx *fst.Context) {
+	gft.NoMethod(func(ctx *fst.Context) {
 		ctx.JSON(http.StatusMethodNotAllowed, "405-Method not allowed.")
 	})
 
-	home.Post("/root", handler("root"))
-	home.Before(handler("before root")).After(handler("after root"))
+	gft.Post("/root", handler("root"))
+	gft.Before(handler("before root")).After(handler("after root"))
 
 	// 分组路由1
-	adm := home.AddGroup("/admin")
+	adm := gft.AddGroup("/admin")
 	adm.After(handler("after group admin")).Before(handler("before group admin"))
 
 	tst := adm.Get("/chende", handlerRender("handle chende"))
@@ -72,22 +72,22 @@ func main() {
 	tst.AfterSend(handler("afterSend tst_url"))
 
 	// 分组路由2
-	adm2 := home.AddGroup("/admin2").Before(handler("before admin2"))
+	adm2 := gft.AddGroup("/admin2").Before(handler("before admin2"))
 	adm2.Get("/zht", handler("zht")).After(handler("after zht"))
 
 	adm22 := adm2.AddGroup("/group2").Before(handler("before group2"))
 	adm22.Get("/lmx", handler("lmx")).Before(handler("before lmx"))
 
 	// 应用级事件
-	app.OnReady(func(fast *fst.GoFast) {
+	gft.OnReady(func(fast *fst.GoFast) {
 		log.Println("App OnReady Call.")
 		log.Printf("Listening and serving HTTP on %s\n", "127.0.0.1:8099")
 	})
-	app.OnClose(func(fast *fst.GoFast) {
+	gft.OnClose(func(fast *fst.GoFast) {
 		log.Println("App OnClose Call.")
 	})
 	// 开始监听接收请求
-	app.Listen("127.0.0.1:8099")
+	_ = gft.Listen("127.0.0.1:8099")
 }
 
 ```
@@ -129,12 +129,12 @@ $ go run example.go
 2021/01/06 17:35:40 after root
 ```
 
-## 核心特性
+## Core feature
 
-#### 继承Gin的很多特性
+#### Like gin feature
 GoFast目前复用了Gin的很多特性，除特别说明之外，使用方式一样。
 
-#### 应用级事件
+#### Server Handlers
 
 应用启动之后，在开始监听端口之后调用OnReady事件，应用关闭退出之前调用OnClose事件
 ```go
@@ -149,7 +149,7 @@ app.OnClose(func(fast *fst.GoFast) {
 
 ```
 
-#### 路由事件
+#### Router Handlers
 
 分组或路由项事件是一样的，现在支持下面四个，以后慢慢扩展和调整
 ```go
@@ -171,8 +171,8 @@ tst.AfterSend(handler("afterSend tst_url"))
 goos: windows
 goarch: amd64
 pkg: gofast/fst/test/performance
-BenchmarkGinWebRouter-2         70346450               165 ns/op               0 B/op          0 allocs/op
-BenchmarkGoFastWebRouter-2      133092091               89.9 ns/op             0 B/op          0 allocs/op
+BenchmarkGinWebRouter-2         70346450        165 ns/op       0 B/op      0 allocs/op
+BenchmarkGoFastWebRouter-2      133092091       89.9 ns/op      0 B/op      0 allocs/op
 PASS
 ok      gofast/fst/test/performance     33.007s
 

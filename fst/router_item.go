@@ -9,7 +9,7 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 注册一个404处理函数
-func  (site *HomeSite) reg404Handler (hds CtxHandlers) {
+func  (site *HomeRouter) reg404Handler (hds CtxHandlers) {
 	ifPanic(site.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
 	ri := &RouterItem{
 		parent: &site.RouterGroup,
@@ -20,7 +20,7 @@ func  (site *HomeSite) reg404Handler (hds CtxHandlers) {
 }
 
 // 注册一个405处理函数
-func  (site *HomeSite) reg405Handler (hds CtxHandlers) {
+func  (site *HomeRouter) reg405Handler (hds CtxHandlers) {
 	ifPanic(site.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
 	ri := &RouterItem{
 		parent: &site.RouterGroup,
@@ -48,7 +48,7 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 }
 
 // TODO: 有个问题，httpMethod参数没有做枚举校验，可以创建任意名称的method路由数，真要这么自由吗???
-func (gp *RouterGroup) Method(httpMethod, relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Handle(httpMethod, relPath string, handlers ...CtxHandler) *RouterItem {
 	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
 		panic("http method " + httpMethod + " is not valid")
 	}
