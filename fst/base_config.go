@@ -17,6 +17,8 @@ type AppConfig struct {
 	RedirectTrailingSlash  bool
 	RedirectFixedPath      bool
 	HandleMethodNotAllowed bool
+	DisableDefNotAllowed   bool
+	DisableDefNoRoute      bool
 	ForwardedByClientIP    bool
 	UseRawPath             bool
 	UnescapePathValues     bool
@@ -72,10 +74,13 @@ const (
 func (gft *GoFast) SetMode(mode string) {
 	switch mode {
 	case DebugMode, "":
+		gft.RunMode = DebugMode
 		gft.modeType = modeDebug
 	case ProductMode:
+		gft.RunMode = ProductMode
 		gft.modeType = modeProduct
 	case TestMode:
+		gft.RunMode = TestMode
 		gft.modeType = modeTest
 	default:
 		panic("GoFast mode unknown: " + mode)

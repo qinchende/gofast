@@ -33,21 +33,29 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) checkDefaultHandler() {
 	if gft.routerItem404 == nil {
-		gft.NoRoute(defErrorHandler(http.StatusNotFound, default404Body))
+		if gft.DisableDefNoRoute {
+			gft.NoRoute()
+		} else {
+			gft.NoRoute(defErrorHandler(http.StatusNotFound, default404Body))
+		}
 	}
 	if gft.routerItem405 == nil {
-		gft.NoMethod(defErrorHandler(http.StatusMethodNotAllowed, default405Body))
+		if gft.DisableDefNotAllowed {
+			gft.NoMethod()
+		} else {
+			gft.NoMethod(defErrorHandler(http.StatusMethodNotAllowed, default405Body))
+		}
 	}
 }
 
 // NoRoute adds handlers for NoRoute. It return a 404 code by default.
-func (site *HomeRouter) NoRoute(handlers ...CtxHandler) {
-	site.reg404Handler(handlers)
+func (gft *GoFast) NoRoute(handlers ...CtxHandler) {
+	gft.reg404Handler(handlers)
 }
 
 // NoMethod sets the handlers called when...
-func (site *HomeRouter) NoMethod(handlers ...CtxHandler) {
-	site.reg405Handler(handlers)
+func (gft *GoFast) NoMethod(handlers ...CtxHandler) {
+	gft.reg405Handler(handlers)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

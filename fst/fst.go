@@ -23,22 +23,30 @@ type GoFast struct {
 	*HomeRouter
 	appEvents
 
-	pool sync.Pool
+	pool      sync.Pool
+	readyOnce sync.Once
 }
 
-// 站点根目录是一个特殊的分组
+// 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
 	RouterGroup
 	// 有两个特殊 RouterItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
 	routerItem404 *RouterItem
 	miniNode404   *radixMiniNode
+
 	routerItem405 *RouterItem
 	miniNode405   *radixMiniNode
 
+	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
+	// 绝大部分应用Get和Post路由居多，我们能尽快匹配就不需要无用的Method比较选择的过程
 	treeGet    *methodTree
 	treePost   *methodTree
 	treeOthers methodTrees
+	treeAll    methodTrees
+
+	// 主要以数组结构的形式，存储了 Routes & Handlers
+	fstMem *fstMemSpace
 }
 
 // 第一步：初始化一个 WebServer , 配置各种参数
@@ -61,21 +69,24 @@ func CreateServer(cfg *AppConfig) *GoFast {
 	hm.gftApp = gft
 	gft.HomeRouter = hm
 
-	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民.
 	gft.treeGet = &methodTree{method: http.MethodGet}
 	gft.treePost = &methodTree{method: http.MethodPost}
-	gft.treeOthers = make(methodTrees, 0, 7)
+	gft.treeOthers = make(methodTrees, 0, 9)
 
 	gft.pool.New = func() interface{} {
 		return &Context{gftApp: gft}
 	}
+
+	gft.fstMem = new(fstMemSpace)
 	return gft
 }
 
+// 一个快速创建Server的函数，使用默认配置参数，方便调用。
+// 记住：使用之前一定要先调用 ReadyToListen方法。
 func Default() *GoFast {
 	skill.DebugPrintWARNINGDefault()
 	app := CreateServer(&AppConfig{
-
+		RunMode: ProductMode,
 	})
 	return app
 }
@@ -83,15 +94,24 @@ func Default() *GoFast {
 // Ready to listen the ip address
 // 在不执行真正Listen的场景中，调用此函数能初始化服务器
 func (gft *GoFast) ReadyToListen() {
-	gft.checkDefaultHandler()
+	// 服务Listen之前，只执行一次初始化
+	gft.readyOnce.Do(func() {
+		gft.checkDefaultHandler()
+		// 设置 treeAll
+		lenTreeOthers := len(gft.treeOthers)
+		ifPanic(lenTreeOthers > 7, "Too many kind of methods")
+		gft.treeAll = gft.treeOthers[:lenTreeOthers:9]
+		gft.treeAll = append(gft.treeAll, gft.treeGet)
+		gft.treeAll = append(gft.treeAll, gft.treePost)
 
-	if gft.PrintRouteTrees {
-		gft.printRouteTrees()
-	}
-	// 这里开始完整的重建整个路由树的数据结构
-	gft.rebuildRoutes()
-	// 依次执行 onReady 事件处理函数
-	gft.execHandlers(gft.eReadyHds)
+		if gft.PrintRouteTrees {
+			gft.printRouteTrees()
+		}
+		// 这里开始完整的重建整个路由树的数据结构
+		gft.buildMiniRoutes()
+		// 依次执行 onReady 事件处理函数
+		gft.execHandlers(gft.eReadyHds)
+	})
 }
 
 //func (gft *GoFast) Listen(addr ...string) (err error) {
@@ -171,7 +191,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	miniRoot := gft.getMethodMiniRoot(httpMethod)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
-		miniRoot.matchRoute(rPath, &c.matchRst)
+		miniRoot.matchRoute(gft.fstMem, rPath, &c.matchRst)
 
 		// 如果能匹配到路径
 		if c.matchRst.ptrNode != nil {
@@ -201,12 +221,12 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
 	if gft.HandleMethodNotAllowed {
-		for _, tree := range gft.treeOthers {
-			if tree.method == httpMethod {
+		for _, tree := range gft.treeAll {
+			if tree.method == httpMethod || tree.miniRoot == nil {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if tree.miniRoot.matchRoute(rPath, &c.matchRst); c.matchRst.ptrNode != nil {
+			if tree.miniRoot.matchRoute(gft.fstMem, rPath, &c.matchRst); c.matchRst.ptrNode != nil {
 				c.execHandlers(gft.miniNode405)
 				return
 			}

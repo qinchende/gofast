@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-func (gp *RouterGroup) AddGroup(relPath string, handlers ...CtxHandler) *RouterGroup {
+func (gp *RouterGroup) AddGroup(relPath string) *RouterGroup {
 	// TODO：如果分组已经存在，需要报错
 	gpNew := &RouterGroup{
 		prefix: gp.fixAbsolutePath(relPath),
@@ -78,13 +78,10 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 		f, err := fs.Open(file)
 		if err != nil {
 			c.Reply.WriteHeader(http.StatusNotFound)
-			//c.handlers = gp.gftApp.noRoute
-			//// Reset index
-			//c.index = -1
+			c.execJustHandlers(gp.gftApp.miniNode404)
 			return
 		}
 		f.Close()
-
 		fileServer.ServeHTTP(c.Reply, c.Request)
 	}
 }

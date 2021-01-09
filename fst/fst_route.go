@@ -15,21 +15,21 @@ func (gft *GoFast) regRoute(method, path string, ri *RouterItem) {
 	mTree := gft.getMethodTree(method)
 	if mTree == nil {
 		mTree = &methodTree{method: method, root: nil}
-		gft.treeOthers = append(gft.treeOthers, *mTree)
+		gft.treeOthers = append(gft.treeOthers, mTree)
 	}
 	mTree.regRoute(path, ri)
 }
 
 func (gft *GoFast) getMethodMiniRoot(method string) (tRoot *radixMiniNode) {
 	switch method[0] {
+	case 'G':
+		tRoot = gft.treeGet.miniRoot
 	case 'P':
 		if method[1] == 'O' {
 			tRoot = gft.treePost.miniRoot
 		} else {
 			tRoot = gft.treeOthers.getTreeMiniRoot(method)
 		}
-	case 'G':
-		tRoot = gft.treeGet.miniRoot
 	default:
 		tRoot = gft.treeOthers.getTreeMiniRoot(method)
 	}

@@ -9,25 +9,31 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 注册一个404处理函数
-func  (site *HomeRouter) reg404Handler (hds CtxHandlers) {
-	ifPanic(site.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
+func (gft *GoFast) reg404Handler(hds CtxHandlers) {
+	ifPanic(gft.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
 	ri := &RouterItem{
-		parent: &site.RouterGroup,
+		parent: &gft.RouterGroup,
 	}
-	ri.eHds = addCtxHandlers(hds)
-	fstMem.hdsItemCt++
-	site.routerItem404 = ri
+	gft.fstMem.hdsItemCt++
+	gft.routerItem404 = ri
+
+	if hds != nil {
+		ri.eHds = addCtxHandlers(gft.fstMem, hds)
+	}
 }
 
 // 注册一个405处理函数
-func  (site *HomeRouter) reg405Handler (hds CtxHandlers) {
-	ifPanic(site.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
+func (gft *GoFast) reg405Handler(hds CtxHandlers) {
+	ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
 	ri := &RouterItem{
-		parent: &site.RouterGroup,
+		parent: &gft.RouterGroup,
 	}
-	ri.eHds = addCtxHandlers(hds)
-	fstMem.hdsItemCt++
-	site.routerItem405 = ri
+	gft.fstMem.hdsItemCt++
+	gft.routerItem405 = ri
+
+	if hds != nil {
+		ri.eHds = addCtxHandlers(gft.fstMem, hds)
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -40,10 +46,10 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	ri := &RouterItem{
 		parent: gp,
 	}
-	ri.eHds = addCtxHandlers(hds)
+	ri.eHds = addCtxHandlers(gp.gftApp.fstMem, hds)
 
 	gp.gftApp.regRoute(httpMethod, absPath, ri)
-	fstMem.hdsItemCt++
+	gp.gftApp.fstMem.hdsItemCt++
 	return ri
 }
 

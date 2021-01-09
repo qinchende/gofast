@@ -19,7 +19,7 @@ func (gft *GoFast) printRouteTrees() {
 		printTree(gft.treePost, strTree)
 	}
 	for _, tree := range gft.treeOthers {
-		printTree(&tree, strTree)
+		printTree(tree, strTree)
 	}
 	strTree.WriteString("\n++++++++++THE END.")
 	fmt.Println(strTree)

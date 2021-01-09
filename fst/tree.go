@@ -20,7 +20,7 @@ type methodTree struct {
 }
 
 // method路由树 对应数组（切片）
-type methodTrees []methodTree
+type methodTrees []*methodTree
 
 func (trees methodTrees) getTreeRoot(method string) *radixNode {
 	tree := trees.getTree(method)
@@ -41,7 +41,7 @@ func (trees methodTrees) getTreeMiniRoot(method string) *radixMiniNode {
 func (trees methodTrees) getTree(method string) *methodTree {
 	for _, tree := range trees {
 		if tree.method == method {
-			return &tree
+			return tree
 		}
 	}
 	return nil

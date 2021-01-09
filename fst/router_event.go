@@ -15,22 +15,22 @@ const (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 Context handlers 都要通过此函数来注册
 // 包括 RouterGroup 和 RouterItem
-func (re *routeEvents) RegCtxHandler(eType string, hds CtxHandlers) *routeEvents {
+func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxHandlers) *routeEvents {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
 
 	switch eType {
 	case EPreValid:
-		re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(hds)...)
+		re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, hds)...)
 	case EBefore:
-		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(hds)...)
+		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(fstMem, hds)...)
 	//case EHandler:
 	//	re.eHds = append(re.eHds, addCtxHandlers(hds)...)
 	case EAfter:
-		re.eAfterHds = append(re.eAfterHds, addCtxHandlers(hds)...)
+		re.eAfterHds = append(re.eAfterHds, addCtxHandlers(fstMem, hds)...)
 	case EPreSend:
-		re.ePreSendHds = append(re.ePreSendHds, addCtxHandlers(hds)...)
+		re.ePreSendHds = append(re.ePreSendHds, addCtxHandlers(fstMem, hds)...)
 	case EAfterSend:
-		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(hds)...)
+		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(fstMem, hds)...)
 
 	default:
 		panic("Event type error, can't find this type.")
@@ -42,7 +42,7 @@ func (re *routeEvents) RegCtxHandler(eType string, hds CtxHandlers) *routeEvents
 // RouterGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gp *RouterGroup) regGroupCtxHandler(eType string, hds CtxHandlers) *RouterGroup {
-	gp.RegCtxHandler(eType, hds)
+	gp.regCtxHandler(gp.gftApp.fstMem, eType, hds)
 	// 记录分组中一共加入的 处理 函数个数
 	gp.selfHdsLen += uint16(len(hds))
 	return gp
@@ -72,7 +72,7 @@ func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
 // RouterItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouterItem) regItemCtxHandler(eType string, hds CtxHandlers) *RouterItem {
-	ri.RegCtxHandler(eType, hds)
+	ri.regCtxHandler(ri.parent.gftApp.fstMem, eType, hds)
 	return ri
 }
 

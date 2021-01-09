@@ -52,7 +52,7 @@ func gftAddRoutes(routeCt int, hd fst.CtxHandler) {
 					//rtStrings = append(rtStrings, d)
 					r, _ := http.NewRequest("GET", d, nil)
 					reqPool = append(reqPool, r)
-					gftApp.Method(http.MethodGet, d, hd)
+					gftApp.Handle(http.MethodGet, d, hd)
 				}
 			}
 		}
