@@ -338,7 +338,7 @@ func TestRouteStaticListingDir(t *testing.T) {
 	w := performRequest(router, http.MethodGet, "/")
 
 	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Contains(t, w.Body.String(), "helper.go")
+	assert.Contains(t, w.Body.String(), "helper_test.go")
 	assert.Equal(t, "text/html; charset=utf-8", w.Header().Get("Content-Type"))
 }
 
@@ -350,7 +350,7 @@ func TestRouteStaticNoListing(t *testing.T) {
 	w := performRequest(router, http.MethodGet, "/")
 
 	assert.Equal(t, http.StatusNotFound, w.Code)
-	assert.NotContains(t, w.Body.String(), "helper.go")
+	assert.NotContains(t, w.Body.String(), "helper_test.go")
 }
 
 func TestRouterMiddlewareAndStatic(t *testing.T) {
@@ -363,7 +363,7 @@ func TestRouterMiddlewareAndStatic(t *testing.T) {
 	})
 	static.Static("/", "./")
 
-	w := performRequest(router, http.MethodGet, "/helper.go")
+	w := performRequest(router, http.MethodGet, "/helper_test.go")
 
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "package router")
