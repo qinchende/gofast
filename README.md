@@ -4,6 +4,8 @@ GoFast是一个用Go语言实现的高效Web开发框架。他的产生源于目
 
 更多了解：[GoFast的实现细节](https://chende.ren/tags/gofast-intr/)
 
+GoFast的下一个发展目标是转变成一套更高效的微服务解决方案。
+
 ## Installation
 
 To install GoFast package, you need to install Go and set your Go workspace first.
