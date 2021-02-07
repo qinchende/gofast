@@ -1,9 +1,0 @@
-mode: count
-gofast/fst/test/test_helper.go:5.21,6.13 1 8
-gofast/fst/test/test_helper.go:7.9,8.22 1 1
-gofast/fst/test/test_helper.go:9.9,10.22 1 1
-gofast/fst/test/test_helper.go:11.9,12.22 1 5
-gofast/fst/test/test_helper.go:13.10,14.24 1 1
-gofast/fst/test/test_helper.go:18.22,19.13 1 2
-gofast/fst/test/test_helper.go:20.9,21.26 1 1
-gofast/fst/test/test_helper.go:22.10,23.28 1 1

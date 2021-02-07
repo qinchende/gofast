@@ -4,7 +4,7 @@ package fst
 
 import (
 	"fmt"
-	"gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/binding"
 )
 
 type I interface{}

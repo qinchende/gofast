@@ -2,7 +2,7 @@ package router
 
 import (
 	"fmt"
-	"gofast/fst"
+	"github.com/qinchende/gofast/fst"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"

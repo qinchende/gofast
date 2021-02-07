@@ -1,7 +1,7 @@
 package performance
 
 import (
-	"gofast/fst"
+	"github.com/qinchende/gofast/fst"
 	"net/http"
 	"testing"
 )

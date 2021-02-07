@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"gofast/fst/proto"
+	"github.com/qinchende/gofast/fst/proto"
 	"net/http"
 	"net/url"
 	"sync"

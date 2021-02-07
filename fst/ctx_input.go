@@ -3,8 +3,8 @@
 package fst
 
 import (
-	"gofast/fst/binding"
-	"gofast/skill"
+	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/skill"
 	"io"
 	"io/ioutil"
 	"mime/multipart"

@@ -4,7 +4,7 @@ package proto
 
 import (
 	"bufio"
-	"gofast/skill"
+	"github.com/qinchende/gofast/skill"
 	"io"
 	"net"
 	"net/http"

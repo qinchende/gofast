@@ -5,7 +5,7 @@ package fst
 import (
 	"context"
 	"fmt"
-	"gofast/skill"
+	"github.com/qinchende/gofast/skill"
 	"log"
 	"net/http"
 	"os"

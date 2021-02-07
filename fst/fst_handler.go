@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"gofast/skill"
+	"github.com/qinchende/gofast/skill"
 	"net/http"
 	"path"
 )

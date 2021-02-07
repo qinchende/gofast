@@ -3,8 +3,8 @@
 package fst
 
 import (
-	"gofast/fst/render"
-	"gofast/skill"
+	"github.com/qinchende/gofast/fst/render"
+	"github.com/qinchende/gofast/skill"
 )
 
 type AppConfig struct {

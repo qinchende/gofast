@@ -5,9 +5,9 @@ package fst
 import (
 	"errors"
 	"fmt"
-	"gofast/fst/binding"
-	"gofast/fst/render"
-	"gofast/fst/sse"
+	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/render"
+	"github.com/qinchende/gofast/fst/sse"
 	"io"
 	"io/ioutil"
 	"net/http"

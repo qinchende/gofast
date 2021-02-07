@@ -81,7 +81,7 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 			c.execJustHandlers(gp.gftApp.miniNode404)
 			return
 		}
-		f.Close()
+		_ = f.Close()
 		fileServer.ServeHTTP(c.Reply, c.Request)
 	}
 }
