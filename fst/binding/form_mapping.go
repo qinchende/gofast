@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	"gofast/fst/internal/bytesconv"
-	"gofast/fst/internal/json"
+	"github.com/qinchende/gofast/fst/internal/bytesconv"
+	"github.com/qinchende/gofast/fst/internal/json"
 )
 
 var errUnknownType = errors.New("unknown type")

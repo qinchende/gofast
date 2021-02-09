@@ -16,11 +16,11 @@ func init() {
 // 调节这些参数，来模拟不同路由场景下，Gin和GoFast的性能
 // var rtStrings []string
 var reqPool []*http.Request          // 模拟请求的对象数组（伪造并缓存请求对象）
-var routersLevel = 1                 // 路由数量的基数，实际值=routersSum
+var routersLevel = 10                 // 路由数量的基数，实际值=routersSum
 var routersSum = 1000 * routersLevel // 1000 * routersNum
-var middlewareNum = 10               // 中间件函数的数量
+var middlewareNum = 20               // 中间件函数的数量
 var reqPoolSize = routersSum         // 内置请求对象，用于模拟发起的不同Router请求
-var differentReqNum = 1              // 用多少个不同路由的请求来测试
+var differentReqNum = 1000           // 用多少个不同路由的请求来测试
 
 // 模拟四段组成的 Url 路由
 var (
@@ -41,12 +41,24 @@ func benchRequest(b *testing.B, router http.Handler) {
 	b.ReportAllocs()
 	b.ResetTimer()
 
-	var req *http.Request
-	for i := 0; i < b.N; i++ {
-		req = reqPool[i%differentReqNum]
-		//u.RawQuery = rq
-		router.ServeHTTP(res, req)
-	}
+	// 并发测试模式
+	b.SetParallelism(100000)
+	b.RunParallel(func(pb *testing.PB) {
+		var req *http.Request
+		i := -1
+		for pb.Next() {
+			i++
+			req = reqPool[i%differentReqNum]
+			router.ServeHTTP(res, req)
+		}
+	})
+
+	//var req *http.Request
+	//for i := 0; i < b.N; i++ {
+	//	req = reqPool[i%differentReqNum]
+	//	//u.RawQuery = rq
+	//	router.ServeHTTP(res, req)
+	//}
 }
 
 type regRouteFun func(url string)

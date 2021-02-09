@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/http"
 
-	"gofast/fst/internal/json"
+	"github.com/qinchende/gofast/fst/internal/json"
 )
 
 // EnableDecoderUseNumber is used to call the UseNumber method on the JSON

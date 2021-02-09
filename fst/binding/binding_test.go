@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/qinchende/gofast/fst/testdata/protoexample"
 	"github.com/stretchr/testify/assert"
-	"gofast/fst/testdata/protoexample"
 )
 
 type appkey struct {

@@ -11,7 +11,7 @@ import (
 type (
 	ConnConfig struct {
 		ConnStr string `json:",optional"`
-		MaxOpen int    `json:",optional"`
+		MaxOpen int    `json:",default=100,range=[10:1000]"`
 		MaxIdle int    `json:",optional"`
 	}
 	MSqlX struct {

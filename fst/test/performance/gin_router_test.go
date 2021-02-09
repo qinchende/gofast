@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -23,7 +24,16 @@ func initGinServer() {
 }
 
 func ginMiddlewareHandle(ctx *gin.Context) {
-	//ctx.Next()
+	//请求前获取当前时间
+	nowTime := time.Now()
+
+	arr := [100000]int{}
+	for i := 0; i < len(arr); i++ {
+		arr[i] = i
+	}
+	ctx.Next()
+
+	time.Since(nowTime)
 }
 func ginHandle2(ctx *gin.Context) {
 }
