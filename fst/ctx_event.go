@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 // TODO： 底层大致有两种设计思路，目前采用第一种方案， 没有优化
@@ -40,16 +40,16 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 	}
 }
 
-func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
-	it := c.gftApp.fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
-
-	// 3.handler
-	for it.hdsLen > 0 {
-		c.gftApp.fstMem.hdsList[it.hdsIdx](c)
-		it.hdsLen--
-		it.hdsIdx++
-	}
-}
+//func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
+//	it := c.gftApp.fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
+//
+//	// 3.handler
+//	for it.hdsLen > 0 {
+//		c.gftApp.fstMem.hdsList[it.hdsIdx](c)
+//		it.hdsLen--
+//		it.hdsIdx++
+//	}
+//}
 
 func (c *Context) execPreValidHandlers() {
 	if c.matchRst.ptrNode == nil {
@@ -111,6 +111,8 @@ func (c *Context) execAfterSendHandlers() {
 	}
 }
 
+// TODO: 暂时不用
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 方案2. 基于已经将所有的事件函数组织成了一个有序的索引数组。只需要一次循环就执行所有的中间件函数
 // 这种实现其实不现实，不同类型的事件是在框架封装过程中分开执行的
 func (c *Context) execHandlersMini(ptrMini *radixMiniNode) {

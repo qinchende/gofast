@@ -1,13 +1,13 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 // node的类型 0.默认 1.根 2.参数 3.通配
 const (
-	normal uint8 = iota // default
-	root
-	param // 此类型以上的 为动态路由
-	catchAll
+	normal   uint8 = iota // 默认值
+	root                  // 根节点
+	param                 // 参数 ：
+	catchAll              // 通配 *
 )
 
 // 每种method对应一颗独立的路由树

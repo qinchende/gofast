@@ -1,14 +1,14 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 type matchResult struct {
 	ptrNode *radixMiniNode
 	params  Params
-	tsr     bool // 是否可以通过重定向，URL最后加入一个 ‘/’ 访问到有处理函数的节点
+	tsr     bool // 是否可以通过重定向，URL最后加或减一个 ‘/’ 访问到有处理函数的节点
 }
 
-// 在一个函数（作用域）中解决路由匹配的问题，避免函数调用的开销
+// 在一个函数（作用域）中解决路由匹配的问题，加快匹配速度
 func (n *radixMiniNode) matchRoute(fstMem *fstMemSpace, path string, mr *matchResult) {
 nextLoop:
 	var pLen = uint8(len(path))
@@ -41,12 +41,15 @@ nextLoop:
 			mr.params = append(mr.params, Param{Key: keyName, Value: path[:pos]})
 			// 匹配后面的节点，后面肯定只能是一个 '/' 开头的节点
 			path = path[pos:]
+			// 看看子节点有没有一个能匹配上'/'字符，有就进入下一轮循环
 			for id := uint8(0); id < n.childLen; id++ {
 				n = &fstMem.allRadixMiniNodes[n.childStart+uint16(id)]
 				if fstMem.treeChars[n.matchStart] == path[0] {
 					goto nextLoop
 				}
 			}
+			// 没有匹配就要返回没匹配到路由了，不过这里可以看看是否能重定向
+			mr.tsr = path == "/" && n.hdsItemIdx != -1
 			return
 		}
 
@@ -77,10 +80,11 @@ nextLoop:
 		mr.ptrNode = n
 		return
 	}
+	// 2.2 当前节点没有子节点了，当前无法匹配
 	if n.childLen <= 0 {
 		return
 	}
-
+	// 2.3 查找可能的子节点，再次循环，匹配后面的路径
 	path = path[n.matchLen:]
 	var pNode *radixMiniNode
 	for id := uint8(0); id < n.childLen; id++ {

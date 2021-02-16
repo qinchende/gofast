@@ -4,10 +4,11 @@
 
 // +build !nomsgpack
 
-package render
+package test
 
 import (
 	"bytes"
+	"github.com/qinchende/gofast/fst/render"
 	"net/http/httptest"
 	"testing"
 
@@ -24,10 +25,10 @@ func TestRenderMsgPack(t *testing.T) {
 		"foo": "bar",
 	}
 
-	(MsgPack{data}).WriteContentType(w)
+	(render.MsgPack{data}).WriteContentType(w)
 	assert.Equal(t, "application/msgpack; charset=utf-8", w.Header().Get("Content-Type"))
 
-	err := (MsgPack{data}).Render(w)
+	err := (render.MsgPack{data}).Render(w)
 
 	assert.NoError(t, err)
 

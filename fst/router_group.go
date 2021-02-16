@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
@@ -9,10 +9,10 @@ import (
 )
 
 func (gp *RouterGroup) AddGroup(relPath string) *RouterGroup {
-	// TODO：如果分组已经存在，需要报错
+	// TODO：如果分组已经存在，需要报错。 或者不报错，允许添加相同路径的不同分组
 	gpNew := &RouterGroup{
-		prefix: gp.fixAbsolutePath(relPath),
-		gftApp: gp.gftApp,
+		prefix:      gp.fixAbsolutePath(relPath),
+		gftApp:      gp.gftApp,
 		hdsGroupIdx: -1,
 	}
 	gp.children = append(gp.children, gpNew)
@@ -78,7 +78,8 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 		f, err := fs.Open(file)
 		if err != nil {
 			c.Reply.WriteHeader(http.StatusNotFound)
-			c.execJustHandlers(gp.gftApp.miniNode404)
+			// TODO: need add some logic
+			//c.execJustHandlers(gp.gftApp.miniNode404)
 			return
 		}
 		_ = f.Close()

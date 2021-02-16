@@ -1,5 +1,5 @@
 // Copyright 2021 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
@@ -11,11 +11,11 @@ import (
 // 系统默认错误处理函数，可以设置 code 和 message.
 func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 	return func(c *Context) {
-		c.resW.Status = code
+		c.resW.WriteHeader(code)
 		if c.resW.Written() {
 			return
 		}
-		if c.resW.Status == code {
+		if c.resW.Status() == code {
 			c.resW.Header()["Content-Type"] = mimePlain
 			_, err := c.Reply.Write(defaultMessage)
 			if err != nil {

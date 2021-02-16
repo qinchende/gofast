@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 // 自定义内存数据库，存放路由树所有相关的数据
@@ -32,6 +32,7 @@ type fstMemSpace struct {
 	allRadixMiniNodes []radixMiniNode
 	allRadixMiniLen   uint16
 }
+
 //
 //var fstMem fstMemSpace
 //

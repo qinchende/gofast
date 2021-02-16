@@ -1,9 +1,8 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
-	"github.com/qinchende/gofast/fst/proto"
 	"net/http"
 	"net/url"
 	"sync"
@@ -13,11 +12,10 @@ import (
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
 	gftApp    *GoFast
-	resW      proto.InnerResWrite
-	Reply     proto.FResponseWriter
+	resW      ResWriteWrap
+	Reply     ResponseWriter
 	Request   *http.Request
 	Params    Params
-	isAborted bool
 	matchRst  matchResult
 
 	// This mutex protect Keys map
@@ -51,7 +49,6 @@ type Context struct {
 func (c *Context) reset() {
 	c.Reply = &c.resW
 	c.Params = c.Params[0:0]
-	c.isAborted = false
 
 	// add by sdx 2021.01.06
 	c.matchRst.ptrNode = nil
@@ -70,7 +67,6 @@ func (c *Context) reset() {
 func (c *Context) Copy() *Context {
 	cp := Context{
 		gftApp:    c.gftApp,
-		isAborted: c.isAborted,
 		resW:      c.resW,
 		Request:   c.Request,
 		Params:    c.Params,

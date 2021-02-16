@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
@@ -8,24 +8,23 @@ import (
 )
 
 type AppConfig struct {
-	//FuncMap          		template.FuncMap
-	RunMode                string // 当前模式，字符串
-	SecureJsonPrefix       string
-	HTMLRender             render.HTMLRender
-	MaxMultipartMemory     int64
-	SecondsBeforeShutdown  int64
-	RedirectTrailingSlash  bool
-	RedirectFixedPath      bool
+	// FuncMap          		template.FuncMap
+	RunMode               string // 当前模式[debug|test|product]
+	SecureJsonPrefix      string
+	HTMLRender            render.HTMLRender
+	MaxMultipartMemory    int64
+	SecondsBeforeShutdown int64 // 退出server之前等待的seconds，等待清理释放资源
+	RedirectTrailingSlash bool  // 重定向URL结尾的`/`符号
+	// RedirectFixedPath      bool
 	HandleMethodNotAllowed bool
 	DisableDefNotAllowed   bool
 	DisableDefNoRoute      bool
 	ForwardedByClientIP    bool
-	UseRawPath             bool
-	UnescapePathValues     bool
-	RemoveExtraSlash       bool
-	PrintRouteTrees        bool // 是否打印出当前路由数
-	modeType               int8 // 运行模式，整形方便比较，提高性能
-
+	// UseRawPath             bool
+	// UnescapePathValues     bool
+	RemoveExtraSlash bool // 规范请求的URL
+	PrintRouteTrees  bool // 是否打印出当前路由数
+	modeType         int8 // 运行模式，整形方便比较，提高性能
 }
 
 func (gft *GoFast) initServerEnv() {
@@ -48,6 +47,9 @@ func (gft *GoFast) initServerEnv() {
 	if gft.MaxMultipartMemory == 0 {
 		gft.MaxMultipartMemory = defMultipartMemory
 	}
+	gft.RedirectTrailingSlash = true
+	gft.ForwardedByClientIP = true
+	//gft.UnescapePathValues = true
 
 	gft.SetMode(gft.RunMode)
 	skill.SetDebugStatus(gft.modeType == modeDebug)

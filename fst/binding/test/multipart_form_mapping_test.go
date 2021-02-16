@@ -2,10 +2,11 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package binding
+package test
 
 import (
 	"bytes"
+	"github.com/qinchende/gofast/fst/binding"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -26,7 +27,7 @@ func TestFormMultipartBindingBindOneFile(t *testing.T) {
 	file := testFile{"file", "file1", []byte("hello")}
 
 	req := createRequestMultipartFiles(t, file)
-	err := FormMultipart.Bind(req, &s)
+	err := binding.FormMultipart.Bind(req, &s)
 	assert.NoError(t, err)
 
 	assertMultipartFileHeader(t, &s.FileValue, file)
@@ -52,7 +53,7 @@ func TestFormMultipartBindingBindTwoFiles(t *testing.T) {
 	}
 
 	req := createRequestMultipartFiles(t, files...)
-	err := FormMultipart.Bind(req, &s)
+	err := binding.FormMultipart.Bind(req, &s)
 	assert.NoError(t, err)
 
 	assert.Len(t, s.SliceValues, len(files))
@@ -89,7 +90,7 @@ func TestFormMultipartBindingBindError(t *testing.T) {
 		}{}},
 	} {
 		req := createRequestMultipartFiles(t, files...)
-		err := FormMultipart.Bind(req, tt.s)
+		err := binding.FormMultipart.Bind(req, tt.s)
 		assert.Error(t, err)
 	}
 }
@@ -118,7 +119,7 @@ func createRequestMultipartFiles(t *testing.T, files ...testFile) *http.Request 
 	req, err := http.NewRequest("POST", "/", &body)
 	assert.NoError(t, err)
 
-	req.Header.Set("Content-Type", MIMEMultipartPOSTForm+"; boundary="+mw.Boundary())
+	req.Header.Set("Content-Type", binding.MIMEMultipartPOSTForm+"; boundary="+mw.Boundary())
 	return req
 }
 

@@ -4,7 +4,6 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"net/http"
 	"testing"
-	"time"
 )
 
 func init() {
@@ -26,16 +25,18 @@ func initGoFastServer() {
 	gftApp.ReadyToListen()
 }
 
-func gftMiddlewareHandle(ctx *fst.Context) {
-	//请求前获取当前时间
-	nowTime := time.Now()
+func gftMiddlewareHandle(ctx *fst.Context) int {
+	// 请求前获取当前时间
+	//nowTime := time.Now()
 
-	arr := [100000]int{}
-	for i := 0; i < len(arr); i++ {
-		arr[i] = i
+	arr := [10000]int{}
+	ctLen := len(arr)
+	for i := 0; i < ctLen; i++ {
+		arr[i] = i * 10
 	}
 
-	time.Since(nowTime)
+	return arr[0]
+	//return int(time.Since(nowTime))
 }
 func gftHandle2(_ *fst.Context) {
 }
@@ -47,9 +48,12 @@ func gftHandle2(_ *fst.Context) {
 //	io.WriteString(c.Reply, c.Params.ByName("name"))
 //}
 
+// add GoFast middlewares
 func gftAddMiddlewareHandlers(ct int) {
 	for i := 0; i < ct; i++ {
-		gftApp.Before(gftMiddlewareHandle)
+		gftApp.Before(func(context *fst.Context) {
+			gftMiddlewareHandle(context)
+		})
 	}
 }
 

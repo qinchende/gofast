@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
@@ -10,12 +10,9 @@ import (
 /*********** flow control ***********/
 /************************************/
 
-// Abort prevents pending handlers from being called. Note that this will not stop the current handler.
-// Let's say you have an authorization middleware that validates that the current request is authorized.
-// If the authorization fails (ex: the password does not match), call Abort to ensure the remaining handlers
-// for this request are not called.
-func (c *Context) Abort() {
-	c.isAborted = true
+// 直接向上抛出异常，交给全局Recover函数处理
+func (c *Context) abort() {
+	panic("Handler exception!")
 }
 
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
@@ -23,22 +20,23 @@ func (c *Context) Abort() {
 func (c *Context) AbortWithStatus(code int) {
 	c.Status(code)
 	c.Reply.WriteHeaderNow()
-	c.Abort()
+	c.abort()
 }
 
 // AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
 // This method stops the chain, writes the status code and return a JSON body.
 // It also sets the Content-Type as "application/json".
 func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
-	c.Abort()
 	c.JSON(code, jsonObj)
+	c.abort()
 }
 
 // AbortWithError calls `AbortWithStatus()` and `Error()` internally.
 // This method stops the chain, writes the status code and pushes the specified error to `c.Errors`.
 // See Context.Error() for more details.
 func (c *Context) AbortWithError(code int, err error) *Error {
-	c.AbortWithStatus(code)
+	c.Status(code)
+	c.Reply.WriteHeaderNow()
 	return c.Error(err)
 }
 

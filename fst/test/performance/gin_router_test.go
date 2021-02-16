@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"net/http"
 	"testing"
-	"time"
 )
 
 func init() {
@@ -23,17 +22,21 @@ func initGinServer() {
 	})
 }
 
-func ginMiddlewareHandle(ctx *gin.Context) {
-	//请求前获取当前时间
-	nowTime := time.Now()
+func ginMiddlewareHandle(ctx *gin.Context) int {
+	// 请求前获取当前时间
+	//nowTime := time.Now()
 
-	arr := [100000]int{}
-	for i := 0; i < len(arr); i++ {
-		arr[i] = i
+	arr := [10000]int{}
+	ctLen := len(arr)
+	for i := 0; i < ctLen; i++ {
+		arr[i] = i * 10
 	}
+
 	ctx.Next()
 
-	time.Since(nowTime)
+	//time := time.Since(nowTime)
+	//return int(time.Since(nowTime))
+	return arr[0]
 }
 func ginHandle2(ctx *gin.Context) {
 }
@@ -45,12 +48,16 @@ func ginHandle2(ctx *gin.Context) {
 //	io.WriteString(c.Writer, c.Params.ByName("name"))
 //}
 
+// add gin middlewares
 func ginAddMiddlewareHandlers(ginApp *gin.Engine, ct int) {
 	for i := 0; i < ct; i++ {
-		ginApp.Use(ginMiddlewareHandle)
+		ginApp.Use(func(context *gin.Context) {
+			ginMiddlewareHandle(context)
+		})
 	}
 }
 
+// start benchmark
 func BenchmarkGinWebRouter(b *testing.B) {
 	benchRequest(b, ginApp)
 }

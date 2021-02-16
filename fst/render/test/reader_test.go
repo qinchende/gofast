@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package render
+package test
 
 import (
+	"github.com/qinchende/gofast/fst/render"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -14,7 +15,7 @@ import (
 
 func TestReaderRenderNoHeaders(t *testing.T) {
 	content := "test"
-	r := Reader{
+	r := render.Reader{
 		ContentLength: int64(len(content)),
 		Reader:        strings.NewReader(content),
 	}

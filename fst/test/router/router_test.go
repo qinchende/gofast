@@ -147,7 +147,7 @@ func TestRouteNotOK2(t *testing.T) {
 
 func TTestRouteRedirectTrailingSlash(t *testing.T) {
 	router := fst.Default()
-	router.RedirectFixedPath = false
+	//router.RedirectFixedPath = false
 	router.RedirectTrailingSlash = true
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/path2/", func(c *fst.Context) {})
@@ -203,7 +203,7 @@ func TTestRouteRedirectTrailingSlash(t *testing.T) {
 
 func TTestRouteRedirectFixedPath(t *testing.T) {
 	router := fst.Default()
-	router.RedirectFixedPath = true
+	//router.RedirectFixedPath = true
 	router.RedirectTrailingSlash = false
 
 	router.Get("/path", func(c *fst.Context) {})
@@ -444,7 +444,7 @@ func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
 
 func TTestRouterNotFound(t *testing.T) {
 	router := fst.Default()
-	router.RedirectFixedPath = true
+	//router.RedirectFixedPath = true
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/dir/", func(c *fst.Context) {})
 	router.Get("/", func(c *fst.Context) {})
@@ -547,7 +547,7 @@ func TestMiddlewareCalledOnceByRouterStaticFSNotFound(t *testing.T) {
 
 func TestRouteRawPath(t *testing.T) {
 	route := fst.Default()
-	route.UseRawPath = true
+	//route.UseRawPath = true
 	route.DisableDefNoRoute = true
 
 	route.Post("/project/:name/build/:num", func(c *fst.Context) {
@@ -567,8 +567,8 @@ func TestRouteRawPath(t *testing.T) {
 
 func TestRouteRawPathNoUnescape(t *testing.T) {
 	route := fst.Default()
-	route.UseRawPath = true
-	route.UnescapePathValues = false
+	//route.UseRawPath = true
+	//route.UnescapePathValues = false
 	route.DisableDefNoRoute = true
 
 	route.Post("/project/:name/build/:num", func(c *fst.Context) {

@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
@@ -23,8 +23,9 @@ type GoFast struct {
 	*HomeRouter
 	appEvents
 
-	pool      sync.Pool
-	readyOnce sync.Once
+	fitHandlers IncHandlers
+	ctxPool     sync.Pool
+	readyOnce   sync.Once
 }
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
@@ -73,7 +74,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 	gft.treePost = &methodTree{method: http.MethodPost}
 	gft.treeOthers = make(methodTrees, 0, 9)
 
-	gft.pool.New = func() interface{} {
+	gft.ctxPool.New = func() interface{} {
 		return &Context{gftApp: gft}
 	}
 
@@ -110,17 +111,14 @@ func (gft *GoFast) ReadyToListen() {
 		// 这里开始完整的重建整个路由树的数据结构
 		gft.buildMiniRoutes()
 		// 依次执行 onReady 事件处理函数
-		gft.execHandlers(gft.eReadyHds)
+		gft.execAppHandlers(gft.eReadyHds)
+
+		// 全局中间件过滤之后加入主体处理函数
+		gft.Fit(func(w http.ResponseWriter, r *Request) {
+			gft.serveHTTPWithCtx(w, r.rawReq)
+		})
 	})
 }
-
-//func (gft *GoFast) Listen(addr ...string) (err error) {
-//	gft.ReadyToListen()
-//
-//	defer func() { skill.DebugPrintError(err) }()
-//	err = http.ListenAndServe(skill.ResolveAddress(addr), gft)
-//	return
-//}
 
 // 第二步：启动端口监听
 // 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
@@ -128,6 +126,7 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 	gft.ReadyToListen()
 
 	defer func() { skill.DebugPrintError(err) }()
+	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
 	gft.srv = &http.Server{Addr: skill.ResolveAddress(addr), Handler: gft}
 
 	// 设置关闭前等待时间
@@ -149,7 +148,7 @@ func (gft *GoFast) GracefulShutdown() {
 	log.Println("Shutdown Server ...")
 
 	// 执行 onClose 事件订阅函数
-	gft.execHandlers(gft.eCloseHds)
+	gft.execAppHandlers(gft.eCloseHds)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Second)
 	defer cancel()
@@ -159,20 +158,27 @@ func (gft *GoFast) GracefulShutdown() {
 	<-ctx.Done()
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // http服务器，所有请求的入口，底层是用 goroutine 发起的一个协程任务
 // 也就是说主线程，获取到任何请求事件（数据）之后，通过goroutine调用这个接口方法来并行处理
 // 这里的代码就是在一个协程中运行的
 func (gft *GoFast) ServeHTTP(res http.ResponseWriter, req *http.Request) {
-	c := gft.pool.Get().(*Context)
+	// 开始执行全局拦截器
+	cReq := &Request{gftApp: gft, rawReq: req, fitIdx: -1}
+	cReq.NextFit(res)
+}
+
+func (gft *GoFast) serveHTTPWithCtx(res http.ResponseWriter, req *http.Request) {
+	c := gft.ctxPool.Get().(*Context)
 	c.resW.Reset(res)
 	c.Request = req
 	c.reset()
 	gft.handleHTTPRequest(c)
-	gft.pool.Put(c)
+	gft.ctxPool.Put(c)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// TODO: 还有大量的逻辑需要在这里支持
+// TODO: 还有一些特殊情况的处理，需要在这里继续完善
 // 处理所有请求，匹配路由并执行指定的路由处理函数
 func (gft *GoFast) handleHTTPRequest(c *Context) {
 	httpMethod := c.Request.Method

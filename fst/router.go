@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 // 绑定在 RouterGroup 和 RouterItem 上的 不同事件处理函数数组
@@ -21,7 +21,7 @@ type RouterGroup struct {
 	prefix       string
 	children     []*RouterGroup
 	hdsGroupIdx  int16  // 记录当前分组 对应新事件数组中的起始位置索引
-	selfHdsLen   uint16 //
+	selfHdsLen   uint16 // 记录分组中一共加入的 处理 函数个数
 	parentHdsLen uint16 //
 }
 
@@ -51,6 +51,8 @@ type handlersNode struct {
 
 // ++++++++++++++++++++++++++++++++++++++++++++++
 // 第二种方案（暂时不用）
+// 将某个路由节点的所有处理函数按顺序全部排序成数组，请求匹配到路由节点之后直接执行这里的队列即可
+// 当节点多的时候这种方式相对第一种占用更多内存。
 type handlersNodePlan2 struct {
 	startIdx uint16 // 2字节
 	hdsLen   uint8  // 1字节

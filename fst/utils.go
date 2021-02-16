@@ -1,7 +1,5 @@
-// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
-// Use of this source code is governed by a MIT style
-// license that can be found in the LICENSE file.
-
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package fst
 
 import (
@@ -125,7 +123,6 @@ func filterFlags(content string) string {
 	}
 	return content
 }
-
 
 func chooseData(custom, wildcard interface{}) interface{} {
 	if custom == nil {

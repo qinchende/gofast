@@ -1,5 +1,5 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a BSD-style license
+// Use of this source code is governed by a MIT license
 package fst
 
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
@@ -48,7 +48,12 @@ func (gp *RouterGroup) regGroupCtxHandler(eType string, hds CtxHandlers) *Router
 	return gp
 }
 
-// 注册节点的所有事件
+//// TODO: 需要注册拦截器处理链
+//func (gp *RouterGroup) Use(f func()) *RouterGroup {
+//	//return gp.regGroupCtxHandler(EBefore, before)
+//	return nil
+//}
+
 func (gp *RouterGroup) Before(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EBefore, hds)
 }

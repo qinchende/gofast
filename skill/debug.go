@@ -21,6 +21,10 @@ func SetDebugStatus(yn bool) {
 	})
 }
 
+func IsDebugging() bool {
+	return isDebug
+}
+
 func DebugPrint(format string, values ...interface{}) {
 	if isDebug {
 		if !strings.HasSuffix(format, "\n") {
