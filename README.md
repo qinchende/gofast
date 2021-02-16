@@ -4,7 +4,7 @@ GoFast是一个用Go语言实现的微服务开发框架。他的产生源于目
 
 更多了解：[GoFast的实现细节](https://chende.ren/tags/gofast-intr/)
 
-GoFast的微服务：虽然也提供现成的微服务治理能力，但我们想强调的是，GoFast更专注于帮助框架使用者清晰的开发业务逻辑。大型项目上框架应该弱化微服务治理能力，将这一部分特性交给istio处理。
+GoFast的微服务：虽然也提供现成的微服务治理能力，但我们想强调的是，GoFast更专注于帮助框架使用者清晰的开发业务逻辑。大型项目上框架应该弱化微服务治理，将这一部分特性交给istio处理。
 
 ## Installation
 
@@ -160,5 +160,13 @@ tst.After(handler("after tst_url"))
 tst.PreSend(handler("preSend tst_url"))
 tst.AfterSend(handler("afterSend tst_url"))
 ```
+
+## benchmark
+
+
+## License
+
+This project is licensed under the terms of the MIT license.
+
 
 （其它介绍陆续补充...）
