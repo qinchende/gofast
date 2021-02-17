@@ -5,7 +5,8 @@ package fst
 import (
 	"context"
 	"fmt"
-	"github.com/qinchende/gofast/skill"
+	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/httpx"
 	"log"
 	"net/http"
 	"os"
@@ -85,7 +86,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 // 一个快速创建Server的函数，使用默认配置参数，方便调用。
 // 记住：使用之前一定要先调用 ReadyToListen方法。
 func Default() *GoFast {
-	skill.DebugPrintWARNINGDefault()
+	logx.DebugPrintWARNINGDefault()
 	app := CreateServer(&AppConfig{
 		RunMode: ProductMode,
 	})
@@ -115,7 +116,7 @@ func (gft *GoFast) ReadyToListen() {
 
 		// 全局中间件过滤之后加入主体处理函数
 		gft.Fit(func(w http.ResponseWriter, r *Request) {
-			gft.serveHTTPWithCtx(w, r.rawReq)
+			gft.serveHTTPWithCtx(w, r.RawReq)
 		})
 	})
 }
@@ -125,9 +126,9 @@ func (gft *GoFast) ReadyToListen() {
 func (gft *GoFast) Listen(addr ...string) (err error) {
 	gft.ReadyToListen()
 
-	defer func() { skill.DebugPrintError(err) }()
+	defer func() { logx.DebugPrintError(err) }()
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
-	gft.srv = &http.Server{Addr: skill.ResolveAddress(addr), Handler: gft}
+	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
 
 	// 设置关闭前等待时间
 	go func() {
@@ -164,10 +165,11 @@ func (gft *GoFast) GracefulShutdown() {
 // 这里的代码就是在一个协程中运行的
 func (gft *GoFast) ServeHTTP(res http.ResponseWriter, req *http.Request) {
 	// 开始执行全局拦截器
-	cReq := &Request{gftApp: gft, rawReq: req, fitIdx: -1}
+	cReq := &Request{gftApp: gft, RawReq: req, fitIdx: -1}
 	cReq.NextFit(res)
 }
 
+// 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(res http.ResponseWriter, req *http.Request) {
 	c := gft.ctxPool.Get().(*Context)
 	c.resW.Reset(res)
@@ -190,7 +192,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	//}
 
 	if gft.RemoveExtraSlash {
-		rPath = skill.CleanPath(rPath)
+		rPath = httpx.CleanPath(rPath)
 	}
 
 	// 看能不能找到 http method 对应的路由树

@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/skill"
+	"github.com/qinchende/gofast/logx"
 	"net/http"
 	"path"
 )
@@ -19,7 +19,7 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 			c.resW.Header()["Content-Type"] = mimePlain
 			_, err := c.Reply.Write(defaultMessage)
 			if err != nil {
-				skill.DebugPrint("Cannot write message to writer during serve error: %v", err)
+				logx.DebugPrint("Cannot write message to writer during serve error: %v", err)
 			}
 			return
 		}
@@ -94,7 +94,7 @@ func redirectRequest(c *Context) {
 	if req.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect
 	}
-	skill.DebugPrint("redirecting request %d: %s --> %s", code, rPath, rURL)
+	logx.DebugPrint("redirecting request %d: %s --> %s", code, rPath, rURL)
 	http.Redirect(c.Reply, req, rURL, code)
 	c.resW.WriteHeaderNow()
 }

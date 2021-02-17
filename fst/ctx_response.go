@@ -4,7 +4,7 @@ package fst
 
 import (
 	"bufio"
-	"github.com/qinchende/gofast/skill"
+	"github.com/qinchende/gofast/logx"
 	"io"
 	"net"
 	"net/http"
@@ -63,7 +63,7 @@ func (w *ResWriteWrap) Reset(res http.ResponseWriter) {
 func (w *ResWriteWrap) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		if w.Written() {
-			skill.DebugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
+			logx.DebugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
 		}
 		w.status = code
 	}

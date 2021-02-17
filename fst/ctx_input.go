@@ -4,7 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/fst/binding"
-	"github.com/qinchende/gofast/skill"
+	"github.com/qinchende/gofast/logx"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -151,7 +151,7 @@ func (c *Context) getFormCache() {
 		req := c.Request
 		if err := req.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
-				skill.DebugPrint("error on parse multipart form array: %v", err)
+				logx.DebugPrint("error on parse multipart form array: %v", err)
 			}
 		}
 		c.formCache = req.PostForm

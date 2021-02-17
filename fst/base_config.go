@@ -4,7 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/fst/render"
-	"github.com/qinchende/gofast/skill"
+	"github.com/qinchende/gofast/logx"
 )
 
 type AppConfig struct {
@@ -22,9 +22,11 @@ type AppConfig struct {
 	ForwardedByClientIP    bool
 	// UseRawPath             bool
 	// UnescapePathValues     bool
-	RemoveExtraSlash bool // 规范请求的URL
-	PrintRouteTrees  bool // 是否打印出当前路由数
-	modeType         int8 // 运行模式，整形方便比较，提高性能
+	RemoveExtraSlash    bool  // 规范请求的URL
+	PrintRouteTrees     bool  // 是否打印出当前路由数
+	modeType            int8  // 运行模式，整形方便比较，提高性能
+	FitTimeout          int64 // 每次请求的超时时间（单位：毫秒）
+	FitMaxReqContentLen int64 // 最大请求字节数
 }
 
 func (gft *GoFast) initServerEnv() {
@@ -52,7 +54,7 @@ func (gft *GoFast) initServerEnv() {
 	//gft.UnescapePathValues = true
 
 	gft.SetMode(gft.RunMode)
-	skill.SetDebugStatus(gft.modeType == modeDebug)
+	logx.SetDebugStatus(gft.modeType == modeDebug)
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++

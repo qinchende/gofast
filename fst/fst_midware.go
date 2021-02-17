@@ -1,6 +1,17 @@
+// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package fst
 
-import "net/http"
+import (
+	"net/http"
+)
+//
+//// GoFast提供的拦截器全家桶
+//func (gft *GoFast) RegDefaultFits() *GoFast {
+//	gft.Fit(mid.MaxReqContentLen(gft.FitMaxReqContentLen))
+//	gft.Fit(mid.GunzipFit)
+//	return gft
+//}
 
 // 添加全局拦截器
 func (gft *GoFast) Fit(hds ...IncHandler) *GoFast {

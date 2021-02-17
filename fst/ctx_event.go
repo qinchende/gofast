@@ -124,3 +124,11 @@ func (c *Context) execHandlersMini(ptrMini *radixMiniNode) {
 		it.startIdx++
 	}
 }
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (c CtxHandlers) Last() CtxHandler {
+	if length := len(c); length > 0 {
+		return c[length-1]
+	}
+	return nil
+}

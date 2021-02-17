@@ -5,10 +5,8 @@ package fst
 import (
 	"fmt"
 	"github.com/qinchende/gofast/fst/binding"
-	"io"
 	"math"
 	"net/http"
-	"os"
 )
 
 type (
@@ -49,7 +47,4 @@ var (
 	mimePlain      = []string{MIMEPlain}
 	default404Body = []byte("404 (PAGE NOT FOND)")
 	default405Body = []byte("405 (METHOD NOT ALLOWED)")
-
-	DefaultWriter      io.Writer = os.Stdout
-	DefaultErrorWriter io.Writer = os.Stderr
 )
