@@ -10,8 +10,8 @@ import (
 	"html/template"
 	"net/http"
 
-	"github.com/qinchende/gofast/fst/internal/bytesconv"
-	"github.com/qinchende/gofast/fst/internal/json"
+	"github.com/qinchende/gofast/skill/bytesconv"
+	"github.com/qinchende/gofast/skill/json"
 )
 
 // JSON contains the given interface object.

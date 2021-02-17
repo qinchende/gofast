@@ -6,7 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill"
+	"github.com/qinchende/gofast/logx"
 	"io"
 	"io/ioutil"
 	"log"
@@ -31,12 +31,12 @@ type RecoveryFunc func(c *fst.Context, err interface{})
 
 // Recovery returns a middleware that recovers from any panics and writes a 500 if there was one.
 func Recovery() fst.CtxHandler {
-	return RecoveryWithWriter(fst.DefaultErrorWriter)
+	return RecoveryWithWriter(logx.DefaultErrorWriter)
 }
 
 //CustomRecovery returns a middleware that recovers from any panics and calls the provided handle func to handle it.
 func CustomRecovery(handle RecoveryFunc) fst.CtxHandler {
-	return RecoveryWithWriter(fst.DefaultErrorWriter, handle)
+	return RecoveryWithWriter(logx.DefaultErrorWriter, handle)
 }
 
 // RecoveryWithWriter returns a middleware for a given writer that recovers from any panics and writes a 500 if there was one.
@@ -67,7 +67,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.CtxHandler
 					}
 				}
 				if logger != nil {
-					stack := stack(3)
+					//stack := stack(3)
 					httpRequest, _ := httputil.DumpRequest(c.Request, false)
 					headers := strings.Split(string(httpRequest), "\r\n")
 					for idx, header := range headers {
@@ -76,21 +76,21 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.CtxHandler
 							headers[idx] = current[0] + ": *"
 						}
 					}
-					headersToStr := strings.Join(headers, "\r\n")
-					if brokenPipe {
-						logger.Printf("%s\n%s%s", err, headersToStr, reset)
-					} else if skill.IsDebugging() {
-						logger.Printf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
-							timeFormat(time.Now()), headersToStr, err, stack, reset)
-					} else {
-						logger.Printf("[Recovery] %s panic recovered:\n%s\n%s%s",
-							timeFormat(time.Now()), err, stack, reset)
-					}
+					//headersToStr := strings.Join(headers, "\r\n")
+					//if brokenPipe {
+					//	logger.Printf("%s\n%s%s", err, headersToStr, reset)
+					//} else if skill.IsDebugging() {
+					//	logger.Printf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
+					//		timeFormat(time.Now()), headersToStr, err, stack, reset)
+					//} else {
+					//	logger.Printf("[Recovery] %s panic recovered:\n%s\n%s%s",
+					//		timeFormat(time.Now()), err, stack, reset)
+					//}
 				}
 				if brokenPipe {
 					// If the connection is dead, we can't write a status to it.
 					_ = c.Error(err.(error)) // nolint: errcheck
-					c.Abort()
+					//c.Abort()
 				} else {
 					handle(c, err)
 				}
