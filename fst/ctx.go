@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-// Context is the most important part of gin. It allows us to pass variables between middleware,
+// Context is the most important part of GoFast. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
 	gftApp    *GoFast
