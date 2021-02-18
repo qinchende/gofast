@@ -18,6 +18,9 @@ type (
 	CtxHandlers []CtxHandler
 	AppHandler  func(gft *GoFast)
 	AppHandlers []AppHandler
+
+	// 抽取出一些常用函数原型
+	goFastRegFunc func(*GoFast) *GoFast
 )
 
 const (

@@ -5,13 +5,11 @@ package fst
 import (
 	"net/http"
 )
-//
-//// GoFast提供的拦截器全家桶
-//func (gft *GoFast) RegDefaultFits() *GoFast {
-//	gft.Fit(mid.MaxReqContentLen(gft.FitMaxReqContentLen))
-//	gft.Fit(mid.GunzipFit)
-//	return gft
-//}
+
+// GoFast提供的拦截器全家桶
+func (gft *GoFast) RegFits(gftFunc goFastRegFunc) *GoFast {
+	return gftFunc(gft)
+}
 
 // 添加全局拦截器
 func (gft *GoFast) Fit(hds ...IncHandler) *GoFast {

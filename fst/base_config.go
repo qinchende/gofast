@@ -25,8 +25,9 @@ type AppConfig struct {
 	RemoveExtraSlash    bool  // 规范请求的URL
 	PrintRouteTrees     bool  // 是否打印出当前路由数
 	modeType            int8  // 运行模式，整形方便比较，提高性能
-	FitTimeout          int64 // 每次请求的超时时间（单位：毫秒）
+	FitReqTimeout       int64 // 每次请求的超时时间（单位：毫秒）
 	FitMaxReqContentLen int64 // 最大请求字节数
+	FitLogType          string
 }
 
 func (gft *GoFast) initServerEnv() {
@@ -90,3 +91,10 @@ func (gft *GoFast) SetMode(mode string) {
 		panic("GoFast mode unknown: " + mode)
 	}
 }
+
+// 日志目标系统
+const (
+	LogTypeConsole    = "console"
+	LogTypeELK        = "elk"
+	LogTypePrometheus = "prometheus"
+)

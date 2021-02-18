@@ -48,7 +48,7 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	}
 	ri.eHds = addCtxHandlers(gp.gftApp.fstMem, hds)
 
-	//logx.DebugPrintRoute(httpMethod, absPath, hds)
+	DebugPrintRoute(httpMethod, absPath, hds)
 
 	gp.gftApp.regRoute(httpMethod, absPath, ri)
 	gp.gftApp.fstMem.hdsItemCt++

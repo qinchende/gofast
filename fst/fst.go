@@ -86,7 +86,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 // 一个快速创建Server的函数，使用默认配置参数，方便调用。
 // 记住：使用之前一定要先调用 ReadyToListen方法。
 func Default() *GoFast {
-	logx.DebugPrintWARNINGDefault()
+	logx.DebugPrintWarningDefault()
 	app := CreateServer(&AppConfig{
 		RunMode: ProductMode,
 	})

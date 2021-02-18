@@ -146,10 +146,10 @@ func (a errorMsgs) JSON() interface{} {
 	}
 }
 
-//// MarshalJSON implements the json.Marshaller interface.
-//func (a errorMsgs) MarshalJSON() ([]byte, error) {
-//	return json.Marshal((a.JSON())
-//}
+// MarshalJSON implements the json.Marshaller interface.
+func (a errorMsgs) MarshalJSON() ([]byte, error) {
+	return json.Marshal(a.JSON())
+}
 
 func (a errorMsgs) String() string {
 	if len(a) == 0 {
