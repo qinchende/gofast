@@ -11,19 +11,19 @@ import (
 // 系统默认错误处理函数，可以设置 code 和 message.
 func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 	return func(c *Context) {
-		c.resW.WriteHeader(code)
-		if c.resW.Written() {
+		c.ResW.WriteHeader(code)
+		if c.ResW.Written() {
 			return
 		}
-		if c.resW.Status() == code {
-			c.resW.Header()["Content-Type"] = mimePlain
-			_, err := c.Reply.Write(defaultMessage)
+		if c.ResW.Status() == code {
+			c.ResW.Header()["Content-Type"] = mimePlain
+			_, err := c.ResW.Write(defaultMessage)
 			if err != nil {
 				logx.DebugPrint("Cannot write message to writer during serve error: %v", err)
 			}
 			return
 		}
-		c.resW.WriteHeaderNow()
+		c.ResW.WriteHeaderNow()
 		return
 	}
 }
@@ -61,9 +61,9 @@ func (gft *GoFast) NoMethod(handlers ...CtxHandler) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 func redirectTrailingSlash(c *Context) {
-	req := c.Request
+	req := c.ReqW
 	p := req.URL.Path
-	if prefix := path.Clean(c.Request.Header.Get("X-Forwarded-Prefix")); prefix != "." {
+	if prefix := path.Clean(c.ReqW.Header.Get("X-Forwarded-Prefix")); prefix != "." {
 		p = prefix + "/" + req.URL.Path
 	}
 	req.URL.Path = p + "/"
@@ -74,7 +74,7 @@ func redirectTrailingSlash(c *Context) {
 }
 
 //func redirectFixedPath(c *Context, root *node, trailingSlash bool) bool {
-//	req := c.Request
+//	req := c.ReqW
 //	rPath := req.URL.Path
 //
 //	if fixedPath, ok := root.findCaseInsensitivePath(skill.CleanPath(rPath), trailingSlash); ok {
@@ -86,7 +86,7 @@ func redirectTrailingSlash(c *Context) {
 //}
 
 func redirectRequest(c *Context) {
-	req := c.Request
+	req := c.ReqW
 	rPath := req.URL.Path
 	rURL := req.URL.String()
 
@@ -95,6 +95,6 @@ func redirectRequest(c *Context) {
 		code = http.StatusTemporaryRedirect
 	}
 	logx.DebugPrint("redirecting request %d: %s --> %s", code, rPath, rURL)
-	http.Redirect(c.Reply, req, rURL, code)
-	c.resW.WriteHeaderNow()
+	http.Redirect(c.ResW, req, rURL, code)
+	c.ResW.WriteHeaderNow()
 }

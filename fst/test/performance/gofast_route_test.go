@@ -42,10 +42,10 @@ func gftHandle2(_ *fst.Context) {
 }
 
 //func gftHandleTest(c *fst.Context) {
-//	io.WriteString(c.Reply, c.Request.RequestURI)
+//	io.WriteString(c.ResW, c.ReqW.RequestURI)
 //}
 //func gftHandleWrite(c *fst.Context) {
-//	io.WriteString(c.Reply, c.Params.ByName("name"))
+//	io.WriteString(c.ResW, c.Params.ByName("name"))
 //}
 
 // add GoFast middlewares

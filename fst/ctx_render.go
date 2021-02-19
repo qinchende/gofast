@@ -33,18 +33,18 @@ func bodyAllowedForStatus(status int) bool {
 
 // Status sets the HTTP response code.
 func (c *Context) Status(code int) {
-	c.Reply.WriteHeader(code)
+	c.ResW.WriteHeader(code)
 }
 
-// Header is a intelligent shortcut for c.Reply.Header().Set(key, value).
+// Header is a intelligent shortcut for c.ResW.Header().Set(key, value).
 // It writes a header in the response.
-// If value == "", this method removes the header `c.Reply.Header().Del(key)`
+// If value == "", this method removes the header `c.ResW.Header().Del(key)`
 func (c *Context) Header(key, value string) {
 	if value == "" {
-		c.Reply.Header().Del(key)
+		c.ResW.Header().Del(key)
 		return
 	}
-	c.Reply.Header().Set(key, value)
+	c.ResW.Header().Set(key, value)
 }
 
 // GetHeader returns value from request headers.
@@ -54,7 +54,7 @@ func (c *Context) GetHeader(key string) string {
 
 // GetRawData return stream data.
 func (c *Context) GetRawData() ([]byte, error) {
-	return ioutil.ReadAll(c.Request.Body)
+	return ioutil.ReadAll(c.ReqW.Body)
 }
 
 // SetSameSite with cookie
@@ -69,7 +69,7 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 	if path == "" {
 		path = "/"
 	}
-	http.SetCookie(c.Reply, &http.Cookie{
+	http.SetCookie(c.ResW, &http.Cookie{
 		Name:     name,
 		Value:    url.QueryEscape(value),
 		MaxAge:   maxAge,
@@ -86,7 +86,7 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 // If multiple cookies match the given name, only one cookie will
 // be returned.
 func (c *Context) Cookie(name string) (string, error) {
-	cookie, err := c.Request.Cookie(name)
+	cookie, err := c.ReqW.Cookie(name)
 	if err != nil {
 		return "", err
 	}
@@ -101,12 +101,12 @@ func (c *Context) Render(code int, r render.Render) {
 
 	c.Status(code)
 	if !bodyAllowedForStatus(code) {
-		r.WriteContentType(c.Reply)
-		c.Reply.WriteHeaderNow()
+		r.WriteContentType(c.ResW)
+		c.ResW.WriteHeaderNow()
 		return
 	}
 
-	if err := r.Render(c.Reply); err != nil {
+	if err := r.Render(c.ResW); err != nil {
 		panic(err)
 	}
 	// add preSend & afterSend events by sdx on 2021.01.06
@@ -192,7 +192,7 @@ func (c *Context) Redirect(code int, location string) {
 	c.Render(-1, render.Redirect{
 		Code:     code,
 		Location: location,
-		Request:  c.Request,
+		Request:  c.ReqW,
 	})
 }
 
@@ -216,25 +216,25 @@ func (c *Context) DataFromReader(code int, contentLength int64, contentType stri
 
 // File writes the specified file into the body stream in a efficient way.
 func (c *Context) File(filepath string) {
-	http.ServeFile(c.Reply, c.Request, filepath)
+	http.ServeFile(c.ResW, c.ReqW, filepath)
 }
 
 // FileFromFS writes the specified file from http.FileSytem into the body stream in an efficient way.
 func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {
 	defer func(old string) {
-		c.Request.URL.Path = old
-	}(c.Request.URL.Path)
+		c.ReqW.URL.Path = old
+	}(c.ReqW.URL.Path)
 
-	c.Request.URL.Path = filepath
+	c.ReqW.URL.Path = filepath
 
-	http.FileServer(fs).ServeHTTP(c.Reply, c.Request)
+	http.FileServer(fs).ServeHTTP(c.ResW, c.ReqW)
 }
 
 // FileAttachment writes the specified file into the body stream in an efficient way
 // On the client side, the file will typically be downloaded with the given filename
 func (c *Context) FileAttachment(filepath, filename string) {
-	c.Reply.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	http.ServeFile(c.Reply, c.Request, filepath)
+	c.ResW.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	http.ServeFile(c.ResW, c.ReqW, filepath)
 }
 
 // SSEvent writes a Server-Sent Event into the body stream.
@@ -248,7 +248,7 @@ func (c *Context) SSEvent(name string, message interface{}) {
 // Stream sends a streaming response and returns a boolean
 // indicates "Is client disconnected in middle of stream"
 func (c *Context) Stream(step func(w io.Writer) bool) bool {
-	w := c.Reply
+	w := c.ResW
 	clientGone := w.CloseNotify()
 	for {
 		select {

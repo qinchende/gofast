@@ -31,7 +31,7 @@ func (c *Context) Param(key string) string {
 
 // Query returns the keyed url query value if it exists,
 // otherwise it returns an empty string `("")`.
-// It is shortcut for `c.Request.URL.Query().Get(key)`
+// It is shortcut for `c.ReqW.URL.Query().Get(key)`
 //     GET /path?id=1234&name=Manu&value=
 // 	   c.Query("id") == "1234"
 // 	   c.Query("name") == "Manu"
@@ -59,7 +59,7 @@ func (c *Context) DefaultQuery(key, defaultValue string) string {
 // GetQuery is like Query(), it returns the keyed url query value
 // if it exists `(value, true)` (even when the value is an empty string),
 // otherwise it returns `("", false)`.
-// It is shortcut for `c.Request.URL.Query().Get(key)`
+// It is shortcut for `c.ReqW.URL.Query().Get(key)`
 //     GET /?name=Manu&lastname=
 //     ("Manu", true) == c.GetQuery("name")
 //     ("", false) == c.GetQuery("id")
@@ -80,7 +80,7 @@ func (c *Context) QueryArray(key string) []string {
 
 func (c *Context) getQueryCache() {
 	if c.queryCache == nil {
-		c.queryCache = c.Request.URL.Query()
+		c.queryCache = c.ReqW.URL.Query()
 	}
 }
 
@@ -148,7 +148,7 @@ func (c *Context) PostFormArray(key string) []string {
 func (c *Context) getFormCache() {
 	if c.formCache == nil {
 		c.formCache = make(url.Values)
-		req := c.Request
+		req := c.ReqW
 		if err := req.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
 				logx.DebugPrint("error on parse multipart form array: %v", err)
@@ -198,12 +198,12 @@ func (c *Context) get(m map[string][]string, key string) (map[string]string, boo
 
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
-	if c.Request.MultipartForm == nil {
-		if err := c.Request.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
+	if c.ReqW.MultipartForm == nil {
+		if err := c.ReqW.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			return nil, err
 		}
 	}
-	f, fh, err := c.Request.FormFile(name)
+	f, fh, err := c.ReqW.FormFile(name)
 	if err != nil {
 		return nil, err
 	}
@@ -213,8 +213,8 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 
 // MultipartForm is the parsed multipart form, including file uploads.
 func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.Request.ParseMultipartForm(c.gftApp.MaxMultipartMemory)
-	return c.Request.MultipartForm, err
+	err := c.ReqW.ParseMultipartForm(c.gftApp.MaxMultipartMemory)
+	return c.ReqW.MultipartForm, err
 }
 
 // SaveUploadedFile uploads the form file to specific dst.
@@ -244,7 +244,7 @@ func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error
 // It decodes the json payload into the struct specified as a pointer.
 // It writes a 400 error and sets Content-Type header "text/plain" in the response if input is not valid.
 func (c *Context) Bind(obj interface{}) error {
-	b := binding.Default(c.Request.Method, c.ContentType())
+	b := binding.Default(c.ReqW.Method, c.ContentType())
 	return c.MustBindWith(obj, b)
 }
 
@@ -303,7 +303,7 @@ func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
 // It decodes the json payload into the struct specified as a pointer.
 // Like c.Bind() but this method does not set the response status code to 400 and abort if the json is not valid.
 func (c *Context) ShouldBind(obj interface{}) error {
-	b := binding.Default(c.Request.Method, c.ContentType())
+	b := binding.Default(c.ReqW.Method, c.ContentType())
 	return c.ShouldBindWith(obj, b)
 }
 
@@ -344,7 +344,7 @@ func (c *Context) ShouldBindUri(obj interface{}) error {
 // ShouldBindWith binds the passed struct pointer using the specified binding gftApp.
 // See the binding package.
 func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
-	return b.Bind(c.Request, obj)
+	return b.Bind(c.ReqW, obj)
 }
 
 // ShouldBindBodyWith is similar with ShouldBindWith, but it stores the request
@@ -360,7 +360,7 @@ func (c *Context) ShouldBindBodyWith(obj interface{}, bb binding.BindingBody) (e
 		}
 	}
 	if body == nil {
-		body, err = ioutil.ReadAll(c.Request.Body)
+		body, err = ioutil.ReadAll(c.ReqW.Body)
 		if err != nil {
 			return err
 		}
@@ -384,7 +384,7 @@ func (c *Context) ClientIP() string {
 		}
 	}
 
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Request.RemoteAddr)); err == nil {
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.ReqW.RemoteAddr)); err == nil {
 		return ip
 	}
 
@@ -407,5 +407,5 @@ func (c *Context) IsWebsocket() bool {
 }
 
 func (c *Context) requestHeader(key string) string {
-	return c.Request.Header.Get(key)
+	return c.ReqW.Header.Get(key)
 }

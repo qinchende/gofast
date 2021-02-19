@@ -31,19 +31,6 @@ type AppConfig struct {
 }
 
 func (gft *GoFast) initServerEnv() {
-	//FuncMap: 				template.FuncMap{},
-	//RedirectTrailingSlash:  true,
-	//RedirectFixedPath:      false,
-	//HandleMethodNotAllowed: false,
-	//ForwardedByClientIP:    true,
-	//AppEngine:              defaultAppEngine,
-	//UseRawPath:             false,
-	//RemoveExtraSlash:       false,
-	//UnescapePathValues:     true,
-	//MaxMultipartMemory:     defaultMultipartMemory,
-	//trees:                  make(methodTrees, 0, 9),
-	//delims:                 render.Delims{Left: "{{", Right: "}}"},
-	//secureJsonPrefix:       "while(1);",
 	if gft.SecureJsonPrefix == "" {
 		gft.SecureJsonPrefix = "while(1);"
 	}
@@ -92,7 +79,7 @@ func (gft *GoFast) SetMode(mode string) {
 	}
 }
 
-// 日志目标系统
+// 日志文件的目标系统
 const (
 	LogTypeConsole    = "console"
 	LogTypeELK        = "elk"

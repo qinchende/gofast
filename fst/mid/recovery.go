@@ -68,7 +68,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.CtxHandler
 				}
 				if logger != nil {
 					//stack := stack(3)
-					httpRequest, _ := httputil.DumpRequest(c.Request, false)
+					httpRequest, _ := httputil.DumpRequest(c.ReqW, false)
 					headers := strings.Split(string(httpRequest), "\r\n")
 					for idx, header := range headers {
 						current := strings.Split(header, ":")

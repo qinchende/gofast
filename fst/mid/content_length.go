@@ -5,16 +5,16 @@ import (
 	"net/http"
 )
 
-func MaxReqContentLength(n int64) fst.IncHandler {
-	return func(w http.ResponseWriter, r *fst.Request) {
-		if n <= 0 {
+func MaxReqContentLength(limit int64) fst.IncHandler {
+	return func(w *fst.GFResponse, r *http.Request) {
+		if limit <= 0 {
 			return
 		}
-		if r.RawReq.ContentLength > n {
-			r.Errorf("Request entity too large, limit is %d, but got %d, rejected with code %d",
-				n, r.RawReq.ContentLength, http.StatusRequestEntityTooLarge)
-			w.WriteHeader(http.StatusRequestEntityTooLarge)
-			r.Abort()
+		// request body length
+		if r.ContentLength > limit {
+			w.ErrorF("Request body limit is %d, but got %d, rejected with code %d", limit, r.ContentLength, http.StatusRequestEntityTooLarge)
+			w.ResW.WriteHeader(http.StatusRequestEntityTooLarge)
+			w.AbortFit()
 		}
 	}
 }

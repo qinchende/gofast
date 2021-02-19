@@ -70,14 +70,14 @@ func (f neuteredReaddirFile) Readdir(count int) ([]os.FileInfo, error) {
 //// WrapF is a helper function for wrapping http.CtxHandler and returns a Gin middleware.
 //func WrapF(f http.HandlerFunc) CtxHandler {
 //	return func(c *Context) {
-//		f(c.Reply, c.Request)
+//		f(c.ResW, c.ReqW)
 //	}
 //}
 //
 //// WrapH is a helper function for wrapping http.Handler and returns a Gin middleware.
 //func WrapH(h http.Handler) CtxHandler {
 //	return func(c *Context) {
-//		h.ServeHTTP(c.Reply, c.Request)
+//		h.ServeHTTP(c.ResW, c.ReqW)
 //	}
 //}
 
@@ -163,16 +163,4 @@ func joinPaths(absolutePath, relativePath string) string {
 		return finalPath + "/"
 	}
 	return finalPath
-}
-
-// 合并两个 事件数组 到一个新的数组
-func combineHandlers(a, b []uint16) []uint16 {
-	size := len(a) + len(b)
-	if size <= 0 {
-		return nil
-	}
-	merge := make([]uint16, size)
-	copy(merge, a)
-	copy(merge[len(a):], b)
-	return merge
 }

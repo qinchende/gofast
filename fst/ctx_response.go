@@ -4,27 +4,84 @@ package fst
 
 import (
 	"bufio"
+	"errors"
+	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"io"
 	"net"
 	"net/http"
+	"strings"
 )
-
-type Response struct {
-}
 
 const (
 	noWritten     = -1
 	defaultStatus = http.StatusOK
 )
 
+// 自定义 Response
+type GFResponse struct {
+	ResW *ResWriteWrap
+
+	// 用于上下文
+	gftApp *GoFast
+	Errors errorMsgs
+	fitIdx int
+}
+
+func (w *GFResponse) requestHeader(r *http.Request, key string) string {
+	return r.Header.Get(key)
+}
+
+func (w *GFResponse) ClientIP(r *http.Request) string {
+	if w.gftApp.ForwardedByClientIP {
+		clientIP := w.requestHeader(r, "X-Forwarded-For")
+		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
+		if clientIP == "" {
+			clientIP = strings.TrimSpace(w.requestHeader(r, "X-Real-Ip"))
+		}
+		if clientIP != "" {
+			return clientIP
+		}
+	}
+
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
+		return ip
+	}
+
+	return ""
+}
+
+func (w *GFResponse) Error(err error) *Error {
+	if err == nil {
+		panic("err is nil")
+	}
+
+	parsedError, ok := err.(*Error)
+	if !ok {
+		parsedError = &Error{
+			Err:  err,
+			Type: ErrorTypePrivate,
+		}
+	}
+
+	w.Errors = append(w.Errors, parsedError)
+	return parsedError
+}
+
+func (w *GFResponse) ErrorF(format string, v ...interface{}) {
+	_ = w.Error(errors.New(fmt.Sprintf(format, v...)))
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 实现接口 ResponseWriter
 type ResWriteWrap struct {
 	http.ResponseWriter
 	size   int
 	status int
 }
 
-// 自定义接口FResponseWriter
+// 自定义接口 ResponseWriter
+// 我们自己定义的 GFResponse 结构需要实现这个接口
 type ResponseWriter interface {
 	http.ResponseWriter
 	http.Hijacker
