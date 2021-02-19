@@ -12,7 +12,7 @@ import (
 type (
 	I           interface{}
 	KV          map[string]interface{}
-	IncHandler  func(w http.ResponseWriter, r *Request)
+	IncHandler  func(w *GFResponse, r *http.Request)
 	IncHandlers []IncHandler
 	CtxHandler  func(ctx *Context)
 	CtxHandlers []CtxHandler
@@ -24,7 +24,6 @@ type (
 )
 
 const (
-	// BodyBytesKey indicates a default body bytes key.
 	BodyBytesKey     = "_qinchende/gofast/bodybyteskey"
 	maxFitLen    int = math.MaxInt8 // 最多多少个中间件函数
 	//routePathMaxLen    uint8 = 255      // 路由字符串最长长度

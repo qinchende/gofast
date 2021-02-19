@@ -70,20 +70,20 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 
 	return func(c *Context) {
 		if _, noListing := fs.(*onlyFilesFS); noListing {
-			c.Reply.WriteHeader(http.StatusNotFound)
+			c.ResW.WriteHeader(http.StatusNotFound)
 		}
 
 		file := c.Param("filepath")
 		// Check if file exists and/or if we have permission to access it
 		f, err := fs.Open(file)
 		if err != nil {
-			c.Reply.WriteHeader(http.StatusNotFound)
+			c.ResW.WriteHeader(http.StatusNotFound)
 			// TODO: need add some logic
 			//c.execJustHandlers(gp.gftApp.miniNode404)
 			return
 		}
 		_ = f.Close()
-		fileServer.ServeHTTP(c.Reply, c.Request)
+		fileServer.ServeHTTP(c.ResW, c.ReqW)
 	}
 }
 

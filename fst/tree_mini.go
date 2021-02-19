@@ -300,3 +300,16 @@ func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx u
 //	}
 //	return
 //}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 合并两个 事件数组 到一个新的数组
+func combineHandlers(a, b []uint16) []uint16 {
+	size := len(a) + len(b)
+	if size <= 0 {
+		return nil
+	}
+	merge := make([]uint16, size)
+	copy(merge, a)
+	copy(merge[len(a):], b)
+	return merge
+}

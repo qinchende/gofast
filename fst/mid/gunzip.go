@@ -9,14 +9,13 @@ import (
 	"github.com/qinchende/gofast/skill/httpx"
 )
 
-func GunzipFit(w http.ResponseWriter, r *fst.Request) {
-	if strings.Contains(r.RawReq.Header.Get(httpx.ContentEncoding), "gzip") {
-		reader, err := gzip.NewReader(r.RawReq.Body)
+func GunzipFit(w *fst.GFResponse, r *http.Request) {
+	if strings.Contains(r.Header.Get(httpx.ContentEncoding), "gzip") {
+		reader, err := gzip.NewReader(r.Body)
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			r.Abort()
+			w.ResW.WriteHeader(http.StatusBadRequest)
+			w.AbortFit()
 		}
-
-		r.RawReq.Body = reader
+		r.Body = reader
 	}
 }

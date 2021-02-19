@@ -12,16 +12,16 @@ func ReqLogger(logType string) fst.IncHandler {
 		logType = fst.LogTypeConsole
 	}
 
-	return func(w http.ResponseWriter, r *fst.Request) {
+	return func(w *fst.GFResponse, r *http.Request) {
 		// Start timer
 		start := time.Now()
-		path := r.RawReq.URL.Path
-		raw := r.RawReq.URL.RawQuery
+		path := r.URL.Path
+		raw := r.URL.RawQuery
 
-		r.NextFit(w)
+		w.NextFit(r)
 
 		p := &logx.LogReqParams{
-			Request: r.RawReq,
+			Request: r,
 			// Keys:    r.Keys,
 			// isTerm:  isTerm,
 		}
@@ -30,11 +30,11 @@ func ReqLogger(logType string) fst.IncHandler {
 		p.TimeStamp = time.Now()
 		p.Latency = p.TimeStamp.Sub(start)
 
-		p.ClientIP = r.ClientIP()
-		p.Method = r.RawReq.Method
+		p.ClientIP = w.ClientIP(r)
+		p.Method = r.Method
 		//p.StatusCode = .Status()
-		p.ErrorMessage = r.Errors.ByType(fst.ErrorTypePrivate).String()
-		//p.BodySize = r.Reply.Size()
+		p.ErrorMessage = w.Errors.ByType(fst.ErrorTypePrivate).String()
+		//p.BodySize = r.ResW.Size()
 		if raw != "" {
 			path = path + "?" + raw
 		}

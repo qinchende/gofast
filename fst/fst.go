@@ -76,7 +76,9 @@ func CreateServer(cfg *AppConfig) *GoFast {
 	gft.treeOthers = make(methodTrees, 0, 9)
 
 	gft.ctxPool.New = func() interface{} {
-		return &Context{gftApp: gft}
+		c := &Context{}
+		c.GFResponse = &GFResponse{gftApp: gft}
+		return c
 	}
 
 	gft.fstMem = new(fstMemSpace)
@@ -115,79 +117,41 @@ func (gft *GoFast) ReadyToListen() {
 		gft.execAppHandlers(gft.eReadyHds)
 
 		// 全局中间件过滤之后加入主体处理函数
-		gft.Fit(func(w http.ResponseWriter, r *Request) {
-			gft.serveHTTPWithCtx(w, r.RawReq)
+		gft.Fit(func(w *GFResponse, r *http.Request) {
+			gft.serveHTTPWithCtx(w, r)
 		})
 	})
-}
-
-// 第二步：启动端口监听
-// 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
-func (gft *GoFast) Listen(addr ...string) (err error) {
-	gft.ReadyToListen()
-
-	defer func() { logx.DebugPrintError(err) }()
-	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
-	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
-
-	// 设置关闭前等待时间
-	go func() {
-		err = gft.srv.ListenAndServe()
-	}()
-	gft.GracefulShutdown()
-	return
-}
-
-// 优雅关闭
-func (gft *GoFast) GracefulShutdown() {
-	quit := make(chan os.Signal)
-	// kill (no param) default send syscanll.SIGTERM
-	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown Server ...")
-
-	// 执行 onClose 事件订阅函数
-	gft.execAppHandlers(gft.eCloseHds)
-
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Second)
-	defer cancel()
-	if err := gft.srv.Shutdown(ctx); err != nil {
-		fmt.Sprintln("Server Shutdown Error: ", err)
-	}
-	<-ctx.Done()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // http服务器，所有请求的入口，底层是用 goroutine 发起的一个协程任务
 // 也就是说主线程，获取到任何请求事件（数据）之后，通过goroutine调用这个接口方法来并行处理
 // 这里的代码就是在一个协程中运行的
-func (gft *GoFast) ServeHTTP(res http.ResponseWriter, req *http.Request) {
+func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 开始执行全局拦截器
-	cReq := &Request{gftApp: gft, RawReq: req, fitIdx: -1}
-	cReq.NextFit(res)
+	cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResW: &ResWriteWrap{}}
+	cRes.ResW.Reset(w)
+	cRes.NextFit(r)
 }
 
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
-func (gft *GoFast) serveHTTPWithCtx(res http.ResponseWriter, req *http.Request) {
+func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
 	c := gft.ctxPool.Get().(*Context)
-	c.resW.Reset(res)
-	c.Request = req
+	c.GFResponse = res
+	c.ReqW = req
 	c.reset()
 	gft.handleHTTPRequest(c)
 	gft.ctxPool.Put(c)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // TODO: 还有一些特殊情况的处理，需要在这里继续完善
 // 处理所有请求，匹配路由并执行指定的路由处理函数
 func (gft *GoFast) handleHTTPRequest(c *Context) {
-	httpMethod := c.Request.Method
-	rPath := c.Request.URL.Path
+	httpMethod := c.ReqW.Method
+	rPath := c.ReqW.URL.Path
 	//unescape := false
-	//if gft.UseRawPath && len(c.Request.URL.RawPath) > 0 {
-	//	rPath = c.Request.URL.RawPath
+	//if gft.UseRawPath && len(c.ReqW.URL.RawPath) > 0 {
+	//	rPath = c.ReqW.URL.RawPath
 	//	unescape = gft.UnescapePathValues
 	//}
 
@@ -210,7 +174,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			// 第二种方案
 			//c.execHandlersMini(nodeVal.ptrNode)
 
-			c.resW.WriteHeaderNow()
+			c.ResW.WriteHeaderNow()
 			return
 		}
 		// 匹配不到 先考虑 重定向
@@ -243,4 +207,43 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
 	c.execHandlers(gft.miniNode404)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 第二步：启动端口监听
+// 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
+func (gft *GoFast) Listen(addr ...string) (err error) {
+	gft.ReadyToListen()
+
+	defer func() { logx.DebugPrintError(err) }()
+	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
+	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
+
+	// 设置关闭前等待时间
+	go func() {
+		err = gft.srv.ListenAndServe()
+	}()
+	gft.GracefulShutdown()
+	return
+}
+
+// 优雅关闭
+func (gft *GoFast) GracefulShutdown() {
+	quit := make(chan os.Signal)
+	// kill (no param) default send syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
+	log.Println("Shutdown Server ...")
+
+	// 执行 onClose 事件订阅函数
+	gft.execAppHandlers(gft.eCloseHds)
+
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Second)
+	defer cancel()
+	if err := gft.srv.Shutdown(ctx); err != nil {
+		fmt.Sprintln("Server Shutdown Error: ", err)
+	}
+	<-ctx.Done()
 }

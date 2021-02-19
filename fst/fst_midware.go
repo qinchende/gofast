@@ -19,18 +19,18 @@ func (gft *GoFast) Fit(hds ...IncHandler) *GoFast {
 }
 
 // 执行下一个拦截器
-func (r *Request) NextFit(w http.ResponseWriter) {
-	r.fitIdx++
-	for r.fitIdx < len(r.gftApp.fitHandlers) {
-		r.gftApp.fitHandlers[r.fitIdx](w, r)
-		r.fitIdx++
+func (w *GFResponse) NextFit(r *http.Request) {
+	w.fitIdx++
+	for w.fitIdx < len(w.gftApp.fitHandlers) {
+		w.gftApp.fitHandlers[w.fitIdx](w, r)
+		w.fitIdx++
 	}
 }
 
-func (r *Request) IsAborted() bool {
-	return r.fitIdx >= maxFitLen
+func (w *GFResponse) IsAborted() bool {
+	return w.fitIdx >= maxFitLen
 }
 
-func (r *Request) Abort() {
-	r.fitIdx = maxFitLen
+func (w *GFResponse) AbortFit() {
+	w.fitIdx = maxFitLen
 }

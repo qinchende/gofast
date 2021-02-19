@@ -3,6 +3,7 @@ package fstx
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/fst/mid"
+	"time"
 )
 
 // GoFast提供默认的全套拦截器
@@ -10,6 +11,7 @@ import (
 func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.ReqLogger(gft.FitLogType))
 	gft.Fit(mid.MaxReqContentLength(gft.FitMaxReqContentLen))
+	gft.Fit(mid.ReqTimeout(time.Duration(gft.FitReqTimeout) * time.Millisecond, gft))
 	gft.Fit(mid.GunzipFit)
 	return gft
 }

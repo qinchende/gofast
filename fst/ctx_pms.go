@@ -19,7 +19,7 @@ func (c *Context) abort() {
 // For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(code int) {
 	c.Status(code)
-	c.Reply.WriteHeaderNow()
+	c.ResW.WriteHeaderNow()
 	c.abort()
 }
 
@@ -36,7 +36,7 @@ func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
 // See Context.Error() for more details.
 func (c *Context) AbortWithError(code int, err error) *Error {
 	c.Status(code)
-	c.Reply.WriteHeaderNow()
+	c.ResW.WriteHeaderNow()
 	return c.Error(err)
 }
 
@@ -214,7 +214,7 @@ func (c *Context) Err() error {
 // the same key returns the same result.
 func (c *Context) Value(key interface{}) interface{} {
 	if key == 0 {
-		return c.Request
+		return c.ReqW
 	}
 	if keyAsString, ok := key.(string); ok {
 		val, _ := c.Get(keyAsString)

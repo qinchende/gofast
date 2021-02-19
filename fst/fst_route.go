@@ -53,9 +53,9 @@ func (gft *GoFast) getMethodTree(method string) (tree *methodTree) {
 }
 
 //func redirectTrailingSlash(c *Context) {
-//	req := c.Request
+//	req := c.ReqW
 //	p := req.URL.Path
-//	if prefix := path.Clean(c.Request.Header.Get("X-Forwarded-Prefix")); prefix != "." {
+//	if prefix := path.Clean(c.ReqW.Header.Get("X-Forwarded-Prefix")); prefix != "." {
 //		p = prefix + "/" + req.URL.Path
 //	}
 //	code := http.StatusMovedPermanently // Permanent redirect, request with GET method
@@ -68,6 +68,6 @@ func (gft *GoFast) getMethodTree(method string) (tree *methodTree) {
 //		req.URL.Path = p[:length-1]
 //	}
 //	skill.DebugPrint("redirecting request %d: %s --> %s", code, p, req.URL.String())
-//	http.Redirect(c.Reply, req, req.URL.String(), code)
+//	http.Redirect(c.ResW, req, req.URL.String(), code)
 //	c.resW.WriteHeaderNow()
 //}

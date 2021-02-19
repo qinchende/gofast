@@ -36,10 +36,10 @@ var GenReqLogString = func(p *LogReqParams) string {
 		p.ClientIP,
 		p.TimeStamp.Format("01-02 15:04:05"),
 		p.Latency/time.Millisecond,
-		p.ErrorMessage,
-		p.ErrorMessage,
-		p.ErrorMessage,
-		p.ErrorMessage,
+		"",
+		"",
+		"",
+		"",
 		p.ErrorMessage,
 	)
 }
