@@ -9,7 +9,7 @@ import (
 	"github.com/qinchende/gofast/skill/httpx"
 )
 
-func GunzipFit(w *fst.GFResponse, r *http.Request) {
+func Gunzip(w *fst.GFResponse, r *http.Request) {
 	if strings.Contains(r.Header.Get(httpx.ContentEncoding), "gzip") {
 		reader, err := gzip.NewReader(r.Body)
 		if err != nil {

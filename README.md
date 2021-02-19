@@ -1,3 +1,5 @@
+# [Preview] 当前持续完善中，不可生产中使用 [Preview]
+
 # GoFast Micro-Service Framework
 
 GoFast是一个用Go语言实现的微服务开发框架。他的产生源于目前流行的gin、go-zero、fastify等众多开源框架；同时结合了作者多年的开发实践经验，很多模块的实现方式都是作者首创；当然也免不了不断借鉴社区中优秀的设计理念。我们的目标是简洁高效易上手，在封装大量特性的同时又不失灵活性。希望你能喜欢GoFast。
@@ -27,9 +29,12 @@ $ cat example.go
 package main
 
 import (
+	"fmt"
 	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/fstx"
 	"log"
 	"net/http"
+	"time"
 )
 
 var handler = func(str string) func(c *fst.Context) {
@@ -46,24 +51,50 @@ var handlerRender = func(str string) func(c *fst.Context) {
 }
 
 func main() {
-	gft := fst.CreateServer(&fst.AppConfig{
-		PrintRouteTrees: true,
-		RunMode:         "debug",
+	app := fst.CreateServer(&fst.AppConfig{
+		PrintRouteTrees:        true,
+		HandleMethodNotAllowed: true,
+		RunMode:                "debug",
+		FitMaxReqCount:         1,
+		FitMaxReqContentLen:    10 * 1024,
+	})
+
+	// 拦截器，微服务治理 ++++++++++++++++++++++++++++++++++++++
+	app.RegFits(fstx.AddDefaultFits)
+	app.Fit(func(w *fst.GFResponse, r *http.Request) {
+		log.Println("app fit before 1")
+		w.NextFit(r)
+		log.Println("app fit after 1")
 	})
 
 	// 根路由
-	gft.NoRoute(func(ctx *fst.Context) {
+	app.NoRoute(func(ctx *fst.Context) {
 		ctx.JSON(http.StatusNotFound, "404-Can't find the path.")
 	})
-	gft.NoMethod(func(ctx *fst.Context) {
+	app.NoMethod(func(ctx *fst.Context) {
 		ctx.JSON(http.StatusMethodNotAllowed, "405-Method not allowed.")
 	})
 
-	gft.Post("/root", handler("root"))
-	gft.Before(handler("before root")).After(handler("after root"))
+	// ++ (用这种方法可以模拟中间件需要上下文变量的场景)
+	app.Before(func(ctx *fst.Context) {
+		ctx.Set("nowTime", time.Now())
+		time.Sleep(3 * time.Second)
+	})
+	app.After(func(ctx *fst.Context) {
+		// 处理后获取消耗时间
+		val, exist := ctx.Get("nowTime")
+		if exist {
+			costTime := time.Since(val.(time.Time)) / time.Millisecond
+			fmt.Printf("The request cost %dms", costTime)
+		}
+	})
+	// ++ end
+
+	app.Post("/root", handler("root"))
+	app.Before(handler("before root")).After(handler("after root"))
 
 	// 分组路由1
-	adm := gft.AddGroup("/admin")
+	adm := app.AddGroup("/admin")
 	adm.After(handler("after group admin")).Before(handler("before group admin"))
 
 	tst := adm.Get("/chende", handlerRender("handle chende"))
@@ -74,24 +105,23 @@ func main() {
 	tst.AfterSend(handler("afterSend tst_url"))
 
 	// 分组路由2
-	adm2 := gft.AddGroup("/admin2").Before(handler("before admin2"))
+	adm2 := app.AddGroup("/admin2").Before(handler("before admin2"))
 	adm2.Get("/zht", handler("zht")).After(handler("after zht"))
 
 	adm22 := adm2.AddGroup("/group2").Before(handler("before group2"))
 	adm22.Get("/lmx", handler("lmx")).Before(handler("before lmx"))
 
 	// 应用级事件
-	gft.OnReady(func(fast *fst.GoFast) {
+	app.OnReady(func(fast *fst.GoFast) {
 		log.Println("App OnReady Call.")
 		log.Printf("Listening and serving HTTP on %s\n", "127.0.0.1:8099")
 	})
-	gft.OnClose(func(fast *fst.GoFast) {
+	app.OnClose(func(fast *fst.GoFast) {
 		log.Println("App OnClose Call.")
 	})
 	// 开始监听接收请求
-	_ = gft.Listen("127.0.0.1:8099")
+	_ = app.Listen("127.0.0.1:8099")
 }
-
 ```
 
 ```sh
@@ -102,6 +132,10 @@ $ go run example.go
 在控制台启动后台Web服务器之后，你会看到底层的路由树构造结果：
 
 ```
+[GoFast-debug] POST   /root                     --> main.glob..func1.1 (1 handlers)
+[GoFast-debug] GET    /admin/chende             --> main.glob..func2.1 (1 handlers)
+[GoFast-debug] GET    /admin2/zht               --> main.glob..func1.1 (1 handlers)
+[GoFast-debug] GET    /admin2/group2/lmx        --> main.glob..func1.1 (1 handlers)
 ++++++++++The route tree:
 
 (GET)
@@ -114,21 +148,30 @@ $ go run example.go
 └── /root                                                        [true-]
 
 ++++++++++THE END.
-2021/01/04 01:18:24 Listening and serving HTTP on 127.0.0.1:8099
+2021/02/20 02:56:00 App OnReady Call.
+2021/02/20 02:56:00 Listening and serving HTTP on 127.0.0.1:8099
 ```
 
 浏览器输入网址访问地址：`127.0.0.1:8099/admin/chende`，日志会输出：
 
 ```
-2021/01/06 17:35:40 before root
-2021/01/06 17:35:40 before group admin
-2021/01/06 17:35:40 before tst_url
-2021/01/06 17:35:40 handle chende
-2021/01/06 17:35:40 preSend tst_url
-2021/01/06 17:35:40 afterSend tst_url
-2021/01/06 17:35:40 after tst_url
-2021/01/06 17:35:40 after group admin
-2021/01/06 17:35:40 after root
+2021/02/20 02:57:17 app fit before 1
+2021/02/20 02:57:20 before root
+2021/02/20 02:57:20 before group admin
+2021/02/20 02:57:20 before tst_url
+2021/02/20 02:57:20 handle chende
+2021/02/20 02:57:20 preSend tst_url
+2021/02/20 02:57:20 afterSend tst_url
+2021/02/20 02:57:20 after tst_url
+2021/02/20 02:57:20 after group admin
+2021/02/20 02:57:20 after root
+2021/02/20 02:57:20 app fit after 1
+The request cost 3000ms
+[GET] /admin/chende (127.0.0.1/02-20 02:57:20) 200/24 [3000]
+  B:  C: 
+  P: 
+  R: 
+  E: 
 ```
 
 ## Core feature

@@ -128,9 +128,9 @@ func (gft *GoFast) ReadyToListen() {
 // 也就是说主线程，获取到任何请求事件（数据）之后，通过goroutine调用这个接口方法来并行处理
 // 这里的代码就是在一个协程中运行的
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 开始执行全局拦截器
 	cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResW: &ResWriteWrap{}}
 	cRes.ResW.Reset(w)
+	// 开始依次执行全局拦截器
 	cRes.NextFit(r)
 }
 

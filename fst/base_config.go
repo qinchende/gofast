@@ -27,6 +27,7 @@ type AppConfig struct {
 	modeType            int8  // 运行模式，整形方便比较，提高性能
 	FitReqTimeout       int64 // 每次请求的超时时间（单位：毫秒）
 	FitMaxReqContentLen int64 // 最大请求字节数
+	FitMaxReqCount      int32 // 最大请求处理数
 	FitLogType          string
 }
 
@@ -36,6 +37,9 @@ func (gft *GoFast) initServerEnv() {
 	}
 	if gft.MaxMultipartMemory == 0 {
 		gft.MaxMultipartMemory = defMultipartMemory
+	}
+	if gft.FitMaxReqCount == 0 {
+		gft.FitMaxReqCount = 1000000
 	}
 	gft.RedirectTrailingSlash = true
 	gft.ForwardedByClientIP = true

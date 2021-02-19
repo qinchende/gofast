@@ -24,7 +24,7 @@ type LogReqParams struct {
 
 var GenReqLogString = func(p *LogReqParams) string {
 	formatStr := `
-[%s] %s (%s/%s) [%d]
+[%s] %s (%s/%s) %d/%d [%d]
   B: %s C: %s
   P: %s
   R: %s
@@ -35,6 +35,8 @@ var GenReqLogString = func(p *LogReqParams) string {
 		p.Path,
 		p.ClientIP,
 		p.TimeStamp.Format("01-02 15:04:05"),
+		p.StatusCode,
+		p.BodySize,
 		p.Latency/time.Millisecond,
 		"",
 		"",
