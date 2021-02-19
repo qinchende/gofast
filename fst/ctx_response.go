@@ -24,8 +24,8 @@ type GFResponse struct {
 
 	// 用于上下文
 	gftApp *GoFast
-	Errors errorMsgs
 	fitIdx int
+	Errors errorMsgs
 }
 
 func (w *GFResponse) requestHeader(r *http.Request, key string) string {
@@ -66,6 +66,10 @@ func (w *GFResponse) Error(err error) *Error {
 
 	w.Errors = append(w.Errors, parsedError)
 	return parsedError
+}
+
+func (w *GFResponse) ErrorN(err error) {
+	_ = w.Error(err)
 }
 
 func (w *GFResponse) ErrorF(format string, v ...interface{}) {

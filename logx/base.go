@@ -11,4 +11,3 @@ var (
 	DefaultWriter      io.Writer = os.Stdout
 	DefaultErrorWriter io.Writer = os.Stderr
 )
-

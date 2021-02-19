@@ -1,39 +1,32 @@
 package mid
-//
-//
-//import (
-//	"net/http"
-//
-//	"github.com/tal-tech/go-zero/core/logx"
-//	"github.com/tal-tech/go-zero/core/syncx"
-//	"github.com/tal-tech/go-zero/rest/internal"
-//)
-//
-//func MaxConns(n int) func(http.Handler) http.Handler {
-//	if n <= 0 {
-//		return func(next http.Handler) http.Handler {
-//			return next
-//		}
-//	}
-//
-//	return func(next http.Handler) http.Handler {
-//		latch := syncx.NewLimit(n)
-//
-//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			if latch.TryBorrow() {
-//				defer func() {
-//					if err := latch.Return(); err != nil {
-//						logx.Error(err)
-//					}
-//				}()
-//
-//				next.ServeHTTP(w, r)
-//			} else {
-//				internal.Errorf(r, "concurrent connections over %d, rejected with code %d",
-//					n, http.StatusServiceUnavailable)
-//				w.WriteHeader(http.StatusServiceUnavailable)
-//			}
-//		})
-//	}
-//}
-//
+
+import (
+	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/skill/syncx"
+	"net/http"
+)
+
+func MaxReqCounts(limit int32) fst.IncHandler {
+	latch := syncx.Counter{Max: limit}
+
+	return func(w *fst.GFResponse, r *http.Request) {
+		if limit <= 0 {
+			return
+		}
+
+		//log.Printf("curr %d", latch.Curr)
+		if latch.TryBorrow() {
+			defer func() {
+				if err := latch.Return(); err != nil {
+					w.ErrorN(err)
+					w.AbortFit()
+				}
+			}()
+			w.NextFit(r)
+		} else {
+			w.ErrorF("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
+			w.ResW.WriteHeader(http.StatusServiceUnavailable)
+			w.AbortFit()
+		}
+	}
+}

@@ -18,6 +18,8 @@ func ReqLogger(logType string) fst.IncHandler {
 		path := r.URL.Path
 		raw := r.URL.RawQuery
 
+		// time.Sleep(1 * time.Second)
+		// 执行完后面的请求，再打印日志
 		w.NextFit(r)
 
 		p := &logx.LogReqParams{
@@ -32,13 +34,16 @@ func ReqLogger(logType string) fst.IncHandler {
 
 		p.ClientIP = w.ClientIP(r)
 		p.Method = r.Method
-		//p.StatusCode = .Status()
+		p.StatusCode = w.ResW.Status()
 		p.ErrorMessage = w.Errors.ByType(fst.ErrorTypePrivate).String()
-		//p.BodySize = r.ResW.Size()
+		p.BodySize = w.ResW.Size()
 		if raw != "" {
 			path = path + "?" + raw
 		}
 		p.Path = path
 		logx.WriteReqLog(p)
+
+		// 错误信息也写给客户端
+		w.ResW.WriteString(p.ErrorMessage)
 	}
 }
