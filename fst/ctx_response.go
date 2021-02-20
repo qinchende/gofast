@@ -76,6 +76,17 @@ func (w *GFResponse) ErrorF(format string, v ...interface{}) {
 	_ = w.Error(errors.New(fmt.Sprintf(format, v...)))
 }
 
+func (w *GFResponse) AbortWithStatus(code int) {
+	w.ResW.WriteHeader(code)
+	w.ResW.WriteHeaderNow()
+	w.AbortFit()
+}
+
+func (w *GFResponse) AbortWithError(code int, err error) *Error {
+	w.AbortWithStatus(code)
+	return w.Error(err)
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 实现接口 ResponseWriter
 type ResWriteWrap struct {
@@ -117,10 +128,12 @@ var _ ResponseWriter = &ResWriteWrap{}
 
 func (w *ResWriteWrap) Reset(res http.ResponseWriter) {
 	w.ResponseWriter = res
-	w.size = noWritten
-	w.status = defaultStatus
+	w.size = noWritten       // 一定要初始化为-1，因为0代表已设置好返回状态
+	w.status = defaultStatus // 默认返回200 OK
 }
 
+// 在没有调用 WriteHeaderNow() 之前，设置status code都是可以的，会对最终response起作用
+// 否则只会改变这里的w.status值，而不会改变response给客户端的状态了。切记。
 func (w *ResWriteWrap) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		if w.Written() {
@@ -130,7 +143,9 @@ func (w *ResWriteWrap) WriteHeader(code int) {
 	}
 }
 
+// 第一次调用起作用，后面再调用不会改变response的状态了。
 func (w *ResWriteWrap) WriteHeaderNow() {
+	// 还没有任何写动作就可以设置返回状态，否则啥也不做，意味着返回状态只能被设置一次
 	if !w.Written() {
 		w.size = 0
 		w.ResponseWriter.WriteHeader(w.status)
@@ -160,6 +175,7 @@ func (w *ResWriteWrap) Size() int {
 }
 
 func (w *ResWriteWrap) Written() bool {
+	// 只要不是初始化的-1，就代表已经开始写了，不管是不是只写了个返回状态
 	return w.size != noWritten
 }
 

@@ -6,6 +6,10 @@ import (
 	"fmt"
 )
 
-func writeNow(info string) {
-	_, _ = fmt.Fprint(DefaultWriter, info)
+func writeBytesNow(text []byte) {
+	_, _ = fmt.Fprint(DefaultWriter, text)
+}
+
+func writeStringNow(text string) {
+	_, _ = fmt.Fprint(DefaultWriter, text)
 }

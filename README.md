@@ -125,7 +125,7 @@ func main() {
 ```
 
 ```sh
-# run example.go and visit 127.0.0.1:8099/admin/cd/user_list on browser
+# run example.go and visit website 127.0.0.1:8099 on browser
 $ go run example.go
 ```
 

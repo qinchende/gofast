@@ -9,6 +9,7 @@ import (
 // 请求按照先后顺序依次执行这些过滤器
 func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.ReqLogger(gft.FitLogType))
+	gft.Fit(mid.Recovery())
 	gft.Fit(mid.MaxReqCounts(gft.FitMaxReqCount))
 	gft.Fit(mid.MaxReqContentLength(gft.FitMaxReqContentLen))
 	gft.Fit(mid.Gunzip)
