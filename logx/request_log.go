@@ -47,5 +47,5 @@ var GenReqLogString = func(p *LogReqParams) string {
 }
 
 func WriteReqLog(p *LogReqParams) {
-	writeNow(GenReqLogString(p))
+	writeStringNow(GenReqLogString(p))
 }
