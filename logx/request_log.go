@@ -3,6 +3,7 @@
 package logx
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -16,17 +17,16 @@ type ReqLogParams struct {
 	Latency    time.Duration
 	StatusCode int
 	ClientIP   string
-	isTerm     bool
+	//isTerm     bool
 	BodySize   int
 	WriteBytes *[]byte
-	Keys       map[string]interface{}
-	ErrorMsg   string
+	//Keys       map[string]interface{}
+	ErrorMsg string
 }
 
 var GenReqLogString = func(p *ReqLogParams) string {
 	formatStr := `
 [%s] %s (%s/%s) %d/%d [%d]
-  B: %s C: %s
   P: %s
   R: %s
   E: %s
@@ -36,6 +36,12 @@ var GenReqLogString = func(p *ReqLogParams) string {
 	if tLen > 1024 {
 		tLen = 1024
 	}
+	// 请求参数
+	var reqParams []byte
+	if p.Request.Form != nil {
+		reqParams, _ = json.Marshal(p.Request.Form)
+	}
+
 	return fmt.Sprintf(formatStr,
 		p.Method,
 		p.Path,
@@ -44,9 +50,7 @@ var GenReqLogString = func(p *ReqLogParams) string {
 		p.StatusCode,
 		p.BodySize,
 		p.Latency/time.Millisecond,
-		"",
-		"",
-		"",
+		reqParams,
 		(*p.WriteBytes)[:tLen],
 		p.ErrorMsg,
 	)

@@ -152,7 +152,7 @@ func (w *ResWriteWrap) WriteHeaderNow() {
 func (w *ResWriteWrap) Write(data []byte) (n int, err error) {
 	w.WriteHeaderNow()
 	n, err = w.ResponseWriter.Write(data)
-	w.WriteBytes = data[:n+1] // 记录最后一次输出给客户端的数据
+	w.WriteBytes = data[:n] // 记录最后一次输出给客户端的数据
 	w.size += n
 	return
 }

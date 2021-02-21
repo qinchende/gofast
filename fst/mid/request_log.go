@@ -23,12 +23,12 @@ func ReqLogger(logType string) fst.IncHandler {
 		w.NextFit(r)
 
 		p := &logx.ReqLogParams{
-			//Request: r,
+			Request: r,
 			//isTerm:  isTerm,
 		}
-		if w.PCtx != nil {
-			p.Keys = w.PCtx.Keys
-		}
+		//if w.PCtx != nil {
+		//	p.Keys = w.PCtx.Keys
+		//}
 
 		p.ClientIP = w.ClientIP(r)
 		p.Method = r.Method
