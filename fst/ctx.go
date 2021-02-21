@@ -22,13 +22,14 @@ type Context struct {
 
 	// This mutex protect Keys map
 	mu sync.RWMutex
-	// Keys is a key/value pair exclusively for the context of each request.
-	Keys map[string]interface{}
 	// Accepted defines a list of manually accepted formats for content negotiation.
 	Accepted []string
 	// SameSite allows a server to define a cookie attribute making it impossible for
 	// the browser to send this cookie along with cross-site requests.
 	sameSite http.SameSite
+	// Keys is a key/value pair exclusively for the context of each request.
+	// 上下文传值
+	Keys map[string]interface{}
 }
 
 /************************************/

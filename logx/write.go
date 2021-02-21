@@ -6,8 +6,8 @@ import (
 	"fmt"
 )
 
-func writeBytesNow(text []byte) {
-	_, _ = fmt.Fprint(DefaultWriter, text)
+func writeBytesNow(b []byte) {
+	_, _ = fmt.Fprint(DefaultWriter, b)
 }
 
 func writeStringNow(text string) {
