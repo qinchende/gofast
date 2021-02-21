@@ -14,6 +14,44 @@ import (
 	"net/url"
 )
 
+// +++++++++++++++++++++++++++++++++++
+// GoFast JSON render
+// JSON是GoFast默认的返回格式，一等公民
+
+func (c *Context) Fai(obj interface{}) {
+	c.FaiX(0, "", obj)
+}
+
+func (c *Context) FaiMsg(msg string, obj interface{}) {
+	c.FaiX(0, msg, obj)
+}
+
+func (c *Context) FaiX(code int32, msg string, obj interface{}) {
+	c.JSON(http.StatusOK, KV{
+		"status": "fai",
+		"r_code": code,
+		"r_msg":  msg,
+		"data":   obj,
+	})
+}
+
+func (c *Context) Suc(obj interface{}) {
+	c.SucX(0, "", obj)
+}
+
+func (c *Context) SucMsg(msg string, obj interface{}) {
+	c.SucX(0, msg, obj)
+}
+
+func (c *Context) SucX(code int32, msg string, obj interface{}) {
+	c.JSON(http.StatusOK, KV{
+		"status": "suc",
+		"r_code": code,
+		"r_msg":  msg,
+		"data":   obj,
+	})
+}
+
 /************************************/
 /******** RESPONSE RENDERING ********/
 /************************************/

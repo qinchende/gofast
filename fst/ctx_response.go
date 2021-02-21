@@ -7,47 +7,37 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/logx"
-	"io"
+	"github.com/qinchende/gofast/skill/bytesconv"
 	"net"
 	"net/http"
 	"strings"
 )
 
-const (
-	noWritten     = -1
-	defaultStatus = http.StatusOK
-)
-
 // 自定义 Response
 type GFResponse struct {
 	ResW *ResWriteWrap
+	PCtx *Context
 
 	// 用于上下文
 	gftApp *GoFast
 	fitIdx int
-	Errors errorMsgs
-}
-
-func (w *GFResponse) requestHeader(r *http.Request, key string) string {
-	return r.Header.Get(key)
+	Errors errorMsgs // []*Error
 }
 
 func (w *GFResponse) ClientIP(r *http.Request) string {
 	if w.gftApp.ForwardedByClientIP {
-		clientIP := w.requestHeader(r, "X-Forwarded-For")
+		clientIP := r.Header.Get("X-Forwarded-For")
 		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
 		if clientIP == "" {
-			clientIP = strings.TrimSpace(w.requestHeader(r, "X-Real-Ip"))
+			clientIP = r.Header.Get("X-Real-Ip")
 		}
 		if clientIP != "" {
 			return clientIP
 		}
 	}
-
 	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
 		return ip
 	}
-
 	return ""
 }
 
@@ -88,11 +78,17 @@ func (w *GFResponse) AbortWithError(code int, err error) *Error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const (
+	noWritten     = -1
+	defaultStatus = http.StatusOK
+)
+
 // 实现接口 ResponseWriter
 type ResWriteWrap struct {
 	http.ResponseWriter
-	size   int
-	status int
+	size       int
+	status     int
+	WriteBytes []byte // 最多保存两组返回结果
 }
 
 // 自定义接口 ResponseWriter
@@ -152,18 +148,21 @@ func (w *ResWriteWrap) WriteHeaderNow() {
 	}
 }
 
+// 返回结果都是通过这里的两个函数处理的
 func (w *ResWriteWrap) Write(data []byte) (n int, err error) {
 	w.WriteHeaderNow()
 	n, err = w.ResponseWriter.Write(data)
+	w.WriteBytes = data[:n+1] // 记录最后一次输出给客户端的数据
 	w.size += n
 	return
 }
 
 func (w *ResWriteWrap) WriteString(s string) (n int, err error) {
-	w.WriteHeaderNow()
-	n, err = io.WriteString(w.ResponseWriter, s)
-	w.size += n
-	return
+	return w.Write(bytesconv.StringToBytes(s))
+	//w.WriteHeaderNow()
+	//n, err = io.WriteString(w.ResponseWriter, s)
+	//w.size += n
+	//return
 }
 
 func (w *ResWriteWrap) Status() int {

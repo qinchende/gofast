@@ -8,21 +8,22 @@ import (
 	"time"
 )
 
-type LogReqParams struct {
-	Request      *http.Request
-	TimeStamp    time.Time
-	StatusCode   int
-	Latency      time.Duration
-	ClientIP     string
-	Method       string
-	Path         string
-	ErrorMessage string
-	isTerm       bool
-	BodySize     int
-	Keys         map[string]interface{}
+type ReqLogParams struct {
+	Request    *http.Request
+	Method     string
+	Path       string
+	TimeStamp  time.Time
+	Latency    time.Duration
+	StatusCode int
+	ClientIP   string
+	isTerm     bool
+	BodySize   int
+	WriteBytes *[]byte
+	Keys       map[string]interface{}
+	ErrorMsg   string
 }
 
-var GenReqLogString = func(p *LogReqParams) string {
+var GenReqLogString = func(p *ReqLogParams) string {
 	formatStr := `
 [%s] %s (%s/%s) %d/%d [%d]
   B: %s C: %s
@@ -30,6 +31,11 @@ var GenReqLogString = func(p *LogReqParams) string {
   R: %s
   E: %s
 `
+	// 最长打印出 1024个字节的结果
+	tLen := len(*p.WriteBytes)
+	if tLen > 1024 {
+		tLen = 1024
+	}
 	return fmt.Sprintf(formatStr,
 		p.Method,
 		p.Path,
@@ -41,11 +47,21 @@ var GenReqLogString = func(p *LogReqParams) string {
 		"",
 		"",
 		"",
-		"",
-		p.ErrorMessage,
+		(*p.WriteBytes)[:tLen],
+		p.ErrorMsg,
 	)
 }
 
-func WriteReqLog(p *LogReqParams) {
+func WriteReqLog(p *ReqLogParams) {
 	writeStringNow(GenReqLogString(p))
 }
+
+//func outputJson(writer io.Writer, info interface{}) {
+//	if content, err := json.Marshal(info); err != nil {
+//		log.Println(err.Error())
+//	} else if atomic.LoadUint32(&initialized) == 0 || writer == nil {
+//		log.Println(string(content))
+//	} else {
+//		writer.Write(append(content, '\n'))
+//	}
+//}
