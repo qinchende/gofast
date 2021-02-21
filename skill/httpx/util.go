@@ -3,6 +3,7 @@ package httpx
 import (
 	"github.com/qinchende/gofast/logx"
 	"net/http"
+	"net/url"
 	"os"
 )
 
@@ -30,5 +31,12 @@ func ResolveAddress(addr []string) string {
 		return addr[0]
 	default:
 		panic("Too many parameters")
+	}
+}
+
+// 拷贝集合对象
+func CopyUrlValues(dst, src url.Values) {
+	for k, vs := range src {
+		dst[k] = append(dst[k], vs...)
 	}
 }
