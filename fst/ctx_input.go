@@ -15,13 +15,6 @@ import (
 	"strings"
 )
 
-// +++++++++++++++++++++++++++++++++++
-// GoFast JSON 提交参数的解析
-// 每个匹配的路由，上来就直接解析POST和GET参数，
-func (c *Context) ParseHttpParams() {
-	c.getQueryCache()
-	c.getFormCache()
-}
 
 /************************************/
 /************ input data ************/

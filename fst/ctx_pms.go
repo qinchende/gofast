@@ -6,64 +6,12 @@ import (
 	"time"
 )
 
-/************************************/
-/*********** flow control ***********/
-/************************************/
-
-// 直接向上抛出异常，交给全局Recover函数处理
-func (c *Context) abort() {
-	panic("Handler exception!")
-}
-
-// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
-// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
-func (c *Context) AbortWithStatus(code int) {
-	c.Status(code)
-	c.ResW.WriteHeaderNow()
-	c.abort()
-}
-
-// AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
-// This method stops the chain, writes the status code and return a JSON body.
-// It also sets the Content-Type as "application/json".
-func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
-	c.JSON(code, jsonObj)
-	c.abort()
-}
-
-// AbortWithError calls `AbortWithStatus()` and `Error()` internally.
-// This method stops the chain, writes the status code and pushes the specified error to `c.Errors`.
-// See Context.Error() for more details.
-func (c *Context) AbortWithError(code int, err error) *Error {
-	c.Status(code)
-	c.ResW.WriteHeaderNow()
-	return c.Error(err)
-}
-
-/************************************/
-/********* error management *********/
-/************************************/
-
-// Error attaches an error to the current context. The error is pushed to a list of errors.
-// It's a good idea to call Error for each error that occurred during the resolution of a request.
-// A middleware can be used to collect all the errors and push them to a database together,
-// print a log, or append it in the HTTP response.
-// Error will panic if err is nil.
-func (c *Context) Error(err error) *Error {
-	if err == nil {
-		panic("err is nil")
-	}
-
-	parsedError, ok := err.(*Error)
-	if !ok {
-		parsedError = &Error{
-			Err:  err,
-			Type: ErrorTypePrivate,
-		}
-	}
-
-	c.Errors = append(c.Errors, parsedError)
-	return parsedError
+// +++++++++++++++++++++++++++++++++++
+// GoFast JSON 提交参数的解析
+// 每个匹配的路由，上来就直接解析POST和GET参数，
+func (c *Context) ParseHttpParams() {
+	//c.getQueryCache()
+	//c.getFormCache()
 }
 
 /************************************/
@@ -185,6 +133,66 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 		smss, _ = val.(map[string][]string)
 	}
 	return
+}
+
+/************************************/
+/*********** flow control ***********/
+/************************************/
+
+// 直接向上抛出异常，交给全局Recover函数处理
+func (c *Context) abort() {
+	panic("Handler exception!")
+}
+
+// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
+func (c *Context) AbortWithStatus(code int) {
+	c.Status(code)
+	c.ResW.WriteHeaderNow()
+	c.abort()
+}
+
+// AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
+// This method stops the chain, writes the status code and return a JSON body.
+// It also sets the Content-Type as "application/json".
+func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
+	c.JSON(code, jsonObj)
+	c.abort()
+}
+
+// AbortWithError calls `AbortWithStatus()` and `Error()` internally.
+// This method stops the chain, writes the status code and pushes the specified error to `c.Errors`.
+// See Context.Error() for more details.
+func (c *Context) AbortWithError(code int, err error) *Error {
+	c.Status(code)
+	c.ResW.WriteHeaderNow()
+	return c.Error(err)
+}
+
+/************************************/
+/********* error management *********/
+/************************************/
+
+// Error attaches an error to the current context. The error is pushed to a list of errors.
+// It's a good idea to call Error for each error that occurred during the resolution of a request.
+// A middleware can be used to collect all the errors and push them to a database together,
+// print a log, or append it in the HTTP response.
+// Error will panic if err is nil.
+func (c *Context) Error(err error) *Error {
+	if err == nil {
+		panic("err is nil")
+	}
+
+	parsedError, ok := err.(*Error)
+	if !ok {
+		parsedError = &Error{
+			Err:  err,
+			Type: ErrorTypePrivate,
+		}
+	}
+
+	c.Errors = append(c.Errors, parsedError)
+	return parsedError
 }
 
 /************************************/
