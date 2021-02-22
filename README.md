@@ -90,6 +90,42 @@ func main() {
 	})
 	// ++ end
 
+	// curl -H "Content-Type: application/json" -X POST  --data '{"data":"bmc","nick":"yes"}' http://127.0.0.1:8099/root?first=yang\&last=lmx
+	// curl -H "Content-Type: application/x-www-form-urlencoded" -X POST  --data '{"data":"bmc","nick":"yes"}' http://127.0.0.1:8099/root?first=yang\&last=lmx
+	// curl -H "Content-Type: application/x-www-form-urlencoded" -X POST  --data "data=bmc&nick=yes" http://127.0.0.1:8099/root?ids[a]=1234\&ids[b]=hello\&first=yang\&last=lmx
+	type MyData struct {
+		Data string `json:"data"`
+		Nick string `json:"nick"`
+	}
+	app.Post("/root", func(ctx *fst.Context) {
+		myData := MyData{}
+		_ = ctx.ShouldBindBodyWith(&myData, binding.JSON)
+		log.Printf("%v %+v %#v\n", myData, myData, myData)
+
+		myDataT := MyData{}
+		_ = ctx.ShouldBindBodyWith(&myDataT, binding.JSON)
+		log.Printf("%v %+v %#v\n", myDataT, myDataT, myDataT)
+
+		ids := ctx.QueryMap("ids")
+		firstname := ctx.DefaultQuery("first", "Guest")
+		lastname := ctx.Query("last") // shortcut for ctx.Request.URL.Query().Get("lastname")
+
+		message := ctx.PostForm("data")
+		nick := ctx.DefaultPostForm("nick", "anonymous")
+
+		//names := ctx.PostFormMap("names")
+		ctx.Suc(fst.KV{
+			"message": message,
+			"nick":    nick,
+			"first":   firstname,
+			"last":    lastname,
+			"ids":     ids,
+			//"data":    myData,
+		})
+		//ctx.String(http.StatusOK, fmt.Sprintf("file uploaded!"))
+		//ctx.JSON(http.StatusOK, myData)
+	})
+
 	app.Post("/root", handler("root"))
 	app.Before(handler("before root")).After(handler("after root"))
 
