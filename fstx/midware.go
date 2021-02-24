@@ -13,5 +13,6 @@ func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.MaxReqCounts(gft.FitMaxReqCount))
 	gft.Fit(mid.MaxReqContentLength(gft.FitMaxReqContentLen))
 	gft.Fit(mid.Gunzip)
+	gft.Fit(mid.Recovery())
 	return gft
 }
