@@ -22,12 +22,13 @@ type AppConfig struct {
 	ForwardedByClientIP    bool
 	// UseRawPath             bool
 	// UnescapePathValues     bool
-	RemoveExtraSlash    bool  // 规范请求的URL
-	PrintRouteTrees     bool  // 是否打印出当前路由数
-	modeType            int8  // 运行模式，整形方便比较，提高性能
-	FitReqTimeout       int64 // 每次请求的超时时间（单位：毫秒）
-	FitMaxReqContentLen int64 // 最大请求字节数
-	FitMaxReqCount      int32 // 最大请求处理数
+	RemoveExtraSlash    bool   // 规范请求的URL
+	PrintRouteTrees     bool   // 是否打印出当前路由数
+	modeType            int8   // 运行模式，整形方便比较，提高性能
+	FitReqTimeout       int64  // 每次请求的超时时间（单位：毫秒）
+	FitMaxReqContentLen int64  // 最大请求字节数
+	FitMaxReqCount      int32  // 最大请求处理数
+	FitJwtSecret        string // JWT认证的秘钥
 	FitLogType          string
 }
 
