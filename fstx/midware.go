@@ -13,6 +13,6 @@ func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.MaxReqCounts(gft.FitMaxReqCount))
 	gft.Fit(mid.MaxReqContentLength(gft.FitMaxReqContentLen))
 	gft.Fit(mid.Gunzip)
-	gft.Fit(mid.Recovery())
+	//gft.Fit(mid.JwtAuthorize(gft.FitJwtSecret))
 	return gft
 }

@@ -24,6 +24,10 @@ type (
 )
 
 func NewTokenParser(opts ...ParseOption) *TokenParser {
+	if JwtParser != nil {
+		return JwtParser
+	}
+
 	parser := &TokenParser{
 		resetTime:     timex.Now(),
 		resetDuration: claimHistoryResetDuration,
@@ -32,8 +36,8 @@ func NewTokenParser(opts ...ParseOption) *TokenParser {
 	for _, opt := range opts {
 		opt(parser)
 	}
-
-	return parser
+	JwtParser = parser
+	return JwtParser
 }
 
 func (tp *TokenParser) ParseToken(r *http.Request, secret, prevSecret string) (*jwt.Token, error) {

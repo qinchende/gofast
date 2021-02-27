@@ -24,7 +24,7 @@ type GoFast struct {
 	*HomeRouter
 	appEvents
 
-	fitHandlers IncHandlers
+	fitHandlers IncHandlers // 全局中间件处理函数
 	ctxPool     sync.Pool
 	readyOnce   sync.Once
 }
@@ -169,7 +169,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		// 如果能匹配到路径
 		if c.matchRst.ptrNode != nil {
 			c.Params = c.matchRst.params
-			c.ParseHttpParams()	// 先解析 POST | GET 参数
+			c.ParseHttpParams() // 先解析 POST | GET 参数
 
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers(c.matchRst.ptrNode)
