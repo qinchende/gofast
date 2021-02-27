@@ -61,6 +61,7 @@ func (c *Context) Copy() *Context {
 		ReqW:       c.ReqW,
 		Params:     c.Params,
 		matchRst:   c.matchRst,
+		Pms:        c.Pms,
 	}
 	cp.ResW.ResponseWriter = nil
 

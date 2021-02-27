@@ -43,7 +43,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.IncHandler
 			if err == nil {
 				return
 			}
-			//  如果是框架主动panic，只打印错误日志：
+			//  如果是框架主动panic，只打印简单错误日志：
 			if _, ok := err.(fst.GFPanic); ok {
 				handle(w, err)
 				w.AbortFit()
