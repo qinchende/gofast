@@ -15,10 +15,10 @@ type Context struct {
 	ReqW        *http.Request // request
 	matchRst    matchResult   // 路由匹配结果
 
-	Pms        url.Values // 所有Request参数的map（Params + queryCache + formCache）
-	Params     Params     // : 或 * 对应的参数
-	queryCache url.Values // param query result from c.ReqW.URL.Query()
-	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
+	Pms        map[string]string // 所有Request参数的map（Params + queryCache + formCache）
+	Params     Params            // : 或 * 对应的参数
+	queryCache url.Values        // param query result from c.ReqW.URL.Query()
+	formCache  url.Values        // the parsed form data from POST, PATCH, or PUT body parameters.
 
 	// This mutex protect Keys map
 	mu sync.RWMutex
@@ -30,6 +30,8 @@ type Context struct {
 	// Keys is a key/value pair exclusively for the context of each request.
 	// 上下文传值
 	Keys map[string]interface{}
+	// Session数据，这里不规定Session的载体，可以自定义
+	Sess *GFSession
 }
 
 /************************************/
@@ -43,6 +45,7 @@ func (c *Context) reset() {
 	c.matchRst.tsr = false
 
 	c.Keys = nil
+	c.Sess = nil
 	c.Errors = c.Errors[0:0]
 	c.Accepted = nil
 
@@ -62,6 +65,7 @@ func (c *Context) Copy() *Context {
 		Params:     c.Params,
 		matchRst:   c.matchRst,
 		Pms:        c.Pms,
+		Sess:       c.Sess,
 	}
 	cp.ResW.ResponseWriter = nil
 

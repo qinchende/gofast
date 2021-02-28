@@ -14,7 +14,10 @@ import (
 func (c *Context) ParseHttpParams() {
 	c.getQueryCache()
 	c.getFormCache()
-	c.Pms = c.ReqW.Form
+	c.Pms = make(map[string]string)
+	for key, val := range c.ReqW.Form {
+		c.Pms[key] = val[0]
+	}
 }
 
 /************************************/
