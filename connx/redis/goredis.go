@@ -28,6 +28,10 @@ type (
 
 // 直接连接redis
 // go-redis 底层自带连接池功能，不需要你再管理了。
+// 看看 go-redis/redis.go 中的代码：
+// 第330行 func (c *baseClient) process(ctx context.Context, cmd Cmder)
+// 第288行 func (c *baseClient) withConn(
+// 第292行 cn, err := c.getConn(ctx)
 func NewGoRedis(cf *ConnConfig) *GoRedisX {
 	rds := GoRedisX{Ctx: context.Background()}
 	rds.Cli = redis.NewClient(&redis.Options{

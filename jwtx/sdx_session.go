@@ -8,6 +8,9 @@ import (
 type SdxSessConfig struct {
 	sessKey string
 	secret  string
+
+	sessTTL    int
+	sessTTLNew int
 }
 
 type SdxSession struct {
@@ -19,6 +22,12 @@ var ss *SdxSession
 
 func InitSdxRedis(i *SdxSession) {
 	ss = i
+	if ss.sessTTL == 0 {
+		ss.sessTTL = 3600 * 4 // 默认4个小时
+	}
+	if ss.sessTTLNew == 0 {
+		ss.sessTTLNew = 180 // 默认三分钟
+	}
 }
 
 func SdxSessHandler(ctx *fst.Context) {
@@ -27,3 +36,4 @@ func SdxSessHandler(ctx *fst.Context) {
 
 	}
 }
+
