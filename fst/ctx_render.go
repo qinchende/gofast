@@ -27,12 +27,17 @@ func (c *Context) FaiMsg(msg string, obj interface{}) {
 }
 
 func (c *Context) FaiX(code int32, msg string, obj interface{}) {
-	c.JSON(http.StatusOK, KV{
+	jsonData := KV{
 		"status": "fai",
 		"r_code": code,
 		"r_msg":  msg,
 		"data":   obj,
-	})
+	}
+	if c.Sess.IsNew {
+		jsonData["tok"] = c.Sess.Token
+	}
+
+	c.JSON(http.StatusOK, jsonData)
 }
 
 func (c *Context) Suc(obj interface{}) {
@@ -44,12 +49,17 @@ func (c *Context) SucMsg(msg string, obj interface{}) {
 }
 
 func (c *Context) SucX(code int32, msg string, obj interface{}) {
-	c.JSON(http.StatusOK, KV{
+	jsonData := KV{
 		"status": "suc",
 		"r_code": code,
 		"r_msg":  msg,
 		"data":   obj,
-	})
+	}
+	if c.Sess.IsNew {
+		jsonData["tok"] = c.Sess.Token
+	}
+
+	c.JSON(http.StatusOK, jsonData)
 }
 
 /************************************/
