@@ -118,5 +118,5 @@ func unauthorized(w *fst.GFResponse, r *http.Request, err error) {
 
 func unauthorizedPanic(r *http.Request, err error) {
 	detailAuthLog(r, err.Error())
-	panic(fst.GFPanic(err))
+	fst.RaisePanicErr(err)
 }
