@@ -4,11 +4,28 @@ package fst
 
 import (
 	"encoding/xml"
+	"errors"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 )
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 主动抛异常
+func ifPanic(yn bool, text string) {
+	if yn {
+		panic(text)
+	}
+}
+
+func RaisePanic(errMsg string) {
+	panic(GFPanic(errors.New(errMsg)))
+}
+
+func RaisePanicErr(err error) {
+	panic(GFPanic(err))
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type onlyFilesFS struct {
@@ -105,12 +122,6 @@ func (h KV) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 func assert1(guard bool, text string) {
 	if !guard {
-		panic(text)
-	}
-}
-
-func ifPanic(yn bool, text string) {
-	if yn {
 		panic(text)
 	}
 }

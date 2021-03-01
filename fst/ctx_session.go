@@ -10,14 +10,11 @@ type SessionKeeper interface {
 }
 
 type GFSession struct {
-	Uid    string
+	Sid    string
 	Token  string
 	Values map[interface{}]interface{}
-	//Options *Options
-	IsNew bool
-	Saved bool
-	//store   Store
-	//name    string
+	IsNew  bool
+	Saved  bool
 }
 
 // GFSession 需要实现 SessionKeeper 所有接口
@@ -33,8 +30,8 @@ func (ss *GFSession) Set(key string, val interface{}) {
 
 func (ss *GFSession) Save() {
 	ss.Saved = true
-
 }
+
 func (ss *GFSession) Delete(key string) {
 	ss.Saved = false
 }

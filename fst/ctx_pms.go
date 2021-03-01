@@ -14,6 +14,8 @@ import (
 func (c *Context) ParseHttpParams() {
 	c.getQueryCache()
 	c.getFormCache()
+
+	// 将 Get 和 Post 请求参数全部解构之后加入 Pms 集合中
 	c.Pms = make(map[string]string)
 	for key, val := range c.ReqW.Form {
 		c.Pms[key] = val[0]
