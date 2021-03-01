@@ -9,12 +9,14 @@ type SessionKeeper interface {
 	Delete(string)
 }
 
+// GoFast框架的 Context Session
+// 默认将使用 Redis 存放 分布式 session 信息
 type GFSession struct {
 	Sid    string
 	Token  string
-	Values map[interface{}]interface{}
 	IsNew  bool
 	Saved  bool
+	Values map[interface{}]interface{}
 }
 
 // GFSession 需要实现 SessionKeeper 所有接口

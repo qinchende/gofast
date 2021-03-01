@@ -15,11 +15,11 @@ import (
 )
 
 type SdxSessConfig struct {
-	SessKey string `json:",optional"`
-	Secret  string `json:",optional"`
-
-	SessTTL    int `json:",optional"`
-	SessTTLNew int `json:",optional"`
+	Redis   redis.ConnConfig `json:",optional"` // 用 Redis 做持久化
+	SessKey string           `json:",optional"` // 用户信息的主键
+	Secret  string           `json:",optional"` // token秘钥
+	TTL     int              `json:",optional"` // session有效期 默认 3600*4 秒
+	TTLNew  int              `json:",optional"` // 首次产生的session有效期 默认 60*3 秒
 }
 
 type SdxSession struct {
@@ -29,13 +29,16 @@ type SdxSession struct {
 
 var ss *SdxSession
 
-func InitSdxRedis(i *SdxSession) {
-	ss = i
-	if ss.SessTTL == 0 {
-		ss.SessTTL = 3600 * 4 // 默认4个小时
+func InitSdxRedis(sdx *SdxSession) {
+	ss = sdx
+	if ss.TTL == 0 {
+		ss.TTL = 3600 * 4 // 默认4个小时
 	}
-	if ss.SessTTLNew == 0 {
-		ss.SessTTLNew = 180 // 默认三分钟
+	if ss.TTLNew == 0 {
+		ss.TTLNew = 180 // 默认三分钟
+	}
+	if ss.SessKey == "" {
+		ss.SessKey = "cus_id"
 	}
 }
 
