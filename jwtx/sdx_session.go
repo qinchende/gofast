@@ -19,25 +19,27 @@ type SdxSession struct {
 	Redis *redis.GoRedisX
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 每个进程只有一个全局 session 配置对象
 var ss *SdxSession
 
-func InitSdxRedis(sdx *SdxSession) {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+func InitSdxSession(sdx *SdxSession) {
 	if ss != nil {
 		return
 	}
 	ss = sdx
 	if ss.TTL == 0 {
-		ss.TTL = 3600 * 4 // 默认4个小时
+		ss.TTL = 3600 * 4 * time.Second // 默认4个小时
 	}
 	if ss.TTLNew == 0 {
-		ss.TTLNew = 180 // 默认三分钟
+		ss.TTLNew = 180 * time.Second // 默认三分钟
 	}
 	if ss.SessKey == "" {
 		ss.SessKey = "cus_id"
 	}
 
-	// 设置保存session的逻辑
+	// 指定 保存session 的处理函数
 	fst.CtxSessionSaveFun = SaveRedis
 }
 
@@ -51,10 +53,10 @@ func SdxSessHandler(ctx *fst.Context) {
 		return
 	}
 
-	//ctx.Sess = &fst.GFSession{Saved: true}
+	// ctx.Sess = &fst.GFSession{Saved: true}
 	// 初始化的时候就需要查询一次 redis 得到session
 	ctx.Sess = &fst.CtxSession{Saved: true}
-	//InitRedis(ctx.Sess)
+	// InitRedis(ctx.Sess)
 
 	tok := ctx.Pms["tok"]
 
@@ -82,7 +84,7 @@ func SdxSessHandler(ctx *fst.Context) {
 
 	// 如果验证通过
 	if isValid {
-		ss.getSessData(ctx)
+		ss.initCtxSess(ctx)
 	} else {
 		fst.RaisePanic("check token error. ")
 	}
@@ -96,7 +98,7 @@ func SdxMustLoginHandler(ctx *fst.Context) {
 	}
 
 	uid := ctx.Sess.Get(ss.SessKey)
-	//uid := ss.Get(ctx)
+	// uid := ss.Get(ctx)
 	if uid == nil || uid == "" {
 		//ctx.FaiMsg("not login ", "")
 		//fst.RaisePanic("not login")

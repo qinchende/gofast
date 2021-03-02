@@ -10,8 +10,14 @@ import (
 	"strings"
 )
 
+var (
+	sdxTokenPrefix   = "t:"
+	sdxSessKeyPrefix = "tls:"
+)
+
+// tok=t:NFRRcE81WDFQSEZJQUptZkpJ.v9EN6bWz8KU6sKRrcEId1OKUKqYx0hed2zSpCQImvc
 func fetchSid(tok string) (string, string, error) {
-	start := strings.Index(tok, "t:")
+	start := strings.Index(tok, sdxTokenPrefix)
 	dot := strings.Index(tok, ".")
 	if start != 0 || dot <= 0 {
 		return "", "", errors.New("Can't parse sid. ")
@@ -28,7 +34,7 @@ func fetchSid(tok string) (string, string, error) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
 func genToken(secret string) (string, string) {
 	sid := genSid(24)
-	tok := "t:" + genSign(sid, secret)
+	tok := sdxTokenPrefix + genSign(sid, secret)
 	return sid, tok
 }
 

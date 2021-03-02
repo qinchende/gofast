@@ -6,9 +6,9 @@ import (
 	"github.com/qinchende/gofast/skill/json"
 )
 
-// 从 redis 中获取 session data.
-func (ss *SdxSession) getSessData(ctx *fst.Context) {
-	str, err := ss.Redis.Get("tls:" + ctx.Sess.Sid)
+// 从 redis 中获取 当前 请求上下文的 session data.
+func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
+	str, err := ss.Redis.Get(sdxSessKeyPrefix + ctx.Sess.Sid)
 	if str == "" || err != nil {
 		str = `{}`
 	}
@@ -19,11 +19,11 @@ func (ss *SdxSession) getSessData(ctx *fst.Context) {
 	}
 }
 
-func InitRedis(ss *fst.CtxSession) {
-
-}
+//func InitRedis(ss *fst.CtxSession) {
+//
+//}
 
 func SaveRedis(sdx *fst.CtxSession) {
 	str, _ := json.Marshal(sdx.Values)
-	_, _ = ss.Redis.Set(sdx.Sid, str, ss.TTL)
+	_, _ = ss.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ss.TTL)
 }
