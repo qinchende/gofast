@@ -1,25 +1,17 @@
 package jwtx
 
 import (
-	"crypto/hmac"
-	"crypto/sha256"
-	"encoding/base64"
-	"errors"
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/bytesconv"
-	"github.com/qinchende/gofast/skill/json"
-	"github.com/qinchende/gofast/skill/lang"
-	"regexp"
-	"strings"
+	"time"
 )
 
 type SdxSessConfig struct {
 	Redis   redis.ConnConfig `json:",optional"` // 用 Redis 做持久化
 	SessKey string           `json:",optional"` // 用户信息的主键
 	Secret  string           `json:",optional"` // token秘钥
-	TTL     int              `json:",optional"` // session有效期 默认 3600*4 秒
-	TTLNew  int              `json:",optional"` // 首次产生的session有效期 默认 60*3 秒
+	TTL     time.Duration    `json:",optional"` // session有效期 默认 3600*4 秒
+	TTLNew  time.Duration    `json:",optional"` // 首次产生的session有效期 默认 60*3 秒
 }
 
 type SdxSession struct {
@@ -27,9 +19,13 @@ type SdxSession struct {
 	Redis *redis.GoRedisX
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 var ss *SdxSession
 
 func InitSdxRedis(sdx *SdxSession) {
+	if ss != nil {
+		return
+	}
 	ss = sdx
 	if ss.TTL == 0 {
 		ss.TTL = 3600 * 4 // 默认4个小时
@@ -40,6 +36,9 @@ func InitSdxRedis(sdx *SdxSession) {
 	if ss.SessKey == "" {
 		ss.SessKey = "cus_id"
 	}
+
+	// 设置保存session的逻辑
+	fst.CtxSessionSaveFun = SaveRedis
 }
 
 // TODO: 执行 session 验证
@@ -52,7 +51,11 @@ func SdxSessHandler(ctx *fst.Context) {
 		return
 	}
 
-	ctx.Sess = &fst.GFSession{Saved: true}
+	//ctx.Sess = &fst.GFSession{Saved: true}
+	// 初始化的时候就需要查询一次 redis 得到session
+	ctx.Sess = &fst.CtxSession{Saved: true}
+	//InitRedis(ctx.Sess)
+
 	tok := ctx.Pms["tok"]
 
 	// 没有 tok，新建一个token，同时走后门的逻辑
@@ -70,6 +73,7 @@ func SdxSessHandler(ctx *fst.Context) {
 	if err != nil {
 		fst.RaisePanicErr(err)
 	}
+	ctx.Sess.Sid = reqSid
 
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确， 需要分配新的Token。
@@ -86,25 +90,20 @@ func SdxSessHandler(ctx *fst.Context) {
 
 // 验证是否登录
 func SdxMustLoginHandler(ctx *fst.Context) {
-	if ctx.Sess.Values[ss.SessKey] == "" {
-		ctx.FaiMsg("not login ", "")
-		fst.RaisePanic("not login")
+	if ctx.Sess.Values == nil {
+		ctx.FaiMsg("No session fond.", "")
+		fst.RaisePanic("No session fond. ")
+	}
+
+	uid := ctx.Sess.Get(ss.SessKey)
+	//uid := ss.Get(ctx)
+	if uid == nil || uid == "" {
+		//ctx.FaiMsg("not login ", "")
+		//fst.RaisePanic("not login")
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
-// 从 redis 中获取 session data.
-func (ss *SdxSession) getSessData(ctx *fst.Context) {
-	str, err := ss.Redis.Get("tls:" + ctx.Sess.Sid)
-	if str == "" || err != nil {
-		str = "{}"
-	}
-
-	err = json.Unmarshal(bytesconv.StringToBytes(str), &ctx.Sess.Values)
-	if err != nil {
-		fst.RaisePanicErr(err)
-	}
-}
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 func (ss *SdxSession) newToken(ctx *fst.Context) (string, string) {
 	return genToken(ss.Secret + ctx.ClientIP())
@@ -113,83 +112,4 @@ func (ss *SdxSession) newToken(ctx *fst.Context) (string, string) {
 func (ss *SdxSession) checkToken(sid, hash string, ctx *fst.Context) bool {
 	signSHA256 := genSignSHA256([]byte(sid), []byte(ss.Secret+ctx.ClientIP()))
 	return hash == cleanString(signSHA256)
-}
-
-func fetchSid(tok string) (string, string, error) {
-	start := strings.Index(tok, "t:")
-	dot := strings.Index(tok, ".")
-	if start != 0 || dot <= 0 {
-		return "", "", errors.New("Can't find sid. ")
-	}
-	sid := tok[2:dot]
-	if len(sid) <= 18 {
-		return "", "", errors.New("Sid length error. ")
-	}
-	hash := tok[(dot + 1):]
-
-	return sid, hash, nil
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
-func genToken(secret string) (string, string) {
-	sid := genSid(24)
-	tok := "t:" + genSign(sid, secret)
-	return sid, tok
-}
-
-// 按照指定长度length, 自动生成随机的Sid字符串，
-func genSid(length int) string {
-	src := lang.GetRandomBytes(length)
-	sid := base64.StdEncoding.EncodeToString(src)
-	sid = cleanString(sid)
-
-	if length > len(sid) {
-		length = len(sid)
-	}
-	return sid[:length]
-}
-
-func genSign(val, secret string) string {
-	signSHA256 := genSignSHA256([]byte(val), []byte(secret))
-	return val + "." + cleanString(signSHA256)
-}
-
-func genSignSHA256(data, key []byte) string {
-	mac := hmac.New(sha256.New, key)
-	mac.Write(data)
-
-	// toBase64
-	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
-}
-
-func cleanString(src string) string {
-	regExp := regexp.MustCompile("[+=]*")
-	//regExp := regexp.MustCompile("[+=/]*")
-	return regExp.ReplaceAllString(src, "")
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// redis
-//type session struct {
-//	name    string
-//	request *http.Request
-//	store   Store
-//	session *sessions.Session
-//	saved   bool
-//	writer  http.ResponseWriter
-//}
-
-func (ss *SdxSession) Get(ctx *fst.Context) {
-
-}
-func (ss *SdxSession) Set(ctx *fst.Context) {
-
-}
-
-func (ss *SdxSession) Save(ctx *fst.Context) {
-
-}
-
-func (ss *SdxSession) Delete(ctx *fst.Context) {
-
 }

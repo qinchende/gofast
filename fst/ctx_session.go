@@ -3,7 +3,8 @@
 package fst
 
 type SessionKeeper interface {
-	Get(string)
+	//Init()
+	Get(string) interface{}
 	Set(string, interface{})
 	Save()
 	Delete(string)
@@ -11,29 +12,38 @@ type SessionKeeper interface {
 
 // GoFast框架的 Context Session
 // 默认将使用 Redis 存放 分布式 session 信息
-type GFSession struct {
+type CtxSession struct {
 	Sid    string
 	Token  string
 	IsNew  bool
 	Saved  bool
-	Values map[interface{}]interface{}
+	Values map[string]interface{}
 }
 
-// GFSession 需要实现 SessionKeeper 所有接口
-var _ SessionKeeper = &GFSession{}
+// CtxSession 需要实现 SessionKeeper 所有接口
+var _ SessionKeeper = &CtxSession{}
 
-func (ss *GFSession) Get(key string) {
-
+func (ss *CtxSession) Get(key string) interface{} {
+	if ss.Values == nil {
+		return nil
+	}
+	return ss.Values[key]
 }
 
-func (ss *GFSession) Set(key string, val interface{}) {
+func (ss *CtxSession) Set(key string, val interface{}) {
 	ss.Saved = false
+	ss.Values[key] = val
 }
 
-func (ss *GFSession) Save() {
+// 实现这个save方法，自定义
+var CtxSessionSaveFun = func(ss *CtxSession) {}
+
+func (ss *CtxSession) Save() {
 	ss.Saved = true
+	CtxSessionSaveFun(ss)
 }
 
-func (ss *GFSession) Delete(key string) {
+func (ss *CtxSession) Delete(key string) {
+	delete(ss.Values, key)
 	ss.Saved = false
 }

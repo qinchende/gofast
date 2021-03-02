@@ -31,7 +31,8 @@ type Context struct {
 	// 上下文传值
 	Keys map[string]interface{}
 	// Session数据，这里不规定Session的载体，可以自定义
-	Sess *GFSession
+	//Sess *CtxSession
+	Sess *CtxSession
 }
 
 /************************************/
