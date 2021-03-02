@@ -1,0 +1,70 @@
+package jwtx
+
+import (
+	"crypto/hmac"
+	"crypto/sha256"
+	"encoding/base64"
+	"errors"
+	"github.com/qinchende/gofast/skill/lang"
+	"regexp"
+	"strings"
+)
+
+var (
+	sdxTokenPrefix   = "t:"
+	sdxSessKeyPrefix = "tls:"
+)
+
+// tok=t:NFRRcE81WDFQSEZJQUptZkpJ.v9EN6bWz8KU6sKRrcEId1OKUKqYx0hed2zSpCQImvc
+func fetchSid(tok string) (string, string, error) {
+	start := strings.Index(tok, sdxTokenPrefix)
+	dot := strings.Index(tok, ".")
+	if start != 0 || dot <= 0 {
+		return "", "", errors.New("Can't parse sid. ")
+	}
+	sid := tok[2:dot]
+	if len(sid) <= 18 {
+		return "", "", errors.New("Sid length error. ")
+	}
+	hash := tok[(dot + 1):]
+
+	return sid, hash, nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
+func genToken(secret string) (string, string) {
+	sid := genSid(24)
+	tok := sdxTokenPrefix + genSign(sid, secret)
+	return sid, tok
+}
+
+// 按照指定长度length, 自动生成随机的Sid字符串，
+func genSid(length int) string {
+	src := lang.GetRandomBytes(length)
+	sid := base64.StdEncoding.EncodeToString(src)
+	sid = cleanString(sid)
+
+	if length > len(sid) {
+		length = len(sid)
+	}
+	return sid[:length]
+}
+
+func genSign(val, secret string) string {
+	signSHA256 := genSignSHA256([]byte(val), []byte(secret))
+	return val + "." + cleanString(signSHA256)
+}
+
+func genSignSHA256(data, key []byte) string {
+	mac := hmac.New(sha256.New, key)
+	mac.Write(data)
+
+	// toBase64
+	return base64.StdEncoding.EncodeToString(mac.Sum(nil))
+}
+
+func cleanString(src string) string {
+	regExp := regexp.MustCompile("[+=]*")
+	//regExp := regexp.MustCompile("[+=/]*")
+	return regExp.ReplaceAllString(src, "")
+}
