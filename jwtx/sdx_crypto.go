@@ -4,7 +4,6 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"errors"
 	"github.com/qinchende/gofast/skill/lang"
 	"regexp"
 	"strings"
@@ -16,19 +15,20 @@ var (
 )
 
 // tok=t:NFRRcE81WDFQSEZJQUptZkpJ.v9EN6bWz8KU6sKRrcEId1OKUKqYx0hed2zSpCQImvc
-func fetchSid(tok string) (string, string, error) {
+func fetchSid(tok string) (string, string) {
 	start := strings.Index(tok, sdxTokenPrefix)
 	dot := strings.Index(tok, ".")
 	if start != 0 || dot <= 0 {
-		return "", "", errors.New("Can't parse sid. ")
+		// return "", "", errors.New("Can't parse sid. ")
+		return "", ""
 	}
 	sid := tok[2:dot]
 	if len(sid) <= 18 {
-		return "", "", errors.New("Sid length error. ")
+		// return "", "", errors.New("Sid length error. ")
+		return "", ""
 	}
-	hash := tok[(dot + 1):]
-
-	return sid, hash, nil
+	sHmac := tok[(dot + 1):]
+	return sid, sHmac
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
