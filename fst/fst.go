@@ -178,6 +178,8 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 			c.ResW.WriteHeaderNow()
 			return
+		} else {
+			c.ParseHttpParamsNoRoute()
 		}
 		// 匹配不到 先考虑 重定向
 		if httpMethod != "CONNECT" && rPath != "/" {

@@ -10,11 +10,17 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 
 	// 2.before
 	for gp.beforeLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[gp.beforeIdx](c)
 		gp.beforeLen--
 		gp.beforeIdx++
 	}
 	for it.beforeLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.beforeIdx](c)
 		it.beforeLen--
 		it.beforeIdx++
@@ -22,6 +28,9 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 
 	// 3.handler
 	for it.hdsLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.hdsIdx](c)
 		it.hdsLen--
 		it.hdsIdx++
@@ -29,15 +38,23 @@ func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 
 	// 4.after
 	for it.afterLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.afterIdx](c)
 		it.afterLen--
 		it.afterIdx++
 	}
 	for gp.afterLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[gp.afterIdx](c)
 		gp.afterLen--
 		gp.afterIdx++
 	}
+over:
+	return
 }
 
 //func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
@@ -60,15 +77,23 @@ func (c *Context) execPreValidHandlers() {
 
 	// 1.valid
 	for gp.validLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[gp.validIdx](c)
 		gp.validLen--
 		gp.validIdx++
 	}
 	for it.validLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.validIdx](c)
 		it.validLen--
 		it.validIdx++
 	}
+over:
+	return
 }
 
 func (c *Context) execPreSendHandlers() {
@@ -80,15 +105,23 @@ func (c *Context) execPreSendHandlers() {
 
 	// 5.preSend
 	for it.preSendLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.preSendIdx](c)
 		it.preSendLen--
 		it.preSendIdx++
 	}
 	for gp.preSendLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[gp.preSendIdx](c)
 		gp.preSendLen--
 		gp.preSendIdx++
 	}
+over:
+	return
 }
 
 func (c *Context) execAfterSendHandlers() {
@@ -100,15 +133,23 @@ func (c *Context) execAfterSendHandlers() {
 
 	// 6.afterSend
 	for it.afterSendLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.afterSendIdx](c)
 		it.afterSendLen--
 		it.afterSendIdx++
 	}
 	for gp.afterSendLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[gp.afterSendIdx](c)
 		gp.afterSendLen--
 		gp.afterSendIdx++
 	}
+over:
+	return
 }
 
 // TODO: 暂时不用
@@ -119,10 +160,15 @@ func (c *Context) execHandlersMini(ptrMini *radixMiniNode) {
 	it := c.gftApp.fstMem.hdsNodesPlan2[ptrMini.hdsItemIdx]
 
 	for it.hdsLen > 0 {
+		if c.aborted {
+			goto over
+		}
 		c.gftApp.fstMem.hdsList[it.startIdx](c)
 		it.hdsLen--
 		it.startIdx++
 	}
+over:
+	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
