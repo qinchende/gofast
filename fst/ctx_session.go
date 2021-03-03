@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+import "errors"
+
 type SessionKeeper interface {
 	//Init()
 	Get(string) interface{}
@@ -36,11 +38,21 @@ func (ss *CtxSession) Set(key string, val interface{}) {
 }
 
 // 实现这个save方法，自定义
-var CtxSessionSaveFun = func(ss *CtxSession) {}
+var CtxSessionSaveFun = func(ss *CtxSession) (string, error) {
+	return "", errors.New("Error. ")
+}
 
 func (ss *CtxSession) Save() {
+	if ss.Saved == true {
+		return
+	}
 	ss.Saved = true
-	CtxSessionSaveFun(ss)
+	_, err := CtxSessionSaveFun(ss)
+
+	// TODO: 如果保存失败怎么办？
+	if err != nil {
+		RaisePanic("Save session error.")
+	}
 }
 
 func (ss *CtxSession) Delete(key string) {

@@ -12,18 +12,18 @@ func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
 	if str == "" || err != nil {
 		str = `{}`
 	}
-
 	err = json.Unmarshal(bytesconv.StringToBytes(str), &ctx.Sess.Values)
 	if err != nil {
-		fst.RaisePanicErr(err)
+		ctx.FaiX(110, "获取SESSION失败，请重新访问系统。", fst.KV{})
 	}
 }
 
-//func InitRedis(ss *fst.CtxSession) {
-//
-//}
-
-func SaveRedis(sdx *fst.CtxSession) {
+// 保存到 redis
+func SaveSessionToRedis(sdx *fst.CtxSession) (string, error) {
 	str, _ := json.Marshal(sdx.Values)
-	_, _ = ss.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ss.TTL)
+	ttl := ss.TTL
+	if sdx.IsNew {
+		ttl = ss.TTLNew
+	}
+	return ss.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
 }
