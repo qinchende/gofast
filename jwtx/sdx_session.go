@@ -14,15 +14,14 @@ type SdxSessConfig struct {
 	TTLNew  time.Duration    `json:",optional"` // 首次产生的session有效期 默认 60*3 秒
 }
 
+// 每个进程只有一个全局 sdx session 配置对象
+var ss *SdxSession
+
+// 参数配置，Redis实例等
 type SdxSession struct {
 	SdxSessConfig
 	Redis *redis.GoRedisX
 }
-
-// 每个进程只有一个全局 session 配置对象
-var ss *SdxSession
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 func InitSdxSession(sdx *SdxSession) {
 	if ss != nil {
@@ -43,29 +42,27 @@ func InitSdxSession(sdx *SdxSession) {
 	fst.CtxSessionSaveFun = SaveRedis
 }
 
-// TODO: 执行 session 验证
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// TODO: 还原 session ，验证合法性
 // 所有请求先经过这里验证 session 信息
 // 每一次的访问，都必须要有一个 token ，没有token的 访问将视为 非法.
 // 第一次没有 token 的情况下，默认造一个 token
-func SdxSessHandler(ctx *fst.Context) {
+func SdxSessBuilder(ctx *fst.Context) {
 	// 不可重复执行 token 检查，Sess构造的过程
 	if ctx.Sess != nil {
 		return
 	}
 
-	// ctx.Sess = &fst.GFSession{Saved: true}
-	// 初始化的时候就需要查询一次 redis 得到session
-	ctx.Sess = &fst.CtxSession{Saved: true}
-	// InitRedis(ctx.Sess)
-
+	ctx.Sess = &fst.CtxSession{Saved: true, IsNew: false}
 	tok := ctx.Pms["tok"]
 
-	// 没有 tok，新建一个token，同时走后门的逻辑
+	// 没有 tok，新建一个token，同时走后面的逻辑
 	if tok == "" {
 		sid, tok := ss.newToken(ctx)
 		ctx.Sess.IsNew = true
 		ctx.Sess.Sid = sid
 		ctx.Sess.Token = tok
+		ctx.Sess.Values = make(map[string]interface{})
 		ctx.Pms["tok"] = tok
 		return
 	}
@@ -82,7 +79,7 @@ func SdxSessHandler(ctx *fst.Context) {
 	// 2. 过期，  用当前Token重建Session记录。
 	isValid := ss.checkToken(reqSid, reqHash, ctx)
 
-	// 如果验证通过
+	// 如果Sid验证通过
 	if isValid {
 		ss.initCtxSess(ctx)
 	} else {
@@ -91,22 +88,16 @@ func SdxSessHandler(ctx *fst.Context) {
 }
 
 // 验证是否登录
-func SdxMustLoginHandler(ctx *fst.Context) {
-	if ctx.Sess.Values == nil {
-		ctx.FaiMsg("No session fond.", "")
-		fst.RaisePanic("No session fond. ")
-	}
-
+func SdxMustLogin(ctx *fst.Context) {
 	uid := ctx.Sess.Get(ss.SessKey)
-	// uid := ss.Get(ctx)
 	if uid == nil || uid == "" {
-		//ctx.FaiMsg("not login ", "")
-		//fst.RaisePanic("not login")
+		ctx.FaiX(110, "NotLogin", fst.KV{})
+		return
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+// TODO:需不需要安全级别更高的 IP 校验是个问题?
 func (ss *SdxSession) newToken(ctx *fst.Context) (string, string) {
 	return genToken(ss.Secret + ctx.ClientIP())
 }

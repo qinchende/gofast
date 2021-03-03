@@ -48,8 +48,8 @@ func ReqLogger(logType string) fst.IncHandler {
 		// 打印请求日志
 		logx.WriteReqLog(p)
 		// 错误信息返回给调用端
-		if p.ErrorMsg != "" {
-			w.ResW.WriteString(p.ErrorMsg)
-		}
+		//if p.ErrorMsg != "" {
+		//	w.ResW.WriteString(p.ErrorMsg)
+		//}
 	}
 }

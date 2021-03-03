@@ -97,6 +97,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.IncHandler
 func defaultHandleRecovery(w *fst.GFResponse, err interface{}) {
 	w.AbortWithStatus(http.StatusInternalServerError)
 	w.ErrorN(err.(error))
+	//w.ResW.WriteString(p.ErrorMsg)
 }
 
 // stack returns a nicely formatted stack frame, skipping skip frames.

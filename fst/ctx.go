@@ -20,6 +20,11 @@ type Context struct {
 	queryCache url.Values        // param query result from c.ReqW.URL.Query()
 	formCache  url.Values        // the parsed form data from POST, PATCH, or PUT body parameters.
 
+	// Session数据，这里不规定Session的载体，可以自定义
+	Sess *CtxSession
+	// 设置成 true ，将中断后面的所有handlers
+	aborted bool
+
 	// This mutex protect Keys map
 	mu sync.RWMutex
 	// Accepted defines a list of manually accepted formats for content negotiation.
@@ -30,9 +35,6 @@ type Context struct {
 	// Keys is a key/value pair exclusively for the context of each request.
 	// 上下文传值
 	Keys map[string]interface{}
-	// Session数据，这里不规定Session的载体，可以自定义
-	//Sess *CtxSession
-	Sess *CtxSession
 }
 
 /************************************/
@@ -54,6 +56,7 @@ func (c *Context) reset() {
 	c.Params = c.Params[0:0]
 	c.queryCache = nil
 	c.formCache = nil
+	c.aborted = false
 }
 
 // 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context
@@ -67,6 +70,7 @@ func (c *Context) Copy() *Context {
 		matchRst:   c.matchRst,
 		Pms:        c.Pms,
 		Sess:       c.Sess,
+		aborted:    c.aborted,
 	}
 	cp.ResW.ResponseWriter = nil
 

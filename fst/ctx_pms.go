@@ -22,6 +22,12 @@ func (c *Context) ParseHttpParams() {
 	}
 }
 
+// 如果没有匹配路由，需要一些初始化
+func (c *Context) ParseHttpParamsNoRoute() {
+	c.Pms = make(map[string]string)
+	// c.Pms = map[string]string{}
+}
+
 /************************************/
 /******* metadata management ********/
 /************************************/
