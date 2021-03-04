@@ -46,12 +46,14 @@ func (ss *CtxSession) Save() {
 	if ss.Saved == true {
 		return
 	}
-	ss.Saved = true
+	// 调用自定义函数保存当前 session
 	_, err := CtxSessionSaveFun(ss)
 
-	// TODO: 如果保存失败怎么办？
+	// TODO: 如果保存失败怎么办？目前是抛异常，本次请求直接返回错误。
 	if err != nil {
 		RaisePanic("Save session error.")
+	} else {
+		ss.Saved = true
 	}
 }
 
