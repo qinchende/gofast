@@ -15,6 +15,10 @@ import (
 	"strings"
 )
 
+func (c *Context) ShouldBindTest(obj interface{}, bb binding.BindingBody) (err error) {
+	return binding.Validator.ValidateStruct(c.formCache)
+	//return bb.BindBody(obj)
+}
 
 /************************************/
 /************ input data ************/

@@ -54,7 +54,7 @@ func SdxSessBuilder(ctx *fst.Context) {
 		return
 	}
 
-	ctx.Sess = &fst.CtxSession{Saved: true, IsNew: false}
+	ctx.Sess = &fst.CtxSession{Saved: false, IsNew: false}
 	tok := ctx.Pms["tok"]
 
 	// 没有 tok，新建一个token，假装当前请求是有token的，同时走后面的逻辑

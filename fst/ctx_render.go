@@ -145,6 +145,8 @@ func (c *Context) Cookie(name string) (string, error) {
 }
 
 // Render writes the response headers and calls render.Render to render data.
+// 返回数据的接口
+// 如果需要
 func (c *Context) Render(code int, r render.Render) {
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execPreSendHandlers()
@@ -154,6 +156,10 @@ func (c *Context) Render(code int, r render.Render) {
 		r.WriteContentType(c.ResW)
 		c.ResW.WriteHeaderNow()
 		return
+	}
+	// TODO: 返回结果之前，统一保存 session
+	if c.Sess != nil {
+		c.Sess.Save()
 	}
 
 	if err := r.Render(c.ResW); err != nil {
