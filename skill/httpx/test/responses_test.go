@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/qinchende/gofast/logx"
 	"github.com/stretchr/testify/assert"
-	"github.com/tal-tech/go-zero/core/logx"
 )
 
 type message struct {
@@ -64,15 +64,15 @@ func TestError(t *testing.T) {
 				headers: make(map[string][]string),
 			}
 			if test.errorHandler != nil {
-				httpx.lock.RLock()
-				prev := httpx.errorHandler
-				httpx.lock.RUnlock()
-				httpx.SetErrorHandler(test.errorHandler)
-				defer func() {
-					httpx.lock.Lock()
-					httpx.errorHandler = prev
-					httpx.lock.Unlock()
-				}()
+				//httpx.lock.RLock()
+				//prev := httpx.errorHandler
+				//httpx.lock.RUnlock()
+				//httpx.SetErrorHandler(test.errorHandler)
+				//defer func() {
+				//	httpx.lock.Lock()
+				//	httpx.errorHandler = prev
+				//	httpx.lock.Unlock()
+				//}()
 			}
 			httpx.Error(&w, errors.New(test.input))
 			assert.Equal(t, test.expectCode, w.code)

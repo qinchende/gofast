@@ -15,9 +15,8 @@ import (
 
 // 自定义 Response
 type GFResponse struct {
-	ResW *ResWriteWrap
-	PCtx *Context
-
+	ResW   *ResWriteWrap
+	ReqCtx *Context
 	// 用于上下文
 	gftApp *GoFast
 	fitIdx int

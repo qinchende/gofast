@@ -26,9 +26,12 @@ func ReqLogger(logType string) fst.IncHandler {
 			Request: r,
 			//isTerm:  isTerm,
 		}
-		//if w.PCtx != nil {
-		//	p.Keys = w.PCtx.Keys
-		//}
+		if w.ReqCtx != nil {
+			p.Pms = w.ReqCtx.Pms
+			//p.Keys = w.PCtx.Keys
+		}
+
+		//ReqCtx *Context
 
 		p.ClientIP = w.ClientIP(r)
 		p.Method = r.Method
