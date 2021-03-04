@@ -10,7 +10,7 @@ import (
 // GoFast JSON 提交参数的解析
 // 每个匹配的路由，上来就直接解析POST和GET参数，
 // POST的body内容需要记录下来，方便binding模块使用
-// TODO: 启用这个模块之后，binding就不能使用了，因为无法读取body内容了。
+// TODO: 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
 func (c *Context) ParseHttpParams() {
 	c.getQueryCache()
 	c.getFormCache()

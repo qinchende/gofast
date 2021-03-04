@@ -7,12 +7,12 @@ import (
 )
 
 type SdxSessConfig struct {
-	Redis        redis.ConnConfig `json:",optional"`              // 用 Redis 做持久化
-	CheckTokenIP bool             `json:",optional,default=true"` // 看是否检查 token ip 地址
-	SessKey      string           `json:",optional"`              // 用户信息的主键
-	Secret       string           `json:",optional"`              // token秘钥
-	TTL          time.Duration    `json:",optional"`              // session有效期 默认 3600*4 秒
-	TTLNew       time.Duration    `json:",optional"`              // 首次产生的session有效期 默认 60*3 秒
+	Redis        redis.ConnConfig `json:",optional"`                // 用 Redis 做持久化
+	CheckTokenIP bool             `json:",optional,default=true"`   // 看是否检查 token ip 地址
+	SessKey      string           `json:",optional,default=cus_id"` // 用户信息的主键
+	Secret       string           `json:",optional"`                // token秘钥
+	TTL          time.Duration    `json:",optional"`                // session有效期 默认 3600*4 秒
+	TTLNew       time.Duration    `json:",optional"`                // 首次产生的session有效期 默认 60*3 秒
 }
 
 // 每个进程只有一个全局 sdx session 配置对象
@@ -35,9 +35,9 @@ func InitSdxSession(sdx *SdxSession) {
 	if ss.TTLNew == 0 {
 		ss.TTLNew = 180 * time.Second // 默认三分钟
 	}
-	if ss.SessKey == "" {
-		ss.SessKey = "cus_id"
-	}
+	//if ss.SessKey == "" {
+	//	ss.SessKey = "cus_id"
+	//}
 
 	// 指定 保存session 的处理函数
 	fst.CtxSessionSaveFun = SaveSessionToRedis
@@ -105,7 +105,7 @@ func (ss *SdxSession) initNewToken(ctx *fst.Context) {
 	ctx.Sess.Sid = sid
 	ctx.Sess.Token = tok
 	ctx.Sess.Values = make(map[string]interface{})
-	ctx.Pms["tok"] = tok
+	// ctx.Pms["tok"] = tok
 }
 
 // TODO: 需不需要安全级别更高的 IP 校验是个问题?

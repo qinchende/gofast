@@ -17,10 +17,11 @@ type ReqLogParams struct {
 	Latency    time.Duration
 	StatusCode int
 	ClientIP   string
-	//isTerm     bool
+	// isTerm     bool
+	Pms        map[string]string
 	BodySize   int
 	WriteBytes *[]byte
-	//Keys       map[string]interface{}
+	// Keys       map[string]interface{}
 	ErrorMsg string
 }
 
@@ -36,9 +37,12 @@ var GenReqLogString = func(p *ReqLogParams) string {
 	if tLen > 1024 {
 		tLen = 1024
 	}
+
 	// 请求参数
 	var reqParams []byte
-	if p.Request.Form != nil {
+	if p.Pms != nil {
+		reqParams, _ = json.Marshal(p.Pms)
+	} else if p.Request.Form != nil {
 		reqParams, _ = json.Marshal(p.Request.Form)
 	}
 
