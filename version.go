@@ -1,4 +1,4 @@
 package gofast
 
 // Version is the current GoFast framework's version.
-const Version = "v0.1.5"
+const Version = "v0.2.1"

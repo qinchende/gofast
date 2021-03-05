@@ -28,6 +28,7 @@ type ReqLogParams struct {
 var GenReqLogString = func(p *ReqLogParams) string {
 	formatStr := `
 [%s] %s (%s/%s) %d/%d [%d]
+  B: %s
   P: %s
   R: %s
   E: %s
@@ -38,6 +39,13 @@ var GenReqLogString = func(p *ReqLogParams) string {
 		tLen = 1024
 	}
 
+	// 这个时候可以随意改变 p.Pms ，这是请求最后一个执行的地方了
+	var basePms = make(map[string]string)
+	if p.Pms["tok"] != "" {
+		basePms["tok"] = p.Pms["tok"]
+		delete(p.Pms, "tok")
+	}
+
 	// 请求参数
 	var reqParams []byte
 	if p.Pms != nil {
@@ -45,6 +53,8 @@ var GenReqLogString = func(p *ReqLogParams) string {
 	} else if p.Request.Form != nil {
 		reqParams, _ = json.Marshal(p.Request.Form)
 	}
+	// 请求 核心参数
+	reqBaseParams, _ := json.Marshal(basePms)
 
 	return fmt.Sprintf(formatStr,
 		p.Method,
@@ -54,6 +64,7 @@ var GenReqLogString = func(p *ReqLogParams) string {
 		p.StatusCode,
 		p.BodySize,
 		p.Latency/time.Millisecond,
+		reqBaseParams,
 		reqParams,
 		(*p.WriteBytes)[:tLen],
 		p.ErrorMsg,

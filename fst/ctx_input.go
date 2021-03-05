@@ -15,9 +15,13 @@ import (
 	"strings"
 )
 
-func (c *Context) ShouldBindTest(obj interface{}, bb binding.BindingBody) (err error) {
-	return binding.Validator.ValidateStruct(c.formCache)
-	//return bb.BindBody(obj)
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GoFast框架自定义的绑定方法，按照GoFast的模式，以前Gin的绑定方式很多都要失效了。
+
+// add by sdx on 20210305
+// 就当 c.Pms 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
+func (c *Context) BindPms(obj interface{}) error {
+	return binding.JSON.BindPms(c.ReqW.Form, obj)
 }
 
 /************************************/
