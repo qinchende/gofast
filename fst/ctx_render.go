@@ -18,12 +18,12 @@ import (
 // GoFast JSON render
 // JSON是GoFast默认的返回格式，一等公民
 
-func (c *Context) Fai(obj interface{}) {
-	c.FaiX(0, "", obj)
+func (c *Context) Fai(msg string) {
+	c.FaiX(0, msg, nil)
 }
 
-func (c *Context) FaiMsg(msg string, obj interface{}) {
-	c.FaiX(0, msg, obj)
+func (c *Context) FaiErr(err error) {
+	c.FaiX(0, err.Error(), nil)
 }
 
 func (c *Context) FaiX(code int32, msg string, obj interface{}) {
@@ -31,7 +31,23 @@ func (c *Context) FaiX(code int32, msg string, obj interface{}) {
 		"status":   "fai",
 		"msg_code": code,
 		"msg":      msg,
-		"record":   obj,
+	}
+	if obj != nil {
+		jsonData["record"] = obj
+	}
+	c.FaiKV(jsonData)
+}
+
+func (c *Context) FaiKV(jsonData KV) {
+	if jsonData == nil {
+		jsonData = make(KV)
+	}
+	jsonData["status"] = "fai"
+	if jsonData["msg"] == nil {
+		jsonData["msg"] = ""
+	}
+	if jsonData["msg_code"] == nil {
+		jsonData["msg_code"] = 0
 	}
 	if c.Sess.IsNew {
 		jsonData["tok"] = c.Sess.Token
@@ -41,8 +57,9 @@ func (c *Context) FaiX(code int32, msg string, obj interface{}) {
 	c.aborted = true
 }
 
+// ++
 func (c *Context) Suc(obj interface{}) {
-	c.SucX(0, "", obj)
+	c.SucX(0, "success", obj)
 }
 
 func (c *Context) SucMsg(msg string, obj interface{}) {
@@ -54,7 +71,23 @@ func (c *Context) SucX(code int32, msg string, obj interface{}) {
 		"status":   "suc",
 		"msg_code": code,
 		"msg":      msg,
-		"record":   obj,
+	}
+	if obj != nil {
+		jsonData["record"] = obj
+	}
+	c.SucKV(jsonData)
+}
+
+func (c *Context) SucKV(jsonData KV) {
+	if jsonData == nil {
+		jsonData = make(KV)
+	}
+	jsonData["status"] = "suc"
+	if jsonData["msg"] == nil {
+		jsonData["msg"] = ""
+	}
+	if jsonData["msg_code"] == nil {
+		jsonData["msg_code"] = 0
 	}
 	if c.Sess.IsNew {
 		jsonData["tok"] = c.Sess.Token

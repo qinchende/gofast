@@ -26,6 +26,11 @@ func mapForm(ptr interface{}, form map[string][]string) error {
 	return mapFormByTag(ptr, form, "form")
 }
 
+// add by sdx on 20210305
+func mapJson(ptr interface{}, form map[string][]string) error {
+	return mapFormByTag(ptr, form, "json")
+}
+
 var emptyField = reflect.StructField{}
 
 func mapFormByTag(ptr interface{}, form map[string][]string, tag string) error {

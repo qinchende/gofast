@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 
 	"github.com/qinchende/gofast/skill/json"
 )
@@ -49,9 +50,17 @@ func decodeJSON(r io.Reader, obj interface{}) error {
 	if EnableDecoderDisallowUnknownFields {
 		decoder.DisallowUnknownFields()
 	}
+	// return validate(obj)
+	if err := decoder.Decode(obj); err != nil {
+		return err
+	}
 	return validate(obj)
-	//if err := decoder.Decode(obj); err != nil {
-	//	return err
-	//}
-	//return validate(obj)
+}
+
+// add by sdx on 20210305
+func (jsonBinding) BindPms(values url.Values, obj interface{}) error {
+	if err := mapJson(obj, values); err != nil {
+		return err
+	}
+	return validate(obj)
 }

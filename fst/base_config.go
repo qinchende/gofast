@@ -25,7 +25,7 @@ type AppConfig struct {
 	RemoveExtraSlash    bool   // 规范请求的URL
 	PrintRouteTrees     bool   // 是否打印出当前路由数
 	modeType            int8   // 运行模式，整形方便比较，提高性能
-	FitReqTimeout       int64  // 每次请求的超时时间（单位：毫秒）
+	FitReqTimeout       int64  `json:",default=3000"` // 每次请求的超时时间（单位：毫秒）
 	FitMaxReqContentLen int64  // 最大请求字节数
 	FitMaxReqCount      int32  // 最大请求处理数
 	FitJwtSecret        string // JWT认证的秘钥
@@ -38,6 +38,9 @@ func (gft *GoFast) initServerEnv() {
 	}
 	if gft.MaxMultipartMemory == 0 {
 		gft.MaxMultipartMemory = defMultipartMemory
+	}
+	if gft.FitReqTimeout == 0 {
+		gft.FitReqTimeout = 3000
 	}
 	if gft.FitMaxReqCount == 0 {
 		gft.FitMaxReqCount = 1000000
