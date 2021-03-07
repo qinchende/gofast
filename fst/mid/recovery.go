@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
 	"io"
 	"io/ioutil"
@@ -32,7 +33,7 @@ func Recovery() fst.IncHandler {
 	return CustomRecoveryWithWriter(logx.DefaultErrorWriter, defaultHandleRecovery)
 }
 
-func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.IncHandler {
+func CustomRecoveryWithWriter(out io.Writer, recoverHandle RecoveryFunc) fst.IncHandler {
 	var logger *log.Logger
 	if out != nil {
 		logger = log.New(out, "\n\n\x1b[31m", log.LstdFlags)
@@ -45,7 +46,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.IncHandler
 			}
 			//  如果是框架主动panic，只打印简单错误日志：
 			if _, ok := err.(fst.GFPanic); ok {
-				handle(w, err)
+				recoverHandle(w, err)
 				w.AbortFit()
 				return
 			}
@@ -86,7 +87,7 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.IncHandler
 				// If the connection is dead, we can't write a status to it.
 				w.ErrorN(err.(error)) // nolint: errcheck
 			} else {
-				handle(w, err)
+				recoverHandle(w, err)
 			}
 			w.AbortFit()
 		}()
@@ -94,10 +95,23 @@ func CustomRecoveryWithWriter(out io.Writer, handle RecoveryFunc) fst.IncHandler
 	}
 }
 
+// 默认的异常处理函数，可以自定义
 func defaultHandleRecovery(w *fst.GFResponse, err interface{}) {
+	if err == nil {
+		return
+	}
 	w.AbortWithStatus(http.StatusInternalServerError)
-	w.ErrorN(err.(error))
-	//w.ResW.WriteString(p.ErrorMsg)
+
+	e := err.(error)
+	w.ErrorN(e)
+
+	// 默认返回 JSON 格式的结果
+	jsonData := fst.KV{
+		"status":   "fai",
+		"msg_code": 0,
+		"msg":      e.Error(),
+	}
+	_ = render.WriteJSON(w.ResW, jsonData)
 }
 
 // stack returns a nicely formatted stack frame, skipping skip frames.
