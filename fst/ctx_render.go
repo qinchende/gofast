@@ -195,6 +195,7 @@ func (c *Context) Render(code int, r render.Render) {
 		c.Sess.Save()
 	}
 
+	// TODO: 是否要避免 double render，这里的Render是否只需要调一次，如果第二次就需要报错
 	if err := r.Render(c.ResW); err != nil {
 		panic(err)
 	}

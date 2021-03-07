@@ -132,7 +132,7 @@ func (w *ResWriteWrap) Reset(res http.ResponseWriter) {
 func (w *ResWriteWrap) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		if w.Written() {
-			logx.DebugPrint("[WARNING] Headers were already written. Wanted to override status code %d with %d", w.status, code)
+			logx.DebugPrint("[WARNING] HTTP status %d rendered, Now set %d is useless.", w.status, code)
 		}
 		w.status = code
 	}
@@ -148,6 +148,7 @@ func (w *ResWriteWrap) WriteHeaderNow() {
 }
 
 // 返回结果都是通过这里的两个函数处理的
+// TODO: 是否要避免 double render
 func (w *ResWriteWrap) Write(data []byte) (n int, err error) {
 	w.WriteHeaderNow()
 	n, err = w.ResponseWriter.Write(data)
