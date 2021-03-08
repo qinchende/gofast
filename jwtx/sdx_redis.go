@@ -7,6 +7,7 @@ import (
 )
 
 // 从 redis 中获取 当前 请求上下文的 session data.
+// TODO: 有可能 session 是空的
 func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
 	str, err := ss.Redis.Get(sdxSessKeyPrefix + ctx.Sess.Sid)
 	if str == "" || err != nil {
