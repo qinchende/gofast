@@ -14,5 +14,7 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/ugorji/go/codec v1.2.0
 	go.mongodb.org/mongo-driver v1.4.6
+	google.golang.org/grpc v1.36.0 // indirect
+	gopkg.in/h2non/gock.v1 v1.0.16 // indirect
 	gopkg.in/yaml.v2 v2.3.0
 )
