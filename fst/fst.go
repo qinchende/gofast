@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
+	"github.com/qinchende/gofast/skill/stat"
 	"log"
 	"net/http"
 	"os"
@@ -229,6 +230,19 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 	}()
 	gft.GracefulShutdown()
 	return
+}
+
+// 创建日志模板
+func (gft *GoFast) CreateMetrics() *stat.Metrics {
+	var metrics *stat.Metrics
+
+	if len(gft.Name) > 0 {
+		metrics = stat.NewMetrics(gft.Name)
+	} else {
+		metrics = stat.NewMetrics(gft.Addr)
+	}
+
+	return metrics
 }
 
 // 优雅关闭

@@ -8,28 +8,32 @@ import (
 )
 
 type AppConfig struct {
-	// FuncMap          		template.FuncMap
-	RunMode               string // 当前模式[debug|test|product]
-	SecureJsonPrefix      string
-	HTMLRender            render.HTMLRender
-	MaxMultipartMemory    int64
-	SecondsBeforeShutdown int64 // 退出server之前等待的seconds，等待清理释放资源
-	RedirectTrailingSlash bool  // 重定向URL结尾的`/`符号
-	// RedirectFixedPath      bool
+	// FuncMap          	template.FuncMap
+	// UseRawPath           bool
+	// UnescapePathValues   bool
+	// RedirectFixedPath    bool
+	Addr                   string
+	Name                   string
+	RunMode                string // 当前模式[debug|test|product]
+	SecureJsonPrefix       string
+	HTMLRender             render.HTMLRender
+	MaxMultipartMemory     int64
+	SecondsBeforeShutdown  int64 // 退出server之前等待的seconds，等待清理释放资源
+	RedirectTrailingSlash  bool  // 重定向URL结尾的`/`符号
 	HandleMethodNotAllowed bool
 	DisableDefNotAllowed   bool
 	DisableDefNoRoute      bool
 	ForwardedByClientIP    bool
-	// UseRawPath             bool
-	// UnescapePathValues     bool
-	RemoveExtraSlash    bool   // 规范请求的URL
-	PrintRouteTrees     bool   // 是否打印出当前路由数
-	modeType            int8   // 运行模式，整形方便比较，提高性能
-	FitReqTimeout       int64  `json:",default=3000"` // 每次请求的超时时间（单位：毫秒）
-	FitMaxReqContentLen int64  // 最大请求字节数
-	FitMaxReqCount      int32  // 最大请求处理数
-	FitJwtSecret        string // JWT认证的秘钥
-	FitLogType          string
+	RemoveExtraSlash       bool   // 规范请求的URL
+	PrintRouteTrees        bool   // 是否打印出当前路由数
+	FitReqTimeout          int64  `json:",default=3000"` // 每次请求的超时时间（单位：毫秒）
+	FitMaxReqContentLen    int64  // 最大请求字节数
+	FitMaxReqCount         int32  // 最大请求处理数
+	FitJwtSecret           string // JWT认证的秘钥
+	FitLogType             string
+
+	// 内部记录状态
+	modeType int8 // 运行模式，整形方便比较，提高性能
 }
 
 func (gft *GoFast) initServerEnv() {
