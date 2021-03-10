@@ -10,8 +10,8 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/executors"
-	"github.com/qinchende/gofast/skill/logx"
 	"github.com/qinchende/gofast/skill/proc"
 	"github.com/qinchende/gofast/skill/sysx"
 	"github.com/qinchende/gofast/skill/timex"

@@ -12,7 +12,8 @@ func MaxReqContentLength(limit int64) fst.IncHandler {
 		}
 		// request body length
 		if r.ContentLength > limit {
-			w.ErrorF("Request body limit is %d, but got %d, rejected with code %d", limit, r.ContentLength, http.StatusRequestEntityTooLarge)
+			w.ErrorF("Request body limit is %d, but got %d, rejected with code %d", limit,
+				r.ContentLength, http.StatusRequestEntityTooLarge)
 			w.ResW.WriteHeader(http.StatusRequestEntityTooLarge)
 			w.AbortFit()
 		}

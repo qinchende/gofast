@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/iox"
-	"github.com/qinchende/gofast/skill/logx"
 )
 
 const (
