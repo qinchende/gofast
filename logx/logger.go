@@ -387,6 +387,7 @@ func setupWithConsole(c LogConf) {
 	})
 }
 
+// 文件日志模式下的初始化工作
 func setupWithFiles(c LogConf) error {
 	var opts []LogOption
 	var err error
@@ -435,6 +436,10 @@ func setupWithFiles(c LogConf) error {
 		}
 
 		stackLog = NewLessWriter(errorLog, options.logStackCooldownMills)
+
+		// 初始化对外的日志句柄
+		DefaultWriter = infoLog
+		DefaultErrorWriter = errorLog
 	})
 
 	return err
