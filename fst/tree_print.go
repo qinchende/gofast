@@ -22,6 +22,7 @@ func (gft *GoFast) printRouteTrees() {
 		printTree(tree, strTree)
 	}
 	strTree.WriteString("\n++++++++++THE END.")
+	// 打印到控制台
 	fmt.Println(strTree)
 }
 func printTree(tree *methodTree, strTree *strings.Builder) {

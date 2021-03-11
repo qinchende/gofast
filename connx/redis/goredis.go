@@ -3,7 +3,7 @@ package redis
 import (
 	"context"
 	"github.com/go-redis/redis/v8"
-	"log"
+	"github.com/qinchende/gofast/logx"
 )
 
 // go-redis
@@ -40,11 +40,11 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 		Password: cf.Pass,
 		DB:       cf.DB,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			log.Printf("Redis %s connected.\n", "x.x.x.x")
+			logx.Info("Redis %s connected.\n", "x.x.x.x")
 			return nil
 		},
 	})
-	log.Printf("Redis %s created. Connecting...\n", cf.Addr)
+	logx.Info("Redis %s created. Connecting...\n", cf.Addr)
 	return &rds
 }
 
@@ -57,10 +57,10 @@ func NewGoRedisBySentinel(cf *ConnSentinelConfig) *GoRedisX {
 		SentinelPassword: cf.SentinelPass,
 		Password:         cf.Pass,
 		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-			log.Printf("Redis %s connected.\n", "x.x.x.x")
+			logx.Info("Redis %s connected.\n", "x.x.x.x")
 			return nil
 		},
 	})
-	log.Printf("Redis %s created. Connecting...\n", cf.Addr)
+	logx.Info("Redis %s created. Connecting...\n", cf.Addr)
 	return &rds
 }
