@@ -71,8 +71,8 @@ var GenReqLogString = func(p *ReqLogParams) string {
 	)
 }
 
-func WriteReqLog(p *ReqLogParams) {
-	writeStringNow(GenReqLogString(p))
+func WriteSdxReqLog(p *ReqLogParams) {
+	logString(GenReqLogString(p))
 }
 
 //func outputJson(writer io.Writer, info interface{}) {

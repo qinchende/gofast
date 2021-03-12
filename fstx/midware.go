@@ -16,7 +16,7 @@ func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.ReqTimeout(time.Duration(gft.FitReqTimeout) * time.Millisecond))
 	gft.Fit(mid.MaxReqCounts(gft.FitMaxReqCount))
 	gft.Fit(mid.MaxReqContentLength(gft.FitMaxReqContentLen))
-	//gft.Fit(mid.Metric(gft.CreateMetrics()))	// 系统访问频率统计
+	gft.Fit(mid.Metric(gft.CreateMetrics())) // 系统访问频率统计
 	gft.Fit(mid.Gunzip)
 	//gft.Fit(mid.JwtAuthorize(gft.FitJwtSecret))
 	return gft
