@@ -258,7 +258,7 @@ func (gft *GoFast) GracefulShutdown() {
 	// 执行 onClose 事件订阅函数
 	gft.execAppHandlers(gft.eCloseHds)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Millisecond)
 	defer cancel()
 	if err := gft.srv.Shutdown(ctx); err != nil {
 		fmt.Sprintln("Server Shutdown Error: ", err)

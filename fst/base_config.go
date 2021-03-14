@@ -12,46 +12,37 @@ type AppConfig struct {
 	// UseRawPath           bool
 	// UnescapePathValues   bool
 	// RedirectFixedPath    bool
-	Addr                   string
-	Name                   string
-	RunMode                string // 当前模式[debug|test|product]
-	SecureJsonPrefix       string
-	HTMLRender             render.HTMLRender
-	MaxMultipartMemory     int64
-	SecondsBeforeShutdown  int64 // 退出server之前等待的seconds，等待清理释放资源
-	RedirectTrailingSlash  bool  // 重定向URL结尾的`/`符号
-	HandleMethodNotAllowed bool
-	DisableDefNotAllowed   bool
-	DisableDefNoRoute      bool
-	ForwardedByClientIP    bool
-	RemoveExtraSlash       bool   // 规范请求的URL
-	PrintRouteTrees        bool   // 是否打印出当前路由数
-	FitReqTimeout          int64  `json:",default=3000"` // 每次请求的超时时间（单位：毫秒）
-	FitMaxReqContentLen    int64  // 最大请求字节数
-	FitMaxReqCount         int32  // 最大请求处理数
-	FitJwtSecret           string // JWT认证的秘钥
-	FitLogType             string
+	Addr                   string `json:",default=127.0.0.1:8099"`
+	Name                   string `json:",optional,default=GoFastSite"`
+	RunMode                string `json:",default=debug,options=debug|test|product"` // 当前模式[debug|test|product]
+	SecureJsonPrefix       string `json:",optional,default=while(1);"`
+	MaxMultipartMemory     int64  `json:",optional"`     // 最大上传文件的大小
+	SecondsBeforeShutdown  int64  `json:",default=1000"` // 退出server之前等待的毫秒，等待清理释放资源
+	RedirectTrailingSlash  bool   `json:",default=true"` // 重定向URL结尾的`/`符号
+	HandleMethodNotAllowed bool   `json:",default=false"`
+	DisableDefNotAllowed   bool   `json:",default=false"`
+	DisableDefNoRoute      bool   `json:",default=false"`
+	ForwardedByClientIP    bool   `json:",default=true"`
+	RemoveExtraSlash       bool   `json:",default=false"`                       // 规范请求的URL
+	PrintRouteTrees        bool   `json:",default=true"`                        // 是否打印出当前路由数
+	FitReqTimeout          int64  `json:",default=3000"`                        // 每次请求的超时时间（单位：毫秒）
+	FitMaxReqContentLen    int64  `json:",optional"`                            // 最大请求字节数
+	FitMaxReqCount         int32  `json:",default=1000000,range=[0:100000000]"` // 最大请求处理数
+	FitJwtSecret           string `json:",optional"`                            // JWT认证的秘钥
+	FitLogType             string `json:",default=json,options=json|sdx"`
 
 	// 内部记录状态
-	modeType int8 // 运行模式，整形方便比较，提高性能
+	modeType   int8              `json:",optional"`
+	HTMLRender render.HTMLRender `json:",optional"`
 }
 
 func (gft *GoFast) initServerEnv() {
-	if gft.SecureJsonPrefix == "" {
-		gft.SecureJsonPrefix = "while(1);"
-	}
 	if gft.MaxMultipartMemory == 0 {
 		gft.MaxMultipartMemory = defMultipartMemory
 	}
-	if gft.FitReqTimeout == 0 {
-		gft.FitReqTimeout = 3000
+	if gft.FitMaxReqContentLen == 0 {
+		gft.FitMaxReqContentLen = defMultipartMemory
 	}
-	if gft.FitMaxReqCount == 0 {
-		gft.FitMaxReqCount = 1000000
-	}
-	gft.RedirectTrailingSlash = true
-	gft.ForwardedByClientIP = true
-	//gft.UnescapePathValues = true
 
 	gft.SetMode(gft.RunMode)
 	logx.SetDebugStatus(gft.modeType == modeDebug)

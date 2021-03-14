@@ -6,11 +6,11 @@ import (
 )
 
 // 全局的初始化日志
-func InitLogger(lgConfig *logx.LogConf) {
-	logx.MustSetup(*lgConfig)
+func InitLogger(logConfig *logx.LogConf) {
+	logx.MustSetup(*logConfig)
 
 	// log初始化完毕，接下来解析
-	if lgConfig.NeedCpuMem {
+	if logConfig.NeedCpuMem {
 		stat.StartCpuMemCollect()
 	}
 }

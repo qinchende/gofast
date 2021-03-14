@@ -6,7 +6,7 @@ package fst
 const (
 	EPreValid  = "onPreValid"
 	EBefore    = "onBefore"
-	EHandler   = "onHandler"
+	//EHandler   = "onHandler"
 	EAfter     = "onAfter"
 	EPreSend   = "onPreSend"
 	EAfterSend = "onAfterSend"
