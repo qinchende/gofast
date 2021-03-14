@@ -6,10 +6,11 @@ import (
 	"fmt"
 )
 
-func writeBytesNow(b []byte) {
-	_, _ = fmt.Fprint(DefaultWriter, b)
+// 向对应的文件（描述符）写入日志记录
+func logBytes(buf []byte) {
+	_, _ = fmt.Fprint(DefaultWriter, buf)
 }
 
-func writeStringNow(text string) {
+func logString(text string) {
 	_, _ = fmt.Fprint(DefaultWriter, text)
 }

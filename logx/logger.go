@@ -32,7 +32,8 @@ const (
 )
 
 const (
-	timeFormat = "2006-01-02T15:04:05.000Z07"
+	timeFormat     = "2006-01-02T15:04:05.000Z07"
+	timeFormatMini = "01-02 15:04:05"
 
 	accessFilename = "access.log"
 	errorFilename  = "error.log"
@@ -103,6 +104,7 @@ type (
 )
 
 func MustSetup(c LogConf) {
+	theConfig = &c
 	Must(SetUp(c))
 }
 
@@ -325,6 +327,10 @@ func getTimestamp() string {
 	return timex.Time().Format(timeFormat)
 }
 
+func getTimestampMini() string {
+	return timex.Time().Format(timeFormatMini)
+}
+
 func handleOptions(opts []LogOption) {
 	for _, opt := range opts {
 		opt(&options)
@@ -337,7 +343,18 @@ func infoSync(msg string) {
 	}
 }
 
+// 日志的输出，最后都要落脚到这个方法
 func output(writer io.Writer, level, msg string) {
+	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
+	if theConfig.Style == "sdx" {
+		//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
+		//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
+		//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
+
+		outputSdx(writer, fmt.Sprint(getTimestampMini(), "[", level, "] ", msg))
+		return
+	}
+
 	info := logEntry{
 		Timestamp: getTimestamp(),
 		Level:     level,
@@ -358,6 +375,14 @@ func outputJson(writer io.Writer, info interface{}) {
 		log.Println(string(content))
 	} else {
 		writer.Write(append(content, '\n'))
+	}
+}
+
+func outputSdx(writer io.Writer, info string) {
+	if atomic.LoadUint32(&initialized) == 0 || writer == nil {
+		log.Println(info)
+	} else {
+		fmt.Fprint(writer, info)
 	}
 }
 

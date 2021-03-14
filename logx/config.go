@@ -8,4 +8,8 @@ type LogConf struct {
 	Compress            bool   `json:",optional"`
 	KeepDays            int    `json:",optional"`
 	StackCooldownMillis int    `json:",default=100"`
+	NeedCpuMem          bool   `json:",default=true"`
+	Style               string `json:",default=json"`
 }
+
+var theConfig *LogConf
