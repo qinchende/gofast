@@ -128,16 +128,16 @@ func (gft *GoFast) buildMiniRoutes() {
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
 
-	//// TODO: 释放掉原始树的资源
-	//if gft.modeType != modeDebug {
-	//	fstMem.treeCharT = nil
-	//
-	//	gft.treeGet.root = nil
-	//	gft.treePost.root = nil
-	//	for _, mTree := range gft.treeOthers {
-	//		mTree.root = nil
-	//	}
-	//}
+	// TODO: 释放掉原始树的资源
+	if gft.modeType != modeDebug {
+		fstMem.treeCharT = nil
+
+		gft.treeGet.root = nil
+		gft.treePost.root = nil
+		for _, mTree := range gft.treeOthers {
+			mTree.root = nil
+		}
+	}
 }
 
 // 计算所有要预分配的内存空间

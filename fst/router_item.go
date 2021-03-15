@@ -48,6 +48,7 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	}
 	ri.eHds = addCtxHandlers(gp.gftApp.fstMem, hds)
 
+	// Debug模式下打印新添加的路由
 	DebugPrintRoute(httpMethod, absPath, hds)
 
 	gp.gftApp.regRoute(httpMethod, absPath, ri)
