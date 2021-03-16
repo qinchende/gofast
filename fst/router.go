@@ -26,6 +26,7 @@ type RouterGroup struct {
 }
 
 type RouterItem struct {
+	fullPath *string // 路由的完整路径
 	routeEvents
 	parent *RouterGroup
 }

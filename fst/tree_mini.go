@@ -6,6 +6,8 @@ package fst
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
 type radixMiniNode struct {
+	fullPath *string
+
 	// 前缀字符（3字节）
 	matchLen   uint8
 	matchStart uint16
@@ -62,6 +64,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	if n.routerItem != nil {
 		newMini.hdsGroupIdx = n.routerItem.parent.hdsGroupIdx // 记录“分组”事件在 全局 事件队列中的 起始位置
 		newMini.hdsItemIdx = n.routerItem.rebuildHandlers()   // 记录“节点”事件在 全局 事件队列中的 起始位置
+		newMini.fullPath = n.routerItem.fullPath
 	}
 	// 第二种：按顺序合并所有事件
 	//if n.routerItem != nil {
