@@ -77,6 +77,7 @@ func (w *GFResponse) AbortWithError(code int, err error) *Error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
 const (
 	noWritten     = -1
 	defaultStatus = http.StatusOK
@@ -87,7 +88,7 @@ type ResWriteWrap struct {
 	http.ResponseWriter
 	size       int
 	status     int
-	WriteBytes []byte // 最多保存两组返回结果
+	WriteBytes []byte // 记录响应的数据
 }
 
 // 自定义接口 ResponseWriter

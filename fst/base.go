@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	I           interface{}
+	//I           interface{}
 	KV          map[string]interface{}
 	IncHandler  func(w *GFResponse, r *http.Request)
 	IncHandlers []IncHandler

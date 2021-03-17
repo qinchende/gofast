@@ -8,7 +8,7 @@ import (
 
 // 开启微服务治理
 // GoFast提供默认的全套拦截器
-// 请求按照先后顺序依次执行这些过滤器
+// 请求按照先后顺序依次执行这些拦截器
 func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	//gft.Fit(mid.Tracing)                   // 加入调用链路追踪标记
 	gft.Fit(mid.ReqLogger(gft.FitLogType))                                       // 所有请求写日志，放第一
@@ -17,7 +17,7 @@ func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.MaxReqCounts(gft.FitMaxReqCount))                                // 最大处理请求数量限制 100万
 	gft.Fit(mid.MaxReqContentLength(gft.FitMaxReqContentLen))                    // 最大的请求头限制，默认32MB
 	//gft.Fit(mid.Metric(gft.CreateMetrics())) // 系统访问频率按响应时间分段统计
-	gft.Fit(mid.Gunzip) // 自动gunzip解压缩
+	gft.Fit(mid.Gunzip) // 自动 gunzip 解压缩
 	//gft.Fit(mid.JwtAuthorize(gft.FitJwtSecret))
 	return gft
 }

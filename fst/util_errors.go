@@ -31,7 +31,7 @@ const (
 type Error struct {
 	Err  error
 	Type ErrorType
-	Meta I
+	Meta interface{}
 }
 
 type errorMsgs []*Error

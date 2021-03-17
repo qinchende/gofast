@@ -68,7 +68,7 @@ over:
 //	}
 //}
 
-func (c *Context) execPreValidHandlers() {
+func (c *Context) execPreBindHandlers() {
 	if c.matchRst.ptrNode == nil {
 		return
 	}
@@ -96,6 +96,7 @@ over:
 	return
 }
 
+//func (c *Context) execPreSendHandlers(code int, r render.Render) {
 func (c *Context) execPreSendHandlers() {
 	if c.matchRst.ptrNode == nil {
 		return

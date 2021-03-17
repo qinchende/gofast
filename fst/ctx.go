@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/fst/render"
 	"net/http"
 	"net/url"
 	"sync"
@@ -24,7 +25,11 @@ type Context struct {
 	Sess *CtxSession
 	// 设置成 true ，将中断后面的所有handlers
 	aborted bool
+	// render.Render 对象
+	PRender *render.Render // render 对象
+	PCode   *int           // status code
 
+	// -----------------------------
 	// This mutex protect Keys map
 	mu sync.RWMutex
 	// Accepted defines a list of manually accepted formats for content negotiation.

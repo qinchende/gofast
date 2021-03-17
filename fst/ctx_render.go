@@ -53,7 +53,7 @@ func (c *Context) FaiKV(jsonData KV) {
 		jsonData["tok"] = c.Sess.Token
 	}
 
-	c.JSON(http.StatusOK, jsonData)
+	c.JSONOfKV(http.StatusOK, jsonData)
 	c.aborted = true
 }
 
@@ -93,7 +93,7 @@ func (c *Context) SucKV(jsonData KV) {
 		jsonData["tok"] = c.Sess.Token
 	}
 
-	c.JSON(http.StatusOK, jsonData)
+	c.JSONOfKV(http.StatusOK, jsonData)
 	c.aborted = true
 }
 
@@ -181,6 +181,10 @@ func (c *Context) Cookie(name string) (string, error) {
 // 返回数据的接口
 // 如果需要
 func (c *Context) Render(code int, r render.Render) {
+	// Render之前加入对应的 render 数据
+	c.PRender = &r
+	c.PCode = &code
+
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execPreSendHandlers()
 
@@ -236,6 +240,10 @@ func (c *Context) JSONP(code int, obj interface{}) {
 		return
 	}
 	c.Render(code, render.JsonpJSON{Callback: callback, Data: obj})
+}
+
+func (c *Context) JSONOfKV(code int, obj KV) {
+	c.Render(code, render.JSON{Data: obj})
 }
 
 // JSON serializes the given struct as JSON into the response body.
@@ -354,6 +362,8 @@ func (c *Context) Stream(step func(w io.Writer) bool) bool {
 	}
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
 /************************************/
 /******** CONTENT NEGOTIATION *******/
 /************************************/

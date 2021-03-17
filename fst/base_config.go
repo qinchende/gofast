@@ -7,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/logx"
 )
 
+// GoFast WEB框架的配置参数
 type AppConfig struct {
 	// FuncMap          	template.FuncMap
 	// UseRawPath           bool
