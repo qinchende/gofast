@@ -50,6 +50,7 @@ func ReqLogger(logType string) fst.IncHandler {
 
 		// 打印请求日志
 		logx.WriteSdxReqLog(p)
+
 		// TODO: 错误信息返回给调用端，这个地方是否要打开？
 		//if p.ErrorMsg != "" {
 		//	w.ResW.WriteString(p.ErrorMsg)

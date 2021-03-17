@@ -29,6 +29,7 @@ type Context struct {
 	PRender *render.Render // render 对象
 	PCode   *int           // status code
 
+	// -----------------------------
 	// This mutex protect Keys map
 	mu sync.RWMutex
 	// Accepted defines a list of manually accepted formats for content negotiation.

@@ -68,7 +68,7 @@ over:
 //	}
 //}
 
-func (c *Context) execPreValidHandlers() {
+func (c *Context) execPreBindHandlers() {
 	if c.matchRst.ptrNode == nil {
 		return
 	}

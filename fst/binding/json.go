@@ -62,5 +62,7 @@ func (jsonBinding) BindPms(values url.Values, obj interface{}) error {
 	if err := mapJson(obj, values); err != nil {
 		return err
 	}
+
+	// TODO: before validate.
 	return validate(obj)
 }

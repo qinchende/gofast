@@ -128,6 +128,8 @@ func (gft *GoFast) ReadyToListen() {
 // http服务器，所有请求的入口，底层是用 goroutine 发起的一个协程任务
 // 也就是说主线程，获取到任何请求事件（数据）之后，通过goroutine调用这个接口方法来并行处理
 // 这里的代码就是在一个协程中运行的
+// Note:
+// 1. 这是请求进来之后的第一级上下文，为了节省内存空间，第一级的拦截器通过之后，会进入第二级更丰富的Context上下文（占用内存更多）
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResW: &ResWriteWrap{}}
 	cRes.ResW.Reset(w)

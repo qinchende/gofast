@@ -4,9 +4,9 @@ package fst
 
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
-	EPreValid  = "onPreValid"
+	// EHandler   = "onHandler"
+	EPreBind   = "onPreBind"
 	EBefore    = "onBefore"
-	//EHandler   = "onHandler"
 	EAfter     = "onAfter"
 	EPreSend   = "onPreSend"
 	EAfterSend = "onAfterSend"
@@ -19,7 +19,7 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxH
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
 
 	switch eType {
-	case EPreValid:
+	case EPreBind:
 		re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, hds)...)
 	case EBefore:
 		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(fstMem, hds)...)
@@ -63,7 +63,7 @@ func (gp *RouterGroup) After(hds ...CtxHandler) *RouterGroup {
 }
 
 func (gp *RouterGroup) PreValid(hds ...CtxHandler) *RouterGroup {
-	return gp.regGroupCtxHandler(EPreValid, hds)
+	return gp.regGroupCtxHandler(EPreBind, hds)
 }
 
 func (gp *RouterGroup) PreSend(hds ...CtxHandler) *RouterGroup {
@@ -91,7 +91,7 @@ func (ri *RouterItem) After(hds ...CtxHandler) *RouterItem {
 }
 
 func (ri *RouterItem) PreValid(hds ...CtxHandler) *RouterItem {
-	return ri.regItemCtxHandler(EPreValid, hds)
+	return ri.regItemCtxHandler(EPreBind, hds)
 }
 
 func (ri *RouterItem) PreSend(hds ...CtxHandler) *RouterItem {
