@@ -8,8 +8,9 @@ import (
 	"strings"
 )
 
-func (gp *RouterGroup) AddGroup(relPath string) *RouterGroup {
-	// TODO：如果分组已经存在，需要报错。 或者不报错，允许添加相同路径的不同分组
+// Note：如果分组已经存在，需要报错。 或者不报错。
+// GoFast选择不报错，允许添加相同路径的不同分组，区别应用不同的特性
+func (gp *RouterGroup) Group(relPath string) *RouterGroup {
 	gpNew := &RouterGroup{
 		prefix:      gp.fixAbsolutePath(relPath),
 		gftApp:      gp.gftApp,
