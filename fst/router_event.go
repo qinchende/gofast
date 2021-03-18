@@ -5,7 +5,7 @@ package fst
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
 	// EHandler   = "onHandler"
-	EPreBind   = "onPreBind"
+	EPreBind   = "onPreBind" // 这个事件暂时不用，没有发现有大的必要
 	EBefore    = "onBefore"
 	EAfter     = "onAfter"
 	EPreSend   = "onPreSend"
@@ -62,7 +62,7 @@ func (gp *RouterGroup) After(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EAfter, hds)
 }
 
-func (gp *RouterGroup) PreValid(hds ...CtxHandler) *RouterGroup {
+func (gp *RouterGroup) PreBind(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EPreBind, hds)
 }
 

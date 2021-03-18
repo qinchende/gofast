@@ -11,6 +11,9 @@ import (
 // add by sdx on 20210305
 // 就当 c.Pms (c.ReqW.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
 func (c *Context) BindPms(obj interface{}) error {
+	// add preBind events by sdx on 2021.03.18
+	//c.execPreBindHandlers()
+
 	return binding.JSON.BindPms(c.ReqW.Form, obj)
 }
 
@@ -127,9 +130,9 @@ func (c *Context) ShouldBindUri(obj interface{}) error {
 // ShouldBindWith binds the passed struct pointer using the specified binding gftApp.
 // See the binding package.
 func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
-	// 绑定事件暂时无用。
-	//// add preBind events by sdx on 2021.03.18
+	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
+
 	return b.Bind(c.ReqW, obj)
 }
 

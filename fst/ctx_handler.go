@@ -67,34 +67,34 @@ over:
 //		it.hdsIdx++
 //	}
 //}
-
-func (c *Context) execPreBindHandlers() {
-	if c.matchRst.ptrNode == nil {
-		return
-	}
-	it := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
-	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
-
-	// 1.valid
-	for gp.validLen > 0 {
-		if c.aborted {
-			goto over
-		}
-		c.gftApp.fstMem.hdsList[gp.validIdx](c)
-		gp.validLen--
-		gp.validIdx++
-	}
-	for it.validLen > 0 {
-		if c.aborted {
-			goto over
-		}
-		c.gftApp.fstMem.hdsList[it.validIdx](c)
-		it.validLen--
-		it.validIdx++
-	}
-over:
-	return
-}
+//
+//func (c *Context) execPreBindHandlers() {
+//	if c.matchRst.ptrNode == nil {
+//		return
+//	}
+//	it := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
+//	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
+//
+//	// 1.valid
+//	for gp.validLen > 0 {
+//		if c.aborted {
+//			goto over
+//		}
+//		c.gftApp.fstMem.hdsList[gp.validIdx](c)
+//		gp.validLen--
+//		gp.validIdx++
+//	}
+//	for it.validLen > 0 {
+//		if c.aborted {
+//			goto over
+//		}
+//		c.gftApp.fstMem.hdsList[it.validIdx](c)
+//		it.validLen--
+//		it.validIdx++
+//	}
+//over:
+//	return
+//}
 
 //func (c *Context) execPreSendHandlers(code int, r render.Render) {
 func (c *Context) execPreSendHandlers() {
