@@ -3,9 +3,9 @@
 package fst
 
 const (
-	EReady = "onReady"
 	//ERoute = "onRoute"
-	EClose = "onClose"
+	EReady = "onReady" // server 接收正式请求之前调用
+	EClose = "onClose" // server 关闭退出之前调用
 )
 
 type appEvents struct {

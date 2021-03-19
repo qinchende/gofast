@@ -2,6 +2,7 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+// Note：该设计给将来预留了足够的扩展空间
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
 	// EHandler   = "onHandler"
