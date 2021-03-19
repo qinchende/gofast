@@ -14,7 +14,7 @@ import (
 	"net/url"
 )
 
-// +++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
 // JSON是GoFast默认的返回格式，一等公民
 
@@ -177,6 +177,7 @@ func (c *Context) Cookie(name string) (string, error) {
 	return val, nil
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Render writes the response headers and calls render.Render to render data.
 // 返回数据的接口
 // 如果需要
@@ -336,6 +337,7 @@ func (c *Context) FileAttachment(filepath, filename string) {
 }
 
 // SSEvent writes a Server-Sent Event into the body stream.
+// 流式发送数据给客户端
 func (c *Context) SSEvent(name string, message interface{}) {
 	c.Render(-1, sse.Event{
 		Event: name,

@@ -355,7 +355,7 @@ func TestRouteStaticNoListing(t *testing.T) {
 
 func TestRouterMiddlewareAndStatic(t *testing.T) {
 	router := fst.Default()
-	static := router.AddGroup("/")
+	static := router.Group("/")
 	static.Before(func(c *fst.Context) {
 		c.ResW.Header().Add("Last-Modified", "Mon, 02 Jan 2006 15:04:05 MST")
 		c.ResW.Header().Add("Expires", "Mon, 02 Jan 2006 15:04:05 MST")
