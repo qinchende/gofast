@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/fst/binding"
 	"github.com/qinchende/gofast/fst/render"
-	"github.com/qinchende/gofast/fst/sse"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -335,15 +334,15 @@ func (c *Context) FileAttachment(filepath, filename string) {
 	c.ResW.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	http.ServeFile(c.ResW, c.ReqW, filepath)
 }
-
-// SSEvent writes a Server-Sent Event into the body stream.
-// 流式发送数据给客户端
-func (c *Context) SSEvent(name string, message interface{}) {
-	c.Render(-1, sse.Event{
-		Event: name,
-		Data:  message,
-	})
-}
+//
+//// SSEvent writes a Server-Sent Event into the body stream.
+//// 流式发送数据给客户端
+//func (c *Context) SSEvent(name string, message interface{}) {
+//	c.Render(-1, sse.Event{
+//		Event: name,
+//		Data:  message,
+//	})
+//}
 
 // Stream sends a streaming response and returns a boolean
 // indicates "Is client disconnected in middle of stream"
