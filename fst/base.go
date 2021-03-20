@@ -26,10 +26,10 @@ type (
 
 const (
 	//BodyBytesKey     = "_qinchende/gofast/bodybyteskey" // 记录POST提交时 body 的字节流，方便后期复用
-	maxFitLen    int = math.MaxInt8                     // 最多多少个中间件函数
+	maxFitLen int = math.MaxInt8 // 最多多少个中间件函数
 	//routePathMaxLen    uint8 = 255      // 路由字符串最长长度
 	//routeMaxHandlers   uint8 = 255      // 路由 handlers 最大长度
-	defMultipartMemory int64 = 32 << 20 // 32 MB
+	//defMultipartMemory int64 = 32 << 20 // 32 MB
 )
 
 // Content-Type MIME of the most common data formats.
