@@ -32,9 +32,10 @@ type AppConfig struct {
 	FitJwtSecret           string `json:",optional"`                            // JWT认证的秘钥
 	FitLogType             string `json:",default=json,options=json|sdx"`
 
-	// 内部记录状态
-	modeType   int8              `json:",optional"`
 	HTMLRender render.HTMLRender `json:",optional"`
+
+	// 内部记录状态
+	modeType int8
 }
 
 func (gft *GoFast) initServerEnv() {
