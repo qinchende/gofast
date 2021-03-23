@@ -35,7 +35,7 @@ type AppConfig struct {
 	HTMLRender render.HTMLRender `json:",optional"`
 
 	// 内部记录状态
-	modeType int8
+	modeType int8 `json:",optional"`
 }
 
 func (gft *GoFast) initServerEnv() {
