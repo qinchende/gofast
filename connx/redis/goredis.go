@@ -2,7 +2,9 @@ package redis
 
 import (
 	"context"
+	"fmt"
 	"github.com/go-redis/redis/v8"
+	"github.com/qinchende/gofast/logx"
 )
 
 // go-redis
@@ -23,12 +25,6 @@ type (
 		PoolSize int    `json:",optional"`
 		MinIdle  int    `json:",optional"`
 	}
-	//ConnSentinelConfig struct {
-	//	ConnConfig
-	//	MasterName   string   `json:",optional"`
-	//	SentinelAddr []string `json:",optional"`
-	//	SentinelPass string   `json:",optional"`
-	//}
 	GoRedisX struct {
 		Cli *redis.Client
 		Ctx context.Context
@@ -52,11 +48,11 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 			PoolSize:     cf.PoolSize,
 			MinIdleConns: cf.MinIdle,
 			OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-				//logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
+				logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
 				return nil
 			},
 		})
-		//logx.Info(fmt.Sprintf("Redis %s created.\n", cf.Addr))
+		logx.Info(fmt.Sprintf("Redis %s created.\n", cf.Addr))
 	} else if cf.SentinelAddr != nil {
 		// 通过sentinel连接 redis
 		rds.Cli = redis.NewFailoverClient(&redis.FailoverOptions{
@@ -69,11 +65,11 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 			PoolSize:         cf.PoolSize,
 			MinIdleConns:     cf.MinIdle,
 			OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-				// logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
+				logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
 				return nil
 			},
 		})
-		//logx.Info(fmt.Sprintf("Redis %s created.\n", cf.MasterName))
+		logx.Info(fmt.Sprintf("Redis %s created.\n", cf.MasterName))
 	}
 
 	return &rds

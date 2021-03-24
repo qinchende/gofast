@@ -351,7 +351,7 @@ func output(writer io.Writer, level, msg string) {
 		//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
 		//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
 
-		outputSdx(writer, fmt.Sprint(getTimestampMini(), "[", level, "] ", msg))
+		outputSdx(writer, fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg))
 		return
 	}
 
