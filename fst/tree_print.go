@@ -10,7 +10,7 @@ import (
 // 打印 路由树
 func (gft *GoFast) printRouteTrees() {
 	strTree := new(strings.Builder)
-	strTree.WriteString("++++++++++The route tree:\n\n")
+	strTree.WriteString("\n++++++++++The route tree:\n\n")
 
 	if gft.treeGet != nil {
 		printTree(gft.treeGet, strTree)

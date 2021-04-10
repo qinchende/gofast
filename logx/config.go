@@ -1,6 +1,6 @@
 package logx
 
-type LogConf struct {
+type LogConfig struct {
 	ServiceName         string `json:",optional"`
 	Mode                string `json:",default=console,options=console|file|volume"`
 	Path                string `json:",default=logs"`
@@ -12,4 +12,4 @@ type LogConf struct {
 	Style               string `json:",default=json"`
 }
 
-var theConfig *LogConf
+var theConfig *LogConfig

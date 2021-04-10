@@ -22,9 +22,9 @@ func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
 // 保存到 redis
 func SaveSessionToRedis(sdx *fst.CtxSession) (string, error) {
 	str, _ := json.Marshal(sdx.Values)
-	ttl := ss.TTL
+	ttl := ses.TTL
 	if sdx.IsNew {
-		ttl = ss.TTLNew
+		ttl = ses.TTLNew
 	}
-	return ss.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
+	return ses.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
 }

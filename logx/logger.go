@@ -103,7 +103,7 @@ type (
 	}
 )
 
-func MustSetup(c LogConf) {
+func MustSetup(c LogConfig) {
 	theConfig = &c
 	Must(SetUp(c))
 }
@@ -112,7 +112,7 @@ func MustSetup(c LogConf) {
 // we allow SetUp to be called multiple times, because for example
 // we need to allow different service frameworks to initialize logx respectively.
 // the same logic for SetUp
-func SetUp(c LogConf) error {
+func SetUp(c LogConfig) error {
 	switch c.Mode {
 	case consoleMode:
 		setupWithConsole(c)
@@ -386,7 +386,7 @@ func outputSdx(writer io.Writer, info string) {
 	}
 }
 
-func setupLogLevel(c LogConf) {
+func setupLogLevel(c LogConfig) {
 	switch c.Level {
 	case levelInfo:
 		SetLevel(InfoLevel)
@@ -397,7 +397,7 @@ func setupLogLevel(c LogConf) {
 	}
 }
 
-func setupWithConsole(c LogConf) {
+func setupWithConsole(c LogConfig) {
 	once.Do(func() {
 		atomic.StoreUint32(&initialized, 1)
 		writeConsole = true
@@ -413,7 +413,7 @@ func setupWithConsole(c LogConf) {
 }
 
 // 文件日志模式下的初始化工作
-func setupWithFiles(c LogConf) error {
+func setupWithFiles(c LogConfig) error {
 	var opts []LogOption
 	var err error
 
@@ -470,7 +470,7 @@ func setupWithFiles(c LogConf) error {
 	return err
 }
 
-func setupWithVolume(c LogConf) error {
+func setupWithVolume(c LogConfig) error {
 	if len(c.ServiceName) == 0 {
 		return ErrLogServiceNameNotSet
 	}
