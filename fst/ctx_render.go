@@ -96,6 +96,8 @@ func (c *Context) SucKV(jsonData KV) {
 	c.aborted = true
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 /************************************/
 /******** RESPONSE RENDERING ********/
 /************************************/
@@ -334,6 +336,7 @@ func (c *Context) FileAttachment(filepath, filename string) {
 	c.ResW.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
 	http.ServeFile(c.ResW, c.ReqW, filepath)
 }
+
 //
 //// SSEvent writes a Server-Sent Event into the body stream.
 //// 流式发送数据给客户端
