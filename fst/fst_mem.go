@@ -5,8 +5,10 @@ package fst
 // 自定义内存数据库，存放路由树所有相关的数据
 type fstMemSpace struct {
 	// 我们需要自己定义一个切片，管理所有的 Context handlers.
-	allCtxHandlers CtxHandlers
-	allCtxHdsLen   uint16
+	// 所有handler函数都需要加到这里来，形成一个全局的handler数组，以后任何路由都只记录这里的索引，执行时需要通过索引
+	// 定位这里的handler函数，然后再执行。
+	allCtxHandlers CtxHandlers	// handler数组
+	allCtxHdsLen   uint16		// 意味这所有 handler 不能超过 uint16 能标识的最大值
 
 	// 新的handlers, 有序的, 按分组和事件类型排序
 	// 将上面 allCtxHandlers (无序的)，转换成 hdsList （有序的）
