@@ -103,6 +103,7 @@ func addCtxHandlers(fstMem *fstMemSpace, hds CtxHandlers) (idxes []uint16) {
 		idxes[i] = fstMem.allCtxHdsLen + i
 	}
 	fstMem.allCtxHdsLen += hLen
+	// ifPanic(fstMem.allCtxHdsLen >= math.MaxUint16, "All handler length out of range.")
 	return
 }
 
