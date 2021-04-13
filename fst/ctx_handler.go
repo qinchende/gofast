@@ -57,16 +57,18 @@ over:
 	return
 }
 
-//func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
-//	it := c.gftApp.fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
-//
-//	// 3.handler
-//	for it.hdsLen > 0 {
-//		c.gftApp.fstMem.hdsList[it.hdsIdx](c)
-//		it.hdsLen--
-//		it.hdsIdx++
-//	}
-//}
+// 可以指定任何路由节点中的 handlers 来执行
+func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
+	it := c.gftApp.fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
+
+	// 3.handler
+	for it.hdsLen > 0 {
+		c.gftApp.fstMem.hdsList[it.hdsIdx](c)
+		it.hdsLen--
+		it.hdsIdx++
+	}
+}
+
 //
 //func (c *Context) execPreBindHandlers() {
 //	if c.matchRst.ptrNode == nil {

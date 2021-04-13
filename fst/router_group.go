@@ -78,9 +78,9 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 		// Check if file exists and/or if we have permission to access it
 		f, err := fs.Open(file)
 		if err != nil {
+			// 没有匹配到静态文件，用系统中 404 （NoRoute handler）做响应处理
 			c.ResW.WriteHeader(http.StatusNotFound)
-			// TODO: need add some logic
-			//c.execJustHandlers(gp.gftApp.miniNode404)
+			c.execJustHandlers(gp.gftApp.miniNode404)
 			return
 		}
 		_ = f.Close()

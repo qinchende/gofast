@@ -13,6 +13,10 @@ import (
 	"strings"
 )
 
+func (c *Context) FullPath() string {
+	return *c.matchRst.ptrNode.fullPath
+}
+
 /************************************/
 /************ input data ************/
 /************************************/

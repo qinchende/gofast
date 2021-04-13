@@ -45,12 +45,11 @@ func testRouteOK(method string, t *testing.T) {
 		passed = true
 	})
 
-	router.ReadyToListen()
-	w := performRequestLite(router, method, "/test")
+	w := performRequest(router, method, "/test")
 	assert.True(t, passed)
 	assert.Equal(t, http.StatusOK, w.Code)
 
-	performRequestLite(router, method, "/test2")
+	performRequest(router, method, "/test2")
 	assert.True(t, passedAny)
 }
 
@@ -463,9 +462,8 @@ func TTestRouterNotFound(t *testing.T) {
 		{"/../path", http.StatusMovedPermanently, "/path"}, // Without CleanPath
 		{"/nope", http.StatusNotFound, ""},                 // NotFound
 	}
-	router.ReadyToListen()
 	for _, tr := range testRoutes {
-		w := performRequestLite(router, http.MethodGet, tr.route)
+		w := performRequest(router, http.MethodGet, tr.route)
 		assert.Equal(t, tr.code, w.Code)
 		if w.Code != http.StatusNotFound {
 			assert.Equal(t, tr.location, fmt.Sprint(w.Header().Get("Location")))
@@ -497,18 +495,18 @@ func TTestRouterNotFound(t *testing.T) {
 
 func TestRouterStaticFSNotFound(t *testing.T) {
 	router := fst.Default()
+	//router.SetMode(fst.DebugMode)
 
 	router.StaticFS("/", http.FileSystem(http.Dir("/thisreallydoesntexist/")))
 	router.NoRoute(func(c *fst.Context) {
 		c.String(404, "non existent")
 	})
 
-	router.ReadyToListen()
-	w := performRequestLite(router, http.MethodGet, "/nonexistent")
+	w := performRequest(router, http.MethodGet, "/nonexistent")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, "non existent", w.Body.String())
 
-	w = performRequestLite(router, http.MethodHead, "/nonexistent")
+	w = performRequest(router, http.MethodHead, "/nonexistent")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.Equal(t, "non existent", w.Body.String())
 }
@@ -535,13 +533,12 @@ func TestMiddlewareCalledOnceByRouterStaticFSNotFound(t *testing.T) {
 
 	router.StaticFS("/", http.FileSystem(http.Dir("/thisreallydoesntexist/")))
 
-	router.ReadyToListen()
 	// First access
-	performRequestLite(router, http.MethodGet, "/nonexistent")
+	performRequest(router, http.MethodGet, "/nonexistent")
 	assert.Equal(t, 1, middlewareCalledNum)
 
 	//// Second access
-	//performRequestLite(router, http.MethodHead, "/nonexistent")
+	//performRequest(router, http.MethodHead, "/nonexistent")
 	//assert.Equal(t, 2, middlewareCalledNum)
 }
 
@@ -618,25 +615,26 @@ func TestRouteContextHoldsFullPath(t *testing.T) {
 	}
 
 	for _, route := range routes {
-		//actualRoute := route
+		actualRoute := route
 		router.Get(route, func(c *fst.Context) {
 			// For each defined route context should contain its full path
-			//assert.Equal(t, actualRoute, c.FullPath())
-			c.AbortWithStatus(http.StatusOK)
+			assert.Equal(t, actualRoute, c.FullPath())
+			c.String(http.StatusOK, "")
 		})
 	}
+	router.ReadyToListen()
 
 	for _, route := range routes {
-		w := performRequest(router, http.MethodGet, route)
+		w := performRequestLite(router, http.MethodGet, route)
 		assert.Equal(t, http.StatusOK, w.Code)
 	}
 
-	// Test not found
-	router.Before(func(c *fst.Context) {
-		// For not found routes full path is empty
-		//assert.Equal(t, "", c.FullPath())
-	})
+	//// Test not found
+	//router.Before(func(c *fst.Context) {
+	//	// For not found routes full path is empty
+	//	assert.Equal(t, "", c.FullPath())
+	//})
 
-	w := performRequest(router, http.MethodGet, "/not-found")
+	w := performRequestLite(router, http.MethodGet, "/not-found")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
