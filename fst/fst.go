@@ -222,7 +222,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 func (gft *GoFast) Listen(addr ...string) (err error) {
 	gft.ReadyToListen()
 
-	defer func() { logx.DebugPrintError(err) }()
+	defer logx.DebugPrintError(err)
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
 	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
 
