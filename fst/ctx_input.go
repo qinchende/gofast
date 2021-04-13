@@ -13,8 +13,12 @@ import (
 	"strings"
 )
 
-func (c *Context) FullPath() string {
-	return *c.matchRst.ptrNode.fullPath
+func (c *Context) FullPath() *string {
+	if c.matchRst.ptrNode != nil {
+		return c.matchRst.ptrNode.fullPath
+	} else {
+		return nil
+	}
 }
 
 /************************************/
