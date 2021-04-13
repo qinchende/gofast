@@ -47,7 +47,6 @@ func (gft *GoFast) initServerEnv() {
 	//}
 
 	gft.SetMode(gft.RunMode)
-	logx.SetDebugStatus(gft.modeType == modeDebug)
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -82,6 +81,7 @@ func (gft *GoFast) SetMode(mode string) {
 	default:
 		panic("GoFast mode unknown: " + mode)
 	}
+	logx.SetDebugStatus(gft.modeType == modeDebug)
 }
 
 // 日志文件的目标系统
