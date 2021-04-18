@@ -97,7 +97,7 @@ func Default() *GoFast {
 }
 
 // Ready to listen the ip address
-// 在不执行真正Listen的场景中，调用此函数能初始化服务器
+// 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
 func (gft *GoFast) ReadyToListen() {
 	// 服务Listen之前，只执行一次初始化
 	gft.readyOnce.Do(func() {

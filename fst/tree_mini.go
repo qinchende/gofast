@@ -133,7 +133,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
 
-	// TODO: 释放掉原始树的资源
+	// TODO: 释放掉原始树的资源，后面不可以根据这些树结构构造路由了。
 	if gft.modeType != modeDebug {
 		fstMem.treeCharT = nil
 
