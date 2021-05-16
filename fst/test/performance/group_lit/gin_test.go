@@ -1,4 +1,4 @@
-package performance
+package group_lit
 
 import (
 	"github.com/gin-gonic/gin"
@@ -6,11 +6,11 @@ import (
 	"testing"
 )
 
+var ginApp *gin.Engine
+
 func init() {
 	initGinServer()
 }
-
-var ginApp *gin.Engine
 
 func initGinServer() {
 	gin.SetMode(gin.ReleaseMode)
@@ -23,30 +23,12 @@ func initGinServer() {
 }
 
 func ginMiddlewareHandle(ctx *gin.Context) int {
-	// 请求前获取当前时间
-	//nowTime := time.Now()
-
-	arr := [10000]int{}
-	ctLen := len(arr)
-	for i := 0; i < ctLen; i++ {
-		arr[i] = i * 10
-	}
-
 	ctx.Next()
-
-	//time := time.Since(nowTime)
-	//return int(time.Since(nowTime))
-	return arr[0]
-}
-func ginHandle2(ctx *gin.Context) {
+	return 0
 }
 
-//func ginHandleTest(c *gin.Context) {
-//	io.WriteString(c.Writer, c.ReqW.RequestURI)
-//}
-//func ginHandleWrite(c *gin.Context) {
-//	io.WriteString(c.Writer, c.Params.ByName("name"))
-//}
+func ginHandle2(_ *gin.Context) {
+}
 
 // add gin middlewares
 func ginAddMiddlewareHandlers(ginApp *gin.Engine, ct int) {

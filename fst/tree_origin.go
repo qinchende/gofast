@@ -2,13 +2,14 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+// 目前一共 73 字节
 type radixNode struct {
-	match      string
-	indices    string
-	children   []*radixNode
-	wildChild  bool
-	nType      uint8
-	routerItem *RouterItem
+	match      string       // 16字节
+	indices    string       // 16字节
+	children   []*radixNode // 24字节
+	wildChild  bool         // 1字节
+	nType      uint8        // 8字节
+	routerItem *RouterItem  // 8字节
 }
 
 // n.nType必须是通配型，seg必须以通配符(:,*)打头

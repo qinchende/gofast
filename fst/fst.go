@@ -20,14 +20,14 @@ import (
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
-	srv *http.Server
-	*AppConfig
-	*HomeRouter
-	appEvents
+	srv         *http.Server // WebServer
+	*AppConfig               // 引用配置
+	*HomeRouter              // 跟路由
+	appEvents                // 应用级事件
 
-	fitHandlers IncHandlers // 全局中间件处理函数
-	ctxPool     sync.Pool
-	readyOnce   sync.Once
+	fitHandlers IncHandlers // 全局中间件处理函数，incoming request handlers
+	ctxPool     sync.Pool   // Request context pools
+	readyOnce   sync.Once   // WebServer初始化只能执行一次
 }
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
@@ -104,7 +104,7 @@ func (gft *GoFast) ReadyToListen() {
 		gft.checkDefaultHandler()
 		// 设置 treeAll
 		lenTreeOthers := len(gft.treeOthers)
-		ifPanic(lenTreeOthers > 7, "Too many kind of methods")
+		ifPanic(lenTreeOthers > 7, "More than seven methods.")
 		gft.treeAll = gft.treeOthers[:lenTreeOthers:9]
 		gft.treeAll = append(gft.treeAll, gft.treeGet)
 		gft.treeAll = append(gft.treeAll, gft.treePost)
@@ -220,6 +220,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 // 第二步：启动端口监听
 // 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
 func (gft *GoFast) Listen(addr ...string) (err error) {
+	// listen接受请求之前，必须调用这个来生成最终的路由树
 	gft.ReadyToListen()
 
 	defer logx.DebugPrintError(err)
