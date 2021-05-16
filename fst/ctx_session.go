@@ -37,7 +37,7 @@ func (ss *CtxSession) Set(key string, val interface{}) {
 	ss.Values[key] = val
 }
 
-// 实现这个save方法，自定义
+// TODO: 你可以自定义实现这个save方法
 var CtxSessionSaveFun = func(ss *CtxSession) (string, error) {
 	return "", errors.New("Error. ")
 }

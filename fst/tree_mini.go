@@ -5,6 +5,7 @@ package fst
 // 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
+// 一共 23字节
 type radixMiniNode struct {
 	// 原始路由地址 （8字节）
 	fullPath *string
@@ -133,7 +134,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
 
-	// TODO: 释放掉原始树的资源
+	// TODO: 释放掉原始树的资源，后面不可以根据这些树结构构造路由了。
 	if gft.modeType != modeDebug {
 		fstMem.treeCharT = nil
 

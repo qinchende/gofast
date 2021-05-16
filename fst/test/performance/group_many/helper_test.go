@@ -1,4 +1,4 @@
-package performance
+package group_many
 
 import (
 	"net/http"

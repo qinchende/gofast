@@ -1,4 +1,4 @@
-package performance
+package group_lit
 
 import (
 	"github.com/qinchende/gofast/fst"
@@ -26,27 +26,11 @@ func initGoFastServer() {
 }
 
 func gftMiddlewareHandle(ctx *fst.Context) int {
-	// 请求前获取当前时间
-	//nowTime := time.Now()
-
-	arr := [10000]int{}
-	ctLen := len(arr)
-	for i := 0; i < ctLen; i++ {
-		arr[i] = i * 10
-	}
-
-	return arr[0]
-	//return int(time.Since(nowTime))
+	return 0
 }
+
 func gftHandle2(_ *fst.Context) {
 }
-
-//func gftHandleTest(c *fst.Context) {
-//	io.WriteString(c.ResW, c.ReqW.RequestURI)
-//}
-//func gftHandleWrite(c *fst.Context) {
-//	io.WriteString(c.ResW, c.Params.ByName("name"))
-//}
 
 // add GoFast middlewares
 func gftAddMiddlewareHandlers(ct int) {
