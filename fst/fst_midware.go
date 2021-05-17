@@ -23,6 +23,7 @@ func (w *GFResponse) NextFit(r *http.Request) {
 	w.fitIdx++
 	for w.fitIdx < len(w.gftApp.fitHandlers) {
 		w.gftApp.fitHandlers[w.fitIdx](w, r)
+		//w.gftApp.serveHTTPWithCtx(w, r)
 		w.fitIdx++
 	}
 }

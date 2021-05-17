@@ -139,13 +139,13 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
-	c := gft.ctxPool.Get().(*Context)
-	res.ReqCtx = c
-	c.GFResponse = res
-	c.ReqW = req
-	c.reset()
-	gft.handleHTTPRequest(c)
-	gft.ctxPool.Put(c)
+	//c := gft.ctxPool.Get().(*Context)
+	//res.ReqCtx = c
+	////c.GFResponse = res
+	//c.ReqW = req
+	////c.reset()
+	////gft.handleHTTPRequest(c)
+	//gft.ctxPool.Put(c)
 }
 
 // TODO: 还有一些特殊情况的处理，需要在这里继续完善

@@ -17,14 +17,9 @@ func initGinServer() {
 
 	ginApp = gin.New()
 	ginAddMiddlewareHandlers(ginApp, middlewareNum)
-	addRoutes(routersLevel, func(url string) {
+	addRoutes(func(url string) {
 		ginApp.Handle(http.MethodGet, url, ginHandle2)
 	})
-}
-
-func ginMiddlewareHandle(ctx *gin.Context) int {
-	ctx.Next()
-	return 0
 }
 
 func ginHandle2(_ *gin.Context) {
@@ -39,7 +34,12 @@ func ginAddMiddlewareHandlers(ginApp *gin.Engine, ct int) {
 	}
 }
 
+func ginMiddlewareHandle(ctx *gin.Context) int {
+	ctx.Next()
+	return 0
+}
+
 // start benchmark
-func BenchmarkGinWebRouter(b *testing.B) {
+func sBenchmarkGinWebRouter(b *testing.B) {
 	benchRequest(b, ginApp)
 }
