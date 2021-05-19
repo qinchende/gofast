@@ -25,8 +25,8 @@ func initGoFastServer() {
 	gftApp.ReadyToListen()
 }
 
-func gftHandle2(_ *fst.Context) {
-
+func gftHandle2(c *fst.Context) {
+	//println(unsafe.Sizeof(*c))
 }
 
 // add GoFast middlewares
@@ -38,8 +38,7 @@ func gftAddMiddlewareHandlers(ct int) {
 	}
 }
 
-func gftMiddlewareHandle(ctx *fst.Context) int {
-	return 0
+func gftMiddlewareHandle(ctx *fst.Context) {
 }
 
 func BenchmarkGoFastWebRouter(b *testing.B) {

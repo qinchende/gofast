@@ -26,6 +26,7 @@ type GoFast struct {
 	appEvents                // 应用级事件
 
 	fitHandlers IncHandlers // 全局中间件处理函数，incoming request handlers
+	resPool     sync.Pool   // GFResponse context pools
 	ctxPool     sync.Pool   // Request context pools
 	readyOnce   sync.Once   // WebServer初始化只能执行一次
 }
@@ -78,8 +79,13 @@ func CreateServer(cfg *AppConfig) *GoFast {
 
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
-		c.GFResponse = &GFResponse{gftApp: gft}
+		//c.GFResponse = &GFResponse{gftApp: gft}
 		return c
+	}
+
+	gft.resPool.New = func() interface{} {
+		cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResW: &ResWriteWrap{}}
+		return cRes
 	}
 
 	gft.fstMem = new(fstMemSpace)
@@ -118,9 +124,7 @@ func (gft *GoFast) ReadyToListen() {
 		gft.execAppHandlers(gft.eReadyHds)
 
 		// 全局中间件过滤之后加入主体处理函数
-		gft.Fit(func(w *GFResponse, r *http.Request) {
-			gft.serveHTTPWithCtx(w, r)
-		})
+		gft.Fit(gft.serveHTTPWithCtx)
 	})
 }
 
@@ -131,21 +135,24 @@ func (gft *GoFast) ReadyToListen() {
 // Note:
 // 1. 这是请求进来之后的第一级上下文，为了节省内存空间，第一级的拦截器通过之后，会进入第二级更丰富的Context上下文（占用内存更多）
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResW: &ResWriteWrap{}}
+	cRes := gft.resPool.Get().(*GFResponse)
 	cRes.ResW.Reset(w)
+
 	// 开始依次执行全局拦截器
 	cRes.NextFit(r)
+
+	gft.resPool.Put(cRes)
 }
 
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
-	//c := gft.ctxPool.Get().(*Context)
-	//res.ReqCtx = c
-	////c.GFResponse = res
-	//c.ReqW = req
-	////c.reset()
-	////gft.handleHTTPRequest(c)
-	//gft.ctxPool.Put(c)
+	c := gft.ctxPool.Get().(*Context)
+	res.ReqCtx = c
+	c.GFResponse = res
+	c.ReqW = req
+	c.reset()
+	gft.handleHTTPRequest(c)
+	gft.ctxPool.Put(c)
 }
 
 // TODO: 还有一些特殊情况的处理，需要在这里继续完善

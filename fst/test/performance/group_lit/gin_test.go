@@ -22,7 +22,8 @@ func initGinServer() {
 	})
 }
 
-func ginHandle2(_ *gin.Context) {
+func ginHandle2(c *gin.Context) {
+	// println(unsafe.Sizeof(*c))
 }
 
 // add gin middlewares
@@ -34,12 +35,11 @@ func ginAddMiddlewareHandlers(ginApp *gin.Engine, ct int) {
 	}
 }
 
-func ginMiddlewareHandle(ctx *gin.Context) int {
+func ginMiddlewareHandle(ctx *gin.Context) {
 	ctx.Next()
-	return 0
 }
 
 // start benchmark
-func sBenchmarkGinWebRouter(b *testing.B) {
+func BenchmarkGinWebRouter(b *testing.B) {
 	benchRequest(b, ginApp)
 }
