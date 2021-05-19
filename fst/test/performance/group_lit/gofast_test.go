@@ -19,17 +19,14 @@ func initGoFastServer() {
 	})
 
 	gftAddMiddlewareHandlers(middlewareNum)
-	addRoutes(routersLevel, func(url string) {
+	addRoutes(func(url string) {
 		gftApp.Handle(http.MethodGet, url, gftHandle2)
 	})
 	gftApp.ReadyToListen()
 }
 
-func gftMiddlewareHandle(ctx *fst.Context) int {
-	return 0
-}
-
-func gftHandle2(_ *fst.Context) {
+func gftHandle2(c *fst.Context) {
+	//println(unsafe.Sizeof(*c))
 }
 
 // add GoFast middlewares
@@ -39,6 +36,9 @@ func gftAddMiddlewareHandlers(ct int) {
 			gftMiddlewareHandle(context)
 		})
 	}
+}
+
+func gftMiddlewareHandle(ctx *fst.Context) {
 }
 
 func BenchmarkGoFastWebRouter(b *testing.B) {

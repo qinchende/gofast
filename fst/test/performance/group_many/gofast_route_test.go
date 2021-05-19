@@ -4,6 +4,7 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"net/http"
 	"testing"
+	"time"
 )
 
 func init() {
@@ -27,7 +28,7 @@ func initGoFastServer() {
 
 func gftMiddlewareHandle(ctx *fst.Context) int {
 	// 请求前获取当前时间
-	//nowTime := time.Now()
+	nowTime := time.Now()
 
 	arr := [10000]int{}
 	ctLen := len(arr)
@@ -35,10 +36,11 @@ func gftMiddlewareHandle(ctx *fst.Context) int {
 		arr[i] = i * 10
 	}
 
-	return arr[0]
-	//return int(time.Since(nowTime))
+	//return arr[0]
+	return int(time.Since(nowTime))
 }
 func gftHandle2(_ *fst.Context) {
+	//print(1)
 }
 
 //func gftHandleTest(c *fst.Context) {

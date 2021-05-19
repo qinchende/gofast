@@ -7,12 +7,11 @@ import (
 )
 
 func init() {
-	runtime.GOMAXPROCS(4)
+	runtime.GOMAXPROCS(2)
 }
 
 var reqPool []*http.Request // 模拟请求的对象数组（伪造并缓存请求对象）
-var routersLevel = 1        // 路由数量的基数，实际值=routersSum
-var middlewareNum = 20      // 中间件函数的数量
+var middlewareNum = 10      // 中间件函数的数量
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func benchRequest(b *testing.B, router http.Handler) {
@@ -21,22 +20,27 @@ func benchRequest(b *testing.B, router http.Handler) {
 	b.ResetTimer()
 
 	// 并发测试模式
-	b.SetParallelism(20000)
+	b.SetParallelism(110000)
 	b.RunParallel(func(pb *testing.PB) {
-		var req *http.Request
-		i := -1
 		for pb.Next() {
-			i++
-			req = reqPool[0]
-			router.ServeHTTP(res, req)
+			router.ServeHTTP(res, reqPool[0])
 		}
 	})
 }
 
+//func benchRequest(b *testing.B, router http.Handler) {
+//	res := new(mockResponseWriter)
+//	b.ReportAllocs()
+//	b.ResetTimer()
+//	for i := 0; i < b.N; i++ {
+//		router.ServeHTTP(res, reqPool[0])
+//	}
+//}
+
 type regRouteFun func(url string)
 
 // routeCt <= 10 && >= 1
-func addRoutes(routeCt int, regRoute regRouteFun) {
+func addRoutes(regRoute regRouteFun) {
 	reqPool = make([]*http.Request, 0, 1)
 
 	d := "/first/second/third"

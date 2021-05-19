@@ -117,7 +117,7 @@ func handlerLoop(name string, age int) int {
 }
 
 // +++++++++++++++++++++++++
-// 重点改变这里的 数组大小，模式业务代码的执行
+// 重点改变这里的 数组大小，模拟业务代码的执行
 func execCalc() {
 	// 栈空间申请
 	arr := [1]int{}

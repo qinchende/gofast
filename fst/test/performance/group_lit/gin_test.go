@@ -17,17 +17,13 @@ func initGinServer() {
 
 	ginApp = gin.New()
 	ginAddMiddlewareHandlers(ginApp, middlewareNum)
-	addRoutes(routersLevel, func(url string) {
+	addRoutes(func(url string) {
 		ginApp.Handle(http.MethodGet, url, ginHandle2)
 	})
 }
 
-func ginMiddlewareHandle(ctx *gin.Context) int {
-	ctx.Next()
-	return 0
-}
-
-func ginHandle2(_ *gin.Context) {
+func ginHandle2(c *gin.Context) {
+	// println(unsafe.Sizeof(*c))
 }
 
 // add gin middlewares
@@ -37,6 +33,10 @@ func ginAddMiddlewareHandlers(ginApp *gin.Engine, ct int) {
 			ginMiddlewareHandle(context)
 		})
 	}
+}
+
+func ginMiddlewareHandle(ctx *gin.Context) {
+	ctx.Next()
 }
 
 // start benchmark
