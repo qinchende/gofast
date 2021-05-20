@@ -25,7 +25,7 @@ func MaxReqCounts(limit int32) fst.IncHandler {
 			w.NextFit(r)
 		} else {
 			w.ErrorF("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
-			w.ResW.WriteHeader(http.StatusServiceUnavailable)
+			w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 			w.AbortFit()
 		}
 	}

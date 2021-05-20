@@ -15,12 +15,19 @@ import (
 
 // 自定义 Response
 type GFResponse struct {
-	ResW   *ResWriteWrap
-	ReqCtx *Context
-	// 用于上下文
-	gftApp *GoFast
-	fitIdx int
-	Errors errorMsgs // []*Error
+	ResWrap *ResWrapriteWrap
+	Ctx     *Context
+	gftApp  *GoFast // 用于上下文
+	fitIdx  int
+	Errors  errorMsgs // []*Error
+}
+
+func (w *GFResponse) reset() {
+	//w.ResWrap.Reset()
+	w.Ctx = nil
+	//w.gftApp = nil
+	w.fitIdx = -1
+	w.Errors = w.Errors[0:0]
 }
 
 func (w *GFResponse) ClientIP(r *http.Request) string {
@@ -66,8 +73,8 @@ func (w *GFResponse) ErrorF(format string, v ...interface{}) {
 }
 
 func (w *GFResponse) AbortWithStatus(code int) {
-	w.ResW.WriteHeader(code)
-	w.ResW.WriteHeaderNow()
+	w.ResWrap.WriteHeader(code)
+	w.ResWrap.WriteHeaderNow()
 	w.AbortFit()
 }
 
@@ -84,7 +91,7 @@ const (
 )
 
 // 实现接口 ResponseWriter
-type ResWriteWrap struct {
+type ResWrapriteWrap struct {
 	http.ResponseWriter
 	size       int
 	status     int
@@ -120,9 +127,9 @@ type ResponseWriter interface {
 }
 
 // 验证是否实现了接口所有的方法
-var _ ResponseWriter = &ResWriteWrap{}
+var _ ResponseWriter = &ResWrapriteWrap{}
 
-func (w *ResWriteWrap) Reset(res http.ResponseWriter) {
+func (w *ResWrapriteWrap) Reset(res http.ResponseWriter) {
 	w.ResponseWriter = res
 	w.size = noWritten       // 一定要初始化为-1，因为0代表已设置好返回状态
 	w.status = defaultStatus // 默认返回200 OK
@@ -130,7 +137,7 @@ func (w *ResWriteWrap) Reset(res http.ResponseWriter) {
 
 // 在没有调用 WriteHeaderNow() 之前，设置status code都是可以的，会对最终response起作用
 // 否则只会改变这里的w.status值，而不会改变response给客户端的状态了。切记。
-func (w *ResWriteWrap) WriteHeader(code int) {
+func (w *ResWrapriteWrap) WriteHeader(code int) {
 	if code > 0 && w.status != code {
 		if w.Written() {
 			logx.DebugPrint("[WARNING] HTTP status %d rendered, Now set %d is useless.", w.status, code)
@@ -140,7 +147,7 @@ func (w *ResWriteWrap) WriteHeader(code int) {
 }
 
 // 第一次调用起作用，后面再调用不会改变response的状态了。
-func (w *ResWriteWrap) WriteHeaderNow() {
+func (w *ResWrapriteWrap) WriteHeaderNow() {
 	// 还没有任何写动作就可以设置返回状态，否则啥也不做，意味着返回状态只能被设置一次
 	if !w.Written() {
 		w.size = 0
@@ -150,7 +157,7 @@ func (w *ResWriteWrap) WriteHeaderNow() {
 
 // 返回结果都是通过这里的两个函数处理的
 // TODO: 是否要避免 double render
-func (w *ResWriteWrap) Write(data []byte) (n int, err error) {
+func (w *ResWrapriteWrap) Write(data []byte) (n int, err error) {
 	w.WriteHeaderNow()
 	n, err = w.ResponseWriter.Write(data)
 	w.WriteBytes = data[:n] // 记录最后一次输出给客户端的数据
@@ -158,7 +165,7 @@ func (w *ResWriteWrap) Write(data []byte) (n int, err error) {
 	return
 }
 
-func (w *ResWriteWrap) WriteString(s string) (n int, err error) {
+func (w *ResWrapriteWrap) WriteString(s string) (n int, err error) {
 	return w.Write(bytesconv.StringToBytes(s))
 	//w.WriteHeaderNow()
 	//n, err = io.WriteString(w.ResponseWriter, s)
@@ -166,21 +173,21 @@ func (w *ResWriteWrap) WriteString(s string) (n int, err error) {
 	//return
 }
 
-func (w *ResWriteWrap) Status() int {
+func (w *ResWrapriteWrap) Status() int {
 	return w.status
 }
 
-func (w *ResWriteWrap) Size() int {
+func (w *ResWrapriteWrap) Size() int {
 	return w.size
 }
 
-func (w *ResWriteWrap) Written() bool {
+func (w *ResWrapriteWrap) Written() bool {
 	// 只要不是初始化的-1，就代表已经开始写了，不管是不是只写了个返回状态
 	return w.size != noWritten
 }
 
 // Hijack implements the http.Hijacker interface.
-func (w *ResWriteWrap) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+func (w *ResWrapriteWrap) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if w.size < 0 {
 		w.size = 0
 	}
@@ -188,17 +195,17 @@ func (w *ResWriteWrap) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 }
 
 // CloseNotify implements the http.CloseNotify interface.
-func (w *ResWriteWrap) CloseNotify() <-chan bool {
+func (w *ResWrapriteWrap) CloseNotify() <-chan bool {
 	return w.ResponseWriter.(http.CloseNotifier).CloseNotify()
 }
 
 // Flush implements the http.Flush interface.
-func (w *ResWriteWrap) Flush() {
+func (w *ResWrapriteWrap) Flush() {
 	w.WriteHeaderNow()
 	w.ResponseWriter.(http.Flusher).Flush()
 }
 
-func (w *ResWriteWrap) Pusher() (pusher http.Pusher) {
+func (w *ResWrapriteWrap) Pusher() (pusher http.Pusher) {
 	if pusher, ok := w.ResponseWriter.(http.Pusher); ok {
 		return pusher
 	}

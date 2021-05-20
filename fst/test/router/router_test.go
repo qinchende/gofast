@@ -356,9 +356,9 @@ func TestRouterMiddlewareAndStatic(t *testing.T) {
 	router := fst.Default()
 	static := router.Group("/")
 	static.Before(func(c *fst.Context) {
-		c.ResW.Header().Add("Last-Modified", "Mon, 02 Jan 2006 15:04:05 MST")
-		c.ResW.Header().Add("Expires", "Mon, 02 Jan 2006 15:04:05 MST")
-		c.ResW.Header().Add("X-GIN", "GoFast Framework")
+		c.ResWrap.Header().Add("Last-Modified", "Mon, 02 Jan 2006 15:04:05 MST")
+		c.ResWrap.Header().Add("Expires", "Mon, 02 Jan 2006 15:04:05 MST")
+		c.ResWrap.Header().Add("X-GIN", "GoFast Framework")
 	})
 	static.Static("/", "./")
 

@@ -13,7 +13,7 @@ func Gunzip(w *fst.GFResponse, r *http.Request) {
 	if strings.Contains(r.Header.Get(httpx.ContentEncoding), "gzip") {
 		reader, err := gzip.NewReader(r.Body)
 		if err != nil {
-			w.ResW.WriteHeader(http.StatusBadRequest)
+			w.ResWrap.WriteHeader(http.StatusBadRequest)
 			w.AbortFit()
 		}
 		r.Body = reader

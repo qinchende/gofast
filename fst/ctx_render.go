@@ -117,18 +117,18 @@ func bodyAllowedForStatus(status int) bool {
 
 // Status sets the HTTP response code.
 func (c *Context) Status(code int) {
-	c.ResW.WriteHeader(code)
+	c.ResWrap.WriteHeader(code)
 }
 
-// Header is a intelligent shortcut for c.ResW.Header().Set(key, value).
+// Header is a intelligent shortcut for c.ResWrap.Header().Set(key, value).
 // It writes a header in the response.
-// If value == "", this method removes the header `c.ResW.Header().Del(key)`
+// If value == "", this method removes the header `c.ResWrap.Header().Del(key)`
 func (c *Context) Header(key, value string) {
 	if value == "" {
-		c.ResW.Header().Del(key)
+		c.ResWrap.Header().Del(key)
 		return
 	}
-	c.ResW.Header().Set(key, value)
+	c.ResWrap.Header().Set(key, value)
 }
 
 // GetHeader returns value from request headers.
@@ -138,7 +138,7 @@ func (c *Context) GetHeader(key string) string {
 
 // GetRawData return stream data.
 func (c *Context) GetRawData() ([]byte, error) {
-	return ioutil.ReadAll(c.ReqW.Body)
+	return ioutil.ReadAll(c.ReqRaw.Body)
 }
 
 // SetSameSite with cookie
@@ -153,7 +153,7 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 	if path == "" {
 		path = "/"
 	}
-	http.SetCookie(c.ResW, &http.Cookie{
+	http.SetCookie(c.ResWrap, &http.Cookie{
 		Name:     name,
 		Value:    url.QueryEscape(value),
 		MaxAge:   maxAge,
@@ -170,7 +170,7 @@ func (c *Context) SetCookie(name, value string, maxAge int, path, domain string,
 // If multiple cookies match the given name, only one cookie will
 // be returned.
 func (c *Context) Cookie(name string) (string, error) {
-	cookie, err := c.ReqW.Cookie(name)
+	cookie, err := c.ReqRaw.Cookie(name)
 	if err != nil {
 		return "", err
 	}
@@ -192,8 +192,8 @@ func (c *Context) Render(code int, r render.Render) {
 
 	c.Status(code)
 	if !bodyAllowedForStatus(code) {
-		r.WriteContentType(c.ResW)
-		c.ResW.WriteHeaderNow()
+		r.WriteContentType(c.ResWrap)
+		c.ResWrap.WriteHeaderNow()
 		return
 	}
 	// TODO: 返回结果之前，统一保存 session
@@ -202,7 +202,7 @@ func (c *Context) Render(code int, r render.Render) {
 	}
 
 	// TODO: 是否要避免 double render，这里的Render是否只需要调一次，如果第二次就需要报错
-	if err := r.Render(c.ResW); err != nil {
+	if err := r.Render(c.ResWrap); err != nil {
 		panic(err)
 	}
 	// add preSend & afterSend events by sdx on 2021.01.06
@@ -292,7 +292,7 @@ func (c *Context) Redirect(code int, location string) {
 	c.Render(-1, render.Redirect{
 		Code:     code,
 		Location: location,
-		Request:  c.ReqW,
+		Request:  c.ReqRaw,
 	})
 }
 
@@ -316,25 +316,25 @@ func (c *Context) DataFromReader(code int, contentLength int64, contentType stri
 
 // File writes the specified file into the body stream in a efficient way.
 func (c *Context) File(filepath string) {
-	http.ServeFile(c.ResW, c.ReqW, filepath)
+	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
 }
 
 // FileFromFS writes the specified file from http.FileSytem into the body stream in an efficient way.
 func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {
 	defer func(old string) {
-		c.ReqW.URL.Path = old
-	}(c.ReqW.URL.Path)
+		c.ReqRaw.URL.Path = old
+	}(c.ReqRaw.URL.Path)
 
-	c.ReqW.URL.Path = filepath
+	c.ReqRaw.URL.Path = filepath
 
-	http.FileServer(fs).ServeHTTP(c.ResW, c.ReqW)
+	http.FileServer(fs).ServeHTTP(c.ResWrap, c.ReqRaw)
 }
 
 // FileAttachment writes the specified file into the body stream in an efficient way
 // On the client side, the file will typically be downloaded with the given filename
 func (c *Context) FileAttachment(filepath, filename string) {
-	c.ResW.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
-	http.ServeFile(c.ResW, c.ReqW, filepath)
+	c.ResWrap.Header().Set("content-disposition", fmt.Sprintf("attachment; filename=\"%s\"", filename))
+	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
 }
 
 //
@@ -350,7 +350,7 @@ func (c *Context) FileAttachment(filepath, filename string) {
 // Stream sends a streaming response and returns a boolean
 // indicates "Is client disconnected in middle of stream"
 func (c *Context) Stream(step func(w io.Writer) bool) bool {
-	w := c.ResW
+	w := c.ResWrap
 	clientGone := w.CloseNotify()
 	for {
 		select {

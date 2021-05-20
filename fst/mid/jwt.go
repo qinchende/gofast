@@ -32,7 +32,7 @@ func JwtAuthHandler(secret string) fst.CtxHandler {
 
 	return func(ctx *fst.Context) {
 		//w := ctx.GFResponse
-		r := ctx.ReqW
+		r := ctx.ReqRaw
 
 		tok, err := jwtParser.ParseToken(r, secret, secret)
 		if err != nil {
@@ -112,7 +112,7 @@ func unauthorized(w *fst.GFResponse, r *http.Request, err error) {
 	}
 
 	w.ErrorF("Authorize failed, rejected with code %d", http.StatusUnauthorized)
-	w.ResW.WriteHeader(http.StatusUnauthorized)
+	w.ResWrap.WriteHeader(http.StatusUnauthorized)
 	w.AbortFit()
 }
 

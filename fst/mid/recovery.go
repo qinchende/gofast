@@ -111,7 +111,7 @@ func defaultHandleRecovery(w *fst.GFResponse, err interface{}) {
 		"msg_code": 0,
 		"msg":      e.Error(),
 	}
-	_ = render.WriteJSON(w.ResW, jsonData)
+	_ = render.WriteJSON(w.ResWrap, jsonData)
 }
 
 // stack returns a nicely formatted stack frame, skipping skip frames.

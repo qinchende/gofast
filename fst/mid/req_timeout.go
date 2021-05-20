@@ -50,7 +50,7 @@ func ReqTimeout(dur time.Duration) fst.IncHandler {
 			//log.Println("I am back.")
 		case <-time.After(dur):
 			// 超时退出
-			//w.ResW.WriteHeader(http.StatusServiceUnavailable)
+			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 			fst.RaisePanic(timeoutMsg)
 			return
 		}
@@ -99,7 +99,7 @@ func ReqTimeoutCtx(dur time.Duration) fst.IncHandler {
 			// 正常结束
 		case <-ctx.Done():
 			// 超时退出
-			//w.ResW.WriteHeader(http.StatusServiceUnavailable)
+			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 			fst.RaisePanic(timeoutMsg)
 		}
 	}

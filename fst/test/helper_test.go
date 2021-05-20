@@ -21,7 +21,6 @@ import (
 //	assert.Equal(t, "chen de", full)
 //}
 
-
 func TestCover(t *testing.T) {
 	Cover(1)
 	Cover(2)
@@ -33,9 +32,9 @@ func TestCover(t *testing.T) {
 //func execReq(app *fst.GoFast, method, path string) *httptest.ResponseRecorder {
 //	app.ReadyToListen()
 //	req := httptest.NewRequest(method, path, nil)
-//	resW := httptest.NewRecorder()
-//	app.ServeHTTP(resW, req)
-//	return resW
+//	ResWrap := httptest.NewRecorder()
+//	app.ServeHTTP(ResWrap, req)
+//	return ResWrap
 //}
 //
 //func TestRouterMethod(t *testing.T) {

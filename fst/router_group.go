@@ -71,7 +71,7 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 
 	return func(c *Context) {
 		if _, noListing := fs.(*onlyFilesFS); noListing {
-			c.ResW.WriteHeader(http.StatusNotFound)
+			c.ResWrap.WriteHeader(http.StatusNotFound)
 		}
 
 		file := c.Param("filepath")
@@ -79,12 +79,12 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 		f, err := fs.Open(file)
 		if err != nil {
 			// 没有匹配到静态文件，用系统中 404 （NoRoute handler）做响应处理
-			c.ResW.WriteHeader(http.StatusNotFound)
+			c.ResWrap.WriteHeader(http.StatusNotFound)
 			c.execJustHandlers(gp.gftApp.miniNode404)
 			return
 		}
 		_ = f.Close()
-		fileServer.ServeHTTP(c.ResW, c.ReqW)
+		fileServer.ServeHTTP(c.ResWrap, c.ReqRaw)
 	}
 }
 

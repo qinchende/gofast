@@ -16,15 +16,15 @@ func (c *Context) ParseHttpParams() {
 	c.getFormCache()
 
 	// 将 Get 和 Post 请求参数全部解构之后加入 Pms 集合中
-	c.Pms = make(map[string]string)
-	for key, val := range c.ReqW.Form {
+	//c.Pms = make(map[string]string)
+	for key, val := range c.ReqRaw.Form {
 		c.Pms[key] = val[0]
 	}
 }
 
 // 如果没有匹配路由，需要一些初始化
 func (c *Context) ParseHttpParamsNoRoute() {
-	c.Pms = make(map[string]string)
+	//c.Pms = make(map[string]string)
 	// c.Pms = map[string]string{}
 }
 
@@ -162,7 +162,7 @@ func (c *Context) abort() {
 // For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
 func (c *Context) AbortWithStatus(code int) {
 	c.Status(code)
-	c.ResW.WriteHeaderNow()
+	c.ResWrap.WriteHeaderNow()
 	c.abort()
 }
 
@@ -179,7 +179,7 @@ func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
 // See Context.Error() for more details.
 func (c *Context) AbortWithError(code int, err error) *Error {
 	c.Status(code)
-	c.ResW.WriteHeaderNow()
+	c.ResWrap.WriteHeaderNow()
 	return c.Error(err)
 }
 
@@ -236,7 +236,7 @@ func (c *Context) Err() error {
 // the same key returns the same result.
 func (c *Context) Value(key interface{}) interface{} {
 	if key == 0 {
-		return c.ReqW
+		return c.ReqRaw
 	}
 	if keyAsString, ok := key.(string); ok {
 		val, _ := c.Get(keyAsString)

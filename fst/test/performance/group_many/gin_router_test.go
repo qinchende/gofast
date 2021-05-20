@@ -43,7 +43,7 @@ func ginHandle2(ctx *gin.Context) {
 }
 
 //func ginHandleTest(c *gin.Context) {
-//	io.WriteString(c.Writer, c.ReqW.RequestURI)
+//	io.WriteString(c.Writer, c.ReqRaw.RequestURI)
 //}
 //func ginHandleWrite(c *gin.Context) {
 //	io.WriteString(c.Writer, c.Params.ByName("name"))

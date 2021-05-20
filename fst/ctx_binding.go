@@ -11,12 +11,12 @@ import (
 // GoFast框架自定义的绑定方法，按照GoFast的模式，以前Gin的绑定方式很多都要失效了。
 
 // add by sdx on 20210305
-// 就当 c.Pms (c.ReqW.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
+// 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
 func (c *Context) BindPms(obj interface{}) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
 
-	return binding.JSON.BindPms(c.ReqW.Form, obj)
+	return binding.JSON.BindPms(c.ReqRaw.Form, obj)
 }
 
 /************************************/
@@ -32,7 +32,7 @@ func (c *Context) BindPms(obj interface{}) error {
 // It decodes the json payload into the struct specified as a pointer.
 // It writes a 400 error and sets Content-Type header "text/plain" in the response if input is not valid.
 func (c *Context) Bind(obj interface{}) error {
-	b := binding.Default(c.ReqW.Method, c.ContentType())
+	b := binding.Default(c.ReqRaw.Method, c.ContentType())
 	return c.MustBindWith(obj, b)
 }
 
@@ -91,7 +91,7 @@ func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
 // It decodes the json payload into the struct specified as a pointer.
 // Like c.Bind() but this method does not set the response status code to 400 and abort if the json is not valid.
 func (c *Context) ShouldBind(obj interface{}) error {
-	b := binding.Default(c.ReqW.Method, c.ContentType())
+	b := binding.Default(c.ReqRaw.Method, c.ContentType())
 	return c.ShouldBindWith(obj, b)
 }
 
@@ -135,7 +135,7 @@ func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
 
-	return b.Bind(c.ReqW, obj)
+	return b.Bind(c.ReqRaw, obj)
 }
 
 //// ShouldBindBodyWith is similar with ShouldBindWith, but it stores the request
@@ -151,7 +151,7 @@ func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
 //		}
 //	}
 //	if body == nil {
-//		body, err = ioutil.ReadAll(c.ReqW.Body)
+//		body, err = ioutil.ReadAll(c.ReqRaw.Body)
 //		if err != nil {
 //			return err
 //		}
