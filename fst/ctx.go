@@ -13,12 +13,12 @@ import (
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
 	*GFResponse               // response (请求前置拦截器 要用到的上下文)
-	ReqW        *http.Request // request
+	ReqRaw      *http.Request // request
 	matchRst    matchResult   // 路由匹配结果
 
 	Pms        map[string]string // 所有Request参数的map（[Params] ? + queryCache + formCache）
 	Params     Params            // : 或 * 对应的参数
-	queryCache url.Values        // param query result from c.ReqW.URL.Query()
+	queryCache url.Values        // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values        // the parsed form data from POST, PATCH, or PUT body parameters.
 
 	// Session数据，这里不规定Session的载体，可以自定义
@@ -70,14 +70,14 @@ func (c *Context) reset() {
 func (c *Context) Copy() *Context {
 	cp := Context{
 		GFResponse: c.GFResponse,
-		ReqW:       c.ReqW,
+		ReqRaw:     c.ReqRaw,
 		Params:     c.Params,
 		matchRst:   c.matchRst,
 		Pms:        c.Pms,
 		Sess:       c.Sess,
 		aborted:    c.aborted,
 	}
-	cp.ResW.ResponseWriter = nil
+	cp.ResWrap.ResponseWriter = nil
 
 	cp.Keys = map[string]interface{}{}
 	for k, v := range c.Keys {

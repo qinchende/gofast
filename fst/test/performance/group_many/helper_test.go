@@ -18,7 +18,7 @@ func init() {
 var reqPool []*http.Request          // 模拟请求的对象数组（伪造并缓存请求对象）
 var routersLevel = 10                // 路由数量的基数，实际值=routersSum
 var routersSum = 1000 * routersLevel // 1000 * routersNum
-var middlewareNum = 2                // 中间件函数的数量
+var middlewareNum = 20               // 中间件函数的数量
 var reqPoolSize = routersSum         // 内置请求对象，用于模拟发起的不同Router请求
 var differentReqNum = 1000           // 用多少个不同路由的请求来测试
 

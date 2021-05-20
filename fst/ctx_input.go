@@ -37,7 +37,7 @@ func (c *Context) Param(key string) string {
 
 // Query returns the keyed url query value if it exists,
 // otherwise it returns an empty string `("")`.
-// It is shortcut for `c.ReqW.URL.Query().Get(key)`
+// It is shortcut for `c.ReqRaw.URL.Query().Get(key)`
 //     GET /path?id=1234&name=Manu&value=
 // 	   c.Query("id") == "1234"
 // 	   c.Query("name") == "Manu"
@@ -65,7 +65,7 @@ func (c *Context) DefaultQuery(key, defaultValue string) string {
 // GetQuery is like Query(), it returns the keyed url query value
 // if it exists `(value, true)` (even when the value is an empty string),
 // otherwise it returns `("", false)`.
-// It is shortcut for `c.ReqW.URL.Query().Get(key)`
+// It is shortcut for `c.ReqRaw.URL.Query().Get(key)`
 //     GET /?name=Manu&lastname=
 //     ("Manu", true) == c.GetQuery("name")
 //     ("", false) == c.GetQuery("id")
@@ -86,7 +86,7 @@ func (c *Context) QueryArray(key string) []string {
 
 func (c *Context) getQueryCache() {
 	if c.queryCache == nil {
-		c.queryCache = c.ReqW.URL.Query()
+		c.queryCache = c.ReqRaw.URL.Query()
 	}
 }
 
@@ -158,7 +158,7 @@ func (c *Context) PostFormArray(key string) []string {
 func (c *Context) getFormCache() {
 	if c.formCache == nil {
 		c.formCache = make(url.Values)
-		req := c.ReqW
+		req := c.ReqRaw
 		if err := req.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
 				logx.DebugPrint("error on parse multipart form array: %v", err)
@@ -208,12 +208,12 @@ func (c *Context) get(m map[string][]string, key string) (map[string]string, boo
 
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
-	if c.ReqW.MultipartForm == nil {
-		if err := c.ReqW.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
+	if c.ReqRaw.MultipartForm == nil {
+		if err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			return nil, err
 		}
 	}
-	f, fh, err := c.ReqW.FormFile(name)
+	f, fh, err := c.ReqRaw.FormFile(name)
 	if err != nil {
 		return nil, err
 	}
@@ -223,8 +223,8 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 
 // MultipartForm is the parsed multipart form, including file uploads.
 func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.ReqW.ParseMultipartForm(c.gftApp.MaxMultipartMemory)
-	return c.ReqW.MultipartForm, err
+	err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory)
+	return c.ReqRaw.MultipartForm, err
 }
 
 // SaveUploadedFile uploads the form file to specific dst.
@@ -260,7 +260,7 @@ func (c *Context) ClientIP() string {
 		}
 	}
 
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.ReqW.RemoteAddr)); err == nil {
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.ReqRaw.RemoteAddr)); err == nil {
 		return ip
 	}
 
@@ -283,5 +283,5 @@ func (c *Context) IsWebsocket() bool {
 }
 
 func (c *Context) requestHeader(key string) string {
-	return c.ReqW.Header.Get(key)
+	return c.ReqRaw.Header.Get(key)
 }

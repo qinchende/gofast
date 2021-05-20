@@ -87,14 +87,14 @@ func (f neuteredReaddirFile) Readdir(count int) ([]os.FileInfo, error) {
 //// WrapF is a helper function for wrapping http.CtxHandler and returns a Gin middleware.
 //func WrapF(f http.HandlerFunc) CtxHandler {
 //	return func(c *Context) {
-//		f(c.ResW, c.ReqW)
+//		f(c.ResWrap, c.ReqRaw)
 //	}
 //}
 //
 //// WrapH is a helper function for wrapping http.Handler and returns a Gin middleware.
 //func WrapH(h http.Handler) CtxHandler {
 //	return func(c *Context) {
-//		h.ServeHTTP(c.ResW, c.ReqW)
+//		h.ServeHTTP(c.ResWrap, c.ReqRaw)
 //	}
 //}
 

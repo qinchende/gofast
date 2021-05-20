@@ -26,8 +26,8 @@ type GoFast struct {
 	appEvents                // 应用级事件
 
 	fitHandlers IncHandlers // 全局中间件处理函数，incoming request handlers
-	resPool     sync.Pool   // GFResponse context pools
-	ctxPool     sync.Pool   // Request context pools
+	resPool     sync.Pool   // 第一级：GFResponse context pools
+	ctxPool     sync.Pool   // 第二级：Handler context pools
 	readyOnce   sync.Once   // WebServer初始化只能执行一次
 }
 
@@ -79,12 +79,13 @@ func CreateServer(cfg *AppConfig) *GoFast {
 
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
+		c.Pms = make(map[string]string)
 		//c.GFResponse = &GFResponse{gftApp: gft}
 		return c
 	}
 
 	gft.resPool.New = func() interface{} {
-		cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResW: &ResWriteWrap{}}
+		cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResWrap: &ResWrapriteWrap{}}
 		return cRes
 	}
 
@@ -123,7 +124,7 @@ func (gft *GoFast) ReadyToListen() {
 		// 依次执行 onReady 事件处理函数
 		gft.execAppHandlers(gft.eReadyHds)
 
-		// 全局中间件过滤之后加入主体处理函数
+		// 全局中间件过滤之后加入下一级的处理函数
 		gft.Fit(gft.serveHTTPWithCtx)
 	})
 }
@@ -136,33 +137,39 @@ func (gft *GoFast) ReadyToListen() {
 // 1. 这是请求进来之后的第一级上下文，为了节省内存空间，第一级的拦截器通过之后，会进入第二级更丰富的Context上下文（占用内存更多）
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cRes := gft.resPool.Get().(*GFResponse)
-	cRes.ResW.Reset(w)
+	cRes.ResWrap.Reset(w)
+	cRes.reset()
 
-	// 开始依次执行全局拦截器
+	// 开始依次执行全局拦截器，第二级的handler函数的入口是这里的最后一个Fit函数
 	cRes.NextFit(r)
 
+	// 开始回收资源
+	if cRes.Ctx != nil {
+		cRes.Ctx.GFResponse = nil
+		gft.ctxPool.Put(cRes.Ctx)
+		cRes.Ctx = nil
+	}
 	gft.resPool.Put(cRes)
 }
 
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
 	c := gft.ctxPool.Get().(*Context)
-	res.ReqCtx = c
+	res.Ctx = c
 	c.GFResponse = res
-	c.ReqW = req
+	c.ReqRaw = req
 	c.reset()
 	gft.handleHTTPRequest(c)
-	gft.ctxPool.Put(c)
 }
 
 // TODO: 还有一些特殊情况的处理，需要在这里继续完善
 // 处理所有请求，匹配路由并执行指定的路由处理函数
 func (gft *GoFast) handleHTTPRequest(c *Context) {
-	httpMethod := c.ReqW.Method
-	rPath := c.ReqW.URL.Path
+	httpMethod := c.ReqRaw.Method
+	rPath := c.ReqRaw.URL.Path
 	//unescape := false
-	//if gft.UseRawPath && len(c.ReqW.URL.RawPath) > 0 {
-	//	rPath = c.ReqW.URL.RawPath
+	//if gft.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
+	//	rPath = c.ReqRaw.URL.RawPath
 	//	unescape = gft.UnescapePathValues
 	//}
 
@@ -179,17 +186,17 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		// 如果能匹配到路径
 		if c.matchRst.ptrNode != nil {
 			c.Params = c.matchRst.params
-			c.ParseHttpParams() // 先解析 POST | GET 参数
+			//c.ParseHttpParams() // 先解析 POST | GET 参数
 
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers(c.matchRst.ptrNode)
 			// 第二种方案
 			//c.execHandlersMini(nodeVal.ptrNode)
 
-			c.ResW.WriteHeaderNow()
+			c.ResWrap.WriteHeaderNow()
 			return
-		} else {
-			c.ParseHttpParamsNoRoute()
+			//} else {
+			//c.ParseHttpParamsNoRoute()
 		}
 		// 匹配不到 先考虑 重定向
 		if httpMethod != "CONNECT" && rPath != "/" {
