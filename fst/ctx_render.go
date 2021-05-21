@@ -196,7 +196,7 @@ func (c *Context) Render(code int, r render.Render) {
 		c.ResWrap.WriteHeaderNow()
 		return
 	}
-	// TODO: 返回结果之前，统一保存 session
+	// TODO: render之前，统一保存 session
 	if c.Sess != nil {
 		c.Sess.Save()
 	}
