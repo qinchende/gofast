@@ -37,11 +37,14 @@ func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 所有注册的 Context handlers 都要通过此函数来注册
+// 所有注册的 router handlers 都要通过此函数来注册
 func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *RouterItem {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
+
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
+
+	// TODO: 记录所有的路由数据，方便后期重建路由树
 
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouterItem{
