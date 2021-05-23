@@ -8,7 +8,7 @@ package fst
 // 一共 23字节
 type radixMiniNode struct {
 	// 原始路由地址 （8字节）
-	fullPath *string
+	fullPath string
 
 	// 前缀字符（3字节）
 	matchLen   uint8

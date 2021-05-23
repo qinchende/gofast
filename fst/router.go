@@ -25,10 +25,12 @@ type RouterGroup struct {
 	parentHdsLen uint16 //
 }
 
+type RouterItems []*RouterItem
 type RouterItem struct {
-	fullPath *string // 路由的完整路径
-	routeEvents
-	parent *RouterGroup
+	method      string       // httpMethod
+	fullPath    string       // 路由的完整路径
+	parent      *RouterGroup // router group
+	routeEvents              // all handlers
 }
 
 // 每一种事件类型需要占用3个字节(开始索引2字节 + 长度1字节(长度最大255))

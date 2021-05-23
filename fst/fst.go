@@ -22,13 +22,13 @@ import (
 type GoFast struct {
 	srv         *http.Server // WebServer
 	*AppConfig               // 引用配置
-	*HomeRouter              // 跟路由
+	*HomeRouter              // 根路由组（Root Group）
+	allRouters  RouterItems  // 记录当前Server所有的路由信息，方便后期重构路由树
 	appEvents                // 应用级事件
-
-	fitHandlers IncHandlers // 全局中间件处理函数，incoming request handlers
-	resPool     sync.Pool   // 第一级：GFResponse context pools
-	ctxPool     sync.Pool   // 第二级：Handler context pools
-	readyOnce   sync.Once   // WebServer初始化只能执行一次
+	fitHandlers IncHandlers  // 全局中间件处理函数，incoming request handlers
+	resPool     sync.Pool    // 第一级：GFResponse context pools
+	ctxPool     sync.Pool    // 第二级：Handler context pools
+	readyOnce   sync.Once    // WebServer初始化只能执行一次
 }
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
@@ -89,6 +89,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 		return cRes
 	}
 
+	gft.allRouters = make(RouterItems, 0)
 	gft.fstMem = new(fstMemSpace)
 	return gft
 }

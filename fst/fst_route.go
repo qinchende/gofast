@@ -7,17 +7,20 @@ import (
 )
 
 // 所有注册路由方法都走这个函数
-func (gft *GoFast) regRoute(method, path string, ri *RouterItem) {
-	ifPanic(path[0] != '/', "Path must begin with '/'")
-	ifPanic(len(path) > math.MaxUint8, "The path is more than 255 chars")
-	ifPanic(len(method) == 0, "HTTP method can not be empty")
+func (gft *GoFast) addRoute(ri *RouterItem) {
+	ifPanic(ri.fullPath[0] != '/', "Path must begin with '/'")
+	ifPanic(len(ri.fullPath) > math.MaxUint8, "The path is more than 255 chars")
+	ifPanic(len(ri.method) == 0, "HTTP method can not be empty")
 
-	mTree := gft.getMethodTree(method)
+	// 保存了所有的合法路由规则
+	gft.allRouters = append(gft.allRouters, ri)
+
+	mTree := gft.getMethodTree(ri.method)
 	if mTree == nil {
-		mTree = &methodTree{method: method, root: nil}
+		mTree = &methodTree{method: ri.method, root: nil}
 		gft.treeOthers = append(gft.treeOthers, mTree)
 	}
-	mTree.regRoute(path, ri)
+	mTree.regRoute(ri.fullPath, ri)
 }
 
 func (gft *GoFast) getMethodMiniRoot(method string) (tRoot *radixMiniNode) {
