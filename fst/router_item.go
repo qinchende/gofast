@@ -44,19 +44,18 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
 
-	// TODO: 记录所有的路由数据，方便后期重建路由树
-
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouterItem{
-		fullPath: &absPath,
+		method:   httpMethod,
+		fullPath: absPath,
 		parent:   gp,
 	}
 	ri.eHds = addCtxHandlers(gp.gftApp.fstMem, hds)
 
 	// Debug模式下打印新添加的路由
-	DebugPrintRoute(httpMethod, absPath, hds)
+	DebugPrintRoute(ri, hds)
 
-	gp.gftApp.regRoute(httpMethod, absPath, ri)
+	gp.gftApp.addRoute(ri)
 	gp.gftApp.fstMem.hdsItemCt++
 	return ri
 }
