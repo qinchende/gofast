@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"math"
 	"net/http"
 	"regexp"
 )
@@ -12,7 +13,7 @@ import (
 func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 	ifPanic(gft.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
 	ri := &RouterItem{
-		parent: &gft.RouterGroup,
+		group: &gft.RouterGroup,
 	}
 	gft.fstMem.hdsItemCt++
 	gft.routerItem404 = ri
@@ -26,7 +27,7 @@ func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 	ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
 	ri := &RouterItem{
-		parent: &gft.RouterGroup,
+		group: &gft.RouterGroup,
 	}
 	gft.fstMem.hdsItemCt++
 	gft.routerItem405 = ri
@@ -40,23 +41,24 @@ func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 // 所有注册的 router handlers 都要通过此函数来注册
 func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *RouterItem {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
-
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
+	ifPanic(absPath[0] != '/', "Path must begin with '/'")
+	ifPanic(len(absPath) > math.MaxUint8, "The path is more than 255 chars")
+	ifPanic(len(httpMethod) == 0, "HTTP method can not be empty")
 
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouterItem{
 		method:   httpMethod,
 		fullPath: absPath,
-		parent:   gp,
+		group:    gp,
 	}
-	ri.eHds = addCtxHandlers(gp.gftApp.fstMem, hds)
-
-	// Debug模式下打印新添加的路由
-	DebugPrintRoute(ri, hds)
-
-	gp.gftApp.addRoute(ri)
-	gp.gftApp.fstMem.hdsItemCt++
+	gftApp := gp.gftApp
+	ri.eHds = addCtxHandlers(gftApp.fstMem, hds)
+	// 保存了所有的合法路由规则
+	gftApp.allRouters = append(gftApp.allRouters, ri)
+	// 注册生成路由树
+	//gp.gftApp.regRouterItem(ri)
 	return ri
 }
 

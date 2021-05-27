@@ -23,7 +23,6 @@ type GoFast struct {
 	srv         *http.Server // WebServer
 	*AppConfig               // 引用配置
 	*HomeRouter              // 根路由组（Root Group）
-	allRouters  RouterItems  // 记录当前Server所有的路由信息，方便后期重构路由树
 	appEvents                // 应用级事件
 	fitHandlers IncHandlers  // 全局中间件处理函数，incoming request handlers
 	resPool     sync.Pool    // 第一级：GFResponse context pools
@@ -33,7 +32,11 @@ type GoFast struct {
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
+	// HomeRouter 本身就是一个路由分组
 	RouterGroup
+
+	// 记录当前Server所有的路由信息，方便后期重构路由树
+	allRouters RouterItems
 	// 有两个特殊 RouterItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
 	routerItem404 *RouterItem
@@ -53,6 +56,16 @@ type HomeRouter struct {
 	fstMem *fstMemSpace
 }
 
+// 一个快速创建Server的函数，使用默认配置参数，方便调用。
+// 记住：使用之前一定要先调用 ReadyToListen方法。
+func Default() *GoFast {
+	logx.DebugPrintWarningDefault()
+	app := CreateServer(&AppConfig{
+		RunMode: ProductMode,
+	})
+	return app
+}
+
 // 第一步：初始化一个 WebServer , 配置各种参数
 func CreateServer(cfg *AppConfig) *GoFast {
 	// 初始化当前环境变量
@@ -63,19 +76,6 @@ func CreateServer(cfg *AppConfig) *GoFast {
 		gft.AppConfig = cfg
 	}
 	gft.initServerEnv()
-
-	// 初始化 HomeRouter
-	// 启动的时候，根分组"/"默认就有了，而且我们把他当做是一种特殊的最后一级节点
-	// 方便将来加入 NoRoute、NoMethod 的处理Item
-	hm := &HomeRouter{}
-	hm.hdsGroupIdx = -1
-	hm.prefix = "/"
-	hm.gftApp = gft
-	gft.HomeRouter = hm
-
-	gft.treeGet = &methodTree{method: http.MethodGet}
-	gft.treePost = &methodTree{method: http.MethodPost}
-	gft.treeOthers = make(methodTrees, 0, 9)
 
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
@@ -89,19 +89,34 @@ func CreateServer(cfg *AppConfig) *GoFast {
 		return cRes
 	}
 
-	gft.allRouters = make(RouterItems, 0)
-	gft.fstMem = new(fstMemSpace)
+	// 初始化 HomeRouter
+	// 启动的时候，根分组"/"默认就有了，而且我们把他当做是一种特殊的Root节点
+	// 方便将来加入 NoRoute、NoMethod 的处理Item
+	gft.HomeRouter = &HomeRouter{}
+	gft.initHomeRouter()
 	return gft
 }
 
-// 一个快速创建Server的函数，使用默认配置参数，方便调用。
-// 记住：使用之前一定要先调用 ReadyToListen方法。
-func Default() *GoFast {
-	logx.DebugPrintWarningDefault()
-	app := CreateServer(&AppConfig{
-		RunMode: ProductMode,
-	})
-	return app
+// 初始化跟路由树变量
+func (gft *GoFast) initHomeRouter() {
+	gft.hdsIdx = -1
+	gft.prefix = "/"
+	gft.HomeRouter.gftApp = gft
+	gft.treeGet = &methodTree{method: http.MethodGet}
+	gft.treePost = &methodTree{method: http.MethodPost}
+	gft.treeOthers = make(methodTrees, 0, 9)
+	gft.allRouters = make(RouterItems, 0)
+	gft.fstMem = new(fstMemSpace)
+}
+
+// 首次不能调用，重新生成路由树的时候使用
+func (gft *GoFast) reInitHomeRouter() {
+	gft.treeGet = &methodTree{method: http.MethodGet}
+	gft.treePost = &methodTree{method: http.MethodPost}
+	gft.treeOthers = make(methodTrees, 0, 9)
+
+	//gft.fstMem = new(fstMemSpace)
+	// TODO: 初始化fstMem
 }
 
 // Ready to listen the ip address
@@ -110,6 +125,8 @@ func (gft *GoFast) ReadyToListen() {
 	// 服务Listen之前，只执行一次初始化
 	gft.readyOnce.Do(func() {
 		gft.checkDefaultHandler()
+		gft.regAllRouters()
+
 		// 设置 treeAll
 		lenTreeOthers := len(gft.treeOthers)
 		ifPanic(lenTreeOthers > 7, "More than seven methods.")
@@ -128,6 +145,31 @@ func (gft *GoFast) ReadyToListen() {
 		// 全局中间件过滤之后加入下一级的处理函数
 		gft.Fit(gft.serveHTTPWithCtx)
 	})
+}
+
+// 重构路由树
+func (gft *GoFast) RebuildRouters() {
+	gft.reInitHomeRouter()
+	gft.regAllRouters()
+
+	// gft.checkDefaultHandler()
+	// 设置 treeAll
+	lenTreeOthers := len(gft.treeOthers)
+	ifPanic(lenTreeOthers > 7, "More than seven methods.")
+	gft.treeAll = gft.treeOthers[:lenTreeOthers:9]
+	gft.treeAll = append(gft.treeAll, gft.treeGet)
+	gft.treeAll = append(gft.treeAll, gft.treePost)
+
+	if gft.PrintRouteTrees {
+		gft.printRouteTrees()
+	}
+	// 这里开始完整的重建整个路由树的数据结构
+	gft.buildMiniRoutes()
+	// 依次执行 onReady 事件处理函数
+	gft.execAppHandlers(gft.eReadyHds)
+
+	// 全局中间件过滤之后加入下一级的处理函数
+	gft.Fit(gft.serveHTTPWithCtx)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

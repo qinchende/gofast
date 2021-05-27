@@ -20,16 +20,16 @@ type RouterGroup struct {
 	gftApp       *GoFast
 	prefix       string
 	children     []*RouterGroup
-	hdsGroupIdx  int16  // 记录当前分组 对应新事件数组中的起始位置索引
+	hdsIdx       int16  // 记录当前分组 对应新事件数组中的起始位置索引
 	selfHdsLen   uint16 // 记录分组中一共加入的 处理 函数个数
 	parentHdsLen uint16 //
 }
 
 type RouterItems []*RouterItem
 type RouterItem struct {
+	group       *RouterGroup // router group
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径
-	parent      *RouterGroup // router group
 	routeEvents              // all handlers
 }
 
