@@ -12,9 +12,9 @@ import (
 // GoFast选择不报错，允许添加相同路径的不同分组，区别应用不同的特性
 func (gp *RouterGroup) Group(relPath string) *RouterGroup {
 	gpNew := &RouterGroup{
-		prefix:      gp.fixAbsolutePath(relPath),
-		gftApp:      gp.gftApp,
-		hdsGroupIdx: -1,
+		prefix: gp.fixAbsolutePath(relPath),
+		gftApp: gp.gftApp,
+		hdsIdx: -1,
 	}
 	gp.children = append(gp.children, gpNew)
 	return gpNew

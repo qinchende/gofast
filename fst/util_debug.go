@@ -5,10 +5,13 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 )
 
-func DebugPrintRoute(ri *RouterItem, hds CtxHandlers) {
+func DebugPrintRoute(ri *RouterItem) {
 	if logx.IsDebugging() {
 		nuHandlers := len(ri.eHds)
-		handlerName := lang.NameOfFunc(hds.Last())
+		lastHdsIdx := ri.eHds[nuHandlers-1]
+		fun := ri.group.gftApp.fstMem.allCtxHandlers[lastHdsIdx]
+
+		handlerName := lang.NameOfFunc(fun)
 		if logx.DebugPrintRouteFunc == nil {
 			logx.DebugPrint("%-6s %-25s --> %s (%d handlers)\n", ri.method, ri.fullPath, handlerName, nuHandlers)
 		} else {

@@ -2,18 +2,17 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import (
-	"math"
-)
+// 一次性注册所有路由项
+func (gft *GoFast) regAllRouters() {
+	for _, it := range gft.allRouters {
+		gft.regRouterItem(it)
+	}
+}
 
-// 所有注册路由方法都走这个函数
-func (gft *GoFast) addRoute(ri *RouterItem) {
-	ifPanic(ri.fullPath[0] != '/', "Path must begin with '/'")
-	ifPanic(len(ri.fullPath) > math.MaxUint8, "The path is more than 255 chars")
-	ifPanic(len(ri.method) == 0, "HTTP method can not be empty")
-
-	// 保存了所有的合法路由规则
-	gft.allRouters = append(gft.allRouters, ri)
+// 注册每一条的路由，生成 原始的 Radix 树
+func (gft *GoFast) regRouterItem(ri *RouterItem) {
+	// Debug模式下打印新添加的路由
+	DebugPrintRoute(ri)
 
 	mTree := gft.getMethodTree(ri.method)
 	if mTree == nil {
@@ -21,8 +20,10 @@ func (gft *GoFast) addRoute(ri *RouterItem) {
 		gft.treeOthers = append(gft.treeOthers, mTree)
 	}
 	mTree.regRoute(ri.fullPath, ri)
+	gft.fstMem.hdsItemCt++
 }
 
+// 获取method树的根节点
 func (gft *GoFast) getMethodMiniRoot(method string) (tRoot *radixMiniNode) {
 	switch method[0] {
 	case 'G':

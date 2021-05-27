@@ -75,7 +75,7 @@ func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
 //		return
 //	}
 //	it := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
-//	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
+//	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsIdx]
 //
 //	// 1.valid
 //	for gp.validLen > 0 {

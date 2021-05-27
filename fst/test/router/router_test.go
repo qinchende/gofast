@@ -618,7 +618,7 @@ func TestRouteContextHoldsFullPath(t *testing.T) {
 		actualRoute := route
 		router.Get(route, func(c *fst.Context) {
 			// For each defined route context should contain its full path
-			assert.Equal(t, actualRoute, *c.FullPath())
+			assert.Equal(t, actualRoute, c.FullPath())
 			c.String(http.StatusOK, "")
 		})
 	}

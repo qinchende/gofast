@@ -64,8 +64,8 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
 	if n.routerItem != nil {
-		newMini.hdsGroupIdx = n.routerItem.parent.hdsGroupIdx // 记录“分组”事件在 全局 事件队列中的 起始位置
-		newMini.hdsItemIdx = n.routerItem.rebuildHandlers()   // 记录“节点”事件在 全局 事件队列中的 起始位置
+		newMini.hdsGroupIdx = n.routerItem.group.hdsIdx     // 记录“分组”事件在 全局 事件队列中的 起始位置
+		newMini.hdsItemIdx = n.routerItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
 		newMini.fullPath = n.routerItem.fullPath
 	}
 	// 第二种：按顺序合并所有事件
@@ -85,11 +85,11 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 func rebuildDefaultHandlers(home *GoFast) {
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
 	home.miniNode404 = &radixMiniNode{}
-	home.miniNode404.hdsGroupIdx = home.routerItem404.parent.hdsGroupIdx
+	home.miniNode404.hdsGroupIdx = home.routerItem404.group.hdsIdx
 	home.miniNode404.hdsItemIdx = home.routerItem404.rebuildHandlers()
 
 	home.miniNode405 = &radixMiniNode{}
-	home.miniNode405.hdsGroupIdx = home.routerItem405.parent.hdsGroupIdx
+	home.miniNode405.hdsGroupIdx = home.routerItem405.group.hdsIdx
 	home.miniNode405.hdsItemIdx = home.routerItem405.rebuildHandlers()
 }
 
@@ -237,13 +237,13 @@ func (gp *RouterGroup) rebuildHandlers() {
 	fstMem := gp.gftApp.fstMem
 	setNewNode(fstMem, &gp.routeEvents)
 
-	gp.hdsGroupIdx = int16(fstMem.hdsMiniNodesLen)
+	gp.hdsIdx = int16(fstMem.hdsMiniNodesLen)
 	fstMem.hdsMiniNodesLen++
 }
 
 // 为每个路由节点，将 routeEvent 变成内存占用更小的 handlersNode
 func (ri *RouterItem) rebuildHandlers() (idx int16) {
-	fstMem := ri.parent.gftApp.fstMem
+	fstMem := ri.group.gftApp.fstMem
 	setNewNode(fstMem, &ri.routeEvents)
 	idx = int16(fstMem.hdsMiniNodesLen)
 	fstMem.hdsMiniNodesLen++
@@ -278,7 +278,7 @@ func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx u
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //func (ri *RouterItem) combineHandlers() (idx uint16) {
 //	node := &fstMem.hdsNodesPlan2[fstMem.hdsNodesPlan2Len]
-//	gp := ri.parent
+//	gp := ri.group
 //
 //	node.startIdx = fstMem.hdsListLen
 //	node.hdsLen += tidyEventHandlersMini(&gp.ePreValidHds)

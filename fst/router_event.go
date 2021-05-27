@@ -78,7 +78,7 @@ func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
 // RouterItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouterItem) regItemCtxHandler(eType string, hds CtxHandlers) *RouterItem {
-	ri.regCtxHandler(ri.parent.gftApp.fstMem, eType, hds)
+	ri.regCtxHandler(ri.group.gftApp.fstMem, eType, hds)
 	return ri
 }
 
