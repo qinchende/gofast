@@ -29,7 +29,7 @@ func performRequestLite(app *fst.GoFast, method, path string, headers ...header)
 }
 
 func performRequest(app *fst.GoFast, method, path string, headers ...header) *httptest.ResponseRecorder {
-	app.ReadyToListen()
+	app.BuildRouters()
 	return performRequestLite(app, method, path, headers...)
 }
 
@@ -622,7 +622,7 @@ func TestRouteContextHoldsFullPath(t *testing.T) {
 			c.String(http.StatusOK, "")
 		})
 	}
-	router.ReadyToListen()
+	router.BuildRouters()
 
 	for _, route := range routes {
 		w := performRequestLite(router, http.MethodGet, route)

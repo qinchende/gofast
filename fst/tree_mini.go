@@ -113,6 +113,15 @@ func addCtxHandlers(fstMem *fstMemSpace, hds CtxHandlers) (idxes []uint16) {
 func (gft *GoFast) buildMiniRoutes() {
 	fstMem := gft.fstMem
 
+	// TODO: 重置fstMem，方便重构路由树
+	// fstMem.treeCharT = nil
+	fstMem.hdsMiniNodesLen = 0
+	fstMem.hdsNodesPlan2Len = 0
+	fstMem.treeCharsLen = 0
+	fstMem.allRadixMiniLen = 0
+	// end
+	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 	// 合并分组事件到下一级分组当中，返回所有节点新增父级节点事件的和
 	parentHandlerSum := gpCombineHandlers(&gft.RouterGroup)
 	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小

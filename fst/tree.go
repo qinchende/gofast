@@ -10,6 +10,9 @@ const (
 	catchAll              // 通配 *
 )
 
+// method路由树 对应数组（切片）
+type methodTrees []*methodTree
+
 // 每种method对应一颗独立的路由树
 type methodTree struct {
 	method     string
@@ -18,9 +21,6 @@ type methodTree struct {
 	nodeCt     uint16
 	nodeStrLen uint16
 }
-
-// method路由树 对应数组（切片）
-type methodTrees []*methodTree
 
 func (trees methodTrees) getTreeRoot(method string) *radixNode {
 	tree := trees.getTree(method)
