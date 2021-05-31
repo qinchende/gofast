@@ -18,7 +18,7 @@ type header struct {
 	Value string
 }
 
-func performRequestLite(app *fst.GoFast, method, path string, headers ...header) *httptest.ResponseRecorder {
+func performRequest(app *fst.GoFast, method, path string, headers ...header) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, path, nil)
 	for _, h := range headers {
 		req.Header.Add(h.Key, h.Value)
@@ -28,10 +28,7 @@ func performRequestLite(app *fst.GoFast, method, path string, headers ...header)
 	return w
 }
 
-func performRequest(app *fst.GoFast, method, path string, headers ...header) *httptest.ResponseRecorder {
-	app.ReadyToListen()
-	return performRequestLite(app, method, path, headers...)
-}
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 func testRouteOK(method string, t *testing.T) {
 	passed := false
@@ -44,6 +41,7 @@ func testRouteOK(method string, t *testing.T) {
 	router.Handle(method, "/test", func(c *fst.Context) {
 		passed = true
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, method, "/test")
 	assert.True(t, passed)
@@ -60,9 +58,9 @@ func testRouteNotOK(method string, t *testing.T) {
 	router.Handle(method, "/test_2", func(c *fst.Context) {
 		passed = true
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, method, "/test")
-
 	assert.False(t, passed)
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
@@ -81,9 +79,9 @@ func testRouteNotOK2(method string, t *testing.T) {
 	router.Handle(methodRoute, "/test", func(c *fst.Context) {
 		passed = true
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, method, "/test")
-
 	assert.False(t, passed)
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 }
@@ -93,19 +91,25 @@ func TestRouterMethod(t *testing.T) {
 	router.Put("/hey2", func(c *fst.Context) {
 		c.String(http.StatusOK, "sup2")
 	})
-
 	router.Put("/hey", func(c *fst.Context) {
 		c.String(http.StatusOK, "called")
 	})
-
 	router.Put("/hey3", func(c *fst.Context) {
 		c.String(http.StatusOK, "sup3")
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodPut, "/hey")
-
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "called", w.Body.String())
+
+	w = performRequest(router, http.MethodPut, "/hey3")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "sup3", w.Body.String())
+
+	w = performRequest(router, http.MethodPut, "/hey2")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "sup2", w.Body.String())
 }
 
 func TestRouterGroupRouteOK(t *testing.T) {
@@ -152,6 +156,7 @@ func TTestRouteRedirectTrailingSlash(t *testing.T) {
 	router.Get("/path2/", func(c *fst.Context) {})
 	router.Post("/path3", func(c *fst.Context) {})
 	router.Put("/path4/", func(c *fst.Context) {})
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/path/")
 	assert.Equal(t, "/path", w.Header().Get("Location"))
@@ -209,6 +214,7 @@ func TTestRouteRedirectFixedPath(t *testing.T) {
 	router.Get("/Path2", func(c *fst.Context) {})
 	router.Post("/PATH3", func(c *fst.Context) {})
 	router.Post("/Path4/", func(c *fst.Context) {})
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/PATH")
 	assert.Equal(t, "/path", w.Header().Get("Location"))
@@ -251,9 +257,9 @@ func TestRouteParamsByName(t *testing.T) {
 		assert.Empty(t, wtf)
 		assert.False(t, ok)
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/test/john/smith/is/super/great")
-
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "john", name)
 	assert.Equal(t, "smith", lastName)
@@ -285,9 +291,9 @@ func TestRouteParamsByNameWithExtraSlash(t *testing.T) {
 		assert.Empty(t, wtf)
 		assert.False(t, ok)
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "//test//john//smith//is//super//great")
-
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Equal(t, "john", name)
 	assert.Equal(t, "smith", lastName)
@@ -313,6 +319,7 @@ func TestRouteStaticFile(t *testing.T) {
 	router := fst.Default()
 	router.Static("/using_static", dir)
 	router.StaticFile("/result", f.Name())
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/using_static/"+filename)
 	w2 := performRequest(router, http.MethodGet, "/result")
@@ -333,9 +340,9 @@ func TestRouteStaticFile(t *testing.T) {
 func TestRouteStaticListingDir(t *testing.T) {
 	router := fst.Default()
 	router.StaticFS("/", fst.Dir("./", true))
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/")
-
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "helper_test.go")
 	assert.Equal(t, "text/html; charset=utf-8", w.Header().Get("Content-Type"))
@@ -345,9 +352,9 @@ func TestRouteStaticListingDir(t *testing.T) {
 func TestRouteStaticNoListing(t *testing.T) {
 	router := fst.Default()
 	router.Static("/", "./")
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/")
-
 	assert.Equal(t, http.StatusNotFound, w.Code)
 	assert.NotContains(t, w.Body.String(), "helper_test.go")
 }
@@ -361,9 +368,9 @@ func TestRouterMiddlewareAndStatic(t *testing.T) {
 		c.ResWrap.Header().Add("X-GIN", "GoFast Framework")
 	})
 	static.Static("/", "./")
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/helper_test.go")
-
 	assert.Equal(t, http.StatusOK, w.Code)
 	assert.Contains(t, w.Body.String(), "package router")
 	assert.Equal(t, "text/plain; charset=utf-8", w.Header().Get("Content-Type"))
@@ -376,16 +383,15 @@ func TestRouteNotAllowedEnabled(t *testing.T) {
 	router := fst.Default()
 	router.HandleMethodNotAllowed = true
 	router.Post("/path", func(c *fst.Context) {})
-	w := performRequest(router, http.MethodGet, "/path")
-	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
-
-	router2 := fst.Default()
-	router2.HandleMethodNotAllowed = true
-	router2.Post("/path", func(c *fst.Context) {})
-	router2.NoMethod(func(c *fst.Context) {
+	router.NoMethod(func(c *fst.Context) {
 		c.String(http.StatusTeapot, "responseText")
 	})
-	w2 := performRequest(router2, http.MethodGet, "/path")
+	router.BuildRouters()
+
+	w := performRequest(router, http.MethodGet, "/path")
+	assert.NotEqual(t, http.StatusMethodNotAllowed, w.Code)
+
+	w2 := performRequest(router, http.MethodGet, "/path")
 	assert.Equal(t, "responseText", w2.Body.String())
 	assert.Equal(t, http.StatusTeapot, w2.Code)
 }
@@ -396,6 +402,8 @@ func TestRouteNotAllowedEnabled2(t *testing.T) {
 	// add one methodTree to trees
 	router.Handle(http.MethodPost, "/", func(_ *fst.Context) {})
 	router.Get("/path2", func(c *fst.Context) {})
+	router.BuildRouters()
+
 	w := performRequest(router, http.MethodPost, "/path2")
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 }
@@ -404,15 +412,17 @@ func TestRouteNotAllowedDisabled(t *testing.T) {
 	router := fst.Default()
 	router.HandleMethodNotAllowed = false
 	router.Post("/path", func(c *fst.Context) {})
+	router.BuildRouters()
 	w := performRequest(router, http.MethodGet, "/path")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
 	router2 := fst.Default()
 	router2.HandleMethodNotAllowed = false
-	router2.Post("/path", func(c *fst.Context) {})
+	//router2.Post("/path", func(c *fst.Context) {})
 	router2.NoMethod(func(c *fst.Context) {
 		c.String(http.StatusTeapot, "responseText")
 	})
+	router2.BuildRouters()
 	w2 := performRequest(router2, http.MethodGet, "/path")
 	assert.Equal(t, "404 (PAGE NOT FOND)", w2.Body.String())
 	assert.Equal(t, http.StatusNotFound, w2.Code)
@@ -432,6 +442,7 @@ func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
 		{"/../path", http.StatusOK, ""},    // CleanPath
 		{"/nope", http.StatusNotFound, ""}, // NotFound
 	}
+	router.BuildRouters()
 	for _, tr := range testRoutes {
 		w := performRequest(router, "GET", tr.route)
 		assert.Equal(t, tr.code, w.Code)
@@ -462,6 +473,7 @@ func TTestRouterNotFound(t *testing.T) {
 		{"/../path", http.StatusMovedPermanently, "/path"}, // Without CleanPath
 		{"/nope", http.StatusNotFound, ""},                 // NotFound
 	}
+	router.BuildRouters()
 	for _, tr := range testRoutes {
 		w := performRequest(router, http.MethodGet, tr.route)
 		assert.Equal(t, tr.code, w.Code)
@@ -501,6 +513,7 @@ func TestRouterStaticFSNotFound(t *testing.T) {
 	router.NoRoute(func(c *fst.Context) {
 		c.String(404, "non existent")
 	})
+	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/nonexistent")
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -513,8 +526,8 @@ func TestRouterStaticFSNotFound(t *testing.T) {
 
 func TestRouterStaticFSFileNotFound(t *testing.T) {
 	router := fst.Default()
-
 	router.StaticFS("/", http.FileSystem(http.Dir(".")))
+	router.BuildRouters()
 
 	assert.NotPanics(t, func() {
 		performRequest(router, http.MethodGet, "/nonexistent")
@@ -532,6 +545,7 @@ func TestMiddlewareCalledOnceByRouterStaticFSNotFound(t *testing.T) {
 	})
 
 	router.StaticFS("/", http.FileSystem(http.Dir("/thisreallydoesntexist/")))
+	router.BuildRouters()
 
 	// First access
 	performRequest(router, http.MethodGet, "/nonexistent")
@@ -543,11 +557,11 @@ func TestMiddlewareCalledOnceByRouterStaticFSNotFound(t *testing.T) {
 }
 
 func TestRouteRawPath(t *testing.T) {
-	route := fst.Default()
+	router := fst.Default()
 	//route.UseRawPath = true
-	route.DisableDefNoRoute = true
+	router.DisableDefNoRoute = true
 
-	route.Post("/project/:name/build/:num", func(c *fst.Context) {
+	router.Post("/project/:name/build/:num", func(c *fst.Context) {
 		name := c.Params.ByName("name")
 		num := c.Params.ByName("num")
 
@@ -557,18 +571,19 @@ func TestRouteRawPath(t *testing.T) {
 		assert.Equal(t, "Some/Other/Project", name)
 		assert.Equal(t, "222", num)
 	})
+	router.BuildRouters()
 
-	w := performRequest(route, http.MethodPost, "/project/Some%2FOther%2FProject/build/222")
+	w := performRequest(router, http.MethodPost, "/project/Some%2FOther%2FProject/build/222")
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestRouteRawPathNoUnescape(t *testing.T) {
-	route := fst.Default()
+	router := fst.Default()
 	//route.UseRawPath = true
 	//route.UnescapePathValues = false
-	route.DisableDefNoRoute = true
+	router.DisableDefNoRoute = true
 
-	route.Post("/project/:name/build/:num", func(c *fst.Context) {
+	router.Post("/project/:name/build/:num", func(c *fst.Context) {
 		name := c.Params.ByName("name")
 		num := c.Params.ByName("num")
 
@@ -578,19 +593,21 @@ func TestRouteRawPathNoUnescape(t *testing.T) {
 		assert.Equal(t, "Some%2FOther%2FProject", name)
 		assert.Equal(t, "333", num)
 	})
+	router.BuildRouters()
 
-	w := performRequest(route, http.MethodPost, "/project/Some%2FOther%2FProject/build/333")
+	w := performRequest(router, http.MethodPost, "/project/Some%2FOther%2FProject/build/333")
 	assert.Equal(t, http.StatusOK, w.Code)
 }
 
 func TestRouteServeErrorWithWriteHeader(t *testing.T) {
-	route := fst.Default()
-	route.Before(func(c *fst.Context) {
+	router := fst.Default()
+	router.Before(func(c *fst.Context) {
 		//c.Status(421)
 		c.String(421, "")
 	})
+	router.BuildRouters()
 
-	w := performRequest(route, http.MethodGet, "/NotFound")
+	w := performRequest(router, http.MethodGet, "/NotFound")
 	assert.Equal(t, 421, w.Code)
 	assert.Equal(t, 0, w.Body.Len())
 }
@@ -622,19 +639,20 @@ func TestRouteContextHoldsFullPath(t *testing.T) {
 			c.String(http.StatusOK, "")
 		})
 	}
-	router.ReadyToListen()
-
+	router.BuildRouters()
 	for _, route := range routes {
-		w := performRequestLite(router, http.MethodGet, route)
+		w := performRequest(router, http.MethodGet, route)
 		assert.Equal(t, http.StatusOK, w.Code)
 	}
 
-	//// Test not found
-	//router.Before(func(c *fst.Context) {
-	//	// For not found routes full path is empty
-	//	assert.Equal(t, "", c.FullPath())
-	//})
+	// ++++++++++++++++++++++++++++++++++++++++++
+	// Test not found
+	router.Before(func(c *fst.Context) {
+		// For not found routes full path is empty
+		assert.Equal(t, "", c.FullPath())
+	})
 
-	w := performRequestLite(router, http.MethodGet, "/not-found")
+	router.BuildRouters()
+	w := performRequest(router, http.MethodGet, "/not-found")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }

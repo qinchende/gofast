@@ -113,7 +113,19 @@ func addCtxHandlers(fstMem *fstMemSpace, hds CtxHandlers) (idxes []uint16) {
 func (gft *GoFast) buildMiniRoutes() {
 	fstMem := gft.fstMem
 
+	// TODO: 重置fstMem，方便重构路由树
+	// fstMem.treeCharT = nil
+	fstMem.hdsMiniNodesLen = 0
+	fstMem.hdsNodesPlan2Len = 0
+	fstMem.treeCharsLen = 0
+	fstMem.allRadixMiniLen = 0
+	fstMem.hdsGroupCt = 0
+	fstMem.hdsItemCt = uint16(2 + len(gft.allRouters))
+	// end
+	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 	// 合并分组事件到下一级分组当中，返回所有节点新增父级节点事件的和
+	gft.combEvents = gft.RouterGroup.routeEvents
 	parentHandlerSum := gpCombineHandlers(&gft.RouterGroup)
 	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小
 	fstMem.hdsListLen = parentHandlerSum + fstMem.allCtxHdsLen
@@ -195,22 +207,22 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 		hdsCount := 0
 
 		// TODO: 这里要补充完整所有的事件类型
-		hdsCount += len(gp.ePreValidHds)
-		chGroup.ePreValidHds = combineHandlers(gp.ePreValidHds, chGroup.ePreValidHds)
+		hdsCount += len(gp.combEvents.ePreValidHds)
+		chGroup.combEvents.ePreValidHds = combineHandlers(gp.combEvents.ePreValidHds, chGroup.ePreValidHds)
 
-		hdsCount += len(gp.eBeforeHds)
-		chGroup.eBeforeHds = combineHandlers(gp.eBeforeHds, chGroup.eBeforeHds)
+		hdsCount += len(gp.combEvents.eBeforeHds)
+		chGroup.combEvents.eBeforeHds = combineHandlers(gp.combEvents.eBeforeHds, chGroup.eBeforeHds)
 
 		// 分水岭 -> item (not group) handlers
 
-		hdsCount += len(gp.eAfterHds)
-		chGroup.eAfterHds = append(chGroup.eAfterHds, gp.eAfterHds...)
+		hdsCount += len(gp.combEvents.eAfterHds)
+		chGroup.combEvents.eAfterHds = append(chGroup.eAfterHds, gp.combEvents.eAfterHds...)
 
-		hdsCount += len(gp.ePreSendHds)
-		chGroup.ePreSendHds = append(chGroup.ePreSendHds, gp.ePreSendHds...)
+		hdsCount += len(gp.combEvents.ePreSendHds)
+		chGroup.combEvents.ePreSendHds = append(chGroup.ePreSendHds, gp.combEvents.ePreSendHds...)
 
-		hdsCount += len(gp.eAfterSendHds)
-		chGroup.eAfterSendHds = append(chGroup.eAfterSendHds, gp.eAfterSendHds...)
+		hdsCount += len(gp.combEvents.eAfterSendHds)
+		chGroup.combEvents.eAfterSendHds = append(chGroup.eAfterSendHds, gp.combEvents.eAfterSendHds...)
 
 		chGroup.parentHdsLen = uint16(hdsCount)
 		allChildrenHdsCount += gpCombineHandlers(chGroup)

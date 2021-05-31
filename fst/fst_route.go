@@ -2,11 +2,30 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+import "net/http"
+
 // 一次性注册所有路由项
 func (gft *GoFast) regAllRouters() {
+	gft.treeGet = &methodTree{method: http.MethodGet}
+	gft.treePost = &methodTree{method: http.MethodPost}
+	gft.treeOthers = make(methodTrees, 0, 9)
+
 	for _, it := range gft.allRouters {
 		gft.regRouterItem(it)
 	}
+
+	// 设置 treeAll
+	lenTreeOthers := len(gft.treeOthers)
+	ifPanic(lenTreeOthers > 7, "More than seven methods.")
+	gft.treeAll = gft.treeOthers[:lenTreeOthers:9]
+	gft.treeAll = append(gft.treeAll, gft.treeGet)
+	gft.treeAll = append(gft.treeAll, gft.treePost)
+
+	if gft.PrintRouteTrees {
+		gft.printRouteTrees()
+	}
+	// 这里开始完整的重建整个路由树的数据结构
+	gft.buildMiniRoutes()
 }
 
 // 注册每一条的路由，生成 原始的 Radix 树
@@ -20,7 +39,6 @@ func (gft *GoFast) regRouterItem(ri *RouterItem) {
 		gft.treeOthers = append(gft.treeOthers, mTree)
 	}
 	mTree.regRoute(ri.fullPath, ri)
-	gft.fstMem.hdsItemCt++
 }
 
 // 获取method树的根节点
