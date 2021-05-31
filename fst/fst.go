@@ -111,18 +111,6 @@ func (gft *GoFast) initHomeRouter() {
 	gft.fstMem = new(fstMemSpace)
 }
 
-//// Ready to listen the ip address
-//// 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
-//func (gft *GoFast) ReadyToListen() {
-//	// 服务Listen之前，只执行一次初始化
-//	gft.readyOnce.Do(func() {
-//		gft.checkDefaultHandler()
-//		gft.regAllRouters()
-//		gft.Fit(gft.serveHTTPWithCtx)      // 全局中间件过滤之后加入下一级的处理函数
-//		gft.execAppHandlers(gft.eReadyHds) // 依次执行 onReady 事件处理函数
-//	})
-//}
-
 // 重构路由树，
 // 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
 func (gft *GoFast) BuildRouters() {
@@ -225,6 +213,11 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
 			if tree.miniRoot.matchRoute(gft.fstMem, rPath, &c.matchRst); c.matchRst.ptrNode != nil {
+				// TODO: 需要返回错误
+				//c.handlers = engine.allNoMethod
+				//serveError(c, http.StatusMethodNotAllowed, default405Body)
+				//return
+
 				c.execHandlers(gft.miniNode405)
 				return
 			}
@@ -240,7 +233,6 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 // 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
 func (gft *GoFast) Listen(addr ...string) (err error) {
 	// listen接受请求之前，必须调用这个来生成最终的路由树
-	// gft.ReadyToListen()
 	gft.BuildRouters()
 
 	defer logx.DebugPrintError(err)

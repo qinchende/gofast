@@ -39,7 +39,6 @@ func (gft *GoFast) regRouterItem(ri *RouterItem) {
 		gft.treeOthers = append(gft.treeOthers, mTree)
 	}
 	mTree.regRoute(ri.fullPath, ri)
-	gft.fstMem.hdsItemCt++
 }
 
 // 获取method树的根节点

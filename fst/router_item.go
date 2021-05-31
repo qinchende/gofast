@@ -15,7 +15,6 @@ func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 	ri := &RouterItem{
 		group: &gft.RouterGroup,
 	}
-	gft.fstMem.hdsItemCt++
 	gft.routerItem404 = ri
 
 	if hds != nil {
@@ -29,7 +28,6 @@ func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 	ri := &RouterItem{
 		group: &gft.RouterGroup,
 	}
-	gft.fstMem.hdsItemCt++
 	gft.routerItem405 = ri
 
 	if hds != nil {
@@ -55,10 +53,8 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	}
 	gftApp := gp.gftApp
 	ri.eHds = addCtxHandlers(gftApp.fstMem, hds)
-	// 保存了所有的合法路由规则
+	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再调用设置
 	gftApp.allRouters = append(gftApp.allRouters, ri)
-	// 注册生成路由树
-	//gp.gftApp.regRouterItem(ri)
 	return ri
 }
 

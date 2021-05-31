@@ -17,12 +17,13 @@ type routeEvents struct {
 
 type RouterGroup struct {
 	routeEvents
+	combEvents   routeEvents // 合并分组事件到最后一级分组
 	gftApp       *GoFast
 	prefix       string
 	children     []*RouterGroup
 	hdsIdx       int16  // 记录当前分组 对应新事件数组中的起始位置索引
-	selfHdsLen   uint16 // 记录分组中一共加入的 处理 函数个数
-	parentHdsLen uint16 //
+	selfHdsLen   uint16 // 记录当前分组中一共加入的处理函数个数（仅限于本分组加入的事件，不包含合并上级分组的）
+	parentHdsLen uint16 // 记录所属上级分组的所有处理函数个数（仅包含上级分组，不含本分组的事件个数）
 }
 
 type RouterItems []*RouterItem
