@@ -13,7 +13,8 @@ import (
 func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 	ifPanic(gft.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
 	ri := &RouterItem{
-		group: &gft.RouterGroup,
+		group:     &gft.RouterGroup,
+		routerIdx: -1,
 	}
 	gft.routerItem404 = ri
 
@@ -26,7 +27,8 @@ func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 	ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
 	ri := &RouterItem{
-		group: &gft.RouterGroup,
+		group:     &gft.RouterGroup,
+		routerIdx: -1,
 	}
 	gft.routerItem405 = ri
 
@@ -47,14 +49,17 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouterItem{
-		method:   httpMethod,
-		fullPath: absPath,
-		group:    gp,
+		method:    httpMethod,
+		fullPath:  absPath,
+		group:     gp,
+		routerIdx: -1,
 	}
 	gftApp := gp.gftApp
 	ri.eHds = addCtxHandlers(gftApp.fstMem, hds)
 	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再调用设置
+	ri.routerIdx = int16(len(gftApp.allRouters))
 	gftApp.allRouters = append(gftApp.allRouters, ri)
+	ifPanic(len(gftApp.allRouters) > math.MaxInt16, "Too many routers more than MaxInt16.")
 	return ri
 }
 

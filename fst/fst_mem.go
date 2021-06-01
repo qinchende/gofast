@@ -34,10 +34,3 @@ type fstMemSpace struct {
 	allRadixMiniNodes []radixMiniNode
 	allRadixMiniLen   uint16
 }
-
-//
-//var fstMem fstMemSpace
-//
-//func init() {
-//	fstMem = fstMemSpace{}
-//}
