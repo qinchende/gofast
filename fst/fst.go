@@ -41,7 +41,6 @@ type HomeRouter struct {
 	// 这两个节点不参与构建路由树
 	routerItem404 *RouterItem
 	miniNode404   *radixMiniNode
-
 	routerItem405 *RouterItem
 	miniNode405   *radixMiniNode
 

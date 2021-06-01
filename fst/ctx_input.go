@@ -14,8 +14,8 @@ import (
 )
 
 func (c *Context) FullPath() string {
-	if c.matchRst.ptrNode != nil {
-		return c.matchRst.ptrNode.fullPath
+	if c.matchRst.ptrNode != nil && c.matchRst.ptrNode.routerIdx >= 0 {
+		return c.gftApp.allRouters[c.matchRst.ptrNode.routerIdx].fullPath
 	} else {
 		return ""
 	}

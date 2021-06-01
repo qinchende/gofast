@@ -5,6 +5,7 @@ package fst
 // 绑定在 RouterGroup 和 RouterItem 上的 不同事件处理函数数组
 // RouterGroup 上的事件处理函数 最后需要作用在 RouterItem 上才会有实际的意义
 // 事件要尽量少一些，每个路由节点都要分配一个对象
+// TODO: 此结构占用空间还是比较大的，可以考虑释放。
 type routeEvents struct {
 	// 下面的事件类型，按照执行顺序排列
 	ePreValidHds  []uint16
@@ -32,6 +33,7 @@ type RouterItem struct {
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径
 	routeEvents              // all handlers
+	routerIdx   int16
 }
 
 // 每一种事件类型需要占用3个字节(开始索引2字节 + 长度1字节(长度最大255))

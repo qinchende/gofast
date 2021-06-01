@@ -5,20 +5,21 @@ package fst
 // 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
-// 一共 23字节
+// 一共 ? 字节
 type radixMiniNode struct {
-	// 原始路由地址 （8字节）
-	fullPath string
+	// router index (2字节)
+	routerIdx int16
 
 	// 前缀字符（3字节）
-	matchLen   uint8
 	matchStart uint16
+	matchLen   uint8
 
 	// 子节点（3字节）
-	childLen   uint8
 	childStart uint16
+	childLen   uint8
 
 	// 分组事件索引+当前路由匹配节点事件索引（4字节）
+	// 将来通过索引找到对应匹配的事件节点执行
 	hdsGroupIdx int16
 	hdsItemIdx  int16
 
@@ -27,7 +28,7 @@ type radixMiniNode struct {
 
 	// 节点类型 （1字节）
 	nType uint8
-	//wildChild bool // 下一个节点是否为通配符
+	// wildChild bool // 下一个节点是否为通配符
 }
 
 // 重建生成 mini 版本的 路由树
@@ -66,7 +67,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	if n.routerItem != nil {
 		newMini.hdsGroupIdx = n.routerItem.group.hdsIdx     // 记录“分组”事件在 全局 事件队列中的 起始位置
 		newMini.hdsItemIdx = n.routerItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
-		newMini.fullPath = n.routerItem.fullPath
+		newMini.routerIdx = n.routerItem.routerIdx
 	}
 	// 第二种：按顺序合并所有事件
 	//if n.routerItem != nil {
@@ -84,11 +85,11 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 // 重建特殊节点
 func rebuildDefaultHandlers(home *GoFast) {
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
-	home.miniNode404 = &radixMiniNode{}
+	home.miniNode404 = &radixMiniNode{routerIdx: -1}
 	home.miniNode404.hdsGroupIdx = home.routerItem404.group.hdsIdx
 	home.miniNode404.hdsItemIdx = home.routerItem404.rebuildHandlers()
 
-	home.miniNode405 = &radixMiniNode{}
+	home.miniNode405 = &radixMiniNode{routerIdx: -1}
 	home.miniNode405.hdsGroupIdx = home.routerItem405.group.hdsIdx
 	home.miniNode405.hdsItemIdx = home.routerItem405.rebuildHandlers()
 }
@@ -188,9 +189,10 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
 	fstMem.allRadixMiniNodes = make([]radixMiniNode, totalNodes, totalNodes)
 	// TODO: 初始化所有节点内的数据
-	for idx, _ := range fstMem.allRadixMiniNodes {
-		fstMem.allRadixMiniNodes[idx].hdsGroupIdx = -1
-		fstMem.allRadixMiniNodes[idx].hdsItemIdx = -1
+	for _, miniNode := range fstMem.allRadixMiniNodes {
+		miniNode.routerIdx = -1
+		miniNode.hdsGroupIdx = -1
+		miniNode.hdsItemIdx = -1
 	}
 }
 
