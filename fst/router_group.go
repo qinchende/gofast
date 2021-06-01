@@ -53,7 +53,7 @@ func (gp *RouterGroup) Static(relPath, root string) *RouterGroup {
 // StaticFS works just like `Static()` but a custom `http.FileSystem` can be used instead.
 // Gin by default user: gin.Dir()
 func (gp *RouterGroup) StaticFS(relPath string, fs http.FileSystem) *RouterGroup {
-	if strings.Contains(relPath, ":") || strings.Contains(relPath, "*") {
+	if strings.ContainsAny(relPath, ":*") {
 		panic("URL parameters can not be used when serving a static folder")
 	}
 	handler := gp.createStaticHandler(relPath, fs)
