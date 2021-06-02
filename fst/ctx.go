@@ -47,11 +47,6 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	// add by sdx 2021.01.06
-	c.matchRst.ptrNode = nil
-	c.matchRst.params = c.Params
-	c.matchRst.tsr = false
-
 	c.Keys = nil
 	c.Sess = nil
 	c.Errors = c.Errors[0:0]
@@ -62,6 +57,11 @@ func (c *Context) reset() {
 	c.queryCache = nil
 	c.formCache = nil
 	c.aborted = false
+
+	// add by sdx 2021.01.06
+	c.matchRst.ptrNode = nil
+	c.matchRst.params = c.Params
+	c.matchRst.rts = false
 }
 
 // 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context

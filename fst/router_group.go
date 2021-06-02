@@ -26,10 +26,14 @@ func (gp *RouterGroup) Prefix() string {
 	return gp.prefix
 }
 
+// StaticFile 	-> 指定路由到某个具体的磁盘文件
+// Static 		-> 指定URL映射到某个磁盘目录，不打印当前路径下的文件列表
+// StaticFS 	-> 和Static一样，但是显示当前目录文件列表（类似FTP），需要自定义磁盘路径http.FileSystem
+
 // StaticFile registers a single route in order to serve a single file of the local filesystem.
 // router.StaticFile("favicon.ico", "./resources/favicon.ico")
 func (gp *RouterGroup) StaticFile(relPath, filepath string) *RouterGroup {
-	if strings.Contains(relPath, ":") || strings.Contains(relPath, "*") {
+	if strings.ContainsAny(relPath, ":*") {
 		panic("URL parameters can not be used when serving a static file")
 	}
 	handler := func(c *Context) {

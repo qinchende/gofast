@@ -85,7 +85,8 @@ func (gft *GoFast) initResourcePool() {
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
 		c.Pms = make(map[string]string)
-		//c.GFResponse = &GFResponse{gftApp: gft}
+		c.matchRst.needRTS = gft.RedirectTrailingSlash
+		// c.GFResponse = &GFResponse{gftApp: gft}
 		return c
 	}
 
@@ -190,15 +191,12 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			//} else {
 			//c.ParseHttpParamsNoRoute()
 		}
-		// 匹配不到 先考虑 重定向
-		if httpMethod != "CONNECT" && rPath != "/" {
-			if c.matchRst.tsr && gft.RedirectTrailingSlash {
-				redirectTrailingSlash(c)
-				return
-			}
-			//if gft.RedirectFixedPath && redirectFixedPath(c, miniRoot, gft.RedirectFixedPath) {
-			//	return
-			//}
+
+		// 匹配不到路由 先考虑 重定向
+		// httpMethod != CONNECT && rPath != [home index]
+		if c.matchRst.rts && httpMethod[0] != 'C' && rPath != "/" {
+			redirectTrailingSlash(c)
+			return
 		}
 	}
 
