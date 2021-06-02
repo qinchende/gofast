@@ -148,9 +148,8 @@ func TestRouteNotOK2(t *testing.T) {
 	testRouteNotOK2(http.MethodTrace, t)
 }
 
-func TTestRouteRedirectTrailingSlash(t *testing.T) {
+func TestRouteRedirectTrailingSlash(t *testing.T) {
 	router := fst.Default()
-	//router.RedirectFixedPath = false
 	router.RedirectTrailingSlash = true
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/path2/", func(c *fst.Context) {})
@@ -207,7 +206,6 @@ func TTestRouteRedirectTrailingSlash(t *testing.T) {
 
 func TTestRouteRedirectFixedPath(t *testing.T) {
 	router := fst.Default()
-	//router.RedirectFixedPath = true
 	router.RedirectTrailingSlash = false
 
 	router.Get("/path", func(c *fst.Context) {})
@@ -321,13 +319,13 @@ func TestRouteStaticFile(t *testing.T) {
 	router.StaticFile("/result", f.Name())
 	router.BuildRouters()
 
-	w := performRequest(router, http.MethodGet, "/using_static/"+filename)
+	w1 := performRequest(router, http.MethodGet, "/using_static/"+filename)
 	w2 := performRequest(router, http.MethodGet, "/result")
 
-	assert.Equal(t, w, w2)
-	assert.Equal(t, http.StatusOK, w.Code)
-	assert.Equal(t, "Gin Web Framework", w.Body.String())
-	assert.Equal(t, "text/plain; charset=utf-8", w.Header().Get("Content-Type"))
+	assert.Equal(t, w1, w2)
+	assert.Equal(t, http.StatusOK, w1.Code)
+	assert.Equal(t, "Gin Web Framework", w1.Body.String())
+	assert.Equal(t, "text/plain; charset=utf-8", w1.Header().Get("Content-Type"))
 
 	w3 := performRequest(router, http.MethodHead, "/using_static/"+filename)
 	w4 := performRequest(router, http.MethodHead, "/result")
@@ -454,7 +452,6 @@ func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
 
 func TTestRouterNotFound(t *testing.T) {
 	router := fst.Default()
-	//router.RedirectFixedPath = true
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/dir/", func(c *fst.Context) {})
 	router.Get("/", func(c *fst.Context) {})
@@ -628,20 +625,22 @@ func TestRouteContextHoldsFullPath(t *testing.T) {
 		"/project/:name/bui",
 		"/user/:id/status",
 		"/user/:id",
+		"/user/:id/",
 		"/user/:id/profile",
 	}
 
-	for _, route := range routes {
-		actualRoute := route
-		router.Get(route, func(c *fst.Context) {
+	for _, rt := range routes {
+		actualRoute := rt
+		router.Get(rt, func(c *fst.Context) {
 			// For each defined route context should contain its full path
 			assert.Equal(t, actualRoute, c.FullPath())
 			c.String(http.StatusOK, "")
 		})
 	}
 	router.BuildRouters()
-	for _, route := range routes {
-		w := performRequest(router, http.MethodGet, route)
+
+	for _, rt := range routes {
+		w := performRequest(router, http.MethodGet, rt)
 		assert.Equal(t, http.StatusOK, w.Code)
 	}
 
@@ -651,8 +650,8 @@ func TestRouteContextHoldsFullPath(t *testing.T) {
 		// For not found routes full path is empty
 		assert.Equal(t, "", c.FullPath())
 	})
-
 	router.BuildRouters()
+
 	w := performRequest(router, http.MethodGet, "/not-found")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }

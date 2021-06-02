@@ -188,11 +188,10 @@ func allocateMemSpace(gft *GoFast) {
 	// 路由树 字符串
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
 	fstMem.allRadixMiniNodes = make([]radixMiniNode, totalNodes, totalNodes)
-	// TODO: 初始化所有节点内的数据
-	for _, miniNode := range fstMem.allRadixMiniNodes {
-		miniNode.routerIdx = -1
-		miniNode.hdsGroupIdx = -1
-		miniNode.hdsItemIdx = -1
+	for idx := 0; idx < len(fstMem.allRadixMiniNodes); idx++ {
+		fstMem.allRadixMiniNodes[idx].routerIdx = -1
+		fstMem.allRadixMiniNodes[idx].hdsGroupIdx = -1
+		fstMem.allRadixMiniNodes[idx].hdsItemIdx = -1
 	}
 }
 

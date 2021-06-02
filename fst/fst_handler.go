@@ -59,7 +59,7 @@ func (gft *GoFast) NoMethod(handlers ...CtxHandler) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
+// 请求结尾的 '/' 取消或者添加之后重定向，看是否能够匹配到相应路由
 func redirectTrailingSlash(c *Context) {
 	req := c.ReqRaw
 	p := req.URL.Path
@@ -72,18 +72,6 @@ func redirectTrailingSlash(c *Context) {
 	}
 	redirectRequest(c)
 }
-
-//func redirectFixedPath(c *Context, root *node, trailingSlash bool) bool {
-//	req := c.ReqRaw
-//	rPath := req.URL.Path
-//
-//	if fixedPath, ok := root.findCaseInsensitivePath(skill.CleanPath(rPath), trailingSlash); ok {
-//		req.URL.Path = bytesconv.BytesToString(fixedPath)
-//		redirectRequest(c)
-//		return true
-//	}
-//	return false
-//}
 
 func redirectRequest(c *Context) {
 	req := c.ReqRaw
