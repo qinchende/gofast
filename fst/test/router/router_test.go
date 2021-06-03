@@ -383,21 +383,22 @@ func TestRouterMiddlewareAndStatic(t *testing.T) {
 	assert.Equal(t, "GoFast Framework", w.Header().Get("x-GIN"))
 }
 
-func TTestRouteNotAllowedEnabled(t *testing.T) {
+func TestRouteNotAllowedEnabled(t *testing.T) {
 	router := fst.Default()
 	router.HandleMethodNotAllowed = true
 	router.Post("/path", func(c *fst.Context) {})
-	router.NoMethod(func(c *fst.Context) {
-		c.String(http.StatusTeapot, "responseText")
-	})
 	router.BuildRouters()
 
 	w := performRequest(router, http.MethodGet, "/path")
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 
-	w2 := performRequest(router, http.MethodGet, "/path")
-	assert.Equal(t, "responseText", w2.Body.String())
-	assert.Equal(t, http.StatusTeapot, w2.Code)
+	router.NoMethod(func(c *fst.Context) {
+		c.String(http.StatusTeapot, "responseText")
+	})
+	router.BuildRouters()
+	w = performRequest(router, http.MethodGet, "/path")
+	assert.Equal(t, "responseText", w.Body.String())
+	assert.Equal(t, http.StatusTeapot, w.Code)
 }
 
 func TestRouteNotAllowedEnabled2(t *testing.T) {
@@ -428,7 +429,7 @@ func TestRouteNotAllowedDisabled(t *testing.T) {
 	})
 	router2.BuildRouters()
 	w2 := performRequest(router2, http.MethodGet, "/path")
-	assert.Equal(t, "404 (PAGE NOT FOND)", w2.Body.String())
+	assert.Equal(t, "404 (page not found)", w2.Body.String())
 	assert.Equal(t, http.StatusNotFound, w2.Code)
 }
 

@@ -210,11 +210,6 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
 			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst); c.matchRst.ptrNode != nil {
-				// TODO: 需要返回错误
-				c.handlers = engine.allNoMethod
-				serveError(c, http.StatusMethodNotAllowed, default405Body)
-				return
-
 				c.execHandlers(gft.miniNode405)
 				return
 			}

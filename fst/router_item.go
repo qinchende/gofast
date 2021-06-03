@@ -11,29 +11,31 @@ import (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 注册一个404处理函数
 func (gft *GoFast) reg404Handler(hds CtxHandlers) {
-	ifPanic(gft.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
-	ri := &RouterItem{
-		group:     &gft.RouterGroup,
-		routerIdx: -1,
+	if gft.routerItem404 == nil {
+		gft.routerItem404 = &RouterItem{
+			group:     &gft.RouterGroup,
+			routerIdx: -1,
+		}
 	}
-	gft.routerItem404 = ri
-
+	//ifPanic(gft.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
 	if hds != nil {
-		ri.eHds = addCtxHandlers(gft.fstMem, hds)
+		//gft.routerItem404.eHds = append(gft.routerItem404.eHds, addCtxHandlers(gft.fstMem, hds)...)
+		gft.routerItem404.eHds = addCtxHandlers(gft.fstMem, hds)
 	}
 }
 
 // 注册一个405处理函数
 func (gft *GoFast) reg405Handler(hds CtxHandlers) {
-	ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
-	ri := &RouterItem{
-		group:     &gft.RouterGroup,
-		routerIdx: -1,
+	if gft.routerItem405 == nil {
+		gft.routerItem405 = &RouterItem{
+			group:     &gft.RouterGroup,
+			routerIdx: -1,
+		}
 	}
-	gft.routerItem405 = ri
-
+	//ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
 	if hds != nil {
-		ri.eHds = addCtxHandlers(gft.fstMem, hds)
+		//gft.routerItem405.eHds = append(gft.routerItem405.eHds, addCtxHandlers(gft.fstMem, hds)...)
+		gft.routerItem405.eHds = addCtxHandlers(gft.fstMem, hds)
 	}
 }
 

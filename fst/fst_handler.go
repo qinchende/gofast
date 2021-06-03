@@ -48,11 +48,13 @@ func (gft *GoFast) checkDefaultHandler() {
 	}
 }
 
+// 每次设置都会替换掉以前设置好的方法
 // NoRoute adds handlers for NoRoute. It return a 404 code by default.
 func (gft *GoFast) NoRoute(handlers ...CtxHandler) {
 	gft.reg404Handler(handlers)
 }
 
+// 每次设置都会替换掉以前设置好的方法
 // NoMethod sets the handlers called when...
 func (gft *GoFast) NoMethod(handlers ...CtxHandler) {
 	gft.reg405Handler(handlers)
