@@ -48,6 +48,6 @@ const (
 var (
 	spf            = fmt.Sprintf
 	mimePlain      = []string{MIMEPlain}
-	default404Body = []byte("404 (PAGE NOT FOND)")
-	default405Body = []byte("405 (METHOD NOT ALLOWED)")
+	default404Body = []byte("404 (page not found)")
+	default405Body = []byte("405 (method not allowed)")
 )
