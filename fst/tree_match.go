@@ -3,17 +3,19 @@
 package fst
 
 type matchResult struct {
-	ptrNode *radixMiniNode
-	params  Params
-	needRTS bool // 是否需要做 RedirectTrailingSlash 的检测
-	rts     bool // 是否可以通过重定向，URL最后加或减一个 ‘/’ 访问到有处理函数的节点
+	ptrNode  *radixMiniNode
+	params   Params
+	allowRTS bool // 是否需要做 RedirectTrailingSlash 的检测
+	rts      bool // 是否可以通过重定向，URL最后加或减一个 ‘/’ 访问到有处理函数的节点
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，加快匹配速度
 func (n *radixMiniNode) matchRoute(fstMem *fstMemSpace, path string, mr *matchResult) {
-nextLoop:
-	var pLen = uint8(len(path))
+	var pLen uint8
 	var pNode *radixMiniNode
+
+nextLoop:
+	pLen = uint8(len(path))
 
 	// PartA
 	// +++++++++++++++++++++++++++++++++++++++++++++
@@ -45,15 +47,7 @@ nextLoop:
 			mr.params = append(mr.params, Param{Key: keyName, Value: path[:pos]})
 			// 匹配后面的节点，后面肯定只能是一个 '/' 开头的节点
 			path = path[pos:]
-			// 看看子节点有没有一个能匹配上'/'字符，有就进入下一轮循环
-			for id := uint16(0); id < uint16(n.childLen); id++ {
-				n = &fstMem.allRadixMiniNodes[n.childStart+id]
-				if fstMem.treeChars[n.matchStart] == path[0] {
-					goto nextLoop
-				}
-			}
-			// 没有匹配就要返回没匹配到路由了，不过这里可以看看是否能重定向
-			goto checkRTS
+			goto matchChildNode
 		}
 
 	mathRestPath:
@@ -68,7 +62,8 @@ nextLoop:
 	// +++++++++++++++++++++++++++++++++++++++++++++
 	// 1.1 长度差异，直接不可能
 	if pLen < n.matchLen {
-		return
+		// 有可能 path + '/' 能够匹配到一个路由，去匹配一下重定向的逻辑
+		goto checkRTS
 	}
 	// 1.2 比对每一个字符
 	for i := uint16(0); i < uint16(n.matchLen); i++ {
@@ -91,18 +86,34 @@ nextLoop:
 	//}
 	// 2.3 查找可能的子节点，再次循环，匹配后面的路径
 	path = path[n.matchLen:]
+
+matchChildNode:
+	pLen = uint8(len(path))
 	for id := uint16(0); id < uint16(n.childLen); id++ {
 		pNode = &fstMem.allRadixMiniNodes[n.childStart+id]
 		// 子节点是 模糊匹配节点（:*） | 首字符匹配的普通节点，就走这个逻辑
-		if pNode.nType >= param || fstMem.treeChars[pNode.matchStart] == path[0] {
+		if pNode.nType >= param || (pLen > 0 && fstMem.treeChars[pNode.matchStart] == path[0]) {
 			n = pNode
 			goto nextLoop
 		}
 	}
-	// 2.4 上面没有能匹配子串的节点，说明请求url，没有找到能匹配的路由
-	// 但是可以看是否有 RedirectTrailingSlash 可以匹配
+
 checkRTS:
-	if mr.needRTS {
-		mr.rts = path == "/" && n.hdsItemIdx != -1
+	// 是否允许重定向，是否有 RedirectTrailingSlash 可以匹配
+	if mr.allowRTS {
+		if pLen == 0 {
+			for id := uint16(0); id < uint16(n.childLen); id++ {
+				pNode = &fstMem.allRadixMiniNodes[n.childStart+id]
+				mr.rts = pNode.hdsItemIdx != -1 && pNode.matchLen == 1 && fstMem.treeChars[pNode.matchStart] == '/'
+				if mr.rts {
+					break
+				}
+			}
+		} else if path == "/" {
+			mr.rts = n.hdsItemIdx != -1
+		} else {
+			idx := n.matchStart + uint16(n.matchLen) - 1
+			mr.rts = n.hdsItemIdx != -1 && fstMem.treeChars[idx] == '/' && path == fstMem.treeChars[n.matchStart:idx]
+		}
 	}
 }

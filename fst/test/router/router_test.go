@@ -151,15 +151,21 @@ func TestRouteNotOK2(t *testing.T) {
 func TestRouteRedirectTrailingSlash(t *testing.T) {
 	router := fst.Default()
 	router.RedirectTrailingSlash = true
-	router.Get("/path", func(c *fst.Context) {})
+	router.Get("", func(c *fst.Context) { c.String(200, "home") })
+	router.Get("/path", func(c *fst.Context) { c.String(200, "non slash") })
 	router.Get("/path2/", func(c *fst.Context) {})
+	router.Get("/path2others", func(c *fst.Context) {})
 	router.Post("/path3", func(c *fst.Context) {})
 	router.Put("/path4/", func(c *fst.Context) {})
 	router.BuildRouters()
 
-	w := performRequest(router, http.MethodGet, "/path/")
-	assert.Equal(t, "/path", w.Header().Get("Location"))
-	assert.Equal(t, http.StatusMovedPermanently, w.Code)
+	w := performRequest(router, http.MethodGet, "/")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "home", w.Body.String())
+
+	w = performRequest(router, http.MethodGet, "/path")
+	assert.Equal(t, http.StatusOK, w.Code)
+	assert.Equal(t, "non slash", w.Body.String())
 
 	w = performRequest(router, http.MethodGet, "/path2")
 	assert.Equal(t, "/path2/", w.Header().Get("Location"))
