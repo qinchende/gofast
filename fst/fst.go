@@ -85,7 +85,7 @@ func (gft *GoFast) initResourcePool() {
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
 		c.Pms = make(map[string]string)
-		c.matchRst.needRTS = gft.RedirectTrailingSlash
+		// c.matchRst.needRTS = gft.RedirectTrailingSlash
 		// c.GFResponse = &GFResponse{gftApp: gft}
 		return c
 	}
@@ -158,23 +158,23 @@ func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
 // TODO: 还有一些特殊情况的处理，需要在这里继续完善
 // 处理所有请求，匹配路由并执行指定的路由处理函数
 func (gft *GoFast) handleHTTPRequest(c *Context) {
-	httpMethod := c.ReqRaw.Method
-	rPath := c.ReqRaw.URL.Path
+	reqPath := c.ReqRaw.URL.Path
 	//unescape := false
 	//if gft.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
-	//	rPath = c.ReqRaw.URL.RawPath
+	//	reqPath = c.ReqRaw.URL.RawPath
 	//	unescape = gft.UnescapePathValues
 	//}
 
+	// 是否需要规范请求过来的URL，默认不需要
 	if gft.RemoveExtraSlash {
-		rPath = httpx.CleanPath(rPath)
+		reqPath = httpx.CleanPath(reqPath)
 	}
 
 	// 看能不能找到 http method 对应的路由树
-	miniRoot := gft.getMethodMiniRoot(httpMethod)
+	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
-		miniRoot.matchRoute(gft.fstMem, rPath, &c.matchRst)
+		miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst)
 
 		// 如果能匹配到路径
 		if c.matchRst.ptrNode != nil {
@@ -193,8 +193,8 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		}
 
 		// 匹配不到路由 先考虑 重定向
-		// httpMethod != CONNECT && rPath != [home index]
-		if c.matchRst.rts && httpMethod[0] != 'C' && rPath != "/" {
+		// c.ReqRaw.Method != CONNECT && reqPath != [home index]
+		if c.matchRst.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
 			redirectTrailingSlash(c)
 			return
 		}
@@ -205,15 +205,15 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 找不到：就走后面路由没匹配的逻辑
 	if gft.HandleMethodNotAllowed {
 		for _, tree := range gft.treeAll {
-			if tree.method == httpMethod || tree.miniRoot == nil {
+			if tree.method == c.ReqRaw.Method || tree.miniRoot == nil {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if tree.miniRoot.matchRoute(gft.fstMem, rPath, &c.matchRst); c.matchRst.ptrNode != nil {
+			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst); c.matchRst.ptrNode != nil {
 				// TODO: 需要返回错误
-				//c.handlers = engine.allNoMethod
-				//serveError(c, http.StatusMethodNotAllowed, default405Body)
-				//return
+				c.handlers = engine.allNoMethod
+				serveError(c, http.StatusMethodNotAllowed, default405Body)
+				return
 
 				c.execHandlers(gft.miniNode405)
 				return

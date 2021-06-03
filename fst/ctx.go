@@ -62,6 +62,7 @@ func (c *Context) reset() {
 	c.matchRst.ptrNode = nil
 	c.matchRst.params = c.Params
 	c.matchRst.rts = false
+	c.matchRst.allowRTS = c.gftApp.RedirectTrailingSlash
 }
 
 // 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context
