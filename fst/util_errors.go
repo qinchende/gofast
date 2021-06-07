@@ -34,7 +34,7 @@ type Error struct {
 	Meta interface{}
 }
 
-type errorMsgs []*Error
+type errMessages []*Error
 
 var _ error = &Error{}
 
@@ -89,14 +89,14 @@ func (msg *Error) IsType(flags ErrorType) bool {
 
 // ByType returns a readonly copy filtered the byte.
 // ie ByType(gin.ErrorTypePublic) returns a slice of errors with type=ErrorTypePublic.
-func (a errorMsgs) ByType(typ ErrorType) errorMsgs {
+func (a errMessages) ByType(typ ErrorType) errMessages {
 	if len(a) == 0 {
 		return nil
 	}
 	if typ == ErrorTypeAny {
 		return a
 	}
-	var result errorMsgs
+	var result errMessages
 	for _, msg := range a {
 		if msg.IsType(typ) {
 			result = append(result, msg)
@@ -107,7 +107,7 @@ func (a errorMsgs) ByType(typ ErrorType) errorMsgs {
 
 // Last returns the last error in the slice. It returns nil if the array is empty.
 // Shortcut for errors[len(errors)-1].
-func (a errorMsgs) Last() *Error {
+func (a errMessages) Last() *Error {
 	if length := len(a); length > 0 {
 		return a[length-1]
 	}
@@ -120,7 +120,7 @@ func (a errorMsgs) Last() *Error {
 // 		c.Error(errors.New("second"))
 // 		c.Error(errors.New("third"))
 // 		c.Errors.Errors() // == []string{"first", "second", "third"}
-func (a errorMsgs) Errors() []string {
+func (a errMessages) Errors() []string {
 	if len(a) == 0 {
 		return nil
 	}
@@ -131,7 +131,7 @@ func (a errorMsgs) Errors() []string {
 	return errorStrings
 }
 
-func (a errorMsgs) JSON() interface{} {
+func (a errMessages) JSON() interface{} {
 	switch len(a) {
 	case 0:
 		return nil
@@ -147,11 +147,11 @@ func (a errorMsgs) JSON() interface{} {
 }
 
 // MarshalJSON implements the json.Marshaller interface.
-func (a errorMsgs) MarshalJSON() ([]byte, error) {
+func (a errMessages) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.JSON())
 }
 
-func (a errorMsgs) String() string {
+func (a errMessages) String() string {
 	if len(a) == 0 {
 		return ""
 	}

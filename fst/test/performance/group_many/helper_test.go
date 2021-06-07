@@ -1,6 +1,7 @@
 package group_many
 
 import (
+	"github.com/qinchende/gofast/fst/test"
 	"net/http"
 	"runtime"
 	"testing"
@@ -33,7 +34,7 @@ var (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func benchRequest(b *testing.B, router http.Handler) {
-	res := new(mockResponseWriter)
+	res := new(test.CustomerResWriter)
 	//u := req.URL
 	//rq := u.RawQuery
 	//req.RequestURI = u.RequestURI()
@@ -42,7 +43,7 @@ func benchRequest(b *testing.B, router http.Handler) {
 	b.ResetTimer()
 
 	// 并发测试模式
-	b.SetParallelism(20000)
+	b.SetParallelism(100000)
 	b.RunParallel(func(pb *testing.PB) {
 		var req *http.Request
 		i := -1
@@ -89,20 +90,3 @@ func addRoutes(routeCt int, regRoute regRouteFun) {
 		}
 	}
 }
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-type mockResponseWriter struct{}
-
-func (m *mockResponseWriter) Header() (h http.Header) {
-	return http.Header{}
-}
-
-func (m *mockResponseWriter) Write(p []byte) (n int, err error) {
-	return len(p), nil
-}
-
-func (m *mockResponseWriter) WriteString(s string) (n int, err error) {
-	return len(s), nil
-}
-
-func (m *mockResponseWriter) WriteHeader(int) {}

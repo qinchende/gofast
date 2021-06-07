@@ -10,14 +10,12 @@ import (
 // GoFast WEB框架的配置参数
 type AppConfig struct {
 	// FuncMap          	template.FuncMap
-	// UseRawPath           bool
-	// UnescapePathValues   bool
 	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
-	Addr                   string `json:",default=127.0.0.1:8099"`
 	Name                   string `json:",optional,default=GoFastSite"`
+	Addr                   string `json:",default=127.0.0.1:8099"`
 	RunMode                string `json:",default=debug,options=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix       string `json:",optional,default=while(1);"`
-	MaxMultipartMemory     int64  `json:",default=33554432"` // 最大上传文件的大小
+	MaxMultipartMemory     int64  `json:",default=33554432"` // 最大上传文件的大小，默认32MB
 	SecondsBeforeShutdown  int64  `json:",default=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
 	RedirectTrailingSlash  bool   `json:",default=false"`    // 探测url后面加减'/'之后是否能匹配路由（这个时代默认不需要了）
 	HandleMethodNotAllowed bool   `json:",default=false"`
@@ -25,6 +23,8 @@ type AppConfig struct {
 	DisableDefNoRoute      bool   `json:",default=false"`
 	ForwardedByClientIP    bool   `json:",default=true"`
 	RemoveExtraSlash       bool   `json:",default=false"`                       // 规范请求的URL
+	UseRawPath             bool   `json:",default=false"`                       // 默认取原始的Path，不需要自动转义
+	UnescapePathValues     bool   `json:",default=true"`                        // 默认把URL中的参数值做转义
 	PrintRouteTrees        bool   `json:",default=true"`                        // 是否打印出当前路由数
 	FitReqTimeout          int64  `json:",default=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	FitMaxReqContentLen    int64  `json:",default=33554432"`                    // 最大请求字节数
@@ -33,9 +33,7 @@ type AppConfig struct {
 	FitLogType             string `json:",default=json,options=json|sdx"`
 
 	HTMLRender render.HTMLRender `json:",optional"`
-
-	// 内部记录状态
-	modeType int8 `json:",optional"`
+	modeType   int8              `json:",optional"` // 内部记录状态
 }
 
 func (gft *GoFast) initServerEnv() {

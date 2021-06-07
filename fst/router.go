@@ -33,7 +33,8 @@ type RouterItem struct {
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径
 	routeEvents              // all handlers
-	routerIdx   int16
+	routerIdx   int16        // 此路由在路由队列中的索引值
+	//accessTimes int64        // 访问次数
 }
 
 // 每一种事件类型需要占用3个字节(开始索引2字节 + 长度1字节(长度最大255))

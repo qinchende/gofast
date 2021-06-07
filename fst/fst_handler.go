@@ -24,7 +24,6 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 			return
 		}
 		c.ResWrap.WriteHeaderNow()
-		return
 	}
 }
 
@@ -80,6 +79,7 @@ func redirectRequest(c *Context) {
 	rPath := req.URL.Path
 	rURL := req.URL.String()
 
+	// GET 和 非GET 请求重定向状态不一样
 	code := http.StatusMovedPermanently // Permanent redirect, request with GET method
 	if req.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect

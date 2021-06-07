@@ -154,24 +154,31 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 /************************************/
 
 // 直接向上抛出异常，交给全局Recover函数处理
-func (c *Context) abort() {
+func (c *Context) panic() {
 	panic("Handler exception!")
 }
 
 // AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
 // For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
-func (c *Context) AbortWithStatus(code int) {
+func (c *Context) PanicWithStatus(code int) {
 	c.Status(code)
 	c.ResWrap.WriteHeaderNow()
-	c.abort()
+	c.panic()
 }
 
 // AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
 // This method stops the chain, writes the status code and return a JSON body.
 // It also sets the Content-Type as "application/json".
-func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
+func (c *Context) PanicWithStatusJSON(code int, jsonObj interface{}) {
 	c.JSON(code, jsonObj)
-	c.abort()
+	c.panic()
+}
+
+// 终止后面的程序，依次返回调用方。
+func (c *Context) AbortWithStatus(code int) {
+	c.Status(code)
+	c.ResWrap.WriteHeaderNow()
+	c.aborted = true
 }
 
 // AbortWithError calls `AbortWithStatus()` and `Error()` internally.
