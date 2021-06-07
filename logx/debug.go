@@ -4,7 +4,6 @@ package logx
 
 import (
 	"fmt"
-	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -32,13 +31,13 @@ func DebugPrint(format string, values ...interface{}) {
 		if !strings.HasSuffix(format, "\n") {
 			format += "\n"
 		}
-		_, _ = fmt.Fprintf(os.Stdout, "[GoFast-debug] "+format, values...)
+		infoSync("[Debug] " + fmt.Sprintf(format, values...))
 	}
 }
 
 func DebugPrintError(err error) {
 	if err != nil && isDebug {
-		_, _ = fmt.Fprintf(os.Stderr, "[GoFast-debug] [ERROR] %v\n", err)
+		infoSync("[Debug] " + fmt.Sprintf("[ERROR] %v\n", err))
 	}
 }
 

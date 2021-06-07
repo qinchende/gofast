@@ -31,7 +31,7 @@ func (gft *GoFast) regAllRouters() {
 // 注册每一条的路由，生成 原始的 Radix 树
 func (gft *GoFast) regRouterItem(ri *RouterItem) {
 	// Debug模式下打印新添加的路由
-	DebugPrintRoute(ri)
+	debugPrintRoute(ri)
 
 	mTree := gft.getMethodTree(ri.method)
 	if mTree == nil {

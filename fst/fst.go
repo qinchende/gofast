@@ -82,17 +82,15 @@ func CreateServer(cfg *AppConfig) *GoFast {
 
 // 初始化资源池
 func (gft *GoFast) initResourcePool() {
+	gft.resPool.New = func() interface{} {
+		return &GFResponse{gftApp: gft, fitIdx: -1, ResWrap: &ResWriterWrap{}}
+	}
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
-		c.Pms = make(map[string]string)
+		//c.Pms = make(map[string]string)
 		// c.matchRst.needRTS = gft.RedirectTrailingSlash
 		// c.GFResponse = &GFResponse{gftApp: gft}
 		return c
-	}
-
-	gft.resPool.New = func() interface{} {
-		cRes := &GFResponse{gftApp: gft, fitIdx: -1, ResWrap: &ResWrapriteWrap{}}
-		return cRes
 	}
 }
 
@@ -133,10 +131,11 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cRes.ResWrap.Reset(w)
 	cRes.reset()
 
-	// 开始依次执行全局拦截器，第二级的handler函数的入口是这里的最后一个Fit函数
+	// 开始依次执行全局拦截器
+	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
 	cRes.NextFit(r)
 
-	// 开始回收资源
+	// 请求处理玩了，开始回收资源
 	if cRes.Ctx != nil {
 		cRes.Ctx.GFResponse = nil
 		gft.ctxPool.Put(cRes.Ctx)
@@ -155,15 +154,14 @@ func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
 	gft.handleHTTPRequest(c)
 }
 
-// TODO: 还有一些特殊情况的处理，需要在这里继续完善
 // 处理所有请求，匹配路由并执行指定的路由处理函数
 func (gft *GoFast) handleHTTPRequest(c *Context) {
 	reqPath := c.ReqRaw.URL.Path
-	//unescape := false
-	//if gft.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
-	//	reqPath = c.ReqRaw.URL.RawPath
-	//	unescape = gft.UnescapePathValues
-	//}
+	unescape := false
+	if gft.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
+		reqPath = c.ReqRaw.URL.RawPath
+		unescape = gft.UnescapePathValues
+	}
 
 	// 是否需要规范请求过来的URL，默认不需要
 	if gft.RemoveExtraSlash {
@@ -174,12 +172,13 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
-		miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst)
+		miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst, unescape)
 
 		// 如果能匹配到路径
 		if c.matchRst.ptrNode != nil {
-			c.Params = c.matchRst.params
-			//c.ParseHttpParams() // 先解析 POST | GET 参数
+			//c.Params = c.matchRst.params
+			// TODO: 先解析 POST | GET 参数。方便后面业务逻辑开发，但是所有请求都提前解析，存在影响性能的嫌疑
+			//c.ParseHttpParams()
 
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers(c.matchRst.ptrNode)
@@ -209,7 +208,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst); c.matchRst.ptrNode != nil {
+			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst, unescape); c.matchRst.ptrNode != nil {
 				c.execHandlers(gft.miniNode405)
 				return
 			}

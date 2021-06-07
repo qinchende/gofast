@@ -118,6 +118,7 @@ func bodyAllowedForStatus(status int) bool {
 // Status sets the HTTP response code.
 func (c *Context) Status(code int) {
 	c.ResWrap.WriteHeader(code)
+	c.ResWrap.WriteHeaderNow()
 }
 
 // Header is a intelligent shortcut for c.ResWrap.Header().Set(key, value).

@@ -1,25 +1,39 @@
 package test
 
-import "fmt"
+import (
+	"net/http"
+	"net/http/httptest"
+)
 
-func Cover(ver int) {
-	switch ver {
-	case 1:
-		fmt.Println("GO 1")
-	case 2:
-		fmt.Println("GO 2")
-	case 3:
-		fmt.Println("GO 3")
-	default:
-		fmt.Println("GO def")
-	}
+type header struct {
+	Key   string
+	Value string
 }
 
-func Cover2(ver int) {
-	switch ver {
-	case 1:
-		fmt.Println("GoFast 1")
-	default:
-		fmt.Println("GoFast def")
+func ExecRequest(app http.Handler, method, path string, headers ...header) *httptest.ResponseRecorder {
+	req := httptest.NewRequest(method, path, nil)
+	for _, h := range headers {
+		req.Header.Add(h.Key, h.Value)
 	}
+	w := httptest.NewRecorder()
+	app.ServeHTTP(w, req)
+	return w
 }
+
+type CustomerResWriter struct{}
+
+func (m *CustomerResWriter) Header() (h http.Header) {
+	return http.Header{}
+}
+
+func (m *CustomerResWriter) Write(p []byte) (n int, err error) {
+	return len(p), nil
+}
+
+func (m *CustomerResWriter) WriteString(s string) (n int, err error) {
+	return len(s), nil
+}
+
+func (m *CustomerResWriter) WriteHeader(int) {}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

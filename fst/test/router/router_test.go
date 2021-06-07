@@ -210,33 +210,6 @@ func TestRouteRedirectTrailingSlash(t *testing.T) {
 	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
-func TTestRouteRedirectFixedPath(t *testing.T) {
-	router := fst.Default()
-	router.RedirectTrailingSlash = false
-
-	router.Get("/path", func(c *fst.Context) {})
-	router.Get("/Path2", func(c *fst.Context) {})
-	router.Post("/PATH3", func(c *fst.Context) {})
-	router.Post("/Path4/", func(c *fst.Context) {})
-	router.BuildRouters()
-
-	w := performRequest(router, http.MethodGet, "/PATH")
-	assert.Equal(t, "/path", w.Header().Get("Location"))
-	assert.Equal(t, http.StatusMovedPermanently, w.Code)
-
-	w = performRequest(router, http.MethodGet, "/path2")
-	assert.Equal(t, "/Path2", w.Header().Get("Location"))
-	assert.Equal(t, http.StatusMovedPermanently, w.Code)
-
-	w = performRequest(router, http.MethodPost, "/path3")
-	assert.Equal(t, "/PATH3", w.Header().Get("Location"))
-	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
-
-	w = performRequest(router, http.MethodPost, "/path4")
-	assert.Equal(t, "/Path4/", w.Header().Get("Location"))
-	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
-}
-
 // TestContextParamsGet tests that a parameter can be parsed from the URL.
 func TestRouteParamsByName(t *testing.T) {
 	name := ""
@@ -418,19 +391,18 @@ func TestRouteNotAllowedDisabled(t *testing.T) {
 	router.HandleMethodNotAllowed = false
 	router.Post("/path", func(c *fst.Context) {})
 	router.BuildRouters()
+
 	w := performRequest(router, http.MethodGet, "/path")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
-	router2 := fst.Default()
-	router2.HandleMethodNotAllowed = false
-	//router2.Post("/path", func(c *fst.Context) {})
-	router2.NoMethod(func(c *fst.Context) {
+	router.NoMethod(func(c *fst.Context) {
 		c.String(http.StatusTeapot, "responseText")
 	})
-	router2.BuildRouters()
-	w2 := performRequest(router2, http.MethodGet, "/path")
-	assert.Equal(t, "404 (page not found)", w2.Body.String())
-	assert.Equal(t, http.StatusNotFound, w2.Code)
+	router.BuildRouters()
+
+	w = performRequest(router, http.MethodGet, "/path")
+	assert.Equal(t, "404 (page not found)", w.Body.String())
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
@@ -457,8 +429,10 @@ func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
 	}
 }
 
-func TTestRouterNotFound(t *testing.T) {
+func TestRouterNotFound(t *testing.T) {
 	router := fst.Default()
+	router.RedirectTrailingSlash = true
+
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/dir/", func(c *fst.Context) {})
 	router.Get("/", func(c *fst.Context) {})
@@ -468,45 +442,43 @@ func TTestRouterNotFound(t *testing.T) {
 		code     int
 		location string
 	}{
-		{"/path/", http.StatusMovedPermanently, "/path"},   // TSR -/
-		{"/dir", http.StatusMovedPermanently, "/dir/"},     // TSR +/
-		{"/PATH", http.StatusMovedPermanently, "/path"},    // Fixed Case
-		{"/DIR/", http.StatusMovedPermanently, "/dir/"},    // Fixed Case
-		{"/PATH/", http.StatusMovedPermanently, "/path"},   // Fixed Case -/
-		{"/DIR", http.StatusMovedPermanently, "/dir/"},     // Fixed Case +/
-		{"/../path", http.StatusMovedPermanently, "/path"}, // Without CleanPath
-		{"/nope", http.StatusNotFound, ""},                 // NotFound
+		{"/path/", http.StatusMovedPermanently, "/path"}, // TSR -/
+		{"/dir", http.StatusMovedPermanently, "/dir/"},   // TSR +/
+		{"/nope", http.StatusNotFound, ""},               // NotFound
 	}
 	router.BuildRouters()
-	for _, tr := range testRoutes {
-		w := performRequest(router, http.MethodGet, tr.route)
-		assert.Equal(t, tr.code, w.Code)
+	for _, item := range testRoutes {
+		w := performRequest(router, http.MethodGet, item.route)
+		assert.Equal(t, item.code, w.Code)
 		if w.Code != http.StatusNotFound {
-			assert.Equal(t, tr.location, fmt.Sprint(w.Header().Get("Location")))
+			assert.Equal(t, item.location, fmt.Sprint(w.Header().Get("Location")))
 		}
 	}
 
-	//// Test custom not found handler
-	//var notFound bool
-	//router.NoRoute(func(c *fst.Context) {
-	//	c.AbortWithStatus(http.StatusNotFound)
-	//	notFound = true
-	//})
-	//w := performRequest(router, http.MethodGet, "/nope")
-	//assert.Equal(t, http.StatusNotFound, w.Code)
-	//assert.True(t, notFound)
-	//
-	//// Test other method than GET (want 307 instead of 301)
-	//router.Patch("/path", func(c *fst.Context) {})
-	//w = performRequest(router, http.MethodPatch, "/path/")
-	//assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
-	//assert.Equal(t, "map[Location:[/path]]", fmt.Sprint(w.Header()))
+	// Test custom not found handler
+	var notFound bool
+	router.NoRoute(func(c *fst.Context) {
+		c.AbortWithStatus(http.StatusNotFound)
+		notFound = true
+	})
+	router.BuildRouters()
+	w := performRequest(router, http.MethodGet, "/nope")
+	assert.Equal(t, http.StatusNotFound, w.Code)
+	assert.True(t, notFound)
 
-	//// Test special case where no node for the prefix "/" exists
-	//router = fst.Default()
-	//router.Get("/a", func(c *fst.Context) {})
-	//w = performRequest(router, http.MethodGet, "/")
-	//assert.Equal(t, http.StatusNotFound, w.Code)
+	// Test other method than GET (want 307 instead of 301)
+	router.Patch("/path", func(c *fst.Context) {})
+	router.BuildRouters()
+	w = performRequest(router, http.MethodPatch, "/path/")
+	assert.Equal(t, http.StatusTemporaryRedirect, w.Code)
+	assert.Equal(t, "map[Location:[/path]]", fmt.Sprint(w.Header()))
+
+	// Test special case where no node for the prefix "/" exists
+	router = fst.Default()
+	router.BuildRouters()
+	router.Get("/a", func(c *fst.Context) {})
+	w = performRequest(router, http.MethodGet, "/")
+	assert.Equal(t, http.StatusNotFound, w.Code)
 }
 
 func TestRouterStaticFSNotFound(t *testing.T) {
@@ -555,15 +527,15 @@ func TestMiddlewareCalledOnceByRouterStaticFSNotFound(t *testing.T) {
 	performRequest(router, http.MethodGet, "/nonexistent")
 	assert.Equal(t, 1, middlewareCalledNum)
 
-	//// Second access
-	//performRequest(router, http.MethodHead, "/nonexistent")
-	//assert.Equal(t, 2, middlewareCalledNum)
+	// Second access
+	performRequest(router, http.MethodHead, "/nonexistent")
+	assert.Equal(t, 2, middlewareCalledNum)
 }
 
 func TestRouteRawPath(t *testing.T) {
 	router := fst.Default()
-	//route.UseRawPath = true
-	router.DisableDefNoRoute = true
+	router.UseRawPath = true
+	router.UnescapePathValues = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
 		name := c.Params.ByName("name")
@@ -583,8 +555,8 @@ func TestRouteRawPath(t *testing.T) {
 
 func TestRouteRawPathNoUnescape(t *testing.T) {
 	router := fst.Default()
-	//route.UseRawPath = true
-	//route.UnescapePathValues = false
+	router.UseRawPath = true
+	router.UnescapePathValues = false
 	router.DisableDefNoRoute = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
@@ -606,8 +578,7 @@ func TestRouteRawPathNoUnescape(t *testing.T) {
 func TestRouteServeErrorWithWriteHeader(t *testing.T) {
 	router := fst.Default()
 	router.Before(func(c *fst.Context) {
-		//c.Status(421)
-		c.String(421, "")
+		c.Status(421)
 	})
 	router.BuildRouters()
 

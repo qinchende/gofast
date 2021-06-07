@@ -16,7 +16,9 @@ type radixNode struct {
 // seg: :name/buy/something
 // seg: :name
 func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *RouterItem) {
-	ifPanic(seg[0] == '*', spf("通配符%s已经存在，不能再注册%s", n.match, seg))
+	if seg[0] == '*' {
+		panic(spf("通配符%s已经存在，不能再注册%s", n.match, seg))
+	}
 
 	part := seg
 	var hasSlash bool
@@ -28,11 +30,14 @@ func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *Router
 			break
 		}
 	}
-	ifPanic(n.match != part, spf("通配路由 %s 和 %s 参数名称不一致\n", n.match, part))
-	//ifPanic(!hasSlash, spf("路径: %s 和已存在的路由匹配冲突\n", seg))
+	if n.match != part {
+		panic(spf("通配路由 %s 和 %s 参数名称不一致\n", n.match, part))
+	}
 	// 证明刚好完整匹配参数
 	if !hasSlash {
-		ifPanic(n.routerItem != nil, spf("路由已经存在：%s\n", n.match))
+		if n.routerItem != nil {
+			panic(spf("路由已经存在：%s\n", n.match))
+		}
 		n.routerItem = ri
 		return
 	}
@@ -50,7 +55,9 @@ func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouterItem) 
 	}
 
 	// TODO: 有可能需要加入已有的同样是模糊匹配到的节点，这个时候应该匹配
-	ifPanic(n.children != nil, spf("已存在%s，不可能再加入%s", n.match, seg))
+	if n.children != nil {
+		panic(spf("已存在%s，不可能再加入%s", n.match, seg))
+	}
 
 	emptySub := &radixNode{}
 	mTree.nodeCt++
@@ -61,8 +68,6 @@ func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouterItem) 
 
 // 只能添加 非 wildcard path
 func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem) {
-	//ifPanic(isBeginWildcard(seg), spf("当前路由'%s'与已注册的'%s'冲突\n", seg, n.match))
-
 	// 如果子节点是通配符节点，直接循环下一次
 	if n.wildChild {
 		n.children[0].regSegment(mTree, n, seg, ri)
@@ -92,7 +97,9 @@ func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem
 func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string, ri *RouterItem) {
 	isWildSeg := isBeginWildcard(seg)
 	// 如果当前节点已经是通配符，而加入的新路由不是 *,: 开头，报错
-	ifPanic(n.nType >= param && !isWildSeg, spf("已存在: %s，与新加入: %s冲突\n", n.match, seg))
+	if n.nType >= param && !isWildSeg {
+		panic(spf("已存在: %s，与新加入: %s冲突\n", n.match, seg))
+	}
 
 	// 1. 新来的是一个通配段
 	if isWildSeg {
@@ -111,7 +118,7 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 	// 2.1 没有共同的前缀，他们只可能是兄弟节点。
 	// 新来的只可能绑定在 n 节点的父节点上
 	if i == 0 {
-		ifPanic(nParent == nil, spf("解析路由错误，找不到父节点"))
+		ifPanic(nParent == nil, "解析路由错误，找不到父节点")
 		nParent.regSegment(mTree, nil, seg, ri)
 		return
 	}
@@ -153,7 +160,9 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 
 	// 2.3.2 到这里 seg 和 n.match 肯定一样
 	// 如果当前节点已经被匹配过，就证明重复了，需要报错
-	ifPanic(n.routerItem != nil, spf("此路由：%s 已经存在", n.match))
+	if n.routerItem != nil {
+		panic(spf("此路由：%s 已经存在", n.match))
+	}
 	n.routerItem = ri
 }
 

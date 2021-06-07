@@ -49,7 +49,6 @@ type Context struct {
 func (c *Context) reset() {
 	c.Keys = nil
 	c.Sess = nil
-	c.Errors = c.Errors[0:0]
 	c.Accepted = nil
 
 	c.Pms = nil
@@ -60,7 +59,7 @@ func (c *Context) reset() {
 
 	// add by sdx 2021.01.06
 	c.matchRst.ptrNode = nil
-	c.matchRst.params = c.Params
+	c.matchRst.params = &c.Params
 	c.matchRst.rts = false
 	c.matchRst.allowRTS = c.gftApp.RedirectTrailingSlash
 }

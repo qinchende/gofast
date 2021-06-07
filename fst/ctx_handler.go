@@ -63,6 +63,9 @@ func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
 
 	// 3.handler
 	for it.hdsLen > 0 {
+		if c.aborted {
+			return
+		}
 		c.gftApp.fstMem.hdsList[it.hdsIdx](c)
 		it.hdsLen--
 		it.hdsIdx++
