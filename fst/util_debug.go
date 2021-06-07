@@ -14,7 +14,7 @@ func debugPrintRoute(ri *RouterItem) {
 
 		handlerName := lang.NameOfFunc(fun)
 		if logx.DebugPrintRouteFunc == nil {
-			logx.DebugPrint("%-6s %-25s --> %s (%d handlers)\r\n", ri.method, ri.fullPath, handlerName, nuHandlers)
+			logx.DebugPrint("%-6s %-25s --> %s (%d handlers)\n", ri.method, ri.fullPath, handlerName, nuHandlers)
 		} else {
 			logx.DebugPrintRouteFunc(ri.method, ri.fullPath, handlerName, nuHandlers)
 		}
@@ -23,6 +23,6 @@ func debugPrintRoute(ri *RouterItem) {
 
 func debugPrintRouteTree(strTree *strings.Builder) {
 	if logx.IsDebugging() {
-		logx.Info(strTree)
+		logx.InfoRaw(strTree)
 	}
 }

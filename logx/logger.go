@@ -215,6 +215,10 @@ func Info(v ...interface{}) {
 	infoSync(fmt.Sprint(v...))
 }
 
+func InfoRaw(v ...interface{}) {
+	infoSyncRaw(fmt.Sprint(v...))
+}
+
 func Infof(format string, v ...interface{}) {
 	infoSync(fmt.Sprintf(format, v...))
 }
@@ -343,6 +347,12 @@ func infoSync(msg string) {
 	}
 }
 
+func infoSyncRaw(msg string) {
+	if shouldLog(InfoLevel) {
+		outputRaw(infoLog, msg)
+	}
+}
+
 // 日志的输出，最后都要落脚到这个方法
 func output(writer io.Writer, level, msg string) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
@@ -358,6 +368,19 @@ func output(writer io.Writer, level, msg string) {
 	info := logEntry{
 		Timestamp: getTimestamp(),
 		Level:     level,
+		Content:   msg,
+	}
+	outputJson(writer, info)
+}
+
+func outputRaw(writer io.Writer, msg string) {
+	if theConfig.Style == "sdx" {
+		outputSdx(writer, msg)
+		return
+	}
+
+	info := logEntry{
+		Timestamp: getTimestamp(),
 		Content:   msg,
 	}
 	outputJson(writer, info)
