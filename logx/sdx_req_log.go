@@ -25,7 +25,7 @@ type ReqLogParams struct {
 	ErrorMsg string
 }
 
-var GenReqLogString = func(p *ReqLogParams) string {
+var genSdxReqLogString = func(p *ReqLogParams) string {
 	formatStr := `
 [%s] %s (%s/%s) %d/%d [%d]
   B: %s
@@ -60,7 +60,7 @@ var GenReqLogString = func(p *ReqLogParams) string {
 		p.Method,
 		p.Path,
 		p.ClientIP,
-		p.TimeStamp.Format("01-02 15:04:05"),
+		p.TimeStamp.Format(timeFormatMini),
 		p.StatusCode,
 		p.BodySize,
 		p.Latency/time.Millisecond,
@@ -72,15 +72,5 @@ var GenReqLogString = func(p *ReqLogParams) string {
 }
 
 func WriteSdxReqLog(p *ReqLogParams) {
-	logString(GenReqLogString(p))
+	infoSync(genSdxReqLogString(p))
 }
-
-//func outputJson(writer io.Writer, info interface{}) {
-//	if content, err := json.Marshal(info); err != nil {
-//		log.Println(err.Error())
-//	} else if atomic.LoadUint32(&initialized) == 0 || writer == nil {
-//		log.Println(string(content))
-//	} else {
-//		writer.Write(append(content, '\n'))
-//	}
-//}

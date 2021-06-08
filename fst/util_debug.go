@@ -23,6 +23,6 @@ func debugPrintRoute(ri *RouterItem) {
 
 func debugPrintRouteTree(strTree *strings.Builder) {
 	if logx.IsDebugging() {
-		logx.InfoRaw(strTree)
+		logx.Info(strTree)
 	}
 }

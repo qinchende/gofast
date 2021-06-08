@@ -36,7 +36,6 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		if discarded > 0 {
 			Errorf("Discarded %d error messages", discarded)
 		}
-
 		execute()
 	}
 }

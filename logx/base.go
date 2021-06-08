@@ -3,13 +3,11 @@
 package logx
 
 import (
+	"errors"
 	"io"
 	"os"
-)
-
-var (
-	DefaultWriter      io.Writer = os.Stdout
-	DefaultErrorWriter io.Writer = os.Stderr
+	"sync"
+	"time"
 )
 
 const (
@@ -21,4 +19,91 @@ const (
 	magenta = "\033[97;45m"
 	cyan    = "\033[97;46m"
 	Reset   = "\033[0m"
+)
+
+var (
+	DefaultWriter      io.Writer = os.Stdout
+	DefaultErrorWriter io.Writer = os.Stderr
+)
+
+const (
+	// InfoLevel logs everything
+	InfoLevel = iota
+	// ErrorLevel includes errors, slows, stacks
+	ErrorLevel
+	// SevereLevel only log severe messages
+	SevereLevel
+)
+
+const (
+	timeFormat     = "2006-01-02T15:04:05.000Z07"
+	timeFormatMini = "01-02 15:04:05"
+
+	accessFilename = "access.log"
+	errorFilename  = "error.log"
+	severeFilename = "severe.log"
+	slowFilename   = "slow.log"
+	statFilename   = "stat.log"
+
+	consoleMode = "console"
+	volumeMode  = "volume"
+
+	levelAlert  = "alert"
+	levelInfo   = "info"
+	levelError  = "error"
+	levelSevere = "severe"
+	levelFatal  = "fatal"
+	levelSlow   = "slow"
+	levelStat   = "stat"
+
+	backupFileDelimiter = "-"
+	callerInnerDepth    = 5
+	flags               = 0x0
+)
+
+var (
+	ErrLogPathNotSet        = errors.New("log path must be set")
+	ErrLogNotInitialized    = errors.New("log not initialized")
+	ErrLogServiceNameNotSet = errors.New("log service name must be set")
+
+	writeConsole bool
+	logLevel     uint32
+	// 6个不同等级的日志输出
+	infoLog   io.WriteCloser
+	errorLog  io.WriteCloser
+	severeLog io.WriteCloser
+	slowLog   io.WriteCloser
+	statLog   io.WriteCloser
+	stackLog  io.Writer
+
+	once        sync.Once
+	initialized uint32
+	options     logOptions
+)
+
+type (
+	logEntry struct {
+		Timestamp string `json:"@timestamp"`
+		Level     string `json:"level"`
+		Duration  string `json:"duration,omitempty"`
+		Content   string `json:"content"`
+	}
+
+	logOptions struct {
+		gzipEnabled          bool
+		logStackArchiveMills int
+		keepDays             int
+	}
+
+	LogOption func(options *logOptions)
+
+	Logger interface {
+		Error(...interface{})
+		Errorf(string, ...interface{})
+		Info(...interface{})
+		Infof(string, ...interface{})
+		Slow(...interface{})
+		Slowf(string, ...interface{})
+		WithDuration(time.Duration) Logger
+	}
 )
