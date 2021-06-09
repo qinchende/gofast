@@ -3,10 +3,7 @@ package logx
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qinchende/gofast/skill/iox"
 	"github.com/qinchende/gofast/skill/timex"
-	"io"
-	"io/ioutil"
 	"log"
 	"runtime"
 	"runtime/debug"
@@ -63,18 +60,18 @@ func Close() error {
 	return nil
 }
 
-func Disable() {
-	once.Do(func() {
-		atomic.StoreUint32(&initialized, 1)
-
-		infoLog = iox.NopCloser(ioutil.Discard)
-		errorLog = iox.NopCloser(ioutil.Discard)
-		severeLog = iox.NopCloser(ioutil.Discard)
-		slowLog = iox.NopCloser(ioutil.Discard)
-		statLog = iox.NopCloser(ioutil.Discard)
-		stackLog = ioutil.Discard
-	})
-}
+//func Disable() {
+//	once.Do(func() {
+//		atomic.StoreUint32(&initialized, 1)
+//
+//		infoLog = iox.NopCloser(ioutil.Discard)
+//		errorLog = iox.NopCloser(ioutil.Discard)
+//		severeLog = iox.NopCloser(ioutil.Discard)
+//		slowLog = iox.NopCloser(ioutil.Discard)
+//		statLog = iox.NopCloser(ioutil.Discard)
+//		//stackLog = ioutil.Discard
+//	})
+//}
 
 func Error(v ...interface{}) {
 	ErrorCaller(1, v...)
@@ -203,7 +200,8 @@ func slowSync(msg string) {
 
 func stackSync(msg string) {
 	if shouldLog(ErrorLevel) {
-		output(stackLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
+		//output(stackLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
+		output(errorLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
 	}
 }
 
@@ -222,9 +220,14 @@ func statSync(msg string) {
 //	infoSync(text)
 //}
 
+func outputError(lwt WriterCloser, msg string, callDepth int) {
+	content := formatWithCaller(msg, callDepth)
+	output(lwt, levelError, content)
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要落脚到这个方法
-func output(writer io.Writer, level, msg string) {
+func output(lwt WriterCloser, level, msg string) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
 	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
 	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
@@ -232,40 +235,35 @@ func output(writer io.Writer, level, msg string) {
 
 	switch currConfig.style {
 	case styleSdx:
-		outputSdx(writer, fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg))
-		return
+		outputString(lwt, fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg))
 	case styleSdxMini:
-		outputSdx(writer, msg)
-		return
+		outputString(lwt, msg)
+	case styleJsonMini:
+		outputJson(lwt, msg)
 	default:
 		info := logEntry{
 			Timestamp: getTimestamp(),
 			Level:     level,
 			Content:   msg,
 		}
-		outputJson(writer, info)
+		outputJson(lwt, info)
 	}
 }
 
-func outputError(writer io.Writer, msg string, callDepth int) {
-	content := formatWithCaller(msg, callDepth)
-	output(writer, levelError, content)
-}
-
-func outputJson(writer io.Writer, info interface{}) {
+func outputJson(lwt WriterCloser, info interface{}) {
 	if content, err := json.Marshal(info); err != nil {
 		log.Println(err.Error())
-	} else if atomic.LoadUint32(&initialized) == 0 || writer == nil {
+	} else if atomic.LoadUint32(&initialized) == 0 || lwt == nil {
 		log.Println(string(content))
 	} else {
-		_, _ = writer.Write(append(content, '\n'))
+		_, _ = lwt.Write(append(content, '\n'))
 	}
 }
 
-func outputSdx(writer io.Writer, info string) {
-	if atomic.LoadUint32(&initialized) == 0 || writer == nil {
-		log.Print(info)
+func outputString(lwt WriterCloser, info string) {
+	if atomic.LoadUint32(&initialized) == 0 || lwt == nil {
+		log.Println(info)
 	} else {
-		_, _ = fmt.Fprint(writer, info)
+		_ = lwt.Writeln(info)
 	}
 }

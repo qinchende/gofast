@@ -310,6 +310,7 @@ func (u *Unmarshaler) processFieldStructWithMap(field reflect.StructField, value
 
 func (u *Unmarshaler) processNamedField(field reflect.StructField, value reflect.Value,
 	m Valuer, fullName string) error {
+	// 解析 tag 中的所有 key -value
 	key, opts, err := u.parseOptionsWithContext(field, m, fullName)
 	if err != nil {
 		return err

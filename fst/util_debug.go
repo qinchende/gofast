@@ -7,18 +7,15 @@ import (
 )
 
 func debugPrintRoute(ri *RouterItem) {
-	if logx.IsDebugging() {
-		nuHandlers := len(ri.eHds)
-		lastHdsIdx := ri.eHds[nuHandlers-1]
-		fun := ri.group.gftApp.fstMem.allCtxHandlers[lastHdsIdx]
-
-		handlerName := lang.NameOfFunc(fun)
-		if logx.DebugPrintRouteFunc == nil {
-			logx.DebugPrint("%-6s %-25s --> %s (%d handlers)\n", ri.method, ri.fullPath, handlerName, nuHandlers)
-		} else {
-			logx.DebugPrintRouteFunc(ri.method, ri.fullPath, handlerName, nuHandlers)
-		}
+	if !logx.IsDebugging() {
+		return
 	}
+
+	nuHandlers := len(ri.eHds)
+	lastHdsIdx := ri.eHds[nuHandlers-1]
+	fun := ri.group.gftApp.fstMem.allCtxHandlers[lastHdsIdx]
+
+	logx.DebugPrint("%-6s %-25s --> %s (%d hds)\n", ri.method, ri.fullPath, lang.NameOfFunc(fun), nuHandlers)
 }
 
 func debugPrintRouteTree(strTree *strings.Builder) {

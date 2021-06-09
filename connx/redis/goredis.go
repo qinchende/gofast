@@ -48,11 +48,11 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 			PoolSize:     cf.PoolSize,
 			MinIdleConns: cf.MinIdle,
 			OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-				logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
+				logx.Info(fmt.Sprintf("%s connected.", cn.String()))
 				return nil
 			},
 		})
-		logx.Info(fmt.Sprintf("Redis %s created.\n", cf.Addr))
+		logx.Info(fmt.Sprintf("Redis %s created.", cf.Addr))
 	} else if cf.SentinelAddr != nil {
 		// 通过sentinel连接 redis
 		rds.Cli = redis.NewFailoverClient(&redis.FailoverOptions{
@@ -65,11 +65,11 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 			PoolSize:         cf.PoolSize,
 			MinIdleConns:     cf.MinIdle,
 			OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-				logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
+				logx.Info(fmt.Sprintf("%s connected.", cn.String()))
 				return nil
 			},
 		})
-		logx.Info(fmt.Sprintf("Redis %s created.\n", cf.MasterName))
+		logx.Info(fmt.Sprintf("Redis %s created.", cf.MasterName))
 	}
 
 	return &rds
@@ -84,10 +84,10 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 //		SentinelPassword: cf.SentinelPass,
 //		Password:         cf.Pass,
 //		OnConnect: func(ctx context.Context, cn *redis.Conn) error {
-//			logx.Info(fmt.Sprintf("%s connected.\n", cn.String()))
+//			logx.Info(fmt.Sprintf("%s connected.", cn.String()))
 //			return nil
 //		},
 //	})
-//	logx.Info(fmt.Sprintf("Redis %s created.\n", cf.Addr))
+//	logx.Info(fmt.Sprintf("Redis %s created.", cf.Addr))
 //	return &rds
 //}

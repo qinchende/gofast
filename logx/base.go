@@ -22,17 +22,14 @@ const (
 )
 
 var (
-	DefaultWriter      io.Writer = os.Stdout
+	// DefaultWriter      io.Writer = os.Stdout
 	DefaultErrorWriter io.Writer = os.Stderr
 )
 
 const (
-	// InfoLevel logs everything
-	InfoLevel = iota
-	// ErrorLevel includes errors, slows, stacks
-	ErrorLevel
-	// SevereLevel only log severe messages
-	SevereLevel
+	InfoLevel   = iota // InfoLevel logs everything
+	ErrorLevel         // ErrorLevel includes errors, slows, stacks
+	SevereLevel        // SevereLevel only log severe messages
 )
 
 const (
@@ -56,9 +53,8 @@ const (
 	levelSlow   = "slow"
 	levelStat   = "stat"
 
-	backupFileDelimiter = "-"
-	callerInnerDepth    = 5
-	flags               = 0x0
+	callerInnerDepth = 5
+	flags            = 0x0
 )
 
 var (
@@ -69,12 +65,12 @@ var (
 	writeConsole bool
 	logLevel     uint32
 	// 6个不同等级的日志输出
-	infoLog   io.WriteCloser
-	errorLog  io.WriteCloser
-	severeLog io.WriteCloser
-	slowLog   io.WriteCloser
-	statLog   io.WriteCloser
-	stackLog  io.Writer
+	infoLog   WriterCloser
+	errorLog  WriterCloser
+	severeLog WriterCloser
+	slowLog   WriterCloser
+	statLog   WriterCloser
+	//stackLog  io.Writer
 
 	once        sync.Once
 	initialized uint32
