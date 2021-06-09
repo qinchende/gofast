@@ -19,11 +19,12 @@ import (
 )
 
 const (
-	dateFormat      = "2006-01-02"
-	hoursPerDay     = 24
-	bufferSize      = 100
-	defaultDirMode  = 0755
-	defaultFileMode = 0600
+	dateFormat          = "2006-01-02"
+	hoursPerDay         = 24
+	bufferSize          = 100
+	defaultDirMode      = 0755
+	defaultFileMode     = 0600
+	backupFileDelimiter = "-"
 )
 
 var ErrLogFileClosed = errors.New("error: log file closed")
@@ -48,6 +49,8 @@ type (
 		// can't use threading.RoutineGroup because of cycle import
 		waitGroup sync.WaitGroup
 		closeOnce sync.Once
+		//mu        sync.Mutex // ensures atomic writes; protects the following fields
+		//buf       []byte     // for accumulating text to write
 	}
 
 	DailyRotateRule struct {
@@ -117,7 +120,7 @@ func (r *DailyRotateRule) ShallRotate() bool {
 	return len(r.rotatedTime) > 0 && getNowDate() != r.rotatedTime
 }
 
-func NewLogger(filename string, rule RotateRule, compress bool) (*RotateLogger, error) {
+func NewRotateLogger(filename string, rule RotateRule, compress bool) (*RotateLogger, error) {
 	l := &RotateLogger{
 		filename: filename,
 		channel:  make(chan []byte, bufferSize),
@@ -146,7 +149,6 @@ func (l *RotateLogger) Close() error {
 
 		err = l.fp.Close()
 	})
-
 	return err
 }
 
@@ -158,6 +160,17 @@ func (l *RotateLogger) Write(data []byte) (int, error) {
 		log.Println(string(data))
 		return 0, ErrLogFileClosed
 	}
+}
+
+// 每次调用都会在 data 后面自动判断并加上 \n
+func (l *RotateLogger) Writeln(data string) (err error) {
+	bs := []byte(data)
+
+	if len(bs) == 0 || bs[len(bs)-1] != '\n' {
+		bs = append(bs, '\n')
+	}
+	_, err = l.Write(bs)
+	return
 }
 
 func (l *RotateLogger) getBackupFilename() string {
@@ -254,7 +267,6 @@ func (l *RotateLogger) startWorker() {
 
 	go func() {
 		defer l.waitGroup.Done()
-
 		for {
 			select {
 			case event := <-l.channel:
@@ -266,6 +278,7 @@ func (l *RotateLogger) startWorker() {
 	}()
 }
 
+// 检查标记，做好日志的拆分，自动判断 gzip 标记并压缩
 func (l *RotateLogger) write(v []byte) {
 	if l.rule.ShallRotate() {
 		if err := l.rotate(); err != nil {

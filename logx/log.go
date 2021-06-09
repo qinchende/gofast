@@ -2,37 +2,11 @@ package logx
 
 import (
 	"github.com/qinchende/gofast/skill/sysx"
-	"io"
 	"log"
 	"os"
 	"path"
 	"sync/atomic"
 )
-
-// 自定义 logger
-type logWriter struct {
-	logger *log.Logger
-}
-
-func newLogWriter(logger *log.Logger) logWriter {
-	return logWriter{
-		logger: logger,
-	}
-}
-
-func (lw logWriter) Close() error {
-	return nil
-}
-
-func (lw logWriter) Write(data []byte) (int, error) {
-	lw.logger.Print(string(data))
-	return len(data), nil
-}
-
-func (lw logWriter) WriteString(data string) (int, error) {
-	lw.logger.Print(data)
-	return len(data), nil
-}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func MustSetup(c LogConfig) {
@@ -40,7 +14,7 @@ func MustSetup(c LogConfig) {
 
 	// 必须准备好日志环境，否则启动失败自动退出
 	err := setup(currConfig)
-	DefaultWriter = infoLog
+	//DefaultWriter = infoLog
 	DefaultErrorWriter = errorLog
 	if err != nil {
 		msg := formatWithCaller(err.Error(), 3)
@@ -56,10 +30,12 @@ func MustSetup(c LogConfig) {
 // the same logic for SetUp
 func setup(c *LogConfig) error {
 	switch c.StyleName {
-	case _styleSdx:
+	case styleSdxStr:
 		c.style = styleSdx
-	case _styleSdxMini:
+	case styleSdxMiniStr:
 		c.style = styleSdxMini
+	case styleJsonMiniStr:
+		c.style = styleJsonMini
 	default:
 		c.style = styleJson
 	}
@@ -89,7 +65,7 @@ func setupWithConsole(c *LogConfig) {
 		errorLog = newLogWriter(log.New(os.Stderr, "", flags))
 		severeLog = newLogWriter(log.New(os.Stderr, "", flags))
 		slowLog = newLogWriter(log.New(os.Stderr, "", flags))
-		stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)
+		//stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)
 	})
 }
 
@@ -116,30 +92,50 @@ func setupWithFiles(c *LogConfig) error {
 		handleOptions(opts)
 		setupLogLevel(c)
 
-		accessFile := path.Join(c.Path, accessFilename)
-		errorFile := path.Join(c.Path, errorFilename)
-		severeFile := path.Join(c.Path, severeFilename)
-		slowFile := path.Join(c.Path, slowFilename)
-		statFile := path.Join(c.Path, statFilename)
+		prefix := c.FilePrefix
+		if len(c.FilePrefix) > 0 {
+			prefix += "."
+		}
 
+		accessFile := path.Join(c.Path, prefix+accessFilename)
+		errorFile := path.Join(c.Path, prefix+errorFilename)
+		severeFile := path.Join(c.Path, prefix+severeFilename)
+		slowFile := path.Join(c.Path, prefix+slowFilename)
+		statFile := path.Join(c.Path, prefix+statFilename)
+
+		// 初始化日志文件, 用 writer-rotate 策略写日志文件
 		if infoLog, err = createOutput(accessFile); err != nil {
 			return
 		}
-		if errorLog, err = createOutput(errorFile); err != nil {
-			return
+		if c.FileNumber == fileOne {
+			severeLog = infoLog
+			slowLog = infoLog
+			statLog = infoLog
+			//stackLog = infoLog
+		} else if c.FileNumber == fileTwo {
+			if errorLog, err = createOutput(errorFile); err != nil {
+				return
+			}
+			severeLog = errorLog
+			slowLog = errorLog
+			statLog = errorLog
+			//stackLog = errorLog
+		} else {
+			if errorLog, err = createOutput(errorFile); err != nil {
+				return
+			}
+			if severeLog, err = createOutput(severeFile); err != nil {
+				return
+			}
+			if slowLog, err = createOutput(slowFile); err != nil {
+				return
+			}
+			if statLog, err = createOutput(statFile); err != nil {
+				return
+			}
+			//stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)
 		}
-		if severeLog, err = createOutput(severeFile); err != nil {
-			return
-		}
-		if slowLog, err = createOutput(slowFile); err != nil {
-			return
-		}
-		if statLog, err = createOutput(statFile); err != nil {
-			return
-		}
-		stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)
 	})
-
 	return err
 }
 
@@ -148,18 +144,16 @@ func setupWithVolume(c *LogConfig) error {
 	if len(c.ServiceName) == 0 {
 		return ErrLogServiceNameNotSet
 	}
-
 	c.Path = path.Join(c.Path, c.ServiceName, sysx.Hostname())
 	return setupWithFiles(c)
 }
 
-func createOutput(path string) (io.WriteCloser, error) {
+func createOutput(path string) (WriterCloser, error) {
 	if len(path) == 0 {
 		return nil, ErrLogPathNotSet
 	}
-
-	return NewLogger(path, DefaultRotateRule(path, backupFileDelimiter, options.keepDays,
-		options.gzipEnabled), options.gzipEnabled)
+	rr := DefaultRotateRule(path, backupFileDelimiter, options.keepDays, options.gzipEnabled)
+	return NewRotateLogger(path, rr, options.gzipEnabled)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

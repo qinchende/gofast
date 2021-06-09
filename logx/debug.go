@@ -26,23 +26,17 @@ func IsDebugging() bool {
 	return isDebug
 }
 
-func DebugPrint(format string, values ...interface{}) {
+func DebugPrint(format string, v ...interface{}) {
 	if isDebug {
-		if !strings.HasSuffix(format, "\n") {
-			format += "\n"
-		}
-		infoSync("[Debug] " + fmt.Sprintf(format, values...))
+		Info("[Debug] ", fmt.Sprintf(format, v...))
 	}
 }
 
 func DebugPrintError(err error) {
 	if err != nil && isDebug {
-		infoSync("[Debug] " + fmt.Sprintf("[ERROR] %v\n", err))
+		Info("[Debug] ", fmt.Sprintf("[ERROR] %v\n", err))
 	}
 }
-
-// 可以自定义 logx.DebugPrintRouteFunc 改变Debug输出的路由信息
-var DebugPrintRouteFunc func(httpMethod, absolutePath, handlerName string, nuHandlers int)
 
 func GetMinVer(v string) (uint64, error) {
 	first := strings.IndexByte(v, '.')

@@ -33,7 +33,7 @@ type AppConfig struct {
 	FitLogType             string `json:",default=json,options=json|sdx"`
 
 	HTMLRender render.HTMLRender `json:",optional"`
-	modeType   int8              `json:",optional"` // 内部记录状态
+	modeType   int8              `inner:",optional"` // 内部记录状态
 }
 
 func (gft *GoFast) initServerEnv() {

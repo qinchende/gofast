@@ -1,12 +1,31 @@
 package logx
 
 import (
-	"sync/atomic"
-	"time"
-
 	"github.com/qinchende/gofast/skill/syncx"
 	"github.com/qinchende/gofast/skill/timex"
+	"io"
+	"sync/atomic"
+	"time"
 )
+
+type lessWriter struct {
+	*limitedExecutor
+	writer io.Writer
+}
+
+func NewLessWriter(writer io.Writer, milliseconds int) *lessWriter {
+	return &lessWriter{
+		limitedExecutor: newLimitedExecutor(milliseconds),
+		writer:          writer,
+	}
+}
+
+func (w *lessWriter) Write(p []byte) (n int, err error) {
+	w.logOrDiscard(func() {
+		w.writer.Write(p)
+	})
+	return len(p), nil
+}
 
 type limitedExecutor struct {
 	threshold time.Duration
