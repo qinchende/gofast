@@ -7,7 +7,7 @@ import (
 )
 
 // GoFast提供的拦截器全家桶
-func (gft *GoFast) RegFits(gftFunc goFastRegFunc) *GoFast {
+func (gft *GoFast) InjectFits(gftFunc goFastRegFunc) *GoFast {
 	return gftFunc(gft)
 }
 

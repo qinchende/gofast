@@ -178,7 +178,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		if c.matchRst.ptrNode != nil {
 			//c.Params = c.matchRst.params
 			// TODO: 先解析 POST | GET 参数。方便后面业务逻辑开发，但是所有请求都提前解析，存在影响性能的嫌疑
-			//c.ParseHttpParams()
+			c.ParseHttpParams()
 
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers(c.matchRst.ptrNode)
@@ -187,8 +187,8 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 			c.ResWrap.WriteHeaderNow()
 			return
-			//} else {
-			//c.ParseHttpParamsNoRoute()
+		} else {
+			c.ParseHttpParamsNoRoute()
 		}
 
 		// 匹配不到路由 先考虑 重定向
@@ -228,6 +228,9 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 
 	defer logx.DebugPrintError(err)
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
+	if addr == nil && gft.Addr != "" {
+		addr = []string{gft.Addr}
+	}
 	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
 
 	// 设置关闭前等待时间

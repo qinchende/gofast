@@ -233,13 +233,17 @@ func output(lwt WriterCloser, level, msg string) {
 	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
 	//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
 
+	// TODO: 打印日志，套用不同的日志模板
 	switch currConfig.style {
 	case styleSdx:
 		outputString(lwt, fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg))
+
 	case styleSdxMini:
 		outputString(lwt, msg)
+
 	case styleJsonMini:
 		outputJson(lwt, msg)
+
 	default:
 		info := logEntry{
 			Timestamp: getTimestamp(),

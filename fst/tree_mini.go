@@ -248,7 +248,7 @@ func gpRebuildHandlers(gp *RouterGroup) {
 // 为每个最后一级的分组，将 routeEvent 变成内存占用更小的 handlersNode
 func (gp *RouterGroup) rebuildHandlers() {
 	fstMem := gp.gftApp.fstMem
-	setNewNode(fstMem, &gp.routeEvents)
+	setNewNode(fstMem, &gp.combEvents)
 
 	gp.hdsIdx = int16(fstMem.hdsMiniNodesLen)
 	fstMem.hdsMiniNodesLen++

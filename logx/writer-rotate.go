@@ -157,13 +157,14 @@ func (l *RotateLogger) Write(data []byte) (int, error) {
 	case l.channel <- data:
 		return len(data), nil
 	case <-l.done:
-		log.Println(string(data))
+		log.Println(data)
 		return 0, ErrLogFileClosed
 	}
 }
 
 // 每次调用都会在 data 后面自动判断并加上 \n
 func (l *RotateLogger) Writeln(data string) (err error) {
+	// TODO：字符串转换成 字节切片，增加内存开销，会影响性能，类似这种问题一会想办法改进
 	bs := []byte(data)
 
 	if len(bs) == 0 || bs[len(bs)-1] != '\n' {
@@ -181,6 +182,7 @@ func (l *RotateLogger) getBackupFilename() string {
 	}
 }
 
+// TODO: 这里可以指定用 标准库中的 log 包来写数据
 func (l *RotateLogger) init() error {
 	l.backup = l.rule.BackupFileName()
 
