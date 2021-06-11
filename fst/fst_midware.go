@@ -12,9 +12,11 @@ func (gft *GoFast) InjectFits(gftFunc goFastRegFunc) *GoFast {
 }
 
 // 添加全局拦截器
-func (gft *GoFast) Fit(hds ...IncHandler) *GoFast {
-	gft.fitHandlers = append(gft.fitHandlers, hds...)
-	ifPanic(len(gft.fitHandlers) >= maxFitLen, "Fit handlers more the 127 error.")
+func (gft *GoFast) Fit(hds IncHandler) *GoFast {
+	if hds != nil {
+		gft.fitHandlers = append(gft.fitHandlers, hds)
+		ifPanic(len(gft.fitHandlers) >= maxFitLen, "Fit handlers more the 127 error.")
+	}
 	return gft
 }
 
