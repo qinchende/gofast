@@ -12,7 +12,7 @@ type AppConfig struct {
 	// FuncMap          	template.FuncMap
 	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
 	Name                   string `json:",optional,default=GoFastSite"`
-	Addr                   string `json:",default=127.0.0.1:8099"`
+	Addr                   string `json:",default=0.0.0.0:8099"`
 	RunMode                string `json:",default=debug,options=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix       string `json:",optional,default=while(1);"`
 	MaxMultipartMemory     int64  `json:",default=33554432"` // 最大上传文件的大小，默认32MB

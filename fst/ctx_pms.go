@@ -12,11 +12,15 @@ import (
 // POST的body内容需要记录下来，方便binding模块使用
 // TODO: 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
 func (c *Context) ParseHttpParams() {
+	if c.Pms != nil {
+		return
+	}
+
 	c.getQueryCache()
 	c.getFormCache()
 
 	// 将 Get 和 Post 请求参数全部解构之后加入 Pms 集合中
-	//c.Pms = make(map[string]string)
+	c.Pms = make(map[string]string, 0)
 	for key, val := range c.ReqRaw.Form {
 		c.Pms[key] = val[0]
 	}
@@ -24,7 +28,7 @@ func (c *Context) ParseHttpParams() {
 
 // 如果没有匹配路由，需要一些初始化
 func (c *Context) ParseHttpParamsNoRoute() {
-	//c.Pms = make(map[string]string)
+	c.Pms = make(map[string]string, 0)
 	// c.Pms = map[string]string{}
 }
 

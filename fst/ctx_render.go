@@ -88,7 +88,7 @@ func (c *Context) SucKV(jsonData KV) {
 	if jsonData["msg_code"] == nil {
 		jsonData["msg_code"] = 0
 	}
-	if c.Sess.IsNew {
+	if c.Sess != nil && c.Sess.IsNew {
 		jsonData["tok"] = c.Sess.Token
 	}
 

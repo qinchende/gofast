@@ -80,9 +80,9 @@ var (
 type (
 	logEntry struct {
 		Timestamp string `json:"@timestamp"`
-		Level     string `json:"level"`
+		Level     string `json:"lv"`
 		Duration  string `json:"duration,omitempty"`
-		Content   string `json:"content"`
+		Content   string `json:"ct"`
 	}
 
 	logOptions struct {

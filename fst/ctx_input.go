@@ -32,7 +32,7 @@ func (c *Context) FullPath() string {
 //         id := c.Param("id") // id == "john"
 //     })
 func (c *Context) Param(key string) string {
-	return c.Params.ByName(key)
+	return c.matchRst.params.ByName(key)
 }
 
 // Query returns the keyed url query value if it exists,
