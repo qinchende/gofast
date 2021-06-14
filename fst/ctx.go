@@ -14,12 +14,12 @@ import (
 type Context struct {
 	*GFResponse               // response (请求前置拦截器 要用到的上下文)
 	ReqRaw      *http.Request // request
-	matchRst    matchResult   // 路由匹配结果
 
-	Pms map[string]string // 所有Request参数的map（[Params] ? + queryCache + formCache）
 	//Params     *Params           // : 或 * 对应的参数
-	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
-	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
+	match      matchResult       // 路由匹配结果，[Params] ? 一般用于确定相应资源
+	Pms        map[string]string // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	queryCache url.Values        // param query result from c.ReqRaw.URL.Query()
+	formCache  url.Values        // the parsed form data from POST, PATCH, or PUT body parameters.
 
 	// Session数据，这里不规定Session的载体，可以自定义
 	Sess *CtxSession
@@ -51,20 +51,20 @@ func (c *Context) reset() {
 	c.Sess = nil
 	c.Accepted = nil
 
-	c.Pms = nil
+	// add by sdx 2021.01.06
+	c.match.ptrNode = nil
+	if c.match.params == nil {
+		c.match.params = new(Params)
+	}
+	*c.match.params = (*c.match.params)[0:0]
+	c.match.rts = false
+	c.match.allowRTS = c.gftApp.RedirectTrailingSlash
+
 	//c.Params = &(*c.Params)[0:0]
+	c.Pms = nil
 	c.queryCache = nil
 	c.formCache = nil
 	c.aborted = false
-
-	// add by sdx 2021.01.06
-	c.matchRst.ptrNode = nil
-	if c.matchRst.params == nil {
-		c.matchRst.params = new(Params)
-	}
-	*c.matchRst.params = (*c.matchRst.params)[0:0]
-	c.matchRst.rts = false
-	c.matchRst.allowRTS = c.gftApp.RedirectTrailingSlash
 }
 
 //// 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context
@@ -75,7 +75,7 @@ func (c *Context) reset() {
 //		GFResponse: c.GFResponse,
 //		ReqRaw:     c.ReqRaw,
 //		//Params:     c.Params,
-//		matchRst:   c.matchRst,
+//		match:   c.match,
 //		Pms:        c.Pms,
 //		Sess:       c.Sess,
 //		aborted:    c.aborted,

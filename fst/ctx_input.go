@@ -8,14 +8,13 @@ import (
 	"mime/multipart"
 	"net"
 	"net/http"
-	"net/url"
 	"os"
 	"strings"
 )
 
 func (c *Context) FullPath() string {
-	if c.matchRst.ptrNode != nil && c.matchRst.ptrNode.routerIdx >= 0 {
-		return c.gftApp.allRouters[c.matchRst.ptrNode.routerIdx].fullPath
+	if c.match.ptrNode != nil && c.match.ptrNode.routerIdx >= 0 {
+		return c.gftApp.allRouters[c.match.ptrNode.routerIdx].fullPath
 	} else {
 		return ""
 	}
@@ -32,7 +31,7 @@ func (c *Context) FullPath() string {
 //         id := c.Param("id") // id == "john"
 //     })
 func (c *Context) Param(key string) string {
-	return c.matchRst.params.ByName(key)
+	return c.match.params.ByName(key)
 }
 
 // Query returns the keyed url query value if it exists,
@@ -157,14 +156,13 @@ func (c *Context) PostFormArray(key string) []string {
 
 func (c *Context) getFormCache() {
 	if c.formCache == nil {
-		c.formCache = make(url.Values)
-		req := c.ReqRaw
-		if err := req.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
+		//c.formCache = make(url.Values)
+		if err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
 				logx.DebugPrint("error on parse multipart form array: %v", err)
 			}
 		}
-		c.formCache = req.PostForm
+		c.formCache = c.ReqRaw.PostForm
 	}
 }
 

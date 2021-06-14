@@ -87,8 +87,8 @@ func (gft *GoFast) initResourcePool() {
 	}
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{}
-		//c.Pms = make(map[string]string)
-		// c.matchRst.needRTS = gft.RedirectTrailingSlash
+		// c.Pms = make(map[string]string)
+		// c.match.needRTS = gft.RedirectTrailingSlash
 		// c.GFResponse = &GFResponse{gftApp: gft}
 		return c
 	}
@@ -172,16 +172,16 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
-		miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst, unescape)
+		miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape)
 
 		// 如果能匹配到路径
-		if c.matchRst.ptrNode != nil {
-			//c.Params = c.matchRst.params
+		if c.match.ptrNode != nil {
+			//c.Params = c.match.params
 			// TODO: 先解析 POST | GET 参数。方便后面业务逻辑开发，但是所有请求都提前解析，存在影响性能的嫌疑
 			c.ParseHttpParams()
 
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
-			c.execHandlers(c.matchRst.ptrNode)
+			c.execHandlers(c.match.ptrNode)
 			// 第二种方案
 			//c.execHandlersMini(nodeVal.ptrNode)
 
@@ -193,7 +193,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 		// 匹配不到路由 先考虑 重定向
 		// c.ReqRaw.Method != CONNECT && reqPath != [home index]
-		if c.matchRst.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
+		if c.match.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
 			redirectTrailingSlash(c)
 			return
 		}
@@ -208,7 +208,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.matchRst, unescape); c.matchRst.ptrNode != nil {
+			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape); c.match.ptrNode != nil {
 				c.execHandlers(gft.miniNode405)
 				return
 			}
