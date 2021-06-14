@@ -6,15 +6,15 @@ import (
 	"net/http"
 )
 
+// 限制最大并发连接数，相当于做一个请求资源数量连接池
 func MaxReqCounts(limit int32) fst.IncHandler {
+	// 并发数不做限制
+	if limit <= 0 {
+		return nil
+	}
+
 	latch := syncx.Counter{Max: limit}
-
 	return func(w *fst.GFResponse, r *http.Request) {
-		if limit <= 0 {
-			return
-		}
-
-		//log.Printf("curr %d", latch.Curr)
 		if latch.TryBorrow() {
 			defer func() {
 				if err := latch.Return(); err != nil {

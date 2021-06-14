@@ -74,11 +74,11 @@ func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
 
 //
 //func (c *Context) execPreBindHandlers() {
-//	if c.matchRst.ptrNode == nil {
+//	if c.match.ptrNode == nil {
 //		return
 //	}
-//	it := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
-//	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsIdx]
+//	it := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsItemIdx]
+//	gp := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsIdx]
 //
 //	// 1.valid
 //	for gp.validLen > 0 {
@@ -103,11 +103,11 @@ func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
 
 //func (c *Context) execPreSendHandlers(code int, r render.Render) {
 func (c *Context) execPreSendHandlers() {
-	if c.matchRst.ptrNode == nil {
+	if c.match.ptrNode == nil {
 		return
 	}
-	it := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
-	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
+	it := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsItemIdx]
+	gp := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsGroupIdx]
 
 	// 5.preSend
 	for it.preSendLen > 0 {
@@ -131,11 +131,11 @@ over:
 }
 
 func (c *Context) execAfterSendHandlers() {
-	if c.matchRst.ptrNode == nil {
+	if c.match.ptrNode == nil {
 		return
 	}
-	it := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsItemIdx]
-	gp := c.gftApp.fstMem.hdsMiniNodes[c.matchRst.ptrNode.hdsGroupIdx]
+	it := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsItemIdx]
+	gp := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsGroupIdx]
 
 	// 6.afterSend
 	for it.afterSendLen > 0 {

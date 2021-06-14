@@ -82,6 +82,10 @@ func (gft *GoFast) SetMode(mode string) {
 	logx.SetDebugStatus(gft.modeType == modeDebug)
 }
 
+func (gft *GoFast) IsDebugging() bool {
+	return gft.modeType == modeDebug
+}
+
 // 日志文件的目标系统
 const (
 	LogTypeConsole    = "console"

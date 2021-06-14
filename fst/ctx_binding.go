@@ -123,7 +123,7 @@ func (c *Context) ShouldBindHeader(obj interface{}) error {
 // ShouldBindUri binds the passed struct pointer using the specified binding gftApp.
 func (c *Context) ShouldBindUri(obj interface{}) error {
 	m := make(map[string][]string)
-	for _, v := range *c.matchRst.params {
+	for _, v := range *c.match.params {
 		m[v.Key] = []string{v.Value}
 	}
 	return binding.Uri.BindUri(m, obj)
