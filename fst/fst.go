@@ -176,10 +176,6 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 		// 如果能匹配到路径
 		if c.match.ptrNode != nil {
-			//c.Params = c.match.params
-			// TODO: 先解析 POST | GET 参数。方便后面业务逻辑开发，但是所有请求都提前解析，存在影响性能的嫌疑
-			c.ParseHttpParams()
-
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers(c.match.ptrNode)
 			// 第二种方案
@@ -187,8 +183,6 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 			c.ResWrap.WriteHeaderNow()
 			return
-		} else {
-			c.ParseHttpParamsNoRoute()
 		}
 
 		// 匹配不到路由 先考虑 重定向

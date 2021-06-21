@@ -18,6 +18,8 @@ import (
 
 var errUnknownType = errors.New("unknown type")
 
+// 解析 Form 数据，对应两种不同的 tag
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func mapUri(ptr interface{}, m map[string][]string) error {
 	return mapFormByTag(ptr, m, "uri")
 }
@@ -26,10 +28,7 @@ func mapForm(ptr interface{}, form map[string][]string) error {
 	return mapFormByTag(ptr, form, "form")
 }
 
-// add by sdx on 20210305
-func mapJson(ptr interface{}, form map[string][]string) error {
-	return mapFormByTag(ptr, form, "json")
-}
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 var emptyField = reflect.StructField{}
 

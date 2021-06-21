@@ -6,30 +6,46 @@ import (
 	"time"
 )
 
-// +++++++++++++++++++++++++++++++++++
-// GoFast JSON 提交参数的解析
-// 每个匹配的路由，上来就直接解析POST和GET参数，
-// POST的body内容需要记录下来，方便binding模块使用
-// TODO: 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
+/************************************/
+/******* Context Pms ********/
+/************************************/
+
+// 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
 func (c *Context) ParseHttpParams() {
 	if c.Pms != nil {
 		return
 	}
 
-	c.getQueryCache()
-	c.getFormCache()
+	// 下面这两个解析之后，Go标准库会自动将两部分参数合并到 c.ReqRaw.Form 中。
+	c.ParseQuery()
+	//c.ParseForm()
+
+	v := make(map[string]interface{})
+	err := c.BindJSON(&v)
+	if err != nil {
+
+	}
 
 	// 将 Get 和 Post 请求参数全部解构之后加入 Pms 集合中
-	c.Pms = make(map[string]string, 0)
+	c.Pms = make(map[string]string, len(c.ReqRaw.Form))
 	for key, val := range c.ReqRaw.Form {
 		c.Pms[key] = val[0]
 	}
 }
 
-// 如果没有匹配路由，需要一些初始化
-func (c *Context) ParseHttpParamsNoRoute() {
-	c.Pms = make(map[string]string, 0)
-	// c.Pms = map[string]string{}
+//// 如果没有匹配路由，需要一些初始化
+//func (c *Context) ParseHttpParamsNoRoute() {
+//	if c.Pms == nil {
+//		c.Pms = make(map[string]string, 0)
+//	}
+//}
+
+// 返回 Pms 对象中对应的
+func (c *Context) GetPms(key string) string {
+	if val, ok := c.Pms[key]; ok {
+		return val
+	}
+	return ""
 }
 
 /************************************/
