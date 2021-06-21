@@ -7,11 +7,9 @@ package binding
 import (
 	"bytes"
 	"fmt"
+	"github.com/qinchende/gofast/skill/json"
 	"io"
 	"net/http"
-	"net/url"
-
-	"github.com/qinchende/gofast/skill/json"
 )
 
 // EnableDecoderUseNumber is used to call the UseNumber method on the JSON
@@ -54,15 +52,5 @@ func decodeJSON(r io.Reader, obj interface{}) error {
 	if err := decoder.Decode(obj); err != nil {
 		return err
 	}
-	return validate(obj)
-}
-
-// add by sdx on 20210305
-func (jsonBinding) BindPms(values url.Values, obj interface{}) error {
-	if err := mapJson(obj, values); err != nil {
-		return err
-	}
-
-	// TODO: before validate.
 	return validate(obj)
 }

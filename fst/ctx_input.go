@@ -34,6 +34,14 @@ func (c *Context) Param(key string) string {
 	return c.match.params.ByName(key)
 }
 
+// A. ++++++++++++++++++++++++++++
+// 解析 Url 中的参数
+func (c *Context) ParseQuery() {
+	if c.queryCache == nil {
+		c.queryCache = c.ReqRaw.URL.Query()
+	}
+}
+
 // Query returns the keyed url query value if it exists,
 // otherwise it returns an empty string `("")`.
 // It is shortcut for `c.ReqRaw.URL.Query().Get(key)`
@@ -83,16 +91,10 @@ func (c *Context) QueryArray(key string) []string {
 	return values
 }
 
-func (c *Context) getQueryCache() {
-	if c.queryCache == nil {
-		c.queryCache = c.ReqRaw.URL.Query()
-	}
-}
-
 // GetQueryArray returns a slice of strings for a given query key, plus
 // a boolean value whether at least one value exists for the given key.
 func (c *Context) GetQueryArray(key string) ([]string, bool) {
-	c.getQueryCache()
+	c.ParseQuery()
 	if values, ok := c.queryCache[key]; ok && len(values) > 0 {
 		return values, true
 	}
@@ -108,7 +110,7 @@ func (c *Context) QueryMap(key string) map[string]string {
 // GetQueryMap returns a map for a given query key, plus a boolean value
 // whether at least one value exists for the given key.
 func (c *Context) GetQueryMap(key string) (map[string]string, bool) {
-	c.getQueryCache()
+	c.ParseQuery()
 	return c.get(c.queryCache, key)
 }
 
@@ -154,7 +156,9 @@ func (c *Context) PostFormArray(key string) []string {
 	return values
 }
 
-func (c *Context) getFormCache() {
+// B. ++++++++++++++++++++++++++++
+// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
+func (c *Context) ParseForm() {
 	if c.formCache == nil {
 		//c.formCache = make(url.Values)
 		if err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
@@ -169,7 +173,7 @@ func (c *Context) getFormCache() {
 // GetPostFormArray returns a slice of strings for a given form key, plus
 // a boolean value whether at least one value exists for the given key.
 func (c *Context) GetPostFormArray(key string) ([]string, bool) {
-	c.getFormCache()
+	c.ParseForm()
 	if values := c.formCache[key]; len(values) > 0 {
 		return values, true
 	}
@@ -185,7 +189,7 @@ func (c *Context) PostFormMap(key string) map[string]string {
 // GetPostFormMap returns a map for a given form key, plus a boolean value
 // whether at least one value exists for the given key.
 func (c *Context) GetPostFormMap(key string) (map[string]string, bool) {
-	c.getFormCache()
+	c.ParseForm()
 	return c.get(c.formCache, key)
 }
 
