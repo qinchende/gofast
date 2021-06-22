@@ -2,9 +2,12 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// +build json iter
+//go:build jsoniter
+// +build jsoniter
 
 package json
+
+import jsoniter "github.com/json-iterator/go"
 
 var (
 	json = jsoniter.ConfigCompatibleWithStandardLibrary
