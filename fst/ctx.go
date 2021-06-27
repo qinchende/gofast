@@ -15,7 +15,7 @@ type Context struct {
 	*GFResponse               // response (请求前置拦截器 要用到的上下文)
 	ReqRaw      *http.Request // request
 
-	//Params     *Params           // : 或 * 对应的参数
+	Params     *Params           // : 或 * 对应的参数
 	match      matchResult       // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	Pms        map[string]string // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	queryCache url.Values        // param query result from c.ReqRaw.URL.Query()
@@ -59,8 +59,8 @@ func (c *Context) reset() {
 	*c.match.params = (*c.match.params)[0:0]
 	c.match.rts = false
 	c.match.allowRTS = c.gftApp.RedirectTrailingSlash
+	c.Params = c.match.params
 
-	//c.Params = &(*c.Params)[0:0]
 	c.Pms = nil
 	c.queryCache = nil
 	c.formCache = nil
@@ -74,7 +74,6 @@ func (c *Context) reset() {
 //	cp := Context{
 //		GFResponse: c.GFResponse,
 //		ReqRaw:     c.ReqRaw,
-//		//Params:     c.Params,
 //		match:   c.match,
 //		Pms:        c.Pms,
 //		Sess:       c.Sess,

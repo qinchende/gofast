@@ -288,7 +288,7 @@ func TestRouteStaticFile(t *testing.T) {
 	defer os.Remove(f.Name())
 	_, err = f.WriteString("Gin Web Framework")
 	assert.NoError(t, err)
-	f.Close()
+	_ = f.Close()
 
 	dir, filename := filepath.Split(f.Name())
 
