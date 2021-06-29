@@ -2,22 +2,22 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-//go:build !jsoniter
-// +build !jsoniter
-
+////go:build !jsoniter
+//// +build !jsoniter
+//
 package json
-
-import "encoding/json"
-
-var (
-	// Marshal is exported by gin/json package.
-	Marshal = json.Marshal
-	// Unmarshal is exported by gin/json package.
-	Unmarshal = json.Unmarshal
-	// MarshalIndent is exported by gin/json package.
-	MarshalIndent = json.MarshalIndent
-	// NewDecoder is exported by gin/json package.
-	NewDecoder = json.NewDecoder
-	// NewEncoder is exported by gin/json package.
-	NewEncoder = json.NewEncoder
-)
+//
+//import "encoding/json"
+//
+//var (
+//	// Marshal is exported by gin/json package.
+//	Marshal = json.Marshal
+//	// Unmarshal is exported by gin/json package.
+//	Unmarshal = json.Unmarshal
+//	// MarshalIndent is exported by gin/json package.
+//	MarshalIndent = json.MarshalIndent
+//	// NewDecoder is exported by gin/json package.
+//	NewDecoder = json.NewDecoder
+//	// NewEncoder is exported by gin/json package.
+//	NewEncoder = json.NewEncoder
+//)
