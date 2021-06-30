@@ -15,11 +15,11 @@ type Context struct {
 	*GFResponse               // response (请求前置拦截器 要用到的上下文)
 	ReqRaw      *http.Request // request
 
-	Params     *Params           // : 或 * 对应的参数
-	match      matchResult       // 路由匹配结果，[Params] ? 一般用于确定相应资源
-	Pms        map[string]string // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	queryCache url.Values        // param query result from c.ReqRaw.URL.Query()
-	formCache  url.Values        // the parsed form data from POST, PATCH, or PUT body parameters.
+	Params     *Params                // : 或 * 对应的参数
+	match      matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
+	Pms        map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	queryCache url.Values             // param query result from c.ReqRaw.URL.Query()
+	formCache  url.Values             // the parsed form data from POST, PATCH, or PUT body parameters.
 
 	// Session数据，这里不规定Session的载体，可以自定义
 	Sess *CtxSession

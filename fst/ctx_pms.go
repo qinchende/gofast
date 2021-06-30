@@ -11,24 +11,42 @@ import (
 /************************************/
 
 // 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
-func (c *Context) ParseHttpParams() {
+func (c *Context) GenPmsByJSONBody() {
 	if c.Pms != nil {
 		return
 	}
-
-	// 下面这两个解析之后，Go标准库会自动将两部分参数合并到 c.ReqRaw.Form 中。
-	c.ParseQuery()
-	//c.ParseForm()
-
-	v := make(map[string]interface{})
-	err := c.BindJSON(&v)
-	if err != nil {
-
+	c.Pms = make(map[string]interface{})
+	if err := c.BindJSON(&c.Pms); err != nil {
 	}
 
-	// 将 Get 和 Post 请求参数全部解构之后加入 Pms 集合中
-	c.Pms = make(map[string]string, len(c.ReqRaw.Form))
+	c.ParseQuery()
+	c.ParseForm()
+	for key, val := range c.queryCache {
+		c.Pms[key] = val[0]
+	}
+}
+
+func (c *Context) GenPmsByFormBody() {
+	if c.Pms != nil {
+		return
+	}
+	c.ParseForm()
+	c.Pms = make(map[string]interface{}, len(c.ReqRaw.Form))
 	for key, val := range c.ReqRaw.Form {
+		c.Pms[key] = val[0]
+	}
+}
+
+func (c *Context) GenPmsByXMLBody() {
+	if c.Pms != nil {
+		return
+	}
+	c.Pms = make(map[string]interface{})
+	if err := c.BindXML(&c.Pms); err != nil {
+	}
+
+	c.ParseQuery()
+	for key, val := range c.queryCache {
 		c.Pms[key] = val[0]
 	}
 }
@@ -41,11 +59,17 @@ func (c *Context) ParseHttpParams() {
 //}
 
 // 返回 Pms 对象中对应的
-func (c *Context) GetPms(key string) string {
-	if val, ok := c.Pms[key]; ok {
-		return val
-	}
-	return ""
+//func (c *Context) GetPms(key string) interface{} {
+//	if val, ok := c.Pms[key]; ok {
+//		return val
+//	}
+//	return ""
+//}
+func (c *Context) GetPms(key string) (value interface{}, exists bool) {
+	c.mu.RLock()
+	value, exists = c.Pms[key]
+	c.mu.RUnlock()
+	return
 }
 
 /************************************/

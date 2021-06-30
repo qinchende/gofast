@@ -18,7 +18,7 @@ type ReqLogParams struct {
 	StatusCode int
 	ClientIP   string
 	// isTerm     bool
-	Pms        map[string]string
+	Pms        map[string]interface{}
 	BodySize   int
 	WriteBytes *[]byte
 	// Keys       map[string]interface{}
@@ -40,7 +40,7 @@ var genSdxReqLogString = func(p *ReqLogParams) string {
 	}
 
 	// 这个时候可以随意改变 p.Pms ，这是请求最后一个执行的地方了
-	var basePms = make(map[string]string)
+	var basePms = make(map[string]interface{})
 	if p.Pms["tok"] != "" {
 		basePms["tok"] = p.Pms["tok"]
 		delete(p.Pms, "tok")

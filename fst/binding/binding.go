@@ -70,6 +70,7 @@ var Validator StructValidator = &defaultValidator{}
 // These implement the Binding interface and can be used to bind the data
 // present in the request to struct instances.
 var (
+	Pms           = pmsBinding{}
 	JSON          = jsonBinding{}
 	XML           = xmlBinding{}
 	Form          = formBinding{}
