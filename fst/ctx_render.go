@@ -5,7 +5,6 @@ package fst
 import (
 	"errors"
 	"fmt"
-	"github.com/qinchende/gofast/fst/binding"
 	"github.com/qinchende/gofast/fst/render"
 	"io"
 	"io/ioutil"
@@ -387,19 +386,19 @@ type Negotiate struct {
 // Negotiate calls different Render according acceptable Accept format.
 func (c *Context) Negotiate(code int, config Negotiate) {
 	switch c.NegotiateFormat(config.Offered...) {
-	case binding.MIMEJSON:
+	case MIMEJSON:
 		data := chooseData(config.JSONData, config.Data)
 		c.JSON(code, data)
 
-	case binding.MIMEHTML:
+	case MIMEHTML:
 		data := chooseData(config.HTMLData, config.Data)
 		c.HTML(code, config.HTMLName, data)
 
-	case binding.MIMEXML:
+	case MIMEAppXML:
 		data := chooseData(config.XMLData, config.Data)
 		c.XML(code, data)
 
-	case binding.MIMEYAML:
+	case MIMEYaml:
 		data := chooseData(config.YAMLData, config.Data)
 		c.YAML(code, data)
 

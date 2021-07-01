@@ -2,6 +2,10 @@ package fstx
 
 import "github.com/qinchende/gofast/fst"
 
+func PmsParser(ctx *fst.Context) {
+	ctx.ParseRequestData()
+}
+
 func BuildPmsOfJson(ctx *fst.Context) {
 	ctx.GenPmsByJSONBody()
 }

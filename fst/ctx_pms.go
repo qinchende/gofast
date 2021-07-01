@@ -3,12 +3,47 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/fst/cst"
+	"strings"
 	"time"
 )
 
 /************************************/
 /*********** Context Pms ************/
 /************************************/
+func (c *Context) ParseRequestData() {
+	if c.Pms != nil {
+		return
+	}
+	c.Pms = make(map[string]interface{})
+	isForm := false
+
+	ctType := c.ReqRaw.Header.Get(cst.HeaderContentType)
+	switch {
+	case strings.HasPrefix(ctType, MIMEJSON):
+		if err := c.BindJSON(&c.Pms); err != nil {
+		}
+	case strings.HasPrefix(ctType, MIMEAppXML), strings.HasPrefix(ctType, MIMETextXML):
+		if err := c.BindXML(&c.Pms); err != nil {
+		}
+	case strings.HasPrefix(ctType, MIMEPOSTForm), strings.HasPrefix(ctType, MIMEMultiPOSTForm):
+		c.ParseForm()
+		isForm = true
+		for key, val := range c.ReqRaw.Form {
+			c.Pms[key] = val[0]
+		}
+	default:
+	}
+
+	if !isForm {
+		c.ParseQuery()
+		for key, val := range c.queryCache {
+			c.Pms[key] = val[0]
+		}
+	}
+
+	return
+}
 
 // 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
 func (c *Context) GenPmsByJSONBody() {
@@ -20,7 +55,6 @@ func (c *Context) GenPmsByJSONBody() {
 	}
 
 	c.ParseQuery()
-	c.ParseForm()
 	for key, val := range c.queryCache {
 		c.Pms[key] = val[0]
 	}
@@ -51,20 +85,7 @@ func (c *Context) GenPmsByXMLBody() {
 	}
 }
 
-//// 如果没有匹配路由，需要一些初始化
-//func (c *Context) ParseHttpParamsNoRoute() {
-//	if c.Pms == nil {
-//		c.Pms = make(map[string]string, 0)
-//	}
-//}
-
-// 返回 Pms 对象中对应的
-//func (c *Context) GetPms(key string) interface{} {
-//	if val, ok := c.Pms[key]; ok {
-//		return val
-//	}
-//	return ""
-//}
+// 如果没有匹配路由，需要一些初始化
 func (c *Context) GetPms(key string) (value interface{}, exists bool) {
 	c.mu.RLock()
 	value, exists = c.Pms[key]

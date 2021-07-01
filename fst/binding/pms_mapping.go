@@ -115,38 +115,52 @@ func setByPms(value reflect.Value, field reflect.StructField, pms pmsType, tagVa
 		return false, nil
 	}
 
-	switch value.Kind() {
-	case reflect.Slice:
-		//if !ok {
-		//	vs = []string{opt.defaultValue}
-		//}
-		//return true, setPmsSlice(vs, value, field)
-		return true, nil
-	case reflect.Array:
-		if !ok {
-			vs = []string{opt.defaultValue}
-		}
-		//if len(vs) != value.Len() {
-		//	return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
-		//}
-		//return true, setArray(vs, value, field)
-		return true, nil
-	default:
+	switch reflect.TypeOf(vs).Kind() {
+	case reflect.String:
 		var val string
 		if !ok {
 			val = opt.defaultValue
 		}
-
-		//if len(vs) > 0 {
-		//	val = vs[0]
-		//}
 		val = vs.(string)
 		return true, setWithProperType(val, value, field)
+	default:
+		// 实体对象字段类型
+		switch value.Kind() {
+		//case reflect.Slice:
+		//	if !ok {
+		//		vs = opt.defaultValue
+		//	}
+		//	return true, setPmsSlice(vs, value, field)
+		//	//return true, nil
+		//case reflect.Array:
+		//	if !ok {
+		//		vs = []string{opt.defaultValue}
+		//	}
+		//	//if len(vs) != value.Len() {
+		//	//	return false, fmt.Errorf("%q is not valid value for %s", vs, value.Type().String())
+		//	//}
+		//	//return true, setArray(vs, value, field)
+		//	return true, nil
+		case reflect.Float32, reflect.Float64:
+			val := vs.(float64)
+			value.SetFloat(val)
+			return true, nil
+		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+			val := int64(vs.(float64))
+			value.SetInt(val)
+			return true, nil
+		case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+			val := uint64(vs.(float64))
+			value.SetUint(val)
+			return true, nil
+		default:
+			return false, nil
+		}
 	}
 }
 
 //func setPmsSlice(vals interface{}, value reflect.Value, field reflect.StructField) error {
-//	slice := reflect.MakeSlice(value.Type(), len(vals), len(vals))
+//	slice := reflect.MakeSlice(value.Type(), 1, 1)
 //	err := setArray(vals, slice, field)
 //	if err != nil {
 //		return err

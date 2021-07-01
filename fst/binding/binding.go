@@ -6,21 +6,9 @@
 
 package binding
 
-import "net/http"
-
-// Content-Type MIME of the most common data formats.
-const (
-	MIMEJSON              = "application/json"
-	MIMEHTML              = "text/html"
-	MIMEXML               = "application/xml"
-	MIMEXML2              = "text/xml"
-	MIMEPlain             = "text/plain"
-	MIMEPOSTForm          = "application/x-www-form-urlencoded"
-	MIMEMultipartPOSTForm = "multipart/form-data"
-	MIMEPROTOBUF          = "application/x-protobuf"
-	MIMEMSGPACK           = "application/x-msgpack"
-	MIMEMSGPACK2          = "application/msgpack"
-	MIMEYAML              = "application/x-yaml"
+import (
+	"github.com/qinchende/gofast/fst/cst"
+	"net/http"
 )
 
 // Binding describes the interface which needs to be implemented for binding the
@@ -92,17 +80,17 @@ func Default(method, contentType string) Binding {
 	}
 
 	switch contentType {
-	case MIMEJSON:
+	case cst.MIMEJSON:
 		return JSON
-	case MIMEXML, MIMEXML2:
+	case cst.MIMEAppXML, cst.MIMETextXML:
 		return XML
-	case MIMEPROTOBUF:
+	case cst.MIMEPROTOBUF:
 		return ProtoBuf
-	case MIMEMSGPACK, MIMEMSGPACK2:
+	case cst.MIMEMSGPACK, cst.MIMEXMSGPACK:
 		return MsgPack
-	case MIMEYAML:
+	case cst.MIMEYAML:
 		return YAML
-	case MIMEMultipartPOSTForm:
+	case cst.MIMEMultiPOSTForm:
 		return FormMultipart
 	default: // case MIMEPOSTForm:
 		return Form
