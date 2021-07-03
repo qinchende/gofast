@@ -16,7 +16,7 @@ func (c *Context) BindPms(obj interface{}) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
 
-	return binding.JSON.BindPms(c.ReqRaw.Form, obj)
+	return binding.Pms.BindPms(c.Pms, obj)
 }
 
 /************************************/

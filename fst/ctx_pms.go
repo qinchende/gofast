@@ -3,49 +3,94 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/fst/cst"
+	"strings"
 	"time"
 )
 
 /************************************/
 /*********** Context Pms ************/
 /************************************/
-
-// 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
-func (c *Context) ParseHttpParams() {
+func (c *Context) ParseRequestData() {
 	if c.Pms != nil {
 		return
 	}
+	c.Pms = make(map[string]interface{})
+	isForm := false
 
-	// 下面这两个解析之后，Go标准库会自动将两部分参数合并到 c.ReqRaw.Form 中。
-	c.ParseQuery()
-	//c.ParseForm()
-
-	v := make(map[string]interface{})
-	err := c.BindJSON(&v)
-	if err != nil {
-
+	ctType := c.ReqRaw.Header.Get(cst.HeaderContentType)
+	switch {
+	case strings.HasPrefix(ctType, MIMEJSON):
+		if err := c.BindJSON(&c.Pms); err != nil {
+		}
+	case strings.HasPrefix(ctType, MIMEAppXML), strings.HasPrefix(ctType, MIMETextXML):
+		if err := c.BindXML(&c.Pms); err != nil {
+		}
+	case strings.HasPrefix(ctType, MIMEPOSTForm), strings.HasPrefix(ctType, MIMEMultiPOSTForm):
+		c.ParseForm()
+		isForm = true
+		for key, val := range c.ReqRaw.Form {
+			c.Pms[key] = val[0]
+		}
+	default:
 	}
 
-	// 将 Get 和 Post 请求参数全部解构之后加入 Pms 集合中
-	c.Pms = make(map[string]string, len(c.ReqRaw.Form))
+	if !isForm {
+		c.ParseQuery()
+		for key, val := range c.queryCache {
+			c.Pms[key] = val[0]
+		}
+	}
+
+	return
+}
+
+// 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
+func (c *Context) GenPmsByJSONBody() {
+	if c.Pms != nil {
+		return
+	}
+	c.Pms = make(map[string]interface{})
+	if err := c.BindJSON(&c.Pms); err != nil {
+	}
+
+	c.ParseQuery()
+	for key, val := range c.queryCache {
+		c.Pms[key] = val[0]
+	}
+}
+
+func (c *Context) GenPmsByFormBody() {
+	if c.Pms != nil {
+		return
+	}
+	c.ParseForm()
+	c.Pms = make(map[string]interface{}, len(c.ReqRaw.Form))
 	for key, val := range c.ReqRaw.Form {
 		c.Pms[key] = val[0]
 	}
 }
 
-//// 如果没有匹配路由，需要一些初始化
-//func (c *Context) ParseHttpParamsNoRoute() {
-//	if c.Pms == nil {
-//		c.Pms = make(map[string]string, 0)
-//	}
-//}
-
-// 返回 Pms 对象中对应的
-func (c *Context) GetPms(key string) string {
-	if val, ok := c.Pms[key]; ok {
-		return val
+func (c *Context) GenPmsByXMLBody() {
+	if c.Pms != nil {
+		return
 	}
-	return ""
+	c.Pms = make(map[string]interface{})
+	if err := c.BindXML(&c.Pms); err != nil {
+	}
+
+	c.ParseQuery()
+	for key, val := range c.queryCache {
+		c.Pms[key] = val[0]
+	}
+}
+
+// 如果没有匹配路由，需要一些初始化
+func (c *Context) GetPms(key string) (value interface{}, exists bool) {
+	c.mu.RLock()
+	value, exists = c.Pms[key]
+	c.mu.RUnlock()
+	return
 }
 
 /************************************/
