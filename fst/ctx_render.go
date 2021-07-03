@@ -52,7 +52,7 @@ func (c *Context) FaiKV(jsonData KV) {
 	}
 
 	c.JSONOfKV(http.StatusOK, jsonData)
-	c.aborted = true
+	//c.aborted = true
 }
 
 // ++
@@ -92,7 +92,7 @@ func (c *Context) SucKV(jsonData KV) {
 	}
 
 	c.JSONOfKV(http.StatusOK, jsonData)
-	c.aborted = true
+	//c.aborted = true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
