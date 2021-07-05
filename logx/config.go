@@ -25,6 +25,7 @@ const (
 	fileTwo             // 2：只分access和error两个文件
 )
 
+// 日志样式名称
 const (
 	styleJsonStr     = "json"
 	styleJsonMiniStr = "json-mini"
@@ -32,6 +33,7 @@ const (
 	styleSdxMiniStr  = "sdx-mini"
 )
 
+// 日志样式类型
 const (
 	styleJson int8 = iota
 	styleJsonMini
