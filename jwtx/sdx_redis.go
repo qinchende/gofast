@@ -15,7 +15,7 @@ func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
 	}
 	err = json.Unmarshal(bytesconv.StringToBytes(str), &ctx.Sess.Values)
 	if err != nil {
-		ctx.FaiX(110, "获取SESSION失败，请重新访问系统。", fst.KV{})
+		ctx.Fai(110, "获取SESSION失败，请重新访问系统。", fst.KV{})
 	}
 }
 

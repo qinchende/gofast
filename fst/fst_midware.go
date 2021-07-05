@@ -6,12 +6,12 @@ import (
 	"net/http"
 )
 
-// GoFast提供的拦截器全家桶
-func (gft *GoFast) InjectFits(gftFunc goFastRegFunc) *GoFast {
+// 添加一组全局拦截器
+func (gft *GoFast) Fits(gftFunc goFastRegFunc) *GoFast {
 	return gftFunc(gft)
 }
 
-// 添加全局拦截器
+// 添加单个全局拦截器
 func (gft *GoFast) Fit(hds IncHandler) *GoFast {
 	if hds != nil {
 		gft.fitHandlers = append(gft.fitHandlers, hds)

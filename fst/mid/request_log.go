@@ -7,11 +7,7 @@ import (
 	"time"
 )
 
-func ReqLogger(logType string) fst.IncHandler {
-	if logType == "" {
-		logType = fst.LogTypeConsole
-	}
-
+func ReqLogger() fst.IncHandler {
 	return func(w *fst.GFResponse, r *http.Request) {
 		// Start timer
 		start := time.Now()
