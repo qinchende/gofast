@@ -104,7 +104,7 @@ func SdxSessBuilder(ctx *fst.Context) {
 func SdxMustLogin(ctx *fst.Context) {
 	uid := ctx.Sess.Get(ses.SessKey)
 	if uid == nil || uid == "" {
-		ctx.FaiX(110, "认证失败，请先登录。", fst.KV{})
+		ctx.Fai(110, "认证失败，请先登录。", fst.KV{})
 		return
 	}
 }

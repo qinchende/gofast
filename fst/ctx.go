@@ -90,3 +90,8 @@ func (c *Context) reset() {
 //	cp.Params = paramCopy
 //	return &cp
 //}
+
+// 直接向上抛出异常，交给全局Recover函数处理
+func (c *Context) panic() {
+	panic("Handler exception!")
+}

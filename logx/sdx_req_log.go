@@ -41,7 +41,7 @@ var genSdxReqLogString = func(p *ReqLogParams) string {
 
 	// 这个时候可以随意改变 p.Pms ，这是请求最后一个执行的地方了
 	var basePms = make(map[string]interface{})
-	if p.Pms["tok"] != "" {
+	if p.Pms["tok"] != nil {
 		basePms["tok"] = p.Pms["tok"]
 		delete(p.Pms, "tok")
 	}

@@ -14,69 +14,55 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
-// JSON是GoFast默认的返回格式，一等公民
-
-func (c *Context) Fai(msg string) {
-	c.FaiX(0, msg, nil)
-}
+// JSON是GoFast默认的返回格式，一等公民。所以默认函数命名没有给出JSON字样
 
 func (c *Context) FaiErr(err error) {
-	c.FaiX(0, err.Error(), nil)
+	c.Fai(0, err.Error(), nil)
 }
 
-func (c *Context) FaiX(code int32, msg string, obj interface{}) {
+func (c *Context) FaiMsg(msg string) {
+	c.Fai(0, msg, nil)
+}
+
+func (c *Context) FaiKV(obj KV) {
+	c.Fai(0, "", obj)
+}
+
+func (c *Context) Fai(code int32, msg string, obj interface{}) {
 	jsonData := KV{
-		"status":   "fai",
-		"msg_code": code,
-		"msg":      msg,
+		"status": "fai",
+		"code":   code,
+		"msg":    msg,
 	}
 	if obj != nil {
-		jsonData["record"] = obj
+		jsonData["data"] = obj
 	}
-	c.FaiKV(jsonData)
+	c.faiKV(jsonData)
 }
 
-func (c *Context) FaiKV(jsonData KV) {
-	if jsonData == nil {
-		jsonData = make(KV)
-	}
-	jsonData["status"] = "fai"
-	if jsonData["msg"] == nil {
-		jsonData["msg"] = ""
-	}
-	if jsonData["msg_code"] == nil {
-		jsonData["msg_code"] = 0
-	}
-	if c.Sess.IsNew {
-		jsonData["tok"] = c.Sess.Token
-	}
-
-	c.JSONOfKV(http.StatusOK, jsonData)
-	//c.aborted = true
+// +++++
+func (c *Context) SucMsg(msg string) {
+	c.Suc(0, msg, nil)
 }
 
-// ++
-func (c *Context) Suc(obj interface{}) {
-	c.SucX(0, "success", obj)
+func (c *Context) SucKV(obj KV) {
+	c.Suc(0, "", obj)
 }
 
-func (c *Context) SucMsg(msg string, obj interface{}) {
-	c.SucX(0, msg, obj)
-}
-
-func (c *Context) SucX(code int32, msg string, obj interface{}) {
+func (c *Context) Suc(code int32, msg string, obj interface{}) {
 	jsonData := KV{
-		"status":   "suc",
-		"msg_code": code,
-		"msg":      msg,
+		"status": "suc",
+		"code":   code,
+		"msg":    msg,
 	}
 	if obj != nil {
-		jsonData["record"] = obj
+		jsonData["data"] = obj
 	}
-	c.SucKV(jsonData)
+	c.sucKV(jsonData)
 }
 
-func (c *Context) SucKV(jsonData KV) {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (c *Context) sucKV(jsonData KV) {
 	if jsonData == nil {
 		jsonData = make(KV)
 	}
@@ -84,18 +70,98 @@ func (c *Context) SucKV(jsonData KV) {
 	if jsonData["msg"] == nil {
 		jsonData["msg"] = ""
 	}
-	if jsonData["msg_code"] == nil {
-		jsonData["msg_code"] = 0
+	if jsonData["code"] == nil {
+		jsonData["code"] = 0
+	}
+	if c.Sess != nil && c.Sess.IsNew {
+		jsonData["tok"] = c.Sess.Token
+	}
+	c.JSON(http.StatusOK, jsonData)
+}
+
+func (c *Context) faiKV(jsonData KV) {
+	if jsonData == nil {
+		jsonData = make(KV)
+	}
+	jsonData["status"] = "fai"
+	if jsonData["msg"] == nil {
+		jsonData["msg"] = ""
+	}
+	if jsonData["code"] == nil {
+		jsonData["code"] = 0
 	}
 	if c.Sess != nil && c.Sess.IsNew {
 		jsonData["tok"] = c.Sess.Token
 	}
 
-	c.JSONOfKV(http.StatusOK, jsonData)
-	//c.aborted = true
+	c.JSON(http.StatusOK, jsonData)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Render writes the response headers and calls render.Render to render data.
+// 返回数据的接口
+// 如果需要
+func (c *Context) Render(code int, r render.Render) {
+	// Render之前加入对应的 render 数据
+	c.PRender = &r
+	c.PCode = &code
+
+	// add preSend & afterSend events by sdx on 2021.01.06
+	c.execPreSendHandlers()
+
+	c.Status(code)
+	if !bodyAllowedForStatus(code) {
+		r.WriteContentType(c.ResWrap)
+		c.ResWrap.WriteHeaderNow()
+		return
+	}
+	// TODO: render之前，统一保存 session
+	if c.Sess != nil {
+		c.Sess.Save()
+	}
+
+	// TODO: 是否要避免 double render，这里的Render是否只需要调一次，如果第二次就需要报错
+	if err := r.Render(c.ResWrap); err != nil {
+		panic(err)
+	}
+	// add preSend & afterSend events by sdx on 2021.01.06
+	c.execAfterSendHandlers()
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+/************************************/
+/*********** flow control ***********/
+/************************************/
+
+// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
+func (c *Context) PanicWithStatus(code int) {
+	c.Status(code)
+	c.panic()
+}
+
+// AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
+// This method stops the chain, writes the status code and return a JSON body.
+// It also sets the Content-Type as "application/json".
+func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
+	c.JSON(code, jsonObj)
+	c.aborted = true
+}
+
+// 终止后面的程序，依次返回调用方。
+func (c *Context) AbortWithStatus(code int) {
+	c.Status(code)
+	c.aborted = true
+}
+
+// AbortWithError calls `AbortWithStatus()` and `Error()` internally.
+// This method stops the chain, writes the status code and pushes the specified error to `c.Errors`.
+// See Context.Error() for more details.
+func (c *Context) AbortWithError(code int, err error) *Error {
+	c.Status(code)
+	return c.Error(err)
+}
 
 /************************************/
 /******** RESPONSE RENDERING ********/
@@ -178,37 +244,6 @@ func (c *Context) Cookie(name string) (string, error) {
 	return val, nil
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Render writes the response headers and calls render.Render to render data.
-// 返回数据的接口
-// 如果需要
-func (c *Context) Render(code int, r render.Render) {
-	// Render之前加入对应的 render 数据
-	c.PRender = &r
-	c.PCode = &code
-
-	// add preSend & afterSend events by sdx on 2021.01.06
-	c.execPreSendHandlers()
-
-	c.Status(code)
-	if !bodyAllowedForStatus(code) {
-		r.WriteContentType(c.ResWrap)
-		c.ResWrap.WriteHeaderNow()
-		return
-	}
-	// TODO: render之前，统一保存 session
-	if c.Sess != nil {
-		c.Sess.Save()
-	}
-
-	// TODO: 是否要避免 double render，这里的Render是否只需要调一次，如果第二次就需要报错
-	if err := r.Render(c.ResWrap); err != nil {
-		panic(err)
-	}
-	// add preSend & afterSend events by sdx on 2021.01.06
-	c.execAfterSendHandlers()
-}
-
 // HTML renders the HTTP template specified by its file name.
 // It also updates the HTTP code and sets the Content-Type as "text/html".
 // See http://golang.org/doc/articles/wiki/
@@ -242,10 +277,6 @@ func (c *Context) JSONP(code int, obj interface{}) {
 		return
 	}
 	c.Render(code, render.JsonpJSON{Callback: callback, Data: obj})
-}
-
-func (c *Context) JSONOfKV(code int, obj KV) {
-	c.Render(code, render.JSON{Data: obj})
 }
 
 // JSON serializes the given struct as JSON into the response body.

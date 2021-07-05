@@ -43,6 +43,7 @@ var CtxSessionSaveFun = func(ss *CtxSession) (string, error) {
 }
 
 func (ss *CtxSession) Save() {
+	// 如果已经保存了，不会重复保存
 	if ss.Saved == true {
 		return
 	}
