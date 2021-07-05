@@ -5,24 +5,11 @@ package logx
 import (
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 )
 
-type ReqLogParams struct {
-	Request    *http.Request
-	Method     string
-	Path       string
-	TimeStamp  time.Time
-	Latency    time.Duration
-	StatusCode int
-	ClientIP   string
-	// isTerm     bool
-	Pms        map[string]interface{}
-	BodySize   int
-	WriteBytes *[]byte
-	// Keys       map[string]interface{}
-	ErrorMsg string
+func writeSdxReqLog(p *ReqLogParams) {
+	infoSync(genSdxReqLogString(p))
 }
 
 var genSdxReqLogString = func(p *ReqLogParams) string {
@@ -69,8 +56,4 @@ var genSdxReqLogString = func(p *ReqLogParams) string {
 		(*p.WriteBytes)[:tLen],
 		p.ErrorMsg,
 	)
-}
-
-func WriteSdxReqLog(p *ReqLogParams) {
-	infoSync(genSdxReqLogString(p))
 }
