@@ -37,15 +37,15 @@ var genSdxReqLogString = func(p *ReqLogParams) string {
 	var reqParams []byte
 	if p.Pms != nil {
 		reqParams, _ = json.Marshal(p.Pms)
-	} else if p.Request.Form != nil {
-		reqParams, _ = json.Marshal(p.Request.Form)
+	} else if p.RawReq.Form != nil {
+		reqParams, _ = json.Marshal(p.RawReq.Form)
 	}
 	// 请求 核心参数
 	reqBaseParams, _ := json.Marshal(basePms)
 
 	return fmt.Sprintf(formatStr,
-		p.Method,
-		p.Path,
+		p.RawReq.Method,
+		p.RawReq.URL.Path,
 		p.ClientIP,
 		p.TimeStamp.Format(timeFormatMini),
 		p.StatusCode,

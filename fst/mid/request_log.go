@@ -11,28 +11,23 @@ func ReqLogger() fst.IncHandler {
 	return func(w *fst.GFResponse, r *http.Request) {
 		// Start timer
 		start := time.Now()
-		path := r.URL.Path
 
-		// time.Sleep(1 * time.Second)
 		// 执行完后面的请求，再打印日志
 		w.NextFit(r)
 
 		// 请求处理完，并成功返回了，接下来就是打印请求日志
 		p := &logx.ReqLogParams{
-			Request: r,
-			//isTerm:  isTerm,
+			RawReq: r,
+			// isTerm:  isTerm,
 		}
 		if w.Ctx != nil {
 			p.Pms = w.Ctx.Pms
-			//p.Keys = w.PCtx.Keys
 		}
 		p.ClientIP = w.ClientIP(r)
-		p.Method = r.Method
 		p.StatusCode = w.ResWrap.Status()
 		p.ErrorMsg = w.Errors.ByType(fst.ErrorTypePrivate).String()
 		p.WriteBytes = &w.ResWrap.WriteBytes
 		p.BodySize = w.ResWrap.Size()
-		p.Path = path
 
 		// Stop timer
 		p.TimeStamp = time.Now()

@@ -15,7 +15,7 @@ type LogConfig struct {
 	KeepDays           int    `json:",optional"`
 	StackArchiveMillis int    `json:",default=100"`
 	NeedCpuMem         bool   `json:",default=true"`
-	StyleName          string `json:",default=json"`
+	StyleName          string `json:",default=sdx,options=json|json-mini|sdx|sdx-mini"`
 	style              int8   `inner:",optional"` // 日志模板样式
 }
 
