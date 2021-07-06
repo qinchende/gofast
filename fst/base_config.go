@@ -9,6 +9,7 @@ import (
 
 // GoFast WEB框架的配置参数
 type AppConfig struct {
+	LogConfig logx.LogConfig
 	// FuncMap          	template.FuncMap
 	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
 	Name                   string `json:",optional,default=GoFastSite"`

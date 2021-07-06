@@ -7,9 +7,7 @@ import (
 
 // 日志参数实体
 type ReqLogParams struct {
-	Request    *http.Request
-	Method     string
-	Path       string
+	RawReq     *http.Request
 	TimeStamp  time.Time
 	Latency    time.Duration
 	StatusCode int
@@ -26,6 +24,12 @@ type ReqLogParams struct {
 func WriteReqLog(p *ReqLogParams) {
 	switch currConfig.style {
 	case styleSdx:
+		writeSdxReqLog(p)
+	case styleSdxMini:
+		writeSdxReqLog(p)
+	case styleJson:
+		writeSdxReqLog(p)
+	case styleJsonMini:
 		writeSdxReqLog(p)
 	default:
 	}

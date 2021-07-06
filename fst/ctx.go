@@ -16,8 +16,8 @@ type Context struct {
 	ReqRaw      *http.Request // request
 
 	Params     *Params                // : 或 * 对应的参数
-	match      matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	Pms        map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	match      matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	queryCache url.Values             // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values             // the parsed form data from POST, PATCH, or PUT body parameters.
 
@@ -29,9 +29,10 @@ type Context struct {
 	PRender *render.Render // render 对象
 	PCode   *int           // status code
 
-	// -----------------------------
 	// This mutex protect Keys map
 	mu sync.RWMutex
+
+	// -----------------------------以下待定
 	// Accepted defines a list of manually accepted formats for content negotiation.
 	Accepted []string
 	// SameSite allows a server to define a cookie attribute making it impossible for
