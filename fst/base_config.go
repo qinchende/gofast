@@ -26,7 +26,7 @@ type AppConfig struct {
 	RemoveExtraSlash       bool   `json:",default=false"`                       // 规范请求的URL
 	UseRawPath             bool   `json:",default=false"`                       // 默认取原始的Path，不需要自动转义
 	UnescapePathValues     bool   `json:",default=true"`                        // 默认把URL中的参数值做转义
-	PrintRouteTrees        bool   `json:",default=true"`                        // 是否打印出当前路由数
+	PrintRouteTrees        bool   `json:",default=false"`                       // 是否打印出当前路由数
 	FitReqTimeout          int64  `json:",default=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	FitMaxReqContentLen    int64  `json:",default=33554432"`                    // 最大请求字节数
 	FitMaxReqCount         int32  `json:",default=1000000,range=[0:100000000]"` // 最大请求处理数

@@ -21,6 +21,7 @@ func (gft *GoFast) regAllRouters() {
 	gft.treeAll = append(gft.treeAll, gft.treeGet)
 	gft.treeAll = append(gft.treeAll, gft.treePost)
 
+	// 打印底层构造的路由树
 	if gft.PrintRouteTrees {
 		gft.printRouteTrees()
 	}
@@ -31,7 +32,9 @@ func (gft *GoFast) regAllRouters() {
 // 注册每一条的路由，生成 原始的 Radix 树
 func (gft *GoFast) regRouterItem(ri *RouterItem) {
 	// Debug模式下打印新添加的路由
-	debugPrintRoute(ri)
+	if gft.PrintRouteTrees {
+		debugPrintRoute(ri)
+	}
 
 	mTree := gft.getMethodTree(ri.method)
 	if mTree == nil {

@@ -8,6 +8,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"github.com/qinchende/gofast/fst/render"
+	testdata "github.com/qinchende/gofast/fst/test/testdata/protoexample"
 	"html/template"
 	"net/http"
 	"net/http/httptest"
@@ -17,8 +18,6 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/stretchr/testify/assert"
-
-	testdata "github.com/qinchende/gofast/fst/testdata/protoexample"
 )
 
 // TODO unit tests
