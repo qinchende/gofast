@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/test/testdata/protoexample"
 	"io"
 	"io/ioutil"
 	"mime/multipart"
@@ -20,7 +21,6 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/qinchende/gofast/fst/testdata/protoexample"
 	"github.com/stretchr/testify/assert"
 )
 

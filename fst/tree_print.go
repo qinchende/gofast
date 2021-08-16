@@ -51,8 +51,18 @@ func (n *radixNode) prettyPrint(str *strings.Builder, prefix string, isTail bool
 	// 要显示的节点内容
 	str.WriteString(n.match)
 	curLen := len([]rune(prefix)) + len([]rune(n.match))
-	strFmt := "%-" + fmt.Sprintf("%ds", 60-curLen)
-
+	// 缩进最大是160字符占位符
+	retract := 60 - curLen
+	for i := 1; i <= 5; i++ {
+		if retract >= 0 {
+			break
+		}
+		retract += 20
+	}
+	if retract < 0 {
+		retract = 0
+	}
+	strFmt := "%-" + fmt.Sprintf("%ds", retract)
 	str.WriteString(fmt.Sprintf(strFmt, ""))
 	// [优先级，动态匹配参数数量，handler数量，所有子节点首字符]
 	// [4-0-0-im]
@@ -74,11 +84,17 @@ func (n *radixNode) prettyPrint(str *strings.Builder, prefix string, isTail bool
 func genPrintNode(str *strings.Builder, arr []string) {
 	str.WriteString(" [")
 	if arr != nil && len(arr) > 0 {
-		str.WriteString(arr[0])
+		if arr[0] == "true" {
+			str.WriteString("1")
+		} else {
+			str.WriteString("0")
+		}
 	}
 	for i := 1; i < len(arr); i++ {
-		str.WriteString("-")
-		str.WriteString(arr[i])
+		if arr[i] != "" {
+			str.WriteString("-")
+			str.WriteString(arr[i])
+		}
 	}
 	str.WriteString("]\n")
 }

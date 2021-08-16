@@ -12,6 +12,7 @@ import (
 /*********** Context Pms ************/
 /************************************/
 func (c *Context) ParseRequestData() {
+	// 防止重复解析
 	if c.Pms != nil {
 		return
 	}
