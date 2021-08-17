@@ -9,11 +9,6 @@ import (
 	"strings"
 )
 
-var (
-	sdxTokenPrefix   = "t:"
-	sdxSessKeyPrefix = "tls:"
-)
-
 // tok=t:NFRRcE81WDFQSEZJQUptZkpJ.v9EN6bWz8KU6sKRrcEId1OKUKqYx0hed2zSpCQImvc
 func fetchSid(tok string) (string, string) {
 	start := strings.Index(tok, sdxTokenPrefix)
