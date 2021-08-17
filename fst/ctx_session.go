@@ -5,7 +5,7 @@ package fst
 import "errors"
 
 type SessionKeeper interface {
-	//Init()
+	New() *CtxSession
 	Get(string) interface{}
 	Set(string, interface{})
 	Save()
@@ -15,15 +15,20 @@ type SessionKeeper interface {
 // GoFast框架的 Context Session
 // 默认将使用 Redis 存放 分布式 session 信息
 type CtxSession struct {
-	Sid    string
-	Token  string
-	IsNew  bool
-	Saved  bool
-	Values map[string]interface{}
+	Sid        string
+	Token      string
+	TokenIsNew bool
+	Saved      bool
+	Values     map[string]interface{}
 }
 
 // CtxSession 需要实现 SessionKeeper 所有接口
 var _ SessionKeeper = &CtxSession{}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (ss *CtxSession) New() *CtxSession {
+	return &CtxSession{}
+}
 
 func (ss *CtxSession) Get(key string) interface{} {
 	if ss.Values == nil {

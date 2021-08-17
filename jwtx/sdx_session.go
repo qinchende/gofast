@@ -6,50 +6,29 @@ import (
 	"time"
 )
 
-type SdxSessConfig struct {
-	RedisConnCnf redis.ConnConfig `json:",optional"`                // 用 Redis 做持久化
-	CheckTokenIP bool             `json:",optional,default=true"`   // 看是否检查 token ip 地址
-	SessKey      string           `json:",optional,default=cus_id"` // 用户信息的主键
-	Secret       string           `json:",optional"`                // token秘钥
-	TTL          time.Duration    `json:",optional"`                // session有效期 默认 3600*4 秒
-	TTLNew       time.Duration    `json:",optional"`                // 首次产生的session有效期 默认 60*3 秒
-}
-
-// 每个进程只有一个全局 sdx session 配置对象
-var ses *SdxSession
-
-// 参数配置，Redis实例等
-type SdxSession struct {
-	SdxSessConfig
-	Redis *redis.GoRedisX
-
-	isReady bool // 是否已经初始化
-}
-
 // 采用 “闪电侠” session 方案的时候需要先初始化参数
 func (ss *SdxSession) Init() {
-	if ses != nil {
+	if SdxSS != nil {
 		return
 	}
-	ses = ss
+	SdxSS = ss
+
+	// 给默认值
 	if ss.TTL == 0 {
 		ss.TTL = 3600 * 4 * time.Second // 默认4个小时
 	}
 	if ss.TTLNew == 0 {
 		ss.TTLNew = 180 * time.Second // 默认三分钟
 	}
-	//if ss.SessKey == "" {
-	//	ss.SessKey = "cus_id"
-	//}
 	if ss.Redis == nil {
 		ss.Redis = redis.NewGoRedis(&ss.RedisConnCnf)
 	}
 
 	// 指定 保存session 的处理函数
-	fst.CtxSessionSaveFun = SaveSessionToRedis
+	fst.CtxSessionSaveFun = saveSessionToRedis
 
 	// 初始化完成
-	ses.isReady = true
+	SdxSS.isReady = true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -63,16 +42,17 @@ func SdxSessBuilder(ctx *fst.Context) {
 		return
 	}
 
-	ctx.Sess = &fst.CtxSession{Saved: false, IsNew: false}
+	// 每个请求对应的SESSION对象都是新创建的，线程安全。
+	ctx.Sess = &fst.CtxSession{}
 	tok := ctx.Pms["tok"]
 	if tok == nil {
 		tok = ""
 	}
 
-	// 没有 tok，新建一个token，假装当前请求是有token的，同时走后面的逻辑
+	// 没有tok，赋予当前请求token，同时走后面的逻辑
 	if tok == "" {
-		ses.initNewToken(ctx)
-		ses.initCtxSess(ctx)
+		SdxSS.initNewToken(ctx)
+		// innerSS.loadCtxValues(ctx)
 		return
 	}
 
@@ -84,25 +64,25 @@ func SdxSessBuilder(ctx *fst.Context) {
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确，需要分配新的Token。
 	// 2. 过期，用当前Token重建Session记录。
-	isValid := ses.checkToken(reqSid, reqHmac, ctx)
+	isValid := SdxSS.checkToken(reqSid, reqHmac, ctx)
 
 	// 按照ip计算出当前hmac，和请求中的hmac相比较，看是否相等
 	// 如果Sid验证通过
-	if isValid || ses.CheckTokenIP == false {
+	if isValid || SdxSS.CheckTokenIP == false {
 		ctx.Sess.Sid = reqSid
 	}
 
 	// 如果没有sid，就新生成一个
 	if ctx.Sess.Sid == "" {
-		ses.initNewToken(ctx)
+		SdxSS.initNewToken(ctx)
+	} else {
+		SdxSS.loadSessionFromRedis(ctx) // 通过sid 到 redis 中获取当前 session
 	}
-	// 通过sid 到 redis 中获取当前 session
-	ses.initCtxSess(ctx)
 }
 
 // 验证是否登录
 func SdxMustLogin(ctx *fst.Context) {
-	uid := ctx.Sess.Get(ses.SessKey)
+	uid := ctx.Sess.Get(SdxSS.SessKey)
 	if uid == nil || uid == "" {
 		ctx.Fai(110, "认证失败，请先登录。", fst.KV{})
 		return
@@ -113,7 +93,7 @@ func SdxMustLogin(ctx *fst.Context) {
 // 生成新 token，初始化当前 session
 func (ss *SdxSession) initNewToken(ctx *fst.Context) {
 	sid, tok := ss.newToken(ctx)
-	ctx.Sess.IsNew = true
+	ctx.Sess.TokenIsNew = true
 	ctx.Sess.Sid = sid
 	ctx.Sess.Token = tok
 	ctx.Sess.Values = make(map[string]interface{})

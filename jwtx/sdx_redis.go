@@ -8,7 +8,7 @@ import (
 
 // 从 redis 中获取 当前 请求上下文的 session data.
 // TODO: 有可能 session 是空的
-func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
+func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
 	str, err := ss.Redis.Get(sdxSessKeyPrefix + ctx.Sess.Sid)
 	if str == "" || err != nil {
 		str = `{}`
@@ -20,11 +20,11 @@ func (ss *SdxSession) initCtxSess(ctx *fst.Context) {
 }
 
 // 保存到 redis
-func SaveSessionToRedis(sdx *fst.CtxSession) (string, error) {
+func saveSessionToRedis(sdx *fst.CtxSession) (string, error) {
 	str, _ := json.Marshal(sdx.Values)
-	ttl := ses.TTL
-	if sdx.IsNew {
-		ttl = ses.TTLNew
+	ttl := SdxSS.TTL
+	if sdx.TokenIsNew {
+		ttl = SdxSS.TTLNew
 	}
-	return ses.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
+	return SdxSS.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
 }
