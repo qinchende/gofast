@@ -21,7 +21,7 @@ type Context struct {
 	queryCache url.Values             // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values             // the parsed form data from POST, PATCH, or PUT body parameters.
 
-	// Session数据，这里不规定Session的载体，可以自定义
+	// Session数据，数据存储部分可以自定义
 	Sess *CtxSession
 	// 设置成 true ，将中断后面的所有handlers
 	aborted bool
@@ -32,7 +32,7 @@ type Context struct {
 	// This mutex protect Keys map
 	mu sync.RWMutex
 
-	// -----------------------------以下待定
+	// -----------------------------Context对象占用内存越少越好，以下待定
 	// Accepted defines a list of manually accepted formats for content negotiation.
 	Accepted []string
 	// SameSite allows a server to define a cookie attribute making it impossible for
@@ -66,6 +66,8 @@ func (c *Context) reset() {
 	c.queryCache = nil
 	c.formCache = nil
 	c.aborted = false
+	c.PRender = nil
+	c.PCode = nil
 }
 
 //// 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context

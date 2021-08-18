@@ -20,3 +20,7 @@ func (rdx *GoRedisX) Set(key string, value interface{}, seconds time.Duration) (
 func (rdx *GoRedisX) Expire(key string, seconds time.Duration) (bool, error) {
 	return rdx.Cli.Expire(rdx.Ctx, key, seconds).Result()
 }
+
+func (rdx *GoRedisX) Del(key string) (int64, error) {
+	return rdx.Cli.Del(rdx.Ctx, key).Result()
+}

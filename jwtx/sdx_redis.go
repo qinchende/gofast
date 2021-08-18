@@ -4,6 +4,7 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/skill/bytesconv"
 	"github.com/qinchende/gofast/skill/json"
+	"time"
 )
 
 // 从 redis 中获取 当前 请求上下文的 session data.
@@ -23,8 +24,21 @@ func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
 func saveSessionToRedis(sdx *fst.CtxSession) (string, error) {
 	str, _ := json.Marshal(sdx.Values)
 	ttl := SdxSS.TTL
-	if sdx.TokenIsNew {
+	if sdx.TokenIsNew && sdx.Values[SdxSS.AuthField] == nil {
 		ttl = SdxSS.TTLNew
 	}
 	return SdxSS.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
+}
+
+// 设置Session过期时间
+func setSessionExpire(sdx *fst.CtxSession, ttl time.Duration) (bool, error) {
+	if ttl <= 0 {
+		ttl = SdxSS.TTL
+	}
+	return SdxSS.Redis.Expire(sdxSessKeyPrefix+sdx.Sid, ttl)
+}
+
+// TODO: 这里的函数很多都没有考虑发生错误的情况
+func destroySession(sdx *fst.CtxSession) {
+	_, _ = SdxSS.Redis.Del(sdxSessKeyPrefix + sdx.Sid)
 }

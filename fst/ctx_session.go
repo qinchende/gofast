@@ -2,18 +2,21 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
-type SessionKeeper interface {
-	New() *CtxSession
+type sessionKeeper interface {
 	Get(string) interface{}
 	Set(string, interface{})
+	Del(string)
 	Save()
-	Delete(string)
+	Expire(time.Duration)
 }
 
 // GoFast框架的 Context Session
-// 默认将使用 Redis 存放 分布式 session 信息
+// 默认将使用 Redis 存放 session 信息
 type CtxSession struct {
 	Sid        string
 	Token      string
@@ -22,14 +25,21 @@ type CtxSession struct {
 	Values     map[string]interface{}
 }
 
-// CtxSession 需要实现 SessionKeeper 所有接口
-var _ SessionKeeper = &CtxSession{}
+// CtxSession 需要实现 sessionKeeper 所有接口
+var _ sessionKeeper = &CtxSession{}
+
+// TODO: 你可以自定义实现下面这几个方法，解决底层数据库存储操作。
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+var CtxSessionSaveFun = func(ss *CtxSession) (string, error) {
+	return "", errors.New("Save error. ")
+}
+var CtxSessionExpireFun = func(ss *CtxSession, ttl time.Duration) (bool, error) {
+	return false, errors.New("Change expire error. ")
+}
+var CtxSessionDestroyFun = func(ss *CtxSession) {}
+var CtxSessionCreateFun = func(ctx *Context) {}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ss *CtxSession) New() *CtxSession {
-	return &CtxSession{}
-}
-
 func (ss *CtxSession) Get(key string) interface{} {
 	if ss.Values == nil {
 		return nil
@@ -40,11 +50,6 @@ func (ss *CtxSession) Get(key string) interface{} {
 func (ss *CtxSession) Set(key string, val interface{}) {
 	ss.Saved = false
 	ss.Values[key] = val
-}
-
-// TODO: 你可以自定义实现这个save方法
-var CtxSessionSaveFun = func(ss *CtxSession) (string, error) {
-	return "", errors.New("Error. ")
 }
 
 func (ss *CtxSession) Save() {
@@ -63,7 +68,25 @@ func (ss *CtxSession) Save() {
 	}
 }
 
-func (ss *CtxSession) Delete(key string) {
+func (ss *CtxSession) Del(key string) {
 	delete(ss.Values, key)
 	ss.Saved = false
+}
+
+func (ss *CtxSession) Expire(ttl time.Duration) {
+	yn, err := CtxSessionExpireFun(ss, ttl)
+	if yn == false || err != nil {
+		RaisePanic("Session expire error.")
+	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 销毁当前Session
+func (c *Context) DestroySession() {
+	CtxSessionDestroyFun(c.Sess)
+	c.Sess = nil
+}
+
+func (c *Context) NewSession() {
+	CtxSessionCreateFun(c)
 }
