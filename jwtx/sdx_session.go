@@ -25,6 +25,9 @@ func (ss *SdxSession) Init() {
 	}
 
 	// 指定 保存session 的处理函数
+	fst.CtxSessionCreateFun = newSdxToken
+	fst.CtxSessionDestroyFun = destroySession
+	fst.CtxSessionExpireFun = setSessionExpire
 	fst.CtxSessionSaveFun = saveSessionToRedis
 
 	// 初始化完成
@@ -43,21 +46,22 @@ func SdxSessBuilder(ctx *fst.Context) {
 	}
 
 	// 每个请求对应的SESSION对象都是新创建的，线程安全。
-	ctx.Sess = &fst.CtxSession{}
+	ctx.Sess = new(fst.CtxSession)
 	tok := ctx.Pms["tok"]
 	if tok == nil {
 		tok = ""
 	}
+	ctx.Sess.Token = tok.(string)
 
 	// 没有tok，赋予当前请求token，同时走后面的逻辑
-	if tok == "" {
-		SdxSS.initNewToken(ctx)
+	if ctx.Sess.Token == "" || len(ctx.Sess.Token) < 50 {
+		newSdxToken(ctx)
 		// innerSS.loadCtxValues(ctx)
 		return
 	}
 
 	// 有 tok ，解析出 [sid、hmac]
-	reqSid, reqHmac := fetchSid(tok.(string))
+	reqSid, reqHmac := fetchSid(ctx.Sess.Token)
 	//if err != nil {
 	//	fst.RaisePanicErr(err)
 	//}
@@ -74,7 +78,7 @@ func SdxSessBuilder(ctx *fst.Context) {
 
 	// 如果没有sid，就新生成一个
 	if ctx.Sess.Sid == "" {
-		SdxSS.initNewToken(ctx)
+		newSdxToken(ctx)
 	} else {
 		SdxSS.loadSessionFromRedis(ctx) // 通过sid 到 redis 中获取当前 session
 	}
@@ -82,17 +86,18 @@ func SdxSessBuilder(ctx *fst.Context) {
 
 // 验证是否登录
 func SdxMustLogin(ctx *fst.Context) {
-	uid := ctx.Sess.Get(SdxSS.SessKey)
+	uid := ctx.Sess.Get(SdxSS.AuthField)
 	if uid == nil || uid == "" {
 		ctx.Fai(110, "认证失败，请先登录。", fst.KV{})
-		return
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 生成新 token，初始化当前 session
-func (ss *SdxSession) initNewToken(ctx *fst.Context) {
-	sid, tok := ss.newToken(ctx)
+// 新生成一个SDX Session对象，生成新的tok
+func newSdxToken(ctx *fst.Context) {
+	sid, tok := SdxSS.newToken(ctx)
+	if ctx.Sess == nil {
+		ctx.Sess = new(fst.CtxSession)
+	}
 	ctx.Sess.TokenIsNew = true
 	ctx.Sess.Sid = sid
 	ctx.Sess.Token = tok
@@ -100,6 +105,7 @@ func (ss *SdxSession) initNewToken(ctx *fst.Context) {
 	// ctx.Pms["tok"] = tok
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // TODO: 需不需要安全级别更高的 IP 校验是个问题?
 func (ss *SdxSession) newToken(ctx *fst.Context) (string, string) {
 	return genToken(ss.Secret + ctx.ClientIP())

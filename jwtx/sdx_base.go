@@ -13,7 +13,7 @@ var (
 type SdxSessConfig struct {
 	RedisConnCnf redis.ConnConfig `json:",optional"`                 // 用 Redis 做持久化
 	CheckTokenIP bool             `json:",optional,default=true"`    // 看是否检查 token ip 地址
-	SessKey      string           `json:",optional,default=user_id"` // 标记当前登录用户字段是 user_id
+	AuthField    string           `json:",optional,default=user_id"` // 标记当前登录用户字段是 user_id
 	Secret       string           `json:",optional"`                 // token秘钥
 	TTL          time.Duration    `json:",optional"`                 // session有效期 默认 3600*4 秒
 	TTLNew       time.Duration    `json:",optional"`                 // 首次产生的session有效期 默认 60*3 秒

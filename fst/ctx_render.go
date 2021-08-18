@@ -73,7 +73,7 @@ func (c *Context) sucKV(jsonData KV) {
 	if jsonData["code"] == nil {
 		jsonData["code"] = 0
 	}
-	if c.Sess != nil && c.Sess.IsNew {
+	if c.Sess != nil && c.Sess.TokenIsNew {
 		jsonData["tok"] = c.Sess.Token
 	}
 	c.JSON(http.StatusOK, jsonData)
@@ -90,7 +90,7 @@ func (c *Context) faiKV(jsonData KV) {
 	if jsonData["code"] == nil {
 		jsonData["code"] = 0
 	}
-	if c.Sess != nil && c.Sess.IsNew {
+	if c.Sess != nil && c.Sess.TokenIsNew {
 		jsonData["tok"] = c.Sess.Token
 	}
 
@@ -102,6 +102,10 @@ func (c *Context) faiKV(jsonData KV) {
 // 返回数据的接口
 // 如果需要
 func (c *Context) Render(code int, r render.Render) {
+	// 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
+	if c.PRender != nil {
+		return
+	}
 	// Render之前加入对应的 render 数据
 	c.PRender = &r
 	c.PCode = &code
@@ -120,12 +124,15 @@ func (c *Context) Render(code int, r render.Render) {
 		c.Sess.Save()
 	}
 
-	// TODO: 是否要避免 double render，这里的Render是否只需要调一次，如果第二次就需要报错
 	if err := r.Render(c.ResWrap); err != nil {
 		panic(err)
 	}
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execAfterSendHandlers()
+
+	// 到这里其实也意味着调用链到这里就中断了。不需要再执行其它处理函数。
+	// 调用链是：[before(s)->handler(s)->after(s)]其中任何地方执行了Render，后面的函数都将不再调用。
+	c.aborted = true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
