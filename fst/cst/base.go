@@ -2,17 +2,17 @@ package cst
 
 // Content-Type MIME of the most common data formats.
 const (
-	MIMEJSON          = "application/json"
-	MIMEHTML          = "text/html"
-	MIMEAppXML        = "application/xml"
-	MIMETextXML       = "text/xml"
+	MIMEHtml          = "text/html"
 	MIMEPlain         = "text/plain"
-	MIMEPOSTForm      = "application/x-www-form-urlencoded"
-	MIMEMultiPOSTForm = "multipart/form-data"
-	MIMEPROTOBUF      = "application/x-protobuf"
-	MIMEMSGPACK       = "application/x-msgpack"
-	MIMEXMSGPACK      = "application/msgpack"
-	MIMEYAML          = "application/x-yaml"
+	MIMEXml           = "text/xml"
+	MIMEAppXML        = "application/xml"
+	MIMEAppJson       = "application/json"
+	MIMEPostForm      = "application/x-www-form-urlencoded"
+	MIMEMultiPostForm = "multipart/form-data"
+	MIMEProtoBuf      = "application/x-protobuf"
+	MIMEMsgPack       = "application/msgpack"
+	MIMEXMsgPack      = "application/x-msgpack"
+	MIMEYaml          = "application/x-yaml"
 )
 
 //// MIME types

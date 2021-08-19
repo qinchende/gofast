@@ -62,8 +62,8 @@ func (w *GFResponse) Error(err error) *Error {
 	return parsedError
 }
 
-func (w *GFResponse) ErrorN(err error) {
-	_ = w.Error(err)
+func (w *GFResponse) ErrorN(err interface{}) {
+	//_ = w.Error(err)
 }
 
 func (w *GFResponse) ErrorF(format string, v ...interface{}) {

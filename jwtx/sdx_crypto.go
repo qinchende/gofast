@@ -13,6 +13,7 @@ import (
 func fetchSid(tok string) (string, string) {
 	start := strings.Index(tok, sdxTokenPrefix)
 	dot := strings.Index(tok, ".")
+	// 格式明显不对，直接返回空
 	if start != 0 || dot <= 0 {
 		// return "", "", errors.New("Can't parse sid. ")
 		return "", ""
@@ -27,6 +28,7 @@ func fetchSid(tok string) (string, string) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
+// 闪电侠SID：为24位的字符串
 func genToken(secret string) (string, string) {
 	sid := genSid(24)
 	tok := sdxTokenPrefix + genSign(sid, secret)

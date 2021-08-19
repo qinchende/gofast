@@ -22,8 +22,8 @@ const (
 )
 
 var (
-	// DefaultWriter      io.Writer = os.Stdout
-	DefaultErrorWriter io.Writer = os.Stderr
+	//DefWriter      io.Writer = os.Stdout
+	DefErrorWriter io.Writer = os.Stderr
 )
 
 const (

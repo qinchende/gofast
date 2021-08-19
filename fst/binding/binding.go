@@ -58,7 +58,7 @@ var Validator StructValidator = &defaultValidator{}
 // These implement the Binding interface and can be used to bind the data
 // present in the request to struct instances.
 var (
-	Pms           = pmsBinding{}
+	Pms           = pmsBinding{} // 这是个特殊
 	JSON          = jsonBinding{}
 	XML           = xmlBinding{}
 	Form          = formBinding{}
@@ -80,17 +80,17 @@ func Default(method, contentType string) Binding {
 	}
 
 	switch contentType {
-	case cst.MIMEJSON:
+	case cst.MIMEAppJson:
 		return JSON
-	case cst.MIMEAppXML, cst.MIMETextXML:
+	case cst.MIMEAppXML, cst.MIMEXml:
 		return XML
-	case cst.MIMEPROTOBUF:
+	case cst.MIMEProtoBuf:
 		return ProtoBuf
-	case cst.MIMEMSGPACK, cst.MIMEXMSGPACK:
+	case cst.MIMEMsgPack, cst.MIMEXMsgPack:
 		return MsgPack
-	case cst.MIMEYAML:
+	case cst.MIMEYaml:
 		return YAML
-	case cst.MIMEMultiPOSTForm:
+	case cst.MIMEMultiPostForm:
 		return FormMultipart
 	default: // case MIMEPOSTForm:
 		return Form

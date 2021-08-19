@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
-	"io"
 	"io/ioutil"
 	"log"
 	"net"
@@ -27,26 +26,35 @@ var (
 	slash     = []byte("/")
 )
 
-type RecoveryFunc func(c *fst.GFResponse, err interface{})
+// 默认的异常处理函数，到这里了，证明err肯定发生了。
+func recoveryHandler(w *fst.GFResponse, err interface{}) {
+	w.AbortWithStatus(http.StatusInternalServerError)
+	w.ErrorN(err)
 
-func Recovery() fst.IncHandler {
-	return CustomRecoveryWithWriter(logx.DefaultErrorWriter, defaultHandleRecovery)
+	// 默认返回 JSON 格式的结果
+	jsonData := fst.RenderBaseKV("fai", fmt.Sprintf("%v", err), 0)
+	// todo: 这里可能也会抛出异常
+	_ = render.WriteJSON(w.ResWrap, jsonData)
 }
 
-func CustomRecoveryWithWriter(out io.Writer, recoverHandle RecoveryFunc) fst.IncHandler {
+func Recovery() fst.IncHandler {
 	var logger *log.Logger
-	if out != nil {
-		logger = log.New(out, "\n\n\x1b[31m", log.LstdFlags)
+	if logx.DefErrorWriter != nil {
+		logger = log.New(logx.DefErrorWriter, "\n\n\x1b[31m", log.LstdFlags)
 	}
+
 	return func(w *fst.GFResponse, r *http.Request) {
 		defer func() {
+			// 没有捕获错误，啥也不用做
 			err := recover()
 			if err == nil {
 				return
 			}
-			//  如果是框架主动panic，只打印简单错误日志：
+
+			// 如果是框架主动panic，只打印简单错误日志
+			// 说明是程序自己触发的异常，带有一定的预见性(类似退出当前协程等)。
 			if _, ok := err.(fst.GFPanic); ok {
-				recoverHandle(w, err)
+				recoveryHandler(w, err.(error))
 				w.AbortFit()
 				return
 			}
@@ -77,42 +85,26 @@ func CustomRecoveryWithWriter(out io.Writer, recoverHandle RecoveryFunc) fst.Inc
 					logger.Printf("%s\n%s%s", err, headersToStr, logx.Reset)
 				} else if logx.IsDebugging() {
 					logger.Printf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
-						timeFormat(time.Now()), headersToStr, err, stack, logx.Reset)
+						time.Now().Format("2006/01/02 - 15:04:05"), headersToStr, err, stack, logx.Reset)
 				} else {
 					logger.Printf("[Recovery] %s panic recovered:\n%s\n%s%s",
-						timeFormat(time.Now()), err, stack, logx.Reset)
+						time.Now().Format("2006/01/02 - 15:04:05"), err, stack, logx.Reset)
 				}
 			}
 			if brokenPipe {
 				// If the connection is dead, we can't write a status to it.
-				w.ErrorN(err.(error)) // nolint: errcheck
+				w.ErrorN(err) // nolint: errcheck
 			} else {
-				recoverHandle(w, err)
+				recoveryHandler(w, err.(error))
 			}
 			w.AbortFit()
 		}()
+
 		w.NextFit(r)
 	}
 }
 
-// 默认的异常处理函数，可以自定义
-func defaultHandleRecovery(w *fst.GFResponse, err interface{}) {
-	if err == nil {
-		return
-	}
-	w.AbortWithStatus(http.StatusInternalServerError)
-
-	e := err.(error)
-	w.ErrorN(e)
-
-	// 默认返回 JSON 格式的结果
-	jsonData := fst.KV{
-		"status":   "fai",
-		"msg_code": 0,
-		"msg":      e.Error(),
-	}
-	_ = render.WriteJSON(w.ResWrap, jsonData)
-}
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // stack returns a nicely formatted stack frame, skipping skip frames.
 func stack(skip int) []byte {
@@ -173,9 +165,4 @@ func function(pc uintptr) []byte {
 	}
 	name = bytes.Replace(name, centerDot, dot, -1)
 	return name
-}
-
-func timeFormat(t time.Time) string {
-	timeString := t.Format("2006/01/02 - 15:04:05")
-	return timeString
 }
