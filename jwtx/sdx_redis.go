@@ -27,15 +27,15 @@ func saveSessionToRedis(sdx *fst.CtxSession) (string, error) {
 	if sdx.TokenIsNew && sdx.Values[SdxSS.AuthField] == nil {
 		ttl = SdxSS.TTLNew
 	}
-	return SdxSS.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, ttl)
+	return SdxSS.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, time.Duration(ttl)*time.Second)
 }
 
 // 设置Session过期时间
-func setSessionExpire(sdx *fst.CtxSession, ttl time.Duration) (bool, error) {
+func setSessionExpire(sdx *fst.CtxSession, ttl int32) (bool, error) {
 	if ttl <= 0 {
 		ttl = SdxSS.TTL
 	}
-	return SdxSS.Redis.Expire(sdxSessKeyPrefix+sdx.Sid, ttl)
+	return SdxSS.Redis.Expire(sdxSessKeyPrefix+sdx.Sid, time.Duration(ttl)*time.Second)
 }
 
 // TODO: 这里的函数很多都没有考虑发生错误的情况

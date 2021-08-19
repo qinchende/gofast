@@ -3,7 +3,6 @@ package jwtx
 import (
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/fst"
-	"time"
 )
 
 // 采用 “闪电侠” session 方案的时候需要先初始化参数
@@ -14,12 +13,12 @@ func (ss *SdxSession) Init() {
 	SdxSS = ss
 
 	// 给默认值
-	if ss.TTL == 0 {
-		ss.TTL = 3600 * 4 * time.Second // 默认4个小时
-	}
-	if ss.TTLNew == 0 {
-		ss.TTLNew = 180 * time.Second // 默认三分钟
-	}
+	//if ss.TTL == 0 {
+	//	ss.TTL = 3600 * 4 * time.Second // 默认4个小时
+	//}
+	//if ss.TTLNew == 0 {
+	//	ss.TTLNew = 180 * time.Second // 默认三分钟
+	//}
 	if ss.Redis == nil {
 		ss.Redis = redis.NewGoRedis(&ss.RedisConnCnf)
 	}

@@ -4,7 +4,6 @@ package fst
 
 import (
 	"errors"
-	"time"
 )
 
 type sessionKeeper interface {
@@ -12,7 +11,7 @@ type sessionKeeper interface {
 	Set(string, interface{})
 	Del(string)
 	Save()
-	Expire(time.Duration)
+	Expire(int32)
 }
 
 // GoFast框架的 Context Session
@@ -22,7 +21,7 @@ type CtxSession struct {
 	Token      string
 	TokenIsNew bool
 	Saved      bool
-	Values     map[string]interface{}
+	Values     KV // map[string]interface{}
 }
 
 // CtxSession 需要实现 sessionKeeper 所有接口
@@ -33,7 +32,7 @@ var _ sessionKeeper = &CtxSession{}
 var CtxSessionSaveFun = func(ss *CtxSession) (string, error) {
 	return "", errors.New("Save error. ")
 }
-var CtxSessionExpireFun = func(ss *CtxSession, ttl time.Duration) (bool, error) {
+var CtxSessionExpireFun = func(ss *CtxSession, ttl int32) (bool, error) {
 	return false, errors.New("Change expire error. ")
 }
 var CtxSessionDestroyFun = func(ss *CtxSession) {}
@@ -50,6 +49,13 @@ func (ss *CtxSession) Get(key string) interface{} {
 func (ss *CtxSession) Set(key string, val interface{}) {
 	ss.Saved = false
 	ss.Values[key] = val
+}
+
+func (ss *CtxSession) SetKV(kvs KV) {
+	ss.Saved = false
+	for k, v := range kvs {
+		ss.Values[k] = v
+	}
 }
 
 func (ss *CtxSession) Save() {
@@ -73,7 +79,7 @@ func (ss *CtxSession) Del(key string) {
 	ss.Saved = false
 }
 
-func (ss *CtxSession) Expire(ttl time.Duration) {
+func (ss *CtxSession) Expire(ttl int32) {
 	yn, err := CtxSessionExpireFun(ss, ttl)
 	if yn == false || err != nil {
 		RaisePanic("Session expire error.")

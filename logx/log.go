@@ -15,7 +15,7 @@ func MustSetup(c LogConfig) {
 	// 必须准备好日志环境，否则启动失败自动退出
 	err := setup(currConfig)
 	//DefaultWriter = infoLog
-	DefaultErrorWriter = errorLog
+	DefErrorWriter = errorLog
 	if err != nil {
 		msg := formatWithCaller(err.Error(), 3)
 		log.Println(msg)

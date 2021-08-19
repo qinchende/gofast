@@ -32,22 +32,9 @@ const (
 	//defMultipartMemory int64 = 32 << 20 // 32 MB
 )
 
-// Content-Type MIME of the most common data formats.
-// 常量值，供外部访问调用
-const (
-	MIMEJSON          = cst.MIMEJSON
-	MIMEHTML          = cst.MIMEHTML
-	MIMEAppXML        = cst.MIMEAppXML
-	MIMETextXML       = cst.MIMETextXML
-	MIMEPlain         = cst.MIMEPlain
-	MIMEPOSTForm      = cst.MIMEPOSTForm
-	MIMEMultiPOSTForm = cst.MIMEMultiPOSTForm
-	MIMEYaml          = cst.MIMEYAML
-)
-
 var (
 	spf            = fmt.Sprintf
-	mimePlain      = []string{MIMEPlain}
+	mimePlain      = []string{cst.MIMEPlain}
 	default404Body = []byte("404 (page not found)")
 	default405Body = []byte("405 (method not allowed)")
 )
