@@ -7,7 +7,7 @@ require (
 	github.com/gin-gonic/gin v1.7.1
 	github.com/go-playground/validator/v10 v10.4.1
 	github.com/go-redis/redis/v8 v8.5.0
-	github.com/go-sql-driver/mysql v1.5.0
+	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/protobuf v1.4.3
 	github.com/gomodule/redigo v1.8.3
 	github.com/json-iterator/go v1.1.11
@@ -20,4 +20,6 @@ require (
 	google.golang.org/grpc v1.36.0
 	gopkg.in/h2non/gock.v1 v1.0.16
 	gopkg.in/yaml.v2 v2.4.0
+	gorm.io/driver/mysql v1.1.2
+	gorm.io/gorm v1.21.13
 )

@@ -7,7 +7,7 @@ import (
 	"net/http"
 )
 
-func RenderBaseKV(status, msg string, code int32) KV {
+func NewRenderKV(status, msg string, code int32) KV {
 	return KV{
 		"status": status,
 		"code":   code,
@@ -32,7 +32,7 @@ func (c *Context) FaiKV(obj KV) {
 }
 
 func (c *Context) Fai(code int32, msg string, obj interface{}) {
-	jsonData := RenderBaseKV("fai", msg, code)
+	jsonData := NewRenderKV("fai", msg, code)
 	if obj != nil {
 		jsonData["data"] = obj
 	}
@@ -49,7 +49,7 @@ func (c *Context) SucKV(obj KV) {
 }
 
 func (c *Context) Suc(code int32, msg string, obj interface{}) {
-	jsonData := RenderBaseKV("suc", msg, code)
+	jsonData := NewRenderKV("suc", msg, code)
 	if obj != nil {
 		jsonData["data"] = obj
 	}
@@ -162,6 +162,7 @@ func (c *Context) AbortWithStatus(code int) {
 // See Context.Error() for more details.
 func (c *Context) AbortWithError(code int, err error) *Error {
 	c.Status(code)
+	c.aborted = true
 	return c.Error(err)
 }
 
