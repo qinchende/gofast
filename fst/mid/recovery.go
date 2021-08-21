@@ -32,7 +32,7 @@ func recoveryHandler(w *fst.GFResponse, err interface{}) {
 	w.ErrorN(err)
 
 	// 默认返回 JSON 格式的结果
-	jsonData := fst.RenderBaseKV("fai", fmt.Sprintf("%v", err), 0)
+	jsonData := fst.NewRenderKV("fai", fmt.Sprintf("%v", err), 0)
 	// todo: 这里可能也会抛出异常
 	_ = render.WriteJSON(w.ResWrap, jsonData)
 }
@@ -71,7 +71,7 @@ func Recovery() fst.IncHandler {
 				}
 			}
 			if logger != nil {
-				stack := stack(3)
+				stackInfo := stackCollect(3)
 				httpRequest, _ := httputil.DumpRequest(r, false)
 				headers := strings.Split(string(httpRequest), "\r\n")
 				for idx, header := range headers {
@@ -84,18 +84,18 @@ func Recovery() fst.IncHandler {
 				if brokenPipe {
 					logger.Printf("%s\n%s%s", err, headersToStr, logx.Reset)
 				} else if logx.IsDebugging() {
-					logger.Printf("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
-						time.Now().Format("2006/01/02 - 15:04:05"), headersToStr, err, stack, logx.Reset)
+					logx.Infof("[Recovery] %s panic recovered:\n%s\n%s\n%s%s",
+						time.Now().Format("2006/01/02 - 15:04:05"), headersToStr, err, stackInfo, logx.Reset)
 				} else {
 					logger.Printf("[Recovery] %s panic recovered:\n%s\n%s%s",
-						time.Now().Format("2006/01/02 - 15:04:05"), err, stack, logx.Reset)
+						time.Now().Format("2006/01/02 - 15:04:05"), err, stackInfo, logx.Reset)
 				}
 			}
 			if brokenPipe {
 				// If the connection is dead, we can't write a status to it.
 				w.ErrorN(err) // nolint: errcheck
 			} else {
-				recoveryHandler(w, err.(error))
+				recoveryHandler(w, err)
 			}
 			w.AbortFit()
 		}()
@@ -104,10 +104,10 @@ func Recovery() fst.IncHandler {
 	}
 }
 
+// 下面这些方法用于收集异常堆栈信息
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 // stack returns a nicely formatted stack frame, skipping skip frames.
-func stack(skip int) []byte {
+func stackCollect(skip int) []byte {
 	buf := new(bytes.Buffer) // the returned data
 	// As we loop, we open files and read them. These variables record the currently
 	// loaded file.
@@ -128,13 +128,13 @@ func stack(skip int) []byte {
 			lines = bytes.Split(data, []byte{'\n'})
 			lastFile = file
 		}
-		fmt.Fprintf(buf, "\t%s: %s\n", function(pc), source(lines, line))
+		fmt.Fprintf(buf, "\t%s: %s\n", stackFuncName(pc), stackSource(lines, line))
 	}
 	return buf.Bytes()
 }
 
 // source returns a space-trimmed slice of the n'th line.
-func source(lines [][]byte, n int) []byte {
+func stackSource(lines [][]byte, n int) []byte {
 	n-- // in stack trace, lines are 1-indexed but our array is 0-indexed
 	if n < 0 || n >= len(lines) {
 		return dunno
@@ -143,7 +143,7 @@ func source(lines [][]byte, n int) []byte {
 }
 
 // function returns, if possible, the name of the function containing the PC.
-func function(pc uintptr) []byte {
+func stackFuncName(pc uintptr) []byte {
 	fn := runtime.FuncForPC(pc)
 	if fn == nil {
 		return dunno
