@@ -5,7 +5,7 @@ const (
 	MIMEHtml          = "text/html"
 	MIMEPlain         = "text/plain"
 	MIMEXml           = "text/xml"
-	MIMEAppXML        = "application/xml"
+	MIMEAppXml        = "application/xml"
 	MIMEAppJson       = "application/json"
 	MIMEPostForm      = "application/x-www-form-urlencoded"
 	MIMEMultiPostForm = "multipart/form-data"

@@ -82,7 +82,7 @@ func Default(method, contentType string) Binding {
 	switch contentType {
 	case cst.MIMEAppJson:
 		return JSON
-	case cst.MIMEAppXML, cst.MIMEXml:
+	case cst.MIMEAppXml, cst.MIMEXml:
 		return XML
 	case cst.MIMEProtoBuf:
 		return ProtoBuf
