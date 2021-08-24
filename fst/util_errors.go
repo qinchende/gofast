@@ -38,6 +38,33 @@ type errMessages []*Error
 
 var _ error = &Error{}
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+/************************************/
+/********* error management *********/
+/************************************/
+
+// Error attaches an error to the current context. The error is pushed to a list of errors.
+// It's a good idea to call Error for each error that occurred during the resolution of a request.
+// A middleware can be used to collect all the errors and push them to a database together,
+// print a log, or append it in the HTTP response.
+// Error will panic if err is nil.
+func (c *Context) Error(err error) *Error {
+	if err == nil {
+		RaisePanic("err is nil")
+	}
+	parsedError, ok := err.(*Error)
+	if !ok {
+		parsedError = &Error{
+			Err:  err,
+			Type: ErrorTypePrivate,
+		}
+	}
+	c.Errors = append(c.Errors, parsedError)
+	return parsedError
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 // SetType sets the error's type.
 func (msg *Error) SetType(flags ErrorType) *Error {
 	msg.Type = flags

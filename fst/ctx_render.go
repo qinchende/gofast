@@ -127,6 +127,7 @@ func (c *Context) Render(code int, r render.Render) {
 
 	// 到这里其实也意味着调用链到这里就中断了。不需要再执行其它处理函数。
 	// 调用链是：[before(s)->handler(s)->after(s)]其中任何地方执行了Render，后面的函数都将不再调用。
+	// 但是 preSend 和 afterSend 函数将继续执行。
 	c.aborted = true
 }
 
@@ -135,21 +136,21 @@ func (c *Context) Render(code int, r render.Render) {
 /************************************/
 /*********** flow control ***********/
 /************************************/
-
-// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
-// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
-func (c *Context) PanicWithStatus(code int) {
-	c.Status(code)
-	panic("Handler exception!")
-}
-
-// AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
-// This method stops the chain, writes the status code and return a JSON body.
-// It also sets the Content-Type as "application/json".
-func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
-	c.JSON(code, jsonObj)
-	c.aborted = true
-}
+//
+//// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
+//// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
+//func (c *Context) PanicWithStatus(code int) {
+//	c.Status(code)
+//	panic("Handler exception!")
+//}
+//
+//// AbortWithStatusJSON calls `Abort()` and then `JSON` internally.
+//// This method stops the chain, writes the status code and return a JSON body.
+//// It also sets the Content-Type as "application/json".
+//func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
+//	c.JSON(code, jsonObj)
+//	c.aborted = true
+//}
 
 // 终止后面的程序，依次返回调用方。
 func (c *Context) AbortWithStatus(code int) {
@@ -188,6 +189,24 @@ func (c *Context) Status(code int) {
 	c.ResWrap.WriteHeader(code)
 	c.ResWrap.WriteHeaderNow()
 }
+
+// JSON serializes the given struct as JSON into the response body.
+// It also sets the Content-Type as "application/json".
+func (c *Context) JSON(code int, obj interface{}) {
+	c.Render(code, render.JSON{Data: obj})
+}
+
+// String writes the given string into the response body.
+func (c *Context) String(code int, format string, values ...interface{}) {
+	c.Render(code, render.String{Format: format, Data: values})
+}
+
+// File writes the specified file into the body stream in a efficient way.
+func (c *Context) File(filepath string) {
+	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 //// Header is a intelligent shortcut for c.ResWrap.Header().Set(key, value).
 //// It writes a header in the response.
@@ -282,12 +301,6 @@ func (c *Context) Status(code int) {
 //	c.Render(code, render.JsonpJSON{Callback: callback, Data: obj})
 //}
 
-// JSON serializes the given struct as JSON into the response body.
-// It also sets the Content-Type as "application/json".
-func (c *Context) JSON(code int, obj interface{}) {
-	c.Render(code, render.JSON{Data: obj})
-}
-
 //// AsciiJSON serializes the given struct as JSON into the response body with unicode to ASCII string.
 //// It also sets the Content-Type as "application/json".
 //func (c *Context) AsciiJSON(code int, obj interface{}) {
@@ -315,12 +328,7 @@ func (c *Context) JSON(code int, obj interface{}) {
 //func (c *Context) ProtoBuf(code int, obj interface{}) {
 //	c.Render(code, render.ProtoBuf{Data: obj})
 //}
-//
-//// String writes the given string into the response body.
-//func (c *Context) String(code int, format string, values ...interface{}) {
-//	c.Render(code, render.String{Format: format, Data: values})
-//}
-//
+
 //// Redirect returns a HTTP redirect to the specific location.
 //func (c *Context) Redirect(code int, location string) {
 //	c.Render(-1, render.Redirect{
@@ -347,11 +355,6 @@ func (c *Context) JSON(code int, obj interface{}) {
 //		Reader:        reader,
 //	})
 //}
-
-// File writes the specified file into the body stream in a efficient way.
-func (c *Context) File(filepath string) {
-	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
-}
 
 //// FileFromFS writes the specified file from http.FileSytem into the body stream in an efficient way.
 //func (c *Context) FileFromFS(filepath string, fs http.FileSystem) {

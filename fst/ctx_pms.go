@@ -22,9 +22,11 @@ func (c *Context) ParseRequestData() {
 	switch {
 	case strings.HasPrefix(ctType, cst.MIMEAppJson):
 		if err := c.BindJSON(&c.Pms); err != nil {
+			RaisePanicErr(err)
 		}
 	case strings.HasPrefix(ctType, cst.MIMEAppXml), strings.HasPrefix(ctType, cst.MIMEXml):
 		if err := c.BindXML(&c.Pms); err != nil {
+			RaisePanicErr(err)
 		}
 	case strings.HasPrefix(ctType, cst.MIMEPostForm), strings.HasPrefix(ctType, cst.MIMEMultiPostForm):
 		c.ParseForm()

@@ -128,32 +128,6 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 }
 
 /************************************/
-/********* error management *********/
-/************************************/
-
-// Error attaches an error to the current context. The error is pushed to a list of errors.
-// It's a good idea to call Error for each error that occurred during the resolution of a request.
-// A middleware can be used to collect all the errors and push them to a database together,
-// print a log, or append it in the HTTP response.
-// Error will panic if err is nil.
-func (c *Context) Error(err error) *Error {
-	if err == nil {
-		panic("err is nil")
-	}
-
-	parsedError, ok := err.(*Error)
-	if !ok {
-		parsedError = &Error{
-			Err:  err,
-			Type: ErrorTypePrivate,
-		}
-	}
-
-	c.Errors = append(c.Errors, parsedError)
-	return parsedError
-}
-
-/************************************/
 /***** golang.org/x/net/context *****/
 /************************************/
 

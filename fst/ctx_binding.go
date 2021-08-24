@@ -19,6 +19,35 @@ func (c *Context) BindPms(obj interface{}) error {
 	return binding.Pms.BindPms(c.Pms, obj)
 }
 
+// BindJSON is a shortcut for c.MustBindWith(obj, binding.JSON).
+func (c *Context) BindJSON(obj interface{}) error {
+	return c.MustBindWith(obj, binding.JSON)
+}
+
+// BindXML is a shortcut for c.MustBindWith(obj, binding.BindXML).
+func (c *Context) BindXML(obj interface{}) error {
+	return c.MustBindWith(obj, binding.XML)
+}
+
+// MustBindWith binds the passed struct pointer using the specified binding format.
+// It will abort the request with HTTP 400 if any error occurs.
+// See the binding package.
+func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
+	if err := c.ShouldBindWith(obj, b); err != nil {
+		c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
+		return err
+	}
+	return nil
+}
+
+// ShouldBindWith binds the passed struct pointer using the specified binding gftApp.
+// See the binding package.
+func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
+	// add preBind events by sdx on 2021.03.18
+	//c.execPreBindHandlers()
+	return b.Bind(c.ReqRaw, obj)
+}
+
 ///************************************/
 ///******* binding and validate *******/
 ///************************************/
@@ -35,16 +64,6 @@ func (c *Context) BindPms(obj interface{}) error {
 //	b := binding.Default(c.ReqRaw.Method, c.ContentType())
 //	return c.MustBindWith(obj, b)
 //}
-
-// BindJSON is a shortcut for c.MustBindWith(obj, binding.JSON).
-func (c *Context) BindJSON(obj interface{}) error {
-	return c.MustBindWith(obj, binding.JSON)
-}
-
-// BindXML is a shortcut for c.MustBindWith(obj, binding.BindXML).
-func (c *Context) BindXML(obj interface{}) error {
-	return c.MustBindWith(obj, binding.XML)
-}
 
 //// BindQuery is a shortcut for c.MustBindWith(obj, binding.Query).
 //func (c *Context) BindQuery(obj interface{}) error {
@@ -70,17 +89,6 @@ func (c *Context) BindXML(obj interface{}) error {
 //	}
 //	return nil
 //}
-
-// MustBindWith binds the passed struct pointer using the specified binding gftApp.
-// It will abort the request with HTTP 400 if any error occurs.
-// See the binding package.
-func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
-	if err := c.ShouldBindWith(obj, b); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
-		return err
-	}
-	return nil
-}
 
 //// ShouldBind checks the Content-Type to select a binding gftApp automatically,
 //// Depending the "Content-Type" header different bindings are used:
@@ -128,15 +136,6 @@ func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
 //	}
 //	return binding.Uri.BindUri(m, obj)
 //}
-
-// ShouldBindWith binds the passed struct pointer using the specified binding gftApp.
-// See the binding package.
-func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
-	// add preBind events by sdx on 2021.03.18
-	//c.execPreBindHandlers()
-
-	return b.Bind(c.ReqRaw, obj)
-}
 
 //// ShouldBindBodyWith is similar with ShouldBindWith, but it stores the request
 //// body into the context, and reuse when it is called again.
