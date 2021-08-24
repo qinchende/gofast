@@ -15,7 +15,7 @@ import (
 // 主动抛异常
 func ifPanic(yn bool, text string) {
 	if yn {
-		panic(text)
+		RaisePanic(text)
 	}
 }
 
@@ -119,12 +119,12 @@ func (h KV) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	return e.EncodeToken(xml.EndElement{Name: start.Name})
 }
-
-func assert1(guard bool, text string) {
-	if !guard {
-		panic(text)
-	}
-}
+//
+//func assert1(guard bool, text string) {
+//	if !guard {
+//		panic(text)
+//	}
+//}
 
 func filterFlags(content string) string {
 	for i, char := range content {
@@ -135,15 +135,15 @@ func filterFlags(content string) string {
 	return content
 }
 
-func chooseData(custom, wildcard interface{}) interface{} {
-	if custom == nil {
-		if wildcard == nil {
-			panic("negotiation config is invalid")
-		}
-		return wildcard
-	}
-	return custom
-}
+//func chooseData(custom, wildcard interface{}) interface{} {
+//	if custom == nil {
+//		if wildcard == nil {
+//			panic("negotiation config is invalid")
+//		}
+//		return wildcard
+//	}
+//	return custom
+//}
 
 func parseAccept(acceptHeader string) []string {
 	parts := strings.Split(acceptHeader, ",")

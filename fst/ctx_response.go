@@ -76,10 +76,10 @@ func (w *GFResponse) AbortWithStatus(code int) {
 	w.AbortFit()
 }
 
-func (w *GFResponse) AbortWithError(code int, err error) *Error {
-	w.AbortWithStatus(code)
-	return w.Error(err)
-}
+//func (w *GFResponse) AbortWithError(code int, err error) *Error {
+//	w.AbortWithStatus(code)
+//	return w.Error(err)
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
