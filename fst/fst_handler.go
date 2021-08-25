@@ -12,7 +12,7 @@ import (
 func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 	return func(c *Context) {
 		c.ResWrap.WriteHeader(code)
-		if c.ResWrap.Written() {
+		if c.ResWrap.WriteStarted() {
 			return
 		}
 		if c.ResWrap.Status() == code {
