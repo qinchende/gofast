@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/fst/render"
+	"github.com/qinchende/gofast/logx"
 	"net/http"
 )
 
@@ -97,8 +98,9 @@ func (c *Context) faiKV(jsonData KV) {
 // 返回数据的接口
 // 如果需要
 func (c *Context) Render(code int, r render.Render) {
-	// 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
+	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 	if c.PRender != nil {
+		logx.Info("[WARNING] Double render, this render func canceled.")
 		return
 	}
 	// Render之前加入对应的 render 数据
@@ -164,7 +166,7 @@ func (c *Context) AbortWithStatus(code int) {
 func (c *Context) AbortWithError(code int, err error) *Error {
 	c.Status(code)
 	c.aborted = true
-	return c.Error(err)
+	return c.CollectError(err)
 }
 
 /************************************/

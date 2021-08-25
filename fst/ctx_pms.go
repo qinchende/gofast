@@ -10,10 +10,10 @@ import (
 /************************************/
 /*********** Context Pms ************/
 /************************************/
-func (c *Context) ParseRequestData() {
+func (c *Context) ParseRequestData() error {
 	// 防止重复解析
 	if c.Pms != nil {
-		return
+		return nil
 	}
 	c.Pms = make(map[string]interface{})
 	isForm := false
@@ -22,11 +22,11 @@ func (c *Context) ParseRequestData() {
 	switch {
 	case strings.HasPrefix(ctType, cst.MIMEAppJson):
 		if err := c.BindJSON(&c.Pms); err != nil {
-			RaisePanicErr(err)
+			return err
 		}
 	case strings.HasPrefix(ctType, cst.MIMEAppXml), strings.HasPrefix(ctType, cst.MIMEXml):
 		if err := c.BindXML(&c.Pms); err != nil {
-			RaisePanicErr(err)
+			return err
 		}
 	case strings.HasPrefix(ctType, cst.MIMEPostForm), strings.HasPrefix(ctType, cst.MIMEMultiPostForm):
 		c.ParseForm()
@@ -44,7 +44,7 @@ func (c *Context) ParseRequestData() {
 		}
 	}
 
-	return
+	return nil
 }
 
 // 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。

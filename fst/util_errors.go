@@ -4,6 +4,7 @@ package fst
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
@@ -48,7 +49,7 @@ var _ error = &Error{}
 // A middleware can be used to collect all the errors and push them to a database together,
 // print a log, or append it in the HTTP response.
 // Error will panic if err is nil.
-func (c *Context) Error(err error) *Error {
+func (c *Context) CollectError(err error) *Error {
 	if err == nil {
 		RaisePanic("err is nil")
 	}
@@ -61,6 +62,31 @@ func (c *Context) Error(err error) *Error {
 	}
 	c.Errors = append(c.Errors, parsedError)
 	return parsedError
+}
+
+func (w *GFResponse) Error(err error) *Error {
+	if err == nil {
+		panic("err is nil")
+	}
+
+	parsedError, ok := err.(*Error)
+	if !ok {
+		parsedError = &Error{
+			Err:  err,
+			Type: ErrorTypePrivate,
+		}
+	}
+
+	w.Errors = append(w.Errors, parsedError)
+	return parsedError
+}
+
+func (w *GFResponse) ErrorN(err interface{}) {
+	//_ = w.Error(err)
+}
+
+func (w *GFResponse) ErrorF(format string, v ...interface{}) {
+	_ = w.Error(errors.New(fmt.Sprintf(format, v...)))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
