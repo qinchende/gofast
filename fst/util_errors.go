@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/logx"
 	"reflect"
 	"strings"
 )
@@ -204,11 +205,15 @@ func (a errMessages) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.JSON())
 }
 
-func (a errMessages) String() string {
+// 所有错误合并成字符串
+func (a errMessages) String(logType int8) string {
 	if len(a) == 0 {
 		return ""
 	}
 	var buffer strings.Builder
+	if logType == logx.StyleSdx {
+		buffer.WriteString("\n  E: ")
+	}
 	for i, msg := range a {
 		fmt.Fprintf(&buffer, "Error #%02d: %s\n", i+1, msg.Err)
 		if msg.Meta != nil {

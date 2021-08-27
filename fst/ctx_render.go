@@ -105,7 +105,6 @@ func (c *Context) Render(code int, r render.Render) {
 	}
 	// Render之前加入对应的 render 数据
 	c.PRender = &r
-	c.PCode = &code
 
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execPreSendHandlers()

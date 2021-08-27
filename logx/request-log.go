@@ -6,12 +6,12 @@ import (
 )
 
 // 日志参数实体
-type ReqLogParams struct {
+type ReqLogEntity struct {
 	RawReq     *http.Request
 	TimeStamp  time.Time
 	Latency    time.Duration
-	StatusCode int
 	ClientIP   string
+	StatusCode int
 	// isTerm     bool
 	Pms        map[string]interface{}
 	BodySize   int
@@ -21,15 +21,15 @@ type ReqLogParams struct {
 }
 
 // 打印请求日志，可以指定不同的输出样式
-func WriteReqLog(p *ReqLogParams) {
+func WriteReqLog(p *ReqLogEntity) {
 	switch currConfig.style {
-	case styleSdx:
+	case StyleSdx:
 		writeSdxReqLog(p)
-	case styleSdxMini:
+	case StyleSdxMini:
 		writeSdxReqLog(p)
-	case styleJson:
+	case StyleJson:
 		writeSdxReqLog(p)
-	case styleJsonMini:
+	case StyleJsonMini:
 		writeSdxReqLog(p)
 	default:
 	}

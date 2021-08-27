@@ -3,7 +3,10 @@ package fstx
 import "github.com/qinchende/gofast/fst"
 
 func PmsParser(ctx *fst.Context) {
-	ctx.ParseRequestData()
+	err := ctx.ParseRequestData()
+	if err != nil {
+		ctx.FaiErr(err)
+	}
 }
 
 func BuildPmsOfJson(ctx *fst.Context) {

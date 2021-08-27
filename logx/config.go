@@ -35,8 +35,12 @@ const (
 
 // 日志样式类型
 const (
-	styleJson int8 = iota
-	styleJsonMini
-	styleSdx
-	styleSdxMini
+	StyleJson int8 = iota
+	StyleJsonMini
+	StyleSdx
+	StyleSdxMini
 )
+
+func Style() int8 {
+	return currConfig.style
+}

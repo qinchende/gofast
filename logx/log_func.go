@@ -235,13 +235,13 @@ func output(lwt WriterCloser, level, msg string) {
 
 	// TODO: 打印日志，套用不同的日志模板
 	switch currConfig.style {
-	case styleSdx:
+	case StyleSdx:
 		outputString(lwt, fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg))
 
-	case styleSdxMini:
+	case StyleSdxMini:
 		outputString(lwt, msg)
 
-	case styleJsonMini:
+	case StyleJsonMini:
 		outputJson(lwt, msg)
 
 	default:

@@ -16,7 +16,7 @@ func ReqLogger() fst.IncHandler {
 		w.NextFit(r)
 
 		// 请求处理完，并成功返回了，接下来就是打印请求日志
-		p := &logx.ReqLogParams{
+		p := &logx.ReqLogEntity{
 			RawReq: r,
 			// isTerm:  isTerm,
 		}
@@ -25,9 +25,11 @@ func ReqLogger() fst.IncHandler {
 		}
 		p.ClientIP = w.ClientIP(r)
 		p.StatusCode = w.ResWrap.Status()
-		p.ErrorMsg = w.Errors.ByType(fst.ErrorTypePrivate).String()
 		p.WriteBytes = &w.ResWrap.WriteBytes
 		p.BodySize = w.ResWrap.Size()
+
+		// TODO: 内部错误信息一般不返回给调用者，而是打印日志
+		p.ErrorMsg = w.Errors.String(logx.Style())
 
 		// Stop timer
 		p.TimeStamp = time.Now()
@@ -35,10 +37,5 @@ func ReqLogger() fst.IncHandler {
 
 		// 打印请求日志
 		logx.WriteReqLog(p)
-
-		// TODO: 错误信息返回给调用端，这个地方是否要打开？
-		//if p.ErrorMsg != "" {
-		//	w.ResWrap.WriteString(p.ErrorMsg)
-		//}
 	}
 }
