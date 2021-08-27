@@ -8,17 +8,17 @@ import (
 	"time"
 )
 
-func writeSdxReqLog(p *ReqLogParams) {
+func writeSdxReqLog(p *ReqLogEntity) {
 	infoSync(genSdxReqLogString(p))
 }
 
-var genSdxReqLogString = func(p *ReqLogParams) string {
+// 通过模板构造字符串可能性能更好。
+var genSdxReqLogString = func(p *ReqLogEntity) string {
 	formatStr := `
 [%s] %s (%s/%s) %d/%d [%d]
   B: %s
   P: %s
-  R: %s
-  E: %s
+  R: %s%s
 `
 	// 最长打印出 1024个字节的结果
 	tLen := len(*p.WriteBytes)

@@ -27,7 +27,6 @@ type Context struct {
 	aborted bool
 	// render.Render 对象
 	PRender *render.Render // render 对象
-	PCode   *int           // status code
 
 	// This mutex protect Keys map
 	mu sync.RWMutex
@@ -67,7 +66,6 @@ func (c *Context) reset() {
 	c.formCache = nil
 	c.aborted = false
 	c.PRender = nil
-	c.PCode = nil
 }
 
 //// 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context

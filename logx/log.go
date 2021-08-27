@@ -31,13 +31,13 @@ func MustSetup(c LogConfig) {
 func setup(c *LogConfig) error {
 	switch c.StyleName {
 	case styleSdxStr:
-		c.style = styleSdx
+		c.style = StyleSdx
 	case styleSdxMiniStr:
-		c.style = styleSdxMini
+		c.style = StyleSdxMini
 	case styleJsonMiniStr:
-		c.style = styleJsonMini
+		c.style = StyleJsonMini
 	default:
-		c.style = styleJson
+		c.style = StyleJson
 	}
 
 	switch c.Mode {
