@@ -74,6 +74,7 @@ func (u *Unmarshaler) UnmarshalValuer(m Valuer, v interface{}) error {
 	return u.unmarshalWithFullName(m, v, "")
 }
 
+// 解析字段
 func (u *Unmarshaler) unmarshalWithFullName(m Valuer, v interface{}, fullName string) error {
 	rv := reflect.ValueOf(v)
 	if err := ValidatePtr(&rv); err != nil {

@@ -63,9 +63,9 @@ package test
 //
 //func TestMappingDefault(t *testing.T) {
 //	var s struct {
-//		Int   int    `form:",default=9"`
-//		Slice []int  `form:",default=9"`
-//		Array [1]int `form:",default=9"`
+//		Int   int    `form:",def=9"`
+//		Slice []int  `form:",def=9"`
+//		Array [1]int `form:",def=9"`
 //	}
 //	err := binding.mappingByPtr(&s, binding.formSource{}, "form")
 //	assert.NoError(t, err)
@@ -208,7 +208,7 @@ package test
 //
 //func TestMappingSlice(t *testing.T) {
 //	var s struct {
-//		Slice []int `form:"slice,default=9"`
+//		Slice []int `form:"slice,def=9"`
 //	}
 //
 //	// default value
@@ -228,7 +228,7 @@ package test
 //
 //func TestMappingArray(t *testing.T) {
 //	var s struct {
-//		Array [2]int `form:"array,default=9"`
+//		Array [2]int `form:"array,def=9"`
 //	}
 //
 //	// wrong default

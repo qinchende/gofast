@@ -10,6 +10,9 @@ import (
 	"github.com/qinchende/gofast/skill/mapping"
 )
 
+// 系统目前支持两种格式的配置文件：
+// 1. JSON
+// 2. Yaml
 var loaders = map[string]func([]byte, interface{}) error{
 	".json": LoadConfigFromJsonBytes,
 	".yaml": LoadConfigFromYamlBytes,

@@ -8,12 +8,12 @@ import (
 // Redigo初始化的配置参数
 type (
 	RedigoConfig struct {
-		Type        string `json:",default=node,options=node|cluster"`
-		Addr        string `json:",optional"`
-		Pass        string `json:",optional"`
-		Key         string `json:",optional"`
-		MaxIdleConn int    `json:",optional"`
-		MaxOpenConn int    `json:",optional"`
+		Type        string `cnf:",def=node,enum=node|cluster"`
+		Addr        string `cnf:",NA"`
+		Pass        string `cnf:",NA"`
+		Key         string `cnf:",NA"`
+		MaxIdleConn int    `cnf:",NA"`
+		MaxOpenConn int    `cnf:",NA"`
 	}
 	RedigoX struct {
 		conn *redis.Pool

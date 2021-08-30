@@ -6,7 +6,7 @@ package test
 
 //func TestJSONBindingBindBody(t *testing.T) {
 //	var s struct {
-//		Foo string `json:"foo"`
+//		Foo string `cnf:"foo"`
 //	}
 //	err := binding.jsonBinding{}.BindBody([]byte(`{"foo": "FOO"}`), &s)
 //	require.NoError(t, err)

@@ -5,6 +5,7 @@ import "fmt"
 const notSymbol = '!'
 
 type (
+	// 字段Tag中支持的自定义属性
 	// use context and OptionalDep option to determine the value of Optional
 	// nothing to do with context.Context
 	fieldOptionsWithContext struct {

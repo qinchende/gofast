@@ -21,7 +21,7 @@ func TestUnmarshalYamlBytes(t *testing.T) {
 func TestUnmarshalYamlBytesOptional(t *testing.T) {
 	var c struct {
 		Name string
-		Age  int `json:",optional"`
+		Age  int `cnf:",NA"`
 	}
 	content := []byte(`Name: liao`)
 
@@ -32,7 +32,7 @@ func TestUnmarshalYamlBytesOptional(t *testing.T) {
 func TestUnmarshalYamlBytesOptionalDefault(t *testing.T) {
 	var c struct {
 		Name string
-		Age  int `json:",optional,default=1"`
+		Age  int `cnf:",NA,def=1"`
 	}
 	content := []byte(`Name: liao`)
 
@@ -44,7 +44,7 @@ func TestUnmarshalYamlBytesOptionalDefault(t *testing.T) {
 func TestUnmarshalYamlBytesDefaultOptional(t *testing.T) {
 	var c struct {
 		Name string
-		Age  int `json:",default=1,optional"`
+		Age  int `cnf:",def=1,NA"`
 	}
 	content := []byte(`Name: liao`)
 
@@ -55,7 +55,7 @@ func TestUnmarshalYamlBytesDefaultOptional(t *testing.T) {
 
 func TestUnmarshalYamlBytesDefault(t *testing.T) {
 	var c struct {
-		Name string `json:",default=liao"`
+		Name string `cnf:",def=liao"`
 	}
 	content := []byte(`{}`)
 
@@ -108,8 +108,8 @@ func TestUnmarshalYamlBytesMustInOptional(t *testing.T) {
 		Inner struct {
 			There    string
 			Must     string
-			Optional string `json:",optional"`
-		} `json:",optional"`
+			Optional string `cnf:",NA"`
+		} `cnf:",NA"`
 	}
 	content := []byte(`{}`)
 
@@ -121,8 +121,8 @@ func TestUnmarshalYamlBytesMustInOptionalMissedPart(t *testing.T) {
 		Inner struct {
 			There    string
 			Must     string
-			Optional string `json:",optional"`
-		} `json:",optional"`
+			Optional string `cnf:",NA"`
+		} `cnf:",NA"`
 	}
 	content := []byte(`Inner:
   There: sure`)
@@ -135,8 +135,8 @@ func TestUnmarshalYamlBytesMustInOptionalOnlyOptionalFilled(t *testing.T) {
 		Inner struct {
 			There    string
 			Must     string
-			Optional string `json:",optional"`
-		} `json:",optional"`
+			Optional string `cnf:",NA"`
+		} `cnf:",NA"`
 	}
 	content := []byte(`Inner:
   Optional: sure`)
@@ -171,7 +171,7 @@ func TestUnmarshalYamlBytesStructOptional(t *testing.T) {
 	var c struct {
 		Inner struct {
 			Name string
-			Age  int `json:",optional"`
+			Age  int `cnf:",NA"`
 		}
 	}
 	content := []byte(`Inner:
@@ -198,7 +198,7 @@ func TestUnmarshalYamlBytesStructPtrOptional(t *testing.T) {
 	var c struct {
 		Inner *struct {
 			Name string
-			Age  int `json:",optional"`
+			Age  int `cnf:",NA"`
 		}
 	}
 	content := []byte(`Inner:
@@ -211,7 +211,7 @@ func TestUnmarshalYamlBytesStructPtrDefault(t *testing.T) {
 	var c struct {
 		Inner *struct {
 			Name string
-			Age  int `json:",default=4"`
+			Age  int `cnf:",def=4"`
 		}
 	}
 	content := []byte(`Inner:
@@ -238,10 +238,10 @@ func TestUnmarshalYamlBytesSliceString(t *testing.T) {
 	}
 }
 
-func TestUnmarshalYamlBytesSliceStringOptional(t *testing.T) {
+func TestUnmarshalYamlBytesSliceAttrString(t *testing.T) {
 	var c struct {
 		Names []string
-		Age   []int `json:",optional"`
+		Age   []int `cnf:",NA"`
 	}
 	content := []byte(`Names:
 - liao
@@ -287,7 +287,7 @@ func TestUnmarshalYamlBytesSliceStructOptional(t *testing.T) {
 		People []struct {
 			Name   string
 			Age    int
-			Emails []string `json:",optional"`
+			Emails []string `cnf:",NA"`
 		}
 	}
 	content := []byte(`People:
@@ -301,7 +301,7 @@ func TestUnmarshalYamlBytesSliceStructOptional(t *testing.T) {
 	want := []struct {
 		Name   string
 		Age    int
-		Emails []string `json:",optional"`
+		Emails []string `cnf:",NA"`
 	}{
 		{"liao", 1, nil},
 		{"chaoxin", 2, nil},
@@ -343,7 +343,7 @@ func TestUnmarshalYamlBytesSliceStructPtrOptional(t *testing.T) {
 		People []*struct {
 			Name   string
 			Age    int
-			Emails []string `json:",optional"`
+			Emails []string `cnf:",NA"`
 		}
 	}
 	content := []byte(`People:
@@ -357,7 +357,7 @@ func TestUnmarshalYamlBytesSliceStructPtrOptional(t *testing.T) {
 	want := []*struct {
 		Name   string
 		Age    int
-		Emails []string `json:",optional"`
+		Emails []string `cnf:",NA"`
 	}{
 		{"liao", 1, nil},
 		{"chaoxin", 2, nil},
@@ -389,7 +389,7 @@ func TestUnmarshalYamlBytesSliceStructPtrDefault(t *testing.T) {
 		People []*struct {
 			Name  string
 			Age   int
-			Email string `json:",default=chaoxin@liao.com"`
+			Email string `cnf:",def=chaoxin@liao.com"`
 		}
 	}
 	content := []byte(`People:
@@ -445,16 +445,16 @@ func TestUnmarshalYamlBytesInnerAnonymousPartial(t *testing.T) {
 	type (
 		Deep struct {
 			A string
-			B string `json:",optional"`
+			B string `cnf:",NA"`
 		}
 		Inner struct {
 			Deep
-			InnerV string `json:",optional"`
+			InnerV string `cnf:",NA"`
 		}
 	)
 
 	var c struct {
-		Value Inner `json:",optional"`
+		Value Inner `cnf:",NA"`
 	}
 	content := []byte(`Value:
   InnerV: chaoxin`)
@@ -477,7 +477,7 @@ func TestUnmarshalYamlBytesStructPartial(t *testing.T) {
 
 func TestUnmarshalYamlBytesEmptyMap(t *testing.T) {
 	var c struct {
-		Persons map[string]int `json:",optional"`
+		Persons map[string]int `cnf:",NA"`
 	}
 	content := []byte(`{}`)
 
@@ -503,7 +503,7 @@ func TestUnmarshalYamlBytesMapStruct(t *testing.T) {
 	var c struct {
 		Persons map[string]struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -521,7 +521,7 @@ func TestUnmarshalYamlBytesMapStructPtr(t *testing.T) {
 	var c struct {
 		Persons map[string]*struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -553,7 +553,7 @@ func TestUnmarshalYamlBytesMapStructOptional(t *testing.T) {
 	var c struct {
 		Persons map[string]*struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -569,7 +569,7 @@ func TestUnmarshalYamlBytesMapStructSlice(t *testing.T) {
 	var c struct {
 		Persons map[string][]struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -587,7 +587,7 @@ func TestUnmarshalYamlBytesMapEmptyStructSlice(t *testing.T) {
 	var c struct {
 		Persons map[string][]struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -602,7 +602,7 @@ func TestUnmarshalYamlBytesMapStructPtrSlice(t *testing.T) {
 	var c struct {
 		Persons map[string][]*struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -620,7 +620,7 @@ func TestUnmarshalYamlBytesMapEmptyStructPtrSlice(t *testing.T) {
 	var c struct {
 		Persons map[string][]*struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -649,7 +649,7 @@ func TestUnmarshalYamlBytesMapStructPtrSliceOptional(t *testing.T) {
 	var c struct {
 		Persons map[string][]*struct {
 			Id   int
-			Name string `json:"name,optional"`
+			Name string `cnf:"name,NA"`
 		}
 	}
 	content := []byte(`Persons:
@@ -667,7 +667,7 @@ func TestUnmarshalYamlStructOptional(t *testing.T) {
 		Etcd struct {
 			Hosts []string
 			Key   string
-		} `json:",optional"`
+		} `cnf:",NA"`
 	}
 	content := []byte(`Name: kevin`)
 
@@ -681,7 +681,7 @@ func TestUnmarshalYamlStructLowerCase(t *testing.T) {
 		Name string
 		Etcd struct {
 			Key string
-		} `json:"etcd"`
+		} `cnf:"etcd"`
 	}
 	content := []byte(`Name: kevin
 etcd:
@@ -696,7 +696,7 @@ etcd:
 func TestUnmarshalYamlWithStructAllOptionalWithEmpty(t *testing.T) {
 	var c struct {
 		Inner struct {
-			Optional string `json:",optional"`
+			Optional string `cnf:",NA"`
 		}
 		Else string
 	}
@@ -708,7 +708,7 @@ func TestUnmarshalYamlWithStructAllOptionalWithEmpty(t *testing.T) {
 func TestUnmarshalYamlWithStructAllOptionalPtr(t *testing.T) {
 	var c struct {
 		Inner *struct {
-			Optional string `json:",optional"`
+			Optional string `cnf:",NA"`
 		}
 		Else string
 	}
@@ -723,7 +723,7 @@ func TestUnmarshalYamlWithStructOptional(t *testing.T) {
 	}
 
 	var c struct {
-		In   Inner `json:",optional"`
+		In   Inner `cnf:",NA"`
 		Else string
 	}
 	content := []byte(`Else: sure`)
@@ -739,7 +739,7 @@ func TestUnmarshalYamlWithStructPtrOptional(t *testing.T) {
 	}
 
 	var c struct {
-		In   *Inner `json:",optional"`
+		In   *Inner `cnf:",NA"`
 		Else string
 	}
 	content := []byte(`Else: sure`)
@@ -751,7 +751,7 @@ func TestUnmarshalYamlWithStructPtrOptional(t *testing.T) {
 
 func TestUnmarshalYamlWithStructAllOptionalAnonymous(t *testing.T) {
 	type Inner struct {
-		Optional string `json:",optional"`
+		Optional string `cnf:",NA"`
 	}
 
 	var c struct {
@@ -765,7 +765,7 @@ func TestUnmarshalYamlWithStructAllOptionalAnonymous(t *testing.T) {
 
 func TestUnmarshalYamlWithStructAllOptionalAnonymousPtr(t *testing.T) {
 	type Inner struct {
-		Optional string `json:",optional"`
+		Optional string `cnf:",NA"`
 	}
 
 	var c struct {
@@ -779,7 +779,7 @@ func TestUnmarshalYamlWithStructAllOptionalAnonymousPtr(t *testing.T) {
 
 func TestUnmarshalYamlWithStructAllOptionalProvoidedAnonymous(t *testing.T) {
 	type Inner struct {
-		Optional string `json:",optional"`
+		Optional string `cnf:",NA"`
 	}
 
 	var c struct {
@@ -796,7 +796,7 @@ Optional: optional`)
 
 func TestUnmarshalYamlWithStructAllOptionalProvoidedAnonymousPtr(t *testing.T) {
 	type Inner struct {
-		Optional string `json:",optional"`
+		Optional string `cnf:",NA"`
 	}
 
 	var c struct {
@@ -851,7 +851,7 @@ func TestUnmarshalYamlWithStructAnonymousOptional(t *testing.T) {
 	}
 
 	var c struct {
-		Inner `json:",optional"`
+		Inner `cnf:",NA"`
 		Else  string
 	}
 	content := []byte(`Else: sure`)
@@ -867,7 +867,7 @@ func TestUnmarshalYamlWithStructPtrAnonymousOptional(t *testing.T) {
 	}
 
 	var c struct {
-		*Inner `json:",optional"`
+		*Inner `cnf:",NA"`
 		Else   string
 	}
 	content := []byte(`Else: sure`)
@@ -879,9 +879,9 @@ func TestUnmarshalYamlWithStructPtrAnonymousOptional(t *testing.T) {
 
 func TestUnmarshalYamlWithZeroValues(t *testing.T) {
 	type inner struct {
-		False  bool   `json:"negative"`
-		Int    int    `json:"int"`
-		String string `json:"string"`
+		False  bool   `cnf:"negative"`
+		Int    int    `cnf:"int"`
+		String string `cnf:"string"`
 	}
 	content := []byte(`negative: false
 int: 0
@@ -899,7 +899,7 @@ func TestUnmarshalYamlBytesError(t *testing.T) {
 	payload := `abcd:
 - cdef`
 	var v struct {
-		Any []string `json:"abcd"`
+		Any []string `cnf:"abcd"`
 	}
 
 	err := UnmarshalYamlBytes([]byte(payload), &v)

@@ -8,7 +8,7 @@ import (
 )
 
 type Bar struct {
-	Val string `json:"val"`
+	Val string `cnf:"val"`
 }
 
 func TestFieldOptionOptionalDep(t *testing.T) {
