@@ -12,10 +12,10 @@ import (
 // Redigo初始化的配置参数
 type (
 	ConnConfig struct {
-		Url      string `json:",optional"`
-		Database string `json:",optional"`
-		User     string `json:",optional"`
-		Pass     string `json:",optional"`
+		Url      string `cnf:",NA"`
+		Database string `cnf:",NA"`
+		User     string `cnf:",NA"`
+		Pass     string `cnf:",NA"`
 	}
 	MgoX struct {
 		DB  *mongo.Database

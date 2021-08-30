@@ -14,13 +14,13 @@ import (
 )
 
 const (
-	defaultOption   = "default"
-	stringOption    = "string"
-	optionalOption  = "optional"
-	optionsOption   = "options"
-	rangeOption     = "range"
-	optionSeparator = "|"
-	equalToken      = "="
+	attrDefault   = "def"
+	attrString    = "string"
+	attrOptional  = "NA"
+	attrEnum      = "enum"
+	attrRange     = "range"
+	attrSeparator = "|"
+	equalToken    = "="
 )
 
 var (
@@ -148,22 +148,23 @@ func convertType(kind reflect.Kind, str string) (interface{}, error) {
 	}
 }
 
+// TODO: 解析字段属性配置
 func doParseKeyAndOptions(field reflect.StructField, value string) (string, *fieldOptions, error) {
 	segments := strings.Split(value, ",")
-	key := strings.TrimSpace(segments[0])
+	keyName := strings.TrimSpace(segments[0])
 	options := segments[1:]
 
 	if len(options) == 0 {
-		return key, nil, nil
+		return keyName, nil, nil
 	}
 
 	var fieldOpts fieldOptions
 	for _, segment := range options {
 		option := strings.TrimSpace(segment)
 		switch {
-		case option == stringOption:
+		case option == attrString:
 			fieldOpts.FromString = true
-		case strings.HasPrefix(option, optionalOption):
+		case strings.HasPrefix(option, attrOptional):
 			segs := strings.Split(option, equalToken)
 			switch len(segs) {
 			case 1:
@@ -174,23 +175,23 @@ func doParseKeyAndOptions(field reflect.StructField, value string) (string, *fie
 			default:
 				return "", nil, fmt.Errorf("field %s has wrong optional", field.Name)
 			}
-		case option == optionalOption:
+		case option == attrOptional:
 			fieldOpts.Optional = true
-		case strings.HasPrefix(option, optionsOption):
+		case strings.HasPrefix(option, attrEnum):
 			segs := strings.Split(option, equalToken)
 			if len(segs) != 2 {
 				return "", nil, fmt.Errorf("field %s has wrong options", field.Name)
 			} else {
-				fieldOpts.Options = strings.Split(segs[1], optionSeparator)
+				fieldOpts.Options = strings.Split(segs[1], attrSeparator)
 			}
-		case strings.HasPrefix(option, defaultOption):
+		case strings.HasPrefix(option, attrDefault):
 			segs := strings.Split(option, equalToken)
 			if len(segs) != 2 {
 				return "", nil, fmt.Errorf("field %s has wrong default option", field.Name)
 			} else {
 				fieldOpts.Default = strings.TrimSpace(segs[1])
 			}
-		case strings.HasPrefix(option, rangeOption):
+		case strings.HasPrefix(option, attrRange):
 			segs := strings.Split(option, equalToken)
 			if len(segs) != 2 {
 				return "", nil, fmt.Errorf("field %s has wrong range", field.Name)
@@ -203,7 +204,7 @@ func doParseKeyAndOptions(field reflect.StructField, value string) (string, *fie
 		}
 	}
 
-	return key, &fieldOpts, nil
+	return keyName, &fieldOpts, nil
 }
 
 func implicitValueRequiredStruct(tag string, tp reflect.Type) (bool, error) {
@@ -425,6 +426,7 @@ func toFloat64(v interface{}) (float64, bool) {
 	}
 }
 
+// 字段中是否有特定的可以
 func usingDifferentKeys(key string, field reflect.StructField) bool {
 	if len(field.Tag) > 0 {
 		if _, ok := field.Tag.Lookup(key); !ok {

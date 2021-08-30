@@ -9,8 +9,9 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// To make .json & .yaml consistent, we just use json as the tag key.
-const yamlTagKey = "json"
+// modify by sdx on 2021.08.30 (change json to cnf)
+// To make .json & .yaml consistent, we just use [cnf] as the tag key.
+const yamlTagKey = "cnf"
 
 var (
 	ErrUnsupportedType = errors.New("only map-like configs are suported")

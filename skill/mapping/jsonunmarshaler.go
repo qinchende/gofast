@@ -6,7 +6,7 @@ import (
 	"github.com/qinchende/gofast/skill/jsonx"
 )
 
-const jsonTagKey = "json"
+const jsonTagKey = "cnf"
 
 var jsonUnmarshaler = NewUnmarshaler(jsonTagKey)
 

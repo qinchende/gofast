@@ -15,7 +15,7 @@ func TestParseForm(t *testing.T) {
 	var v struct {
 		Name    string  `form:"name"`
 		Age     int     `form:"age"`
-		Percent float64 `form:"percent,optional"`
+		Percent float64 `form:"percent,NA"`
 	}
 
 	r, err := http.NewRequest(http.MethodGet, "http://hello.com/a?name=hello&age=18&percent=3.4", nil)
@@ -151,7 +151,7 @@ func TestParseRequired(t *testing.T) {
 
 func TestParseOptions(t *testing.T) {
 	v := struct {
-		Position int8 `form:"pos,options=1|2"`
+		Position int8 `form:"pos,enum=1|2"`
 	}{}
 
 	r, err := http.NewRequest(http.MethodGet, "http://hello.com/a?pos=4", nil)
@@ -169,7 +169,7 @@ func BenchmarkParseRaw(b *testing.B) {
 		v := struct {
 			Name    string  `form:"name"`
 			Age     int     `form:"age"`
-			Percent float64 `form:"percent,optional"`
+			Percent float64 `form:"percent,NA"`
 		}{}
 
 		v.Name = r.FormValue("name")
@@ -194,7 +194,7 @@ func BenchmarkParseAuto(b *testing.B) {
 		v := struct {
 			Name    string  `form:"name"`
 			Age     int     `form:"age"`
-			Percent float64 `form:"percent,optional"`
+			Percent float64 `form:"percent,NA"`
 		}{}
 
 		if err = httpx.Parse(r, &v); err != nil {

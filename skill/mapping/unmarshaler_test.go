@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/stretchr/testify/assert"
 )
 
 // because json.Number doesn't support strconv.ParseUint(...),
@@ -23,7 +23,7 @@ func TestUnmarshalWithFullNameNotStruct(t *testing.T) {
 
 func TestUnmarshalWithoutTagName(t *testing.T) {
 	type inner struct {
-		Optional bool `key:",optional"`
+		Optional bool `key:",NA"`
 	}
 	m := map[string]interface{}{
 		"Optional": true,
@@ -42,8 +42,8 @@ func TestUnmarshalBool(t *testing.T) {
 		FalseFromZero  bool `key:"nozero,string"`
 		TrueFromTrue   bool `key:"yestrue,string"`
 		FalseFromFalse bool `key:"nofalse,string"`
-		DefaultTrue    bool `key:"defaulttrue,default=1"`
-		Optional       bool `key:"optional,optional"`
+		DefaultTrue    bool `key:"defaulttrue,def=1"`
+		Optional       bool `key:"optional,NA"`
 	}
 	m := map[string]interface{}{
 		"yes":     true,
@@ -87,7 +87,7 @@ func TestUnmarshalDuration(t *testing.T) {
 func TestUnmarshalDurationDefault(t *testing.T) {
 	type inner struct {
 		Int      int           `key:"int"`
-		Duration time.Duration `key:"duration,default=5s"`
+		Duration time.Duration `key:"duration,def=5s"`
 	}
 	m := map[string]interface{}{
 		"int": 5,
@@ -113,8 +113,8 @@ func TestUnmarshalDurationPtr(t *testing.T) {
 func TestUnmarshalDurationPtrDefault(t *testing.T) {
 	type inner struct {
 		Int      int            `key:"int"`
-		Value    *int           `key:",default=5"`
-		Duration *time.Duration `key:"duration,default=5s"`
+		Value    *int           `key:",def=5"`
+		Duration *time.Duration `key:"duration,def=5s"`
 	}
 	m := map[string]interface{}{
 		"int": 5,
@@ -138,8 +138,8 @@ func TestUnmarshalInt(t *testing.T) {
 		Int32FromStr int32 `key:"int32str,string"`
 		Int64        int64 `key:"int64"`
 		Int64FromStr int64 `key:"int64str,string"`
-		DefaultInt   int64 `key:"defaultint,default=11"`
-		Optional     int   `key:"optional,optional"`
+		DefaultInt   int64 `key:"defaultint,def=11"`
+		Optional     int   `key:"optional,NA"`
 	}
 	m := map[string]interface{}{
 		"int":      1,
@@ -186,7 +186,7 @@ func TestUnmarshalIntPtr(t *testing.T) {
 
 func TestUnmarshalIntWithDefault(t *testing.T) {
 	type inner struct {
-		Int int `key:"int,default=5"`
+		Int int `key:"int,def=5"`
 	}
 	m := map[string]interface{}{
 		"int": 1,
@@ -209,8 +209,8 @@ func TestUnmarshalUint(t *testing.T) {
 		Uint32FromStr uint32 `key:"uint32str,string"`
 		Uint64        uint64 `key:"uint64"`
 		Uint64FromStr uint64 `key:"uint64str,string"`
-		DefaultUint   uint   `key:"defaultuint,default=11"`
-		Optional      uint   `key:"optional,optional"`
+		DefaultUint   uint   `key:"defaultuint,def=11"`
+		Optional      uint   `key:"optional,NA"`
 	}
 	m := map[string]interface{}{
 		"uint":      uint(1),
@@ -247,8 +247,8 @@ func TestUnmarshalFloat(t *testing.T) {
 		Float32Str   float32 `key:"float32str,string"`
 		Float64      float64 `key:"float64"`
 		Float64Str   float64 `key:"float64str,string"`
-		DefaultFloat float32 `key:"defaultfloat,default=5.5"`
-		Optional     float32 `key:",optional"`
+		DefaultFloat float32 `key:"defaultfloat,def=5.5"`
+		Optional     float32 `key:",NA"`
 	}
 	m := map[string]interface{}{
 		"float32":    float32(1.5),
@@ -297,10 +297,10 @@ func TestUnmarshalString(t *testing.T) {
 	type inner struct {
 		Name              string `key:"name"`
 		NameStr           string `key:"namestr,string"`
-		NotPresent        string `key:",optional"`
-		NotPresentWithTag string `key:"notpresent,optional"`
-		DefaultString     string `key:"defaultstring,default=hello"`
-		Optional          string `key:",optional"`
+		NotPresent        string `key:",NA"`
+		NotPresentWithTag string `key:"notpresent,NA"`
+		DefaultString     string `key:"defaultstring,def=hello"`
+		Optional          string `key:",NA"`
 	}
 	m := map[string]interface{}{
 		"name":    "kevin",
@@ -361,8 +361,8 @@ func TestUnmarshalStruct(t *testing.T) {
 	type address struct {
 		City          string `key:"city"`
 		ZipCode       int    `key:"zipcode,string"`
-		DefaultString string `key:"defaultstring,default=hello"`
-		Optional      string `key:",optional"`
+		DefaultString string `key:"defaultstring,def=hello"`
+		Optional      string `key:",NA"`
 	}
 	type inner struct {
 		Name    string  `key:"name"`
@@ -388,8 +388,8 @@ func TestUnmarshalStruct(t *testing.T) {
 func TestUnmarshalStructOptionalDepends(t *testing.T) {
 	type address struct {
 		City            string `key:"city"`
-		Optional        string `key:",optional"`
-		OptionalDepends string `key:",optional=Optional"`
+		Optional        string `key:",NA"`
+		OptionalDepends string `key:",NA=Optional"`
 	}
 	type inner struct {
 		Name    string  `key:"name"`
@@ -454,8 +454,8 @@ func TestUnmarshalStructOptionalDepends(t *testing.T) {
 func TestUnmarshalStructOptionalDependsNot(t *testing.T) {
 	type address struct {
 		City            string `key:"city"`
-		Optional        string `key:",optional"`
-		OptionalDepends string `key:",optional=!Optional"`
+		Optional        string `key:",NA"`
+		OptionalDepends string `key:",NA=!Optional"`
 	}
 	type inner struct {
 		Name    string  `key:"name"`
@@ -520,8 +520,8 @@ func TestUnmarshalStructOptionalDependsNot(t *testing.T) {
 
 func TestUnmarshalStructOptionalDependsNotErrorDetails(t *testing.T) {
 	type address struct {
-		Optional        string `key:",optional"`
-		OptionalDepends string `key:",optional=!Optional"`
+		Optional        string `key:",NA"`
+		OptionalDepends string `key:",NA=!Optional"`
 	}
 	type inner struct {
 		Name    string  `key:"name"`
@@ -539,11 +539,11 @@ func TestUnmarshalStructOptionalDependsNotErrorDetails(t *testing.T) {
 
 func TestUnmarshalStructOptionalDependsNotNested(t *testing.T) {
 	type address struct {
-		Optional        string `key:",optional"`
-		OptionalDepends string `key:",optional=!Optional"`
+		Optional        string `key:",NA"`
+		OptionalDepends string `key:",NA=!Optional"`
 	}
 	type combo struct {
-		Name    string  `key:"name,optional"`
+		Name    string  `key:"name,NA"`
 		Address address `key:"address"`
 	}
 	type inner struct {
@@ -562,11 +562,11 @@ func TestUnmarshalStructOptionalDependsNotNested(t *testing.T) {
 
 func TestUnmarshalStructOptionalNestedDifferentKey(t *testing.T) {
 	type address struct {
-		Optional        string `dkey:",optional"`
-		OptionalDepends string `key:",optional"`
+		Optional        string `dkey:",NA"`
+		OptionalDepends string `key:",NA"`
 	}
 	type combo struct {
-		Name    string  `key:"name,optional"`
+		Name    string  `key:"name,NA"`
 		Address address `key:"address"`
 	}
 	type inner struct {
@@ -584,8 +584,8 @@ func TestUnmarshalStructOptionalNestedDifferentKey(t *testing.T) {
 
 func TestUnmarshalStructOptionalDependsNotEnoughValue(t *testing.T) {
 	type address struct {
-		Optional        string `key:",optional"`
-		OptionalDepends string `key:",optional=!"`
+		Optional        string `key:",NA"`
+		OptionalDepends string `key:",NA=!"`
 	}
 	type inner struct {
 		Name    string  `key:"name"`
@@ -605,8 +605,8 @@ func TestUnmarshalStructOptionalDependsNotEnoughValue(t *testing.T) {
 func TestUnmarshalAnonymousStructOptionalDepends(t *testing.T) {
 	type AnonAddress struct {
 		City            string `key:"city"`
-		Optional        string `key:",optional"`
-		OptionalDepends string `key:",optional=Optional"`
+		Optional        string `key:",NA"`
+		OptionalDepends string `key:",NA=Optional"`
 	}
 	type inner struct {
 		Name string `key:"name"`
@@ -670,8 +670,8 @@ func TestUnmarshalStructPtr(t *testing.T) {
 	type address struct {
 		City          string `key:"city"`
 		ZipCode       int    `key:"zipcode,string"`
-		DefaultString string `key:"defaultstring,default=hello"`
-		Optional      string `key:",optional"`
+		DefaultString string `key:"defaultstring,def=hello"`
+		Optional      string `key:",NA"`
 	}
 	type inner struct {
 		Name    string   `key:"name"`
@@ -857,10 +857,10 @@ func TestUnmarshalSliceOfStruct(t *testing.T) {
 	ast.Equal(2, v.Ids[0].Second)
 }
 
-func TestUnmarshalWithStringOptionsCorrect(t *testing.T) {
+func TestUnmarshalWithAttrStringCorrect(t *testing.T) {
 	type inner struct {
-		Value   string `key:"value,options=first|second"`
-		Correct string `key:"correct,options=1|2"`
+		Value   string `key:"value,enum=first|second"`
+		Correct string `key:"correct,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":   "first",
@@ -874,10 +874,10 @@ func TestUnmarshalWithStringOptionsCorrect(t *testing.T) {
 	ast.Equal("2", in.Correct)
 }
 
-func TestUnmarshalStringOptionsWithStringOptionsNotString(t *testing.T) {
+func TestUnmarshalAttrStringWithAttrStringNotString(t *testing.T) {
 	type inner struct {
-		Value   string `key:"value,options=first|second"`
-		Correct string `key:"correct,options=1|2"`
+		Value   string `key:"value,enum=first|second"`
+		Correct string `key:"correct,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":   "first",
@@ -890,10 +890,10 @@ func TestUnmarshalStringOptionsWithStringOptionsNotString(t *testing.T) {
 	ast.NotNil(unmarshaler.Unmarshal(m, &in))
 }
 
-func TestUnmarshalStringOptionsWithStringOptions(t *testing.T) {
+func TestUnmarshalAttrStringWithAttrString(t *testing.T) {
 	type inner struct {
-		Value   string `key:"value,options=first|second"`
-		Correct string `key:"correct,options=1|2"`
+		Value   string `key:"value,enum=first|second"`
+		Correct string `key:"correct,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":   "first",
@@ -908,10 +908,10 @@ func TestUnmarshalStringOptionsWithStringOptions(t *testing.T) {
 	ast.Equal("2", in.Correct)
 }
 
-func TestUnmarshalStringOptionsWithStringOptionsPtr(t *testing.T) {
+func TestUnmarshalAttrStringWithAttrStringPtr(t *testing.T) {
 	type inner struct {
-		Value   *string `key:"value,options=first|second"`
-		Correct *int    `key:"correct,options=1|2"`
+		Value   *string `key:"value,enum=first|second"`
+		Correct *int    `key:"correct,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":   "first",
@@ -926,10 +926,10 @@ func TestUnmarshalStringOptionsWithStringOptionsPtr(t *testing.T) {
 	ast.True(*in.Correct == 2)
 }
 
-func TestUnmarshalStringOptionsWithStringOptionsIncorrect(t *testing.T) {
+func TestUnmarshalAttrStringWithAttrStringIncorrect(t *testing.T) {
 	type inner struct {
-		Value   string `key:"value,options=first|second"`
-		Correct string `key:"correct,options=1|2"`
+		Value   string `key:"value,enum=first|second"`
+		Correct string `key:"correct,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":   "third",
@@ -942,10 +942,10 @@ func TestUnmarshalStringOptionsWithStringOptionsIncorrect(t *testing.T) {
 	ast.NotNil(unmarshaler.Unmarshal(m, &in))
 }
 
-func TestUnmarshalWithStringOptionsIncorrect(t *testing.T) {
+func TestUnmarshalWithAttrStringIncorrect(t *testing.T) {
 	type inner struct {
-		Value     string `key:"value,options=first|second"`
-		Incorrect string `key:"incorrect,options=1|2"`
+		Value     string `key:"value,enum=first|second"`
+		Incorrect string `key:"incorrect,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":     "first",
@@ -958,8 +958,8 @@ func TestUnmarshalWithStringOptionsIncorrect(t *testing.T) {
 
 func TestUnmarshalWithIntOptionsCorrect(t *testing.T) {
 	type inner struct {
-		Value  string `key:"value,options=first|second"`
-		Number int    `key:"number,options=1|2"`
+		Value  string `key:"value,enum=first|second"`
+		Number int    `key:"number,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":  "first",
@@ -975,8 +975,8 @@ func TestUnmarshalWithIntOptionsCorrect(t *testing.T) {
 
 func TestUnmarshalWithIntOptionsCorrectPtr(t *testing.T) {
 	type inner struct {
-		Value  *string `key:"value,options=first|second"`
-		Number *int    `key:"number,options=1|2"`
+		Value  *string `key:"value,enum=first|second"`
+		Number *int    `key:"number,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":  "first",
@@ -992,8 +992,8 @@ func TestUnmarshalWithIntOptionsCorrectPtr(t *testing.T) {
 
 func TestUnmarshalWithIntOptionsIncorrect(t *testing.T) {
 	type inner struct {
-		Value     string `key:"value,options=first|second"`
-		Incorrect int    `key:"incorrect,options=1|2"`
+		Value     string `key:"value,enum=first|second"`
+		Incorrect int    `key:"incorrect,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":     "first",
@@ -1006,8 +1006,8 @@ func TestUnmarshalWithIntOptionsIncorrect(t *testing.T) {
 
 func TestUnmarshalWithUintOptionsCorrect(t *testing.T) {
 	type inner struct {
-		Value  string `key:"value,options=first|second"`
-		Number uint   `key:"number,options=1|2"`
+		Value  string `key:"value,enum=first|second"`
+		Number uint   `key:"number,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":  "first",
@@ -1023,8 +1023,8 @@ func TestUnmarshalWithUintOptionsCorrect(t *testing.T) {
 
 func TestUnmarshalWithUintOptionsIncorrect(t *testing.T) {
 	type inner struct {
-		Value     string `key:"value,options=first|second"`
-		Incorrect uint   `key:"incorrect,options=1|2"`
+		Value     string `key:"value,enum=first|second"`
+		Incorrect uint   `key:"incorrect,enum=1|2"`
 	}
 	m := map[string]interface{}{
 		"value":     "first",
@@ -1037,7 +1037,7 @@ func TestUnmarshalWithUintOptionsIncorrect(t *testing.T) {
 
 func TestUnmarshalWithOptionsAndDefault(t *testing.T) {
 	type inner struct {
-		Value string `key:"value,options=first|second|third,default=second"`
+		Value string `key:"value,enum=first|second|third,def=second"`
 	}
 	m := map[string]interface{}{}
 
@@ -1048,7 +1048,7 @@ func TestUnmarshalWithOptionsAndDefault(t *testing.T) {
 
 func TestUnmarshalWithOptionsAndSet(t *testing.T) {
 	type inner struct {
-		Value string `key:"value,options=first|second|third,default=second"`
+		Value string `key:"value,enum=first|second|third,def=second"`
 	}
 	m := map[string]interface{}{
 		"value": "first",
@@ -1061,7 +1061,7 @@ func TestUnmarshalWithOptionsAndSet(t *testing.T) {
 
 func TestUnmarshalNestedKey(t *testing.T) {
 	var c struct {
-		Id int `json:"Persons.first.Id"`
+		Id int `cnf:"Persons.first.Id"`
 	}
 	m := map[string]interface{}{
 		"Persons": map[string]interface{}{
@@ -1079,7 +1079,7 @@ func TestUnmarhsalNestedKeyArray(t *testing.T) {
 	var c struct {
 		First []struct {
 			Id int
-		} `json:"Persons.first"`
+		} `cnf:"Persons.first"`
 	}
 	m := map[string]interface{}{
 		"Persons": map[string]interface{}{
@@ -1098,11 +1098,11 @@ func TestUnmarhsalNestedKeyArray(t *testing.T) {
 func TestUnmarshalAnonymousOptionalRequiredProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1117,11 +1117,11 @@ func TestUnmarshalAnonymousOptionalRequiredProvided(t *testing.T) {
 func TestUnmarshalAnonymousOptionalRequiredMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{}
@@ -1134,11 +1134,11 @@ func TestUnmarshalAnonymousOptionalRequiredMissed(t *testing.T) {
 func TestUnmarshalAnonymousOptionalOptionalProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v,optional"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1153,11 +1153,11 @@ func TestUnmarshalAnonymousOptionalOptionalProvided(t *testing.T) {
 func TestUnmarshalAnonymousOptionalOptionalMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v,optional"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{}
@@ -1170,12 +1170,12 @@ func TestUnmarshalAnonymousOptionalOptionalMissed(t *testing.T) {
 func TestUnmarshalAnonymousOptionalRequiredBothProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1192,12 +1192,12 @@ func TestUnmarshalAnonymousOptionalRequiredBothProvided(t *testing.T) {
 func TestUnmarshalAnonymousOptionalRequiredOneProvidedOneMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1211,12 +1211,12 @@ func TestUnmarshalAnonymousOptionalRequiredOneProvidedOneMissed(t *testing.T) {
 func TestUnmarshalAnonymousOptionalRequiredBothMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{}
@@ -1230,12 +1230,12 @@ func TestUnmarshalAnonymousOptionalRequiredBothMissed(t *testing.T) {
 func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalBothProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1252,12 +1252,12 @@ func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalBothProvided(t *testing
 func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalBothMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{}
@@ -1271,12 +1271,12 @@ func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalBothMissed(t *testing.T
 func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalRequiredProvidedOptionalMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1292,12 +1292,12 @@ func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalRequiredProvidedOptiona
 func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalRequiredMissedOptionalProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1311,12 +1311,12 @@ func TestUnmarshalAnonymousOptionalOneRequiredOneOptionalRequiredMissedOptionalP
 func TestUnmarshalAnonymousOptionalBothOptionalBothProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v,optional"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1333,12 +1333,12 @@ func TestUnmarshalAnonymousOptionalBothOptionalBothProvided(t *testing.T) {
 func TestUnmarshalAnonymousOptionalBothOptionalOneProvidedOneMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v,optional"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1354,12 +1354,12 @@ func TestUnmarshalAnonymousOptionalBothOptionalOneProvidedOneMissed(t *testing.T
 func TestUnmarshalAnonymousOptionalBothOptionalBothMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v,optional"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
-			Foo `json:",optional"`
+			Foo `cnf:",NA"`
 		}
 	)
 	m := map[string]interface{}{}
@@ -1373,7 +1373,7 @@ func TestUnmarshalAnonymousOptionalBothOptionalBothMissed(t *testing.T) {
 func TestUnmarshalAnonymousRequiredProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1392,7 +1392,7 @@ func TestUnmarshalAnonymousRequiredProvided(t *testing.T) {
 func TestUnmarshalAnonymousRequiredMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1408,7 +1408,7 @@ func TestUnmarshalAnonymousRequiredMissed(t *testing.T) {
 func TestUnmarshalAnonymousOptionalProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v,optional"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
@@ -1427,7 +1427,7 @@ func TestUnmarshalAnonymousOptionalProvided(t *testing.T) {
 func TestUnmarshalAnonymousOptionalMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v,optional"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
@@ -1444,8 +1444,8 @@ func TestUnmarshalAnonymousOptionalMissed(t *testing.T) {
 func TestUnmarshalAnonymousRequiredBothProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1466,8 +1466,8 @@ func TestUnmarshalAnonymousRequiredBothProvided(t *testing.T) {
 func TestUnmarshalAnonymousRequiredOneProvidedOneMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1485,8 +1485,8 @@ func TestUnmarshalAnonymousRequiredOneProvidedOneMissed(t *testing.T) {
 func TestUnmarshalAnonymousRequiredBothMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1504,8 +1504,8 @@ func TestUnmarshalAnonymousRequiredBothMissed(t *testing.T) {
 func TestUnmarshalAnonymousOneRequiredOneOptionalBothProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1526,8 +1526,8 @@ func TestUnmarshalAnonymousOneRequiredOneOptionalBothProvided(t *testing.T) {
 func TestUnmarshalAnonymousOneRequiredOneOptionalBothMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1543,8 +1543,8 @@ func TestUnmarshalAnonymousOneRequiredOneOptionalBothMissed(t *testing.T) {
 func TestUnmarshalAnonymousOneRequiredOneOptionalRequiredProvidedOptionalMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1564,8 +1564,8 @@ func TestUnmarshalAnonymousOneRequiredOneOptionalRequiredProvidedOptionalMissed(
 func TestUnmarshalAnonymousOneRequiredOneOptionalRequiredMissedOptionalProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1583,8 +1583,8 @@ func TestUnmarshalAnonymousOneRequiredOneOptionalRequiredMissedOptionalProvided(
 func TestUnmarshalAnonymousBothOptionalBothProvided(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v,optional"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
@@ -1605,8 +1605,8 @@ func TestUnmarshalAnonymousBothOptionalBothProvided(t *testing.T) {
 func TestUnmarshalAnonymousBothOptionalOneProvidedOneMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v,optional"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
@@ -1626,8 +1626,8 @@ func TestUnmarshalAnonymousBothOptionalOneProvidedOneMissed(t *testing.T) {
 func TestUnmarshalAnonymousBothOptionalBothMissed(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n,optional"`
-			Value string `json:"v,optional"`
+			Name  string `cnf:"n,NA"`
+			Value string `cnf:"v,NA"`
 		}
 
 		Bar struct {
@@ -1645,8 +1645,8 @@ func TestUnmarshalAnonymousBothOptionalBothMissed(t *testing.T) {
 func TestUnmarshalAnonymousWrappedToMuch(t *testing.T) {
 	type (
 		Foo struct {
-			Name  string `json:"n"`
-			Value string `json:"v"`
+			Name  string `cnf:"n"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1667,7 +1667,7 @@ func TestUnmarshalAnonymousWrappedToMuch(t *testing.T) {
 func TestUnmarshalWrappedObject(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1693,7 +1693,7 @@ func TestUnmarshalWrappedObjectOptional(t *testing.T) {
 		}
 
 		Bar struct {
-			Inner Foo `json:",optional"`
+			Inner Foo `cnf:",NA"`
 			Name  string
 		}
 	)
@@ -1714,7 +1714,7 @@ func TestUnmarshalWrappedObjectOptionalFilled(t *testing.T) {
 		}
 
 		Bar struct {
-			Inner Foo `json:",optional"`
+			Inner Foo `cnf:",NA"`
 			Name  string
 		}
 	)
@@ -1742,7 +1742,7 @@ func TestUnmarshalWrappedNamedObjectOptional(t *testing.T) {
 		}
 
 		Bar struct {
-			Inner Foo `json:",optional"`
+			Inner Foo `cnf:",NA"`
 			Name  string
 		}
 	)
@@ -1764,11 +1764,11 @@ func TestUnmarshalWrappedNamedObjectOptional(t *testing.T) {
 func TestUnmarshalWrappedObjectNamedPtr(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
-			Inner *Foo `json:"foo,optional"`
+			Inner *Foo `cnf:"foo,NA"`
 		}
 	)
 	m := map[string]interface{}{
@@ -1785,7 +1785,7 @@ func TestUnmarshalWrappedObjectNamedPtr(t *testing.T) {
 func TestUnmarshalWrappedObjectPtr(t *testing.T) {
 	type (
 		Foo struct {
-			Value string `json:"v"`
+			Value string `cnf:"v"`
 		}
 
 		Bar struct {
@@ -1929,7 +1929,7 @@ func TestUnmarshalNumberRangeJsonNumber(t *testing.T) {
 func TestUnmarshalNumberRangeIntLeftExclude(t *testing.T) {
 	type inner struct {
 		Value3  uint   `key:"value3,range=(1:5]"`
-		Value4  uint32 `key:"value4,default=4,range=(1:5]"`
+		Value4  uint32 `key:"value4,def=4,range=(1:5]"`
 		Value5  uint64 `key:"value5,range=(1:5]"`
 		Value9  int    `key:"value9,range=(1:5],string"`
 		Value10 int    `key:"value10,range=(1:5],string"`
@@ -2009,7 +2009,7 @@ func TestUnmarshalNumberRangeIntExclude(t *testing.T) {
 
 func TestUnmarshalNumberRangeIntOutOfRange(t *testing.T) {
 	type inner1 struct {
-		Value int64 `key:"value,default=3,range=(1:5)"`
+		Value int64 `key:"value,def=3,range=(1:5)"`
 	}
 
 	var in1 inner1
@@ -2027,7 +2027,7 @@ func TestUnmarshalNumberRangeIntOutOfRange(t *testing.T) {
 	}, &in1))
 
 	type inner2 struct {
-		Value int64 `key:"value,optional,range=[1:5)"`
+		Value int64 `key:"value,NA,range=[1:5)"`
 	}
 
 	var in2 inner2
@@ -2327,7 +2327,7 @@ func TestUnmarshalRangeError(t *testing.T) {
 
 func TestUnmarshalNestedMap(t *testing.T) {
 	var c struct {
-		Anything map[string]map[string]string `json:"anything"`
+		Anything map[string]map[string]string `cnf:"anything"`
 	}
 	m := map[string]interface{}{
 		"anything": map[string]map[string]interface{}{
@@ -2344,7 +2344,7 @@ func TestUnmarshalNestedMap(t *testing.T) {
 
 func TestUnmarshalNestedMapMismatch(t *testing.T) {
 	var c struct {
-		Anything map[string]map[string]map[string]string `json:"anything"`
+		Anything map[string]map[string]map[string]string `cnf:"anything"`
 	}
 	m := map[string]interface{}{
 		"anything": map[string]map[string]interface{}{
@@ -2359,7 +2359,7 @@ func TestUnmarshalNestedMapMismatch(t *testing.T) {
 
 func TestUnmarshalNestedMapSimple(t *testing.T) {
 	var c struct {
-		Anything map[string]string `json:"anything"`
+		Anything map[string]string `cnf:"anything"`
 	}
 	m := map[string]interface{}{
 		"anything": map[string]interface{}{
@@ -2374,7 +2374,7 @@ func TestUnmarshalNestedMapSimple(t *testing.T) {
 
 func TestUnmarshalNestedMapSimpleTypeMatch(t *testing.T) {
 	var c struct {
-		Anything map[string]string `json:"anything"`
+		Anything map[string]string `cnf:"anything"`
 	}
 	m := map[string]interface{}{
 		"anything": map[string]string{

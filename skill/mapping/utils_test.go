@@ -121,8 +121,8 @@ func TestSetValueNotSettable(t *testing.T) {
 
 func TestParseKeyAndOptionsErrors(t *testing.T) {
 	type Bar struct {
-		OptionsValue string `key:",options=a=b"`
-		DefaultValue string `key:",default=a=b"`
+		OptionsValue string `key:",enum=a=b"`
+		DefaultValue string `key:",def=a=b"`
 	}
 
 	var bar Bar

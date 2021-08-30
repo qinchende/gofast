@@ -17,7 +17,7 @@ var form = map[string][]string{
 
 type structFull struct {
 	Name    string   `form:"name"`
-	Age     int      `form:"age,default=25"`
+	Age     int      `form:"age,def=25"`
 	Friends []string `form:"friends"`
 	ID      *struct {
 		Number      string    `form:"id_number"`

@@ -10,9 +10,9 @@ import (
 
 type (
 	ConnConfig struct {
-		ConnStr string `json:",optional"`
-		MaxOpen int    `json:",default=100,range=[10:1000]"`
-		MaxIdle int    `json:",optional"`
+		ConnStr string `cnf:",NA"`
+		MaxOpen int    `cnf:",def=100,range=[1:1000]"`
+		MaxIdle int    `cnf:",NA"`
 	}
 	MSqlX struct {
 		Cli *sql.DB

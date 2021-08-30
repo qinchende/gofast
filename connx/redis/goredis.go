@@ -11,19 +11,19 @@ import (
 type (
 	ConnConfig struct {
 		// single redis
-		Addr string `json:",optional"`
+		Addr string `cnf:",NA"`
 
 		// sentinel
-		SentinelAddr []string `json:",optional"`
-		MasterName   string   `json:",optional"`
-		SentinelPass string   `json:",optional"`
-		SlaveOnly    bool     `json:",optional"`
+		SentinelAddr []string `cnf:",NA"`
+		MasterName   string   `cnf:",NA"`
+		SentinelPass string   `cnf:",NA"`
+		SlaveOnly    bool     `cnf:",NA"`
 
 		// common
-		Pass     string `json:",optional"`
-		DB       int    `json:",optional"`
-		PoolSize int    `json:",optional"`
-		MinIdle  int    `json:",optional"`
+		Pass     string `cnf:",NA"`
+		DB       int    `cnf:",NA"`
+		PoolSize int    `cnf:",NA"`
+		MinIdle  int    `cnf:",NA"`
 	}
 	GoRedisX struct {
 		Cli *redis.Client

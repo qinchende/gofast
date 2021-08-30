@@ -8,7 +8,7 @@ import (
 
 type (
 	ConnConfig struct {
-		ConnStr string `json:",optional"`
+		ConnStr string `cnf:",NA"`
 	}
 	ClickHouseX struct {
 		Cli *sql.DB
