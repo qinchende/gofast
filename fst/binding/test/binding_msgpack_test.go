@@ -9,6 +9,7 @@ package test
 import (
 	"bytes"
 	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/cst"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -40,19 +41,19 @@ func testMsgPackBodyBinding(t *testing.T, b binding.Binding, name, path, badPath
 
 	obj := FooStruct{}
 	req := requestWithBody("POST", path, body)
-	req.Header.Add("Content-Type", binding.MIMEMSGPACK)
+	req.Header.Add("Content-Type", cst.MIMEMsgPack)
 	err := b.Bind(req, &obj)
 	assert.NoError(t, err)
 	assert.Equal(t, "bar", obj.Foo)
 
 	obj = FooStruct{}
 	req = requestWithBody("POST", badPath, badBody)
-	req.Header.Add("Content-Type", binding.MIMEMSGPACK)
+	req.Header.Add("Content-Type", cst.MIMEMsgPack)
 	err = binding.MsgPack.Bind(req, &obj)
 	assert.Error(t, err)
 }
 
 func TestBindingDefaultMsgPack(t *testing.T) {
-	assert.Equal(t, binding.MsgPack, binding.Default("POST", binding.MIMEMSGPACK))
-	assert.Equal(t, binding.MsgPack, binding.Default("PUT", binding.MIMEMSGPACK2))
+	assert.Equal(t, binding.MsgPack, binding.Default("POST", cst.MIMEMsgPack))
+	assert.Equal(t, binding.MsgPack, binding.Default("PUT", cst.MIMEXMsgPack))
 }
