@@ -8,8 +8,20 @@ import (
 	"time"
 )
 
-var timeoutMsg = "Request Timeout. Over %d millisecond."
+var midTimeoutMsg = "Request Timeout. Over %d millisecond."
 
+// 方式一：标准库
+func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		if duration > 0 {
+			return http.TimeoutHandler(next, duration, midTimeoutMsg)
+		} else {
+			return next
+		}
+	}
+}
+
+// 方式二
 // 设置请求处理的超时时间，单位是毫秒
 func ReqTimeout(dur time.Duration) fst.IncHandler {
 	//// Debug模式设置30分钟超时
@@ -26,11 +38,14 @@ func ReqTimeout(dur time.Duration) fst.IncHandler {
 	if dur <= 0*time.Second {
 		dur = 3 * time.Second
 	}
-	timeoutMsg = fmt.Sprintf(timeoutMsg, dur/time.Millisecond)
+	midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, dur/time.Millisecond)
 
 	return func(w *fst.GFResponse, r *http.Request) {
 		done := make(chan struct{})
 		panicChan := make(chan interface{}, 1)
+
+		//ctx, cancelCtx := context.WithTimeout(r.Context(), dur)
+		//defer cancelCtx()
 
 		// 启动的协程 没有办法杀死，唯一的办法只能用通道通知他，让协程自己退出
 		// 如果协程一直不退出，将会一直占用协程的堆栈内存，并且一直处于GMP的待处理队列，影响整体性能
@@ -55,7 +70,7 @@ func ReqTimeout(dur time.Duration) fst.IncHandler {
 		case <-time.After(dur):
 			// 超时退出
 			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
-			fst.RaisePanic(timeoutMsg)
+			fst.RaisePanic(midTimeoutMsg)
 			return
 		}
 	}
@@ -106,16 +121,6 @@ func ReqTimeout(dur time.Duration) fst.IncHandler {
 //			// 超时退出
 //			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 //			fst.RaisePanic(timeoutMsg)
-//		}
-//	}
-//}
-//
-//func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
-//	return func(next http.Handler) http.Handler {
-//		if duration > 0 {
-//			return http.TimeoutHandler(next, duration, timeoutMsg)
-//		} else {
-//			return next
 //		}
 //	}
 //}
