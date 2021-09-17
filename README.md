@@ -46,7 +46,7 @@ var handler = func(str string) func(c *fst.Context) {
 var handlerRender = func(str string) func(c *fst.Context) {
 	return func(c *fst.Context) {
 		log.Println(str)
-		c.JSON(200, fst.KV{"data": str})
+		c.Fai(200, fst.KV{"data": str})
 	}
 }
 
@@ -60,7 +60,7 @@ func main() {
 	})
 
 	// 拦截器，微服务治理 ++++++++++++++++++++++++++++++++++++++
-	app.RegFits(fstx.AddDefaultFits)
+	app.Fits(fstx.AddDefaultFits)
 	app.Fit(func(w *fst.GFResponse, r *http.Request) {
 		log.Println("app fit before 1")
 		w.NextFit(r)
