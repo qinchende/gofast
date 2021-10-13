@@ -54,6 +54,12 @@ func (w *GFResponse) AbortWithStatus(code int) {
 //	return w.Error(err)
 //}
 
+// NOTE: add by chende 2021.10.13 为了解决请求超时问题。
+// 为方便自定义GFResponse对象，加入http标准生命周期。
+func (w *GFResponse) ServeHTTP(res http.ResponseWriter, r *http.Request) {
+	w.NextFit(r)
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
 const (

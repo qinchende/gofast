@@ -1,9 +1,11 @@
 package mid
 
 import (
+	"context"
 	"fmt"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
+	"log"
 	"net/http"
 	"time"
 )
@@ -21,15 +23,12 @@ func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 	}
 }
 
-// 方式二
-// 设置请求处理的超时时间，单位是毫秒
+// 方式二：设置请求处理的超时时间，单位是毫秒
+// TODO：注意下面的注释
+// NOTE：这个只是简易的方案，存在不严谨的情况。比如返回结果render了一部分，结果G被Cancel掉了。上面的标准库处理了这个问题。
+// 方式一却自定义了 response write 加入了 输出缓存，返回结果全部好了之后才会一次性 render 给客户端。
 func ReqTimeout(dur time.Duration) fst.IncHandler {
-	//// Debug模式设置30分钟超时
-	//if logx.IsDebugging() && dur <= 30*time.Minute {
-	//	dur = 30 * time.Minute
-	//}
-
-	// Debug模式不处理超时
+	// Debug模式不设置超时
 	if logx.IsDebugging() {
 		return nil
 	}
@@ -41,86 +40,70 @@ func ReqTimeout(dur time.Duration) fst.IncHandler {
 	midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, dur/time.Millisecond)
 
 	return func(w *fst.GFResponse, r *http.Request) {
-		done := make(chan struct{})
-		panicChan := make(chan interface{}, 1)
+		ctx, cancelCtx := context.WithTimeout(r.Context(), dur)
+		defer cancelCtx()
 
-		//ctx, cancelCtx := context.WithTimeout(r.Context(), dur)
-		//defer cancelCtx()
+		panicChan := make(chan interface{}, 1)
+		finishChan := make(chan struct{})
 
 		// 启动的协程 没有办法杀死，唯一的办法只能用通道通知他，让协程自己退出
 		// 如果协程一直不退出，将会一直占用协程的堆栈内存，并且一直处于GMP的待处理队列，影响整体性能
-		go func(finish chan struct{}) {
+		go func() {
 			defer func() {
 				if p := recover(); p != nil {
+					// NOTE：这里必须使用带缓冲的通道，否则本G可能因为父G的提前退出，而卡死在这里，导致G泄露
 					panicChan <- p
+					// TODO：无法确定上面的异常是否传递出去，下面的日志还是需要打印的。
+					log.Println("ReqTimeout panic: ", p)
 				}
 			}()
 			// 不管超不超时，本次请求都会执行完毕，或者等到自己超时退出
 			w.NextFit(r)
 			// 执行完成之后通知 主协程，我做完了，你可以退出了
-			close(finish)
-		}(done)
+			close(finishChan)
+		}()
 
+		// 任何一个先触发都会执行，并结束当前函数
 		select {
 		case pic := <-panicChan:
+			// 子G发生异常，抛出传递给上层G
 			panic(pic)
-		case <-done:
+		case <-finishChan:
 			// 正常退出
 			//log.Println("I am back.")
-		case <-time.After(dur):
+			return
+		case <-ctx.Done():
 			// 超时退出
 			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 			fst.RaisePanic(midTimeoutMsg)
 			return
 		}
+		// 下面这种写法，无法解决批量cancel所有子孙 goroutine 的情况。
+		//case <-time.After(dur):
+		//	// 超时退出
+		//	//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
+		//	fst.RaisePanic(midTimeoutMsg)
+		//	return
 	}
 }
 
-//
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// 设置请求处理的超时时间，单位是毫秒
-//func ReqTimeoutCtx(dur time.Duration) fst.IncHandler {
-//	// 默认所有请求超时是 30 秒钟，再长就直接异常返回
-//	if dur == 0 {
-//		dur = 30 * time.Second
-//	}
-//	// TODO：Debug 模式就不设置超时了
-//	//if logx.IsDebugging() {
-//	//	dur = -1
-//	//}
-//
-//	return func(w *fst.GFResponse, r *http.Request) {
-//		if dur <= 0 {
-//			return
-//		}
-//
-//		ctx, cancelCtx := context.WithTimeout(r.Context(), dur)
-//		defer cancelCtx()
-//
-//		//r = r.WithContext(ctx)
-//		done := make(chan struct{})
-//		panicChan := make(chan interface{}, 1)
-//
-//		go func() {
-//			defer func() {
-//				if p := recover(); p != nil {
-//					panicChan <- p
-//				}
-//			}()
-//			w.NextFit(r)
-//			close(done)
-//		}()
-//
-//		// 主 goroutines 进入下面三种情况的等待，任何一种满足都退出
-//		select {
-//		case pic := <-panicChan:
-//			panic(pic)
-//		case <-done:
-//			// 正常结束
-//		case <-ctx.Done():
-//			// 超时退出
-//			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
-//			fst.RaisePanic(timeoutMsg)
-//		}
-//	}
-//}
+// 方式三
+// ++++++++++++++++++ add by chende 2021.10.13
+// NOTE：完善方式二，使其达到方式一的效果，同时满足本自定义框架的特点。
+// 这种方式有个问题，就是用不了标准库中 buffer 的 responseWrite 。这样还不如使用方式二
+func ReqTimeoutSuper(dur time.Duration) fst.IncHandler {
+	// Debug模式不设置超时
+	if logx.IsDebugging() {
+		return nil
+	}
+	// 默认所有请求超时是 3 秒钟
+	if dur <= 0*time.Second {
+		dur = 3 * time.Second
+	}
+	midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, dur/time.Millisecond)
+
+	return func(w *fst.GFResponse, r *http.Request) {
+		twHandler := http.TimeoutHandler(w, dur, midTimeoutMsg)
+		twHandler.ServeHTTP(w.ResWrap, r)
+	}
+}
