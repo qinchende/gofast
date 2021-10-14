@@ -12,6 +12,10 @@ import (
 
 var midTimeoutMsg = "Request Timeout. Over %d millisecond."
 
+// ++++++++++++++++++++++ add by cd.net 2021.10.14
+// 总说：如果中间件拦截器超时退出，那么fst模块中的 request content 对象 就会被缓冲池回首。
+// 此时业务逻辑层代码在执行完IO阻塞调用之后，后面的逻辑大概率会抛出异常，因为只要需要用到上下文对象时就是nil
+
 // 方式一：标准库
 func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {

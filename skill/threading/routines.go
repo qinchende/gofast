@@ -2,10 +2,9 @@ package threading
 
 import (
 	"bytes"
+	"github.com/qinchende/gofast/logx"
 	"runtime"
 	"strconv"
-
-	"github.com/qinchende/gofast/skill/rescue"
 )
 
 func GoSafe(fn func()) {
@@ -25,7 +24,11 @@ func RoutineId() uint64 {
 }
 
 func RunSafe(fn func()) {
-	defer rescue.Recover()
+	defer func() {
+		if p := recover(); p != nil {
+			logx.ErrorStack(p)
+		}
+	}()
 
 	fn()
 }

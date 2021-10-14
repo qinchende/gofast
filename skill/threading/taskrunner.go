@@ -1,8 +1,8 @@
 package threading
 
 import (
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/rescue"
 )
 
 type TaskRunner struct {
@@ -19,9 +19,17 @@ func (rp *TaskRunner) Schedule(task func()) {
 	rp.limitChan <- lang.Placeholder
 
 	go func() {
-		defer rescue.Recover(func() {
+		//defer rescue.Recover(func() {
+		//	<-rp.limitChan
+		//})
+
+		defer func() {
 			<-rp.limitChan
-		})
+
+			if p := recover(); p != nil {
+				logx.ErrorStack(p)
+			}
+		}()
 
 		task()
 	}()

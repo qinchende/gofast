@@ -2,6 +2,7 @@ package stat
 
 import (
 	"os"
+	"runtime"
 	"sync"
 	"time"
 
@@ -11,17 +12,22 @@ import (
 
 var (
 	LogInterval = time.Minute
-
-	writerLock   sync.Mutex
-	reportWriter Writer = nil
+	writerLock  sync.Mutex
+	//reportWriter Writer = nil
 )
 
-type (
-	Writer interface {
-		Write(report *StatReport) error
-	}
+type ReqItem struct {
+	Drop     bool          // 是否是一个丢弃的任务
+	Duration time.Duration // 任务耗时
+	//Description string
+}
 
-	StatReport struct {
+type (
+	//Writer interface {
+	//	Write(report *MetricInfo) error
+	//}
+
+	MetricInfo struct {
 		Name          string  `json:"name"`
 		Timestamp     int64   `json:"tm"`
 		Pid           int     `json:"pid"`
@@ -40,11 +46,11 @@ type (
 	}
 )
 
-func SetReportWriter(writer Writer) {
-	writerLock.Lock()
-	reportWriter = writer
-	writerLock.Unlock()
-}
+//func SetReportWriter(writer Writer) {
+//	writerLock.Lock()
+//	reportWriter = writer
+//	writerLock.Unlock()
+//}
 
 func NewMetrics(name string) *Metrics {
 	container := &metricsContainer{
@@ -58,12 +64,12 @@ func NewMetrics(name string) *Metrics {
 	}
 }
 
-func (m *Metrics) Add(task Task) {
+func (m *Metrics) AddItem(task ReqItem) {
 	m.executor.Add(task)
 }
 
 func (m *Metrics) AddDrop() {
-	m.executor.Add(Task{
+	m.executor.Add(ReqItem{
 		Drop: true,
 	})
 }
@@ -76,7 +82,7 @@ func (m *Metrics) SetName(name string) {
 
 type (
 	tasksDurationPair struct {
-		tasks    []Task
+		tasks    []ReqItem
 		duration time.Duration
 		drops    int
 	}
@@ -84,14 +90,15 @@ type (
 	metricsContainer struct {
 		name     string
 		pid      int
-		tasks    []Task
+		tasks    []ReqItem
 		duration time.Duration
 		drops    int
 	}
 )
 
+// 添加任务
 func (c *metricsContainer) AddTask(v interface{}) bool {
-	if task, ok := v.(Task); ok {
+	if task, ok := v.(ReqItem); ok {
 		if task.Drop {
 			c.drops++
 		} else {
@@ -99,17 +106,17 @@ func (c *metricsContainer) AddTask(v interface{}) bool {
 			c.duration += task.Duration
 		}
 	}
-
 	return false
 }
 
+// 执行任务
 func (c *metricsContainer) Execute(v interface{}) {
 	pair := v.(tasksDurationPair)
 	tasks := pair.tasks
 	duration := pair.duration
 	drops := pair.drops
 	size := len(tasks)
-	report := &StatReport{
+	report := &MetricInfo{
 		Name:          c.name,
 		Timestamp:     time.Now().Unix(),
 		Pid:           c.pid,
@@ -181,7 +188,7 @@ func (c *metricsContainer) RemoveAll() interface{} {
 	}
 }
 
-func getTopDuration(tasks []Task) float32 {
+func getTopDuration(tasks []ReqItem) float32 {
 	top := topK(tasks, 1)
 	if len(top) < 1 {
 		return 0
@@ -190,21 +197,21 @@ func getTopDuration(tasks []Task) float32 {
 	}
 }
 
-func log(report *StatReport) {
-	writeReport(report)
+func log(report *MetricInfo) {
+	//writeReport(report)
 	logx.Statf("(%s) - qps: %.1f/s, drops: %d, avg time: %.1fms, med: %.1fms, "+
-		"90th: %.1fms, 99th: %.1fms, 99.9th: %.1fms",
+		"90th: %.1fms, 99th: %.1fms, 99.9th: %.1fms, G: %d",
 		report.Name, report.ReqsPerSecond, report.Drops, report.Average, report.Median,
-		report.Top90th, report.Top99th, report.Top99p9th)
+		report.Top90th, report.Top99th, report.Top99p9th, runtime.NumGoroutine())
 }
 
-func writeReport(report *StatReport) {
-	writerLock.Lock()
-	defer writerLock.Unlock()
-
-	if reportWriter != nil {
-		if err := reportWriter.Write(report); err != nil {
-			logx.Error(err)
-		}
-	}
-}
+//func writeReport(report *MetricInfo) {
+//	writerLock.Lock()
+//	defer writerLock.Unlock()
+//
+//	if reportWriter != nil {
+//		if err := reportWriter.Write(report); err != nil {
+//			logx.Error(err)
+//		}
+//	}
+//}

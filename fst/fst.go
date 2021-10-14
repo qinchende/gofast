@@ -238,7 +238,7 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 }
 
 // 创建日志模板
-func (gft *GoFast) CreateMetrics() *stat.Metrics {
+func (gft *GoFast) NewRequestMetrics() *stat.Metrics {
 	var metrics *stat.Metrics
 
 	if len(gft.Name) > 0 {

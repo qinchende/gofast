@@ -28,6 +28,7 @@ type (
 		RemoveAll() interface{}
 	}
 
+	// 管理周期执行的实体对象
 	PeriodicalExecutor struct {
 		commander chan interface{}
 		interval  time.Duration
@@ -37,19 +38,20 @@ type (
 		wgBarrier   syncx.Barrier
 		confirmChan chan lang.PlaceholderType
 		inflight    int32
-		guarded     bool
+		isRunning   bool
 		newTicker   func(duration time.Duration) timex.Ticker
 		lock        sync.Mutex
 	}
 )
 
+// 初始化一个周期执行的实体对象
 func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *PeriodicalExecutor {
 	executor := &PeriodicalExecutor{
 		// buffer 1 to let the caller go quickly
 		commander:   make(chan interface{}, 1),
 		interval:    interval,
 		container:   container,
-		confirmChan: make(chan lang.PlaceholderType),
+		confirmChan: make(chan struct{}),
 		newTicker: func(d time.Duration) timex.Ticker {
 			return timex.NewTicker(d)
 		},
@@ -62,12 +64,13 @@ func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *Per
 }
 
 func (pe *PeriodicalExecutor) Add(task interface{}) {
-	if vals, ok := pe.addAndCheck(task); ok {
-		pe.commander <- vals
+	if values, ok := pe.addAndCheck(task); ok {
+		pe.commander <- values
 		<-pe.confirmChan
 	}
 }
 
+// 执行一次定时任务。
 func (pe *PeriodicalExecutor) Flush() bool {
 	pe.enterExecution()
 	return pe.executeTasks(func() interface{} {
@@ -93,8 +96,8 @@ func (pe *PeriodicalExecutor) Wait() {
 func (pe *PeriodicalExecutor) addAndCheck(task interface{}) (interface{}, bool) {
 	pe.lock.Lock()
 	defer func() {
-		if !pe.guarded {
-			pe.guarded = true
+		if !pe.isRunning {
+			pe.isRunning = true
 			// defer to unlock quickly
 			defer pe.backgroundFlush()
 		}
@@ -114,19 +117,21 @@ func (pe *PeriodicalExecutor) backgroundFlush() {
 		// flush before quit goroutine to avoid missing tasks
 		defer pe.Flush()
 
+		// 新建一个计时器，固定周期触发
 		ticker := pe.newTicker(pe.interval)
 		defer ticker.Stop()
 
+		// 开启循环检测
 		var commanded bool
 		last := timex.Now()
 		for {
 			select {
-			case vals := <-pe.commander:
+			case values := <-pe.commander:
 				commanded = true
 				atomic.AddInt32(&pe.inflight, -1)
 				pe.enterExecution()
 				pe.confirmChan <- lang.Placeholder
-				pe.executeTasks(vals)
+				pe.executeTasks(values)
 				last = timex.Now()
 			case <-ticker.Chan():
 				if commanded {
@@ -185,7 +190,7 @@ func (pe *PeriodicalExecutor) shallQuit(last time.Duration) (stop bool) {
 	// checking pe.inflight and setting pe.guarded should be locked together
 	pe.lock.Lock()
 	if atomic.LoadInt32(&pe.inflight) == 0 {
-		pe.guarded = false
+		pe.isRunning = false
 		stop = true
 	}
 	pe.lock.Unlock()
