@@ -13,11 +13,11 @@ const (
 	topNum     = 100
 )
 
-var samples []Task
+var samples []ReqItem
 
 func init() {
 	for i := 0; i < numSamples; i++ {
-		task := Task{
+		task := ReqItem{
 			Duration: time.Duration(rand.Int63()),
 		}
 		samples = append(samples, task)
@@ -25,18 +25,18 @@ func init() {
 }
 
 func TestTopK(t *testing.T) {
-	tasks := []Task{
-		{false, 1, "a"},
-		{false, 4, "a"},
-		{false, 2, "a"},
-		{false, 5, "a"},
-		{false, 9, "a"},
-		{false, 10, "a"},
-		{false, 12, "a"},
-		{false, 3, "a"},
-		{false, 6, "a"},
-		{false, 11, "a"},
-		{false, 8, "a"},
+	tasks := []ReqItem{
+		{false, 1},
+		{false, 4},
+		{false, 2},
+		{false, 5},
+		{false, 9},
+		{false, 10},
+		{false, 12},
+		{false, 3},
+		{false, 6},
+		{false, 11},
+		{false, 8},
 	}
 
 	result := topK(tasks, 3)

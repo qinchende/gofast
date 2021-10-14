@@ -1,7 +1,6 @@
 package stat
 
 import (
-	"strconv"
 	"testing"
 	"time"
 
@@ -14,24 +13,24 @@ func TestMetrics(t *testing.T) {
 		m := NewMetrics("foo")
 		m.SetName("bar")
 		for i := 0; i < count; i++ {
-			m.Add(Task{
-				Duration:    time.Millisecond * time.Duration(i),
-				Description: strconv.Itoa(i),
+			m.AddItem(ReqItem{
+				Duration: time.Millisecond * time.Duration(i),
+				//Description: strconv.Itoa(i),
 			})
 		}
 		m.AddDrop()
 		var writer mockedWriter
-		SetReportWriter(&writer)
+		//SetReportWriter(&writer)
 		m.executor.Flush()
 		assert.Equal(t, "bar", writer.report.Name)
 	}
 }
 
 type mockedWriter struct {
-	report *StatReport
+	report *MetricInfo
 }
 
-func (m *mockedWriter) Write(report *StatReport) error {
+func (m *mockedWriter) Write(report *MetricInfo) error {
 	m.report = report
 	return nil
 }

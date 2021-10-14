@@ -3,10 +3,9 @@ package mid
 import (
 	"compress/gzip"
 	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/skill/httpx"
 	"net/http"
 	"strings"
-
-	"github.com/qinchende/gofast/skill/httpx"
 )
 
 func Gunzip(w *fst.GFResponse, r *http.Request) {

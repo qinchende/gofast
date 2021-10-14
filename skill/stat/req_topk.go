@@ -2,7 +2,7 @@ package stat
 
 import "container/heap"
 
-type taskHeap []Task
+type taskHeap []ReqItem
 
 func (h *taskHeap) Len() int {
 	return len(*h)
@@ -17,7 +17,7 @@ func (h *taskHeap) Swap(i, j int) {
 }
 
 func (h *taskHeap) Push(x interface{}) {
-	*h = append(*h, x.(Task))
+	*h = append(*h, x.(ReqItem))
 }
 
 func (h *taskHeap) Pop() interface{} {
@@ -28,7 +28,7 @@ func (h *taskHeap) Pop() interface{} {
 	return x
 }
 
-func topK(all []Task, k int) []Task {
+func topK(all []ReqItem, k int) []ReqItem {
 	h := new(taskHeap)
 	heap.Init(h)
 
