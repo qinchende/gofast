@@ -5,6 +5,7 @@ package fst
 import (
 	"context"
 	"fmt"
+	"github.com/qinchende/gofast/fst/door"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/stat"
@@ -135,7 +136,7 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
 	cRes.NextFit(r)
 
-	// 请求处理玩了，开始回收资源
+	// 请求处理完成，开始回收资源
 	if cRes.Ctx != nil {
 		cRes.Ctx.GFResponse = nil
 		gft.ctxPool.Put(cRes.Ctx)
@@ -144,9 +145,18 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	gft.resPool.Put(cRes)
 }
 
+// 承上启下：从全局拦截器 过度 到路由 handlers
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
+	start := time.Now()
 	c := gft.ctxPool.Get().(*Context)
+	defer func() {
+		door.AddItem(door.ReqTime{
+			RouterIdx: c.match.ptrNode.routerIdx,
+			Duration:  time.Now().Sub(start),
+		})
+	}()
+
 	res.Ctx = c
 	c.GFResponse = res
 	c.ReqRaw = req

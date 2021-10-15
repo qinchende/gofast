@@ -8,7 +8,7 @@ type (
 	ChunkOption func(options *chunkOptions)
 
 	ChunkExecutor struct {
-		executor  *PeriodicalExecutor
+		executor  *IntervalExecutor
 		container *chunkContainer
 	}
 
