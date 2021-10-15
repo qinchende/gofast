@@ -41,7 +41,7 @@ type (
 	}
 
 	Metrics struct {
-		executor  *executors.PeriodicalExecutor
+		executor  *executors.IntervalExecutor
 		container *metricsContainer
 	}
 )
@@ -198,9 +198,8 @@ func getTopDuration(tasks []ReqItem) float32 {
 }
 
 func log(report *MetricInfo) {
-	//writeReport(report)
-	logx.Statf("(%s) - qps: %.1f/s, drops: %d, avg time: %.1fms, med: %.1fms, "+
-		"90th: %.1fms, 99th: %.1fms, 99.9th: %.1fms, G: %d",
+	// writeReport(report)
+	logx.Statf("(%s) - qps: %.1f/s, drops: %d, avg time: %.1fms, med: %.1fms, 90th: %.1fms, 99th: %.1fms, 99.9th: %.1fms, G: %d",
 		report.Name, report.ReqsPerSecond, report.Drops, report.Average, report.Median,
 		report.Top90th, report.Top99th, report.Top99p9th, runtime.NumGoroutine())
 }

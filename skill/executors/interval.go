@@ -1,16 +1,15 @@
 package executors
 
 import (
+	"github.com/qinchende/gofast/skill/gmp"
+	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/proc"
+	"github.com/qinchende/gofast/skill/syncx"
+	"github.com/qinchende/gofast/skill/timex"
 	"reflect"
 	"sync"
 	"sync/atomic"
 	"time"
-
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/proc"
-	"github.com/qinchende/gofast/skill/syncx"
-	"github.com/qinchende/gofast/skill/threading"
-	"github.com/qinchende/gofast/skill/timex"
 )
 
 const idleRound = 10
@@ -29,7 +28,7 @@ type (
 	}
 
 	// 管理周期执行的实体对象
-	PeriodicalExecutor struct {
+	IntervalExecutor struct {
 		commander chan interface{}
 		interval  time.Duration
 		container TaskContainer
@@ -45,8 +44,8 @@ type (
 )
 
 // 初始化一个周期执行的实体对象
-func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *PeriodicalExecutor {
-	executor := &PeriodicalExecutor{
+func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *IntervalExecutor {
+	executor := &IntervalExecutor{
 		// buffer 1 to let the caller go quickly
 		commander:   make(chan interface{}, 1),
 		interval:    interval,
@@ -63,7 +62,7 @@ func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *Per
 	return executor
 }
 
-func (pe *PeriodicalExecutor) Add(task interface{}) {
+func (pe *IntervalExecutor) Add(task interface{}) {
 	if values, ok := pe.addAndCheck(task); ok {
 		pe.commander <- values
 		<-pe.confirmChan
@@ -71,7 +70,7 @@ func (pe *PeriodicalExecutor) Add(task interface{}) {
 }
 
 // 执行一次定时任务。
-func (pe *PeriodicalExecutor) Flush() bool {
+func (pe *IntervalExecutor) Flush() bool {
 	pe.enterExecution()
 	return pe.executeTasks(func() interface{} {
 		pe.lock.Lock()
@@ -80,26 +79,26 @@ func (pe *PeriodicalExecutor) Flush() bool {
 	}())
 }
 
-func (pe *PeriodicalExecutor) Sync(fn func()) {
+func (pe *IntervalExecutor) Sync(fn func()) {
 	pe.lock.Lock()
 	defer pe.lock.Unlock()
 	fn()
 }
 
-func (pe *PeriodicalExecutor) Wait() {
+func (pe *IntervalExecutor) Wait() {
 	pe.Flush()
 	pe.wgBarrier.Guard(func() {
 		pe.waitGroup.Wait()
 	})
 }
 
-func (pe *PeriodicalExecutor) addAndCheck(task interface{}) (interface{}, bool) {
+func (pe *IntervalExecutor) addAndCheck(task interface{}) (interface{}, bool) {
 	pe.lock.Lock()
 	defer func() {
 		if !pe.isRunning {
 			pe.isRunning = true
 			// defer to unlock quickly
-			defer pe.backgroundFlush()
+			defer pe.loopFlush()
 		}
 		pe.lock.Unlock()
 	}()
@@ -112,8 +111,9 @@ func (pe *PeriodicalExecutor) addAndCheck(task interface{}) (interface{}, bool) 
 	return nil, false
 }
 
-func (pe *PeriodicalExecutor) backgroundFlush() {
-	threading.GoSafe(func() {
+// 后台启动新的协程运行周期任务
+func (pe *IntervalExecutor) loopFlush() {
+	gmp.GoSafe(func() {
 		// flush before quit goroutine to avoid missing tasks
 		defer pe.Flush()
 
@@ -138,7 +138,7 @@ func (pe *PeriodicalExecutor) backgroundFlush() {
 					commanded = false
 				} else if pe.Flush() {
 					last = timex.Now()
-				} else if pe.shallQuit(last) {
+				} else if pe.quitLoop(last) {
 					return
 				}
 			}
@@ -146,32 +146,29 @@ func (pe *PeriodicalExecutor) backgroundFlush() {
 	})
 }
 
-func (pe *PeriodicalExecutor) doneExecution() {
+func (pe *IntervalExecutor) doneExecution() {
 	pe.waitGroup.Done()
 }
 
-func (pe *PeriodicalExecutor) enterExecution() {
+func (pe *IntervalExecutor) enterExecution() {
 	pe.wgBarrier.Guard(func() {
 		pe.waitGroup.Add(1)
 	})
 }
 
-func (pe *PeriodicalExecutor) executeTasks(tasks interface{}) bool {
+func (pe *IntervalExecutor) executeTasks(tasks interface{}) bool {
 	defer pe.doneExecution()
-
 	ok := pe.hasTasks(tasks)
 	if ok {
 		pe.container.Execute(tasks)
 	}
-
 	return ok
 }
 
-func (pe *PeriodicalExecutor) hasTasks(tasks interface{}) bool {
+func (pe *IntervalExecutor) hasTasks(tasks interface{}) bool {
 	if tasks == nil {
 		return false
 	}
-
 	val := reflect.ValueOf(tasks)
 	switch val.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
@@ -182,7 +179,7 @@ func (pe *PeriodicalExecutor) hasTasks(tasks interface{}) bool {
 	}
 }
 
-func (pe *PeriodicalExecutor) shallQuit(last time.Duration) (stop bool) {
+func (pe *IntervalExecutor) quitLoop(last time.Duration) (stop bool) {
 	if timex.Since(last) <= pe.interval*idleRound {
 		return
 	}

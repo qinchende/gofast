@@ -8,7 +8,7 @@ type (
 	BulkOption func(options *bulkOptions)
 
 	BulkExecutor struct {
-		executor  *PeriodicalExecutor
+		executor  *IntervalExecutor
 		container *bulkContainer
 	}
 

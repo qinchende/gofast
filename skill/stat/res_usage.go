@@ -1,13 +1,12 @@
 package stat
 
 import (
+	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/gmp"
+	"github.com/qinchende/gofast/skill/stat/tips"
 	"runtime"
 	"sync/atomic"
 	"time"
-
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/stat/internal"
-	"github.com/qinchende/gofast/skill/threading"
 )
 
 const (
@@ -30,8 +29,8 @@ func StartCpuMemCollect() {
 		for {
 			select {
 			case <-cpuTicker.C:
-				threading.RunSafe(func() {
-					curUsage := internal.RefreshCpu()
+				gmp.RunSafe(func() {
+					curUsage := tips.RefreshCpu()
 					prevUsage := atomic.LoadInt64(&cpuUsage)
 					// cpu = cpuᵗ⁻¹ * beta + cpuᵗ * (1 - beta)
 					usage := int64(float64(prevUsage)*beta + float64(curUsage)*(1-beta))
