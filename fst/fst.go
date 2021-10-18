@@ -115,6 +115,9 @@ func (gft *GoFast) initHomeRouter() {
 func (gft *GoFast) BuildRouters() {
 	gft.readyOnce.Do(func() {
 		gft.checkDefaultHandler()
+		if gft.RouterAccessCount {
+			gft.Fit(gft.routerAccessCount)
+		}
 		gft.Fit(gft.serveHTTPWithCtx)      // 全局中间件过滤之后加入下一级的处理函数
 		gft.execAppHandlers(gft.eReadyHds) // 依次执行 onReady 事件处理函数
 	})
@@ -145,18 +148,30 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	gft.resPool.Put(cRes)
 }
 
-// 承上启下：从全局拦截器 过度 到路由 handlers
-// 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
-func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
+// TODO: 这里加入强大的路由统计功能。可以实现单路由的熔断降载。
+// 统计路由的拦截器（这个统计细化到所有路由的访问情况）
+func (gft *GoFast) routerAccessCount(res *GFResponse, req *http.Request) {
+	// 统计当前访问路由的处理时间
 	start := time.Now()
-	c := gft.ctxPool.Get().(*Context)
 	defer func() {
+		var nodeIdx int16 = -1
+		if res.Ctx.match.ptrNode != nil {
+			nodeIdx = res.Ctx.match.ptrNode.routerIdx
+		}
 		door.AddItem(door.ReqTime{
-			RouterIdx: c.match.ptrNode.routerIdx,
+			RouterIdx: nodeIdx,
 			Duration:  time.Now().Sub(start),
 		})
 	}()
 
+	// 执行后面的 serveHTTPWithCtx
+	res.NextFit(req)
+}
+
+// 承上启下：从全局拦截器 过度 到路由 handlers
+// 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
+func (gft *GoFast) serveHTTPWithCtx(res *GFResponse, req *http.Request) {
+	c := gft.ctxPool.Get().(*Context)
 	res.Ctx = c
 	c.GFResponse = res
 	c.ReqRaw = req
