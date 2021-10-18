@@ -3,7 +3,6 @@ package stat
 import (
 	"os"
 	"runtime"
-	"sync"
 	"time"
 
 	"github.com/qinchende/gofast/logx"
@@ -12,7 +11,7 @@ import (
 
 var (
 	LogInterval = time.Minute
-	writerLock  sync.Mutex
+	//writerLock  sync.Mutex
 	//reportWriter Writer = nil
 )
 
