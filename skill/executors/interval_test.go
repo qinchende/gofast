@@ -26,7 +26,7 @@ func newContainer(interval time.Duration, execute func(tasks interface{})) *cont
 	}
 }
 
-func (c *container) AddTask(task interface{}) bool {
+func (c *container) AddItem(task interface{}) bool {
 	c.tasks = append(c.tasks, task.(int))
 	return len(c.tasks) > threshold
 }

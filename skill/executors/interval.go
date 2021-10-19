@@ -15,15 +15,15 @@ import (
 const idleRound = 10
 
 type (
-	// A type that satisfies executors.TaskContainer can be used as the underlying
+	// A type that satisfies executors.ItemContainer can be used as the underlying
 	// container that used to do periodical executions.
-	TaskContainer interface {
-		// AddTask adds the task into the container.
+	ItemContainer interface {
+		// AddItem adds the task into the container.
 		// Returns true if the container needs to be flushed after the addition.
-		AddTask(task interface{}) bool
-		// Execute handles the collected tasks by the container when flushing.
-		Execute(tasks interface{})
-		// RemoveAll removes the contained tasks, and return them.
+		AddItem(item interface{}) bool
+		// Execute handles the collected items by the container when flushing.
+		Execute(items interface{})
+		// RemoveAll removes the contained items, and return them.
 		RemoveAll() interface{}
 	}
 
@@ -31,7 +31,7 @@ type (
 	IntervalExecutor struct {
 		commander chan interface{}
 		interval  time.Duration
-		container TaskContainer
+		container ItemContainer
 		waitGroup sync.WaitGroup
 		// avoid race condition on waitGroup when calling wg.Add/Done/Wait(...)
 		wgBarrier   syncx.Barrier
@@ -44,7 +44,7 @@ type (
 )
 
 // 初始化一个周期执行的实体对象
-func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *IntervalExecutor {
+func NewIntervalExecutor(interval time.Duration, container ItemContainer) *IntervalExecutor {
 	executor := &IntervalExecutor{
 		// buffer 1 to let the caller go quickly
 		commander:   make(chan interface{}, 1),
@@ -62,8 +62,8 @@ func NewPeriodicalExecutor(interval time.Duration, container TaskContainer) *Int
 	return executor
 }
 
-func (pe *IntervalExecutor) Add(task interface{}) {
-	if values, ok := pe.addAndCheck(task); ok {
+func (pe *IntervalExecutor) Add(item interface{}) {
+	if values, ok := pe.addAndCheck(item); ok {
 		pe.commander <- values
 		<-pe.confirmChan
 	}
@@ -92,7 +92,7 @@ func (pe *IntervalExecutor) Wait() {
 	})
 }
 
-func (pe *IntervalExecutor) addAndCheck(task interface{}) (interface{}, bool) {
+func (pe *IntervalExecutor) addAndCheck(item interface{}) (interface{}, bool) {
 	pe.lock.Lock()
 	defer func() {
 		if !pe.isRunning {
@@ -103,7 +103,7 @@ func (pe *IntervalExecutor) addAndCheck(task interface{}) (interface{}, bool) {
 		pe.lock.Unlock()
 	}()
 
-	if pe.container.AddTask(task) {
+	if pe.container.AddItem(item) {
 		atomic.AddInt32(&pe.inflight, 1)
 		return pe.container.RemoveAll(), true
 	}
@@ -114,7 +114,7 @@ func (pe *IntervalExecutor) addAndCheck(task interface{}) (interface{}, bool) {
 // 后台启动新的协程运行周期任务
 func (pe *IntervalExecutor) loopFlush() {
 	gmp.GoSafe(func() {
-		// flush before quit goroutine to avoid missing tasks
+		// flush before quit goroutine to avoid missing items
 		defer pe.Flush()
 
 		// 新建一个计时器，固定周期触发
@@ -156,20 +156,20 @@ func (pe *IntervalExecutor) enterExecution() {
 	})
 }
 
-func (pe *IntervalExecutor) executeTasks(tasks interface{}) bool {
+func (pe *IntervalExecutor) executeTasks(items interface{}) bool {
 	defer pe.doneExecution()
-	ok := pe.hasTasks(tasks)
+	ok := pe.hasTasks(items)
 	if ok {
-		pe.container.Execute(tasks)
+		pe.container.Execute(items)
 	}
 	return ok
 }
 
-func (pe *IntervalExecutor) hasTasks(tasks interface{}) bool {
-	if tasks == nil {
+func (pe *IntervalExecutor) hasTasks(items interface{}) bool {
+	if items == nil {
 		return false
 	}
-	val := reflect.ValueOf(tasks)
+	val := reflect.ValueOf(items)
 	switch val.Kind() {
 	case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice:
 		return val.Len() > 0

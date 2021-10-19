@@ -12,6 +12,15 @@ import (
 	"strings"
 )
 
+// 获取所在节点的Path |
+func (gft *GoFast) FullPath(idx int16) string {
+	if idx >= 0 && gft.allRouters[idx] != nil {
+		return gft.allRouters[idx].fullPath
+	} else {
+		return ""
+	}
+}
+
 func (c *Context) FullPath() string {
 	if c.match.ptrNode != nil && c.match.ptrNode.routerIdx >= 0 {
 		return c.gftApp.allRouters[c.match.ptrNode.routerIdx].fullPath
