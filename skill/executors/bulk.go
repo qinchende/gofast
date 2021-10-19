@@ -29,7 +29,7 @@ func NewBulkExecutor(execute Execute, opts ...BulkOption) *BulkExecutor {
 		maxTasks: options.cachedTasks,
 	}
 	executor := &BulkExecutor{
-		executor:  NewPeriodicalExecutor(options.flushInterval, container),
+		executor:  NewIntervalExecutor(options.flushInterval, container),
 		container: container,
 	}
 
@@ -74,7 +74,7 @@ type bulkContainer struct {
 	maxTasks int
 }
 
-func (bc *bulkContainer) AddTask(task interface{}) bool {
+func (bc *bulkContainer) AddItem(task interface{}) bool {
 	bc.tasks = append(bc.tasks, task)
 	return len(bc.tasks) >= bc.maxTasks
 }

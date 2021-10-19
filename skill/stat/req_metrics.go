@@ -58,13 +58,13 @@ func NewMetrics(name string) *Metrics {
 	}
 
 	return &Metrics{
-		executor:  executors.NewPeriodicalExecutor(LogInterval, container),
+		executor:  executors.NewIntervalExecutor(LogInterval, container),
 		container: container,
 	}
 }
 
-func (m *Metrics) AddItem(task ReqItem) {
-	m.executor.Add(task)
+func (m *Metrics) AddItem(item ReqItem) {
+	m.executor.Add(item)
 }
 
 func (m *Metrics) AddDrop() {
@@ -81,7 +81,7 @@ func (m *Metrics) SetName(name string) {
 
 type (
 	tasksDurationPair struct {
-		tasks    []ReqItem
+		items    []ReqItem
 		duration time.Duration
 		drops    int
 	}
@@ -89,20 +89,20 @@ type (
 	metricsContainer struct {
 		name     string
 		pid      int
-		tasks    []ReqItem
+		items    []ReqItem
 		duration time.Duration
 		drops    int
 	}
 )
 
-// 添加任务
-func (c *metricsContainer) AddTask(v interface{}) bool {
-	if task, ok := v.(ReqItem); ok {
-		if task.Drop {
+// 添加新项
+func (c *metricsContainer) AddItem(v interface{}) bool {
+	if item, ok := v.(ReqItem); ok {
+		if item.Drop {
 			c.drops++
 		} else {
-			c.tasks = append(c.tasks, task)
-			c.duration += task.Duration
+			c.items = append(c.items, item)
+			c.duration += item.Duration
 		}
 	}
 	return false
@@ -111,10 +111,10 @@ func (c *metricsContainer) AddTask(v interface{}) bool {
 // 执行任务
 func (c *metricsContainer) Execute(v interface{}) {
 	pair := v.(tasksDurationPair)
-	tasks := pair.tasks
+	items := pair.items
 	duration := pair.duration
 	drops := pair.drops
-	size := len(tasks)
+	size := len(items)
 	report := &MetricInfo{
 		Name:          c.name,
 		Timestamp:     time.Now().Unix(),
@@ -128,12 +128,12 @@ func (c *metricsContainer) Execute(v interface{}) {
 
 		fiftyPercent := size >> 1
 		if fiftyPercent > 0 {
-			top50pTasks := topK(tasks, fiftyPercent)
+			top50pTasks := topK(items, fiftyPercent)
 			medianTask := top50pTasks[0]
 			report.Median = float32(medianTask.Duration) / float32(time.Millisecond)
 			tenPercent := fiftyPercent / 5
 			if tenPercent > 0 {
-				top10pTasks := topK(tasks, tenPercent)
+				top10pTasks := topK(items, tenPercent)
 				task90th := top10pTasks[0]
 				report.Top90th = float32(task90th.Duration) / float32(time.Millisecond)
 				onePercent := tenPercent / 10
@@ -155,13 +155,13 @@ func (c *metricsContainer) Execute(v interface{}) {
 					report.Top99p9th = mostDuration
 				}
 			} else {
-				mostDuration := getTopDuration(tasks)
+				mostDuration := getTopDuration(items)
 				report.Top90th = mostDuration
 				report.Top99th = mostDuration
 				report.Top99p9th = mostDuration
 			}
 		} else {
-			mostDuration := getTopDuration(tasks)
+			mostDuration := getTopDuration(items)
 			report.Median = mostDuration
 			report.Top90th = mostDuration
 			report.Top99th = mostDuration
@@ -173,22 +173,22 @@ func (c *metricsContainer) Execute(v interface{}) {
 }
 
 func (c *metricsContainer) RemoveAll() interface{} {
-	tasks := c.tasks
+	items := c.items
 	duration := c.duration
 	drops := c.drops
-	c.tasks = nil
+	c.items = nil
 	c.duration = 0
 	c.drops = 0
 
 	return tasksDurationPair{
-		tasks:    tasks,
+		items:    items,
 		duration: duration,
 		drops:    drops,
 	}
 }
 
-func getTopDuration(tasks []ReqItem) float32 {
-	top := topK(tasks, 1)
+func getTopDuration(items []ReqItem) float32 {
+	top := topK(items, 1)
 	if len(top) < 1 {
 		return 0
 	} else {

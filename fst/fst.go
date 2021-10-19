@@ -116,6 +116,7 @@ func (gft *GoFast) BuildRouters() {
 	gft.readyOnce.Do(func() {
 		gft.checkDefaultHandler()
 		if gft.RouterAccessCount {
+			door.NewKeeper(gft.FullPath)
 			gft.Fit(gft.routerAccessCount)
 		}
 		gft.Fit(gft.serveHTTPWithCtx)      // 全局中间件过滤之后加入下一级的处理函数
@@ -158,7 +159,7 @@ func (gft *GoFast) routerAccessCount(res *GFResponse, req *http.Request) {
 		if res.Ctx.match.ptrNode != nil {
 			nodeIdx = res.Ctx.match.ptrNode.routerIdx
 		}
-		door.AddItem(door.ReqTime{
+		door.Keeper.AddItem(door.ReqItem{
 			RouterIdx: nodeIdx,
 			Duration:  time.Now().Sub(start),
 		})

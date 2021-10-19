@@ -29,7 +29,7 @@ func NewChunkExecutor(execute Execute, opts ...ChunkOption) *ChunkExecutor {
 		maxChunkSize: options.chunkSize,
 	}
 	executor := &ChunkExecutor{
-		executor:  NewPeriodicalExecutor(options.flushInterval, container),
+		executor:  NewIntervalExecutor(options.flushInterval, container),
 		container: container,
 	}
 
@@ -78,7 +78,7 @@ type chunkContainer struct {
 	maxChunkSize int
 }
 
-func (bc *chunkContainer) AddTask(task interface{}) bool {
+func (bc *chunkContainer) AddItem(task interface{}) bool {
 	ck := task.(chunk)
 	bc.tasks = append(bc.tasks, ck.val)
 	bc.size += ck.size
