@@ -108,6 +108,10 @@ func (gft *GoFast) initHomeRouter() {
 
 	gft.allRouters = make(RouterItems, 0)
 	gft.fstMem = new(fstMemSpace)
+
+	// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
+	//gft.Before()
+	//gft.After()
 }
 
 // 重构路由树，

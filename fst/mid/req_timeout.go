@@ -78,7 +78,7 @@ func ReqTimeout(dur time.Duration) fst.IncHandler {
 			return
 		case <-ctx.Done():
 			// 超时退出
-			//w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
+			w.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 			fst.RaisePanic(midTimeoutMsg)
 			return
 		}
