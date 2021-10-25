@@ -27,8 +27,13 @@ type RouterGroup struct {
 	parentHdsLen uint16 // 记录所属上级分组的所有处理函数个数（仅包含上级分组，不含本分组的事件个数）
 }
 
+type RIConfig struct {
+	MaxAcc int32 `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数
+}
+
 type RouterItems []*RouterItem
 type RouterItem struct {
+	config      *RIConfig    // router group
 	group       *RouterGroup // router group
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// NOTE：Fit系列是全局的，针对所有请求起作用，而且不区分路由，这个时候还根本没有开始匹配路由。
 // GoFast提供默认的全套拦截器，开启微服务治理
 // 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
 func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {

@@ -102,3 +102,10 @@ func (ri *RouterItem) PreSend(hds ...CtxHandler) *RouterItem {
 func (ri *RouterItem) AfterSend(hds ...CtxHandler) *RouterItem {
 	return ri.regItemCtxHandler(EAfterSend, hds)
 }
+
+// RouterItemConfig
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (ri *RouterItem) Config(cfg *RIConfig) *RouterItem {
+	ri.config.MaxAcc = cfg.MaxAcc
+	return ri
+}
