@@ -1,8 +1,8 @@
 package collection
 
 import (
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/logx"
 )
 
 const (

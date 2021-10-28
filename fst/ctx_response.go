@@ -9,15 +9,17 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 )
 
 // 自定义 Response，暂且叫做：GFResponse
 type GFResponse struct {
-	ResWrap *ResWriterWrap
-	Ctx     *Context
-	gftApp  *GoFast // 用于上下文
-	fitIdx  int
-	Errors  errMessages // []*Error
+	ResWrap   *ResWriterWrap
+	Ctx       *Context
+	EnterTime time.Duration // 请求起始时间
+	gftApp    *GoFast       // 用于上下文
+	fitIdx    int
+	Errors    errMessages // []*Error
 }
 
 func (w *GFResponse) reset() {

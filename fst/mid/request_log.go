@@ -3,15 +3,12 @@ package mid
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
-	"time"
 )
 
 func ReqLogger() fst.IncHandler {
 	return func(w *fst.GFResponse, r *http.Request) {
-		// Start timer
-		start := time.Now()
-
 		// 执行完后面的请求，再打印日志
 		w.NextFit(r)
 
@@ -32,8 +29,8 @@ func ReqLogger() fst.IncHandler {
 		p.ErrorMsg = w.Errors.String(logx.Style())
 
 		// Stop timer
-		p.TimeStamp = time.Now()
-		p.Latency = p.TimeStamp.Sub(start)
+		p.TimeStamp = timex.Now()
+		p.Latency = p.TimeStamp - w.EnterTime
 
 		// 打印请求日志
 		logx.WriteReqLog(p)

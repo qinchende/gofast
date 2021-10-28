@@ -126,10 +126,11 @@ func (c *Context) Render(code int, r render.Render) {
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execAfterSendHandlers()
 
+	// NOTE(by chende 2021.10.28): 下面的这一堆代码需要删除掉，否则中间件不会往下执行了。
 	// 到这里其实也意味着调用链到这里就中断了。不需要再执行其它处理函数。
 	// 调用链是：[before(s)->handler(s)->after(s)]其中任何地方执行了Render，后面的函数都将不再调用。
 	// 但是 preSend 和 afterSend 函数将继续执行。
-	c.aborted = true
+	//c.aborted = true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
