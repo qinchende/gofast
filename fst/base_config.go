@@ -26,7 +26,7 @@ type AppConfig struct {
 	UseRawPath             bool   `cnf:",def=false"`                       // 默认取原始的Path，不需要自动转义
 	UnescapePathValues     bool   `cnf:",def=true"`                        // 默认把URL中的参数值做转义
 	PrintRouteTrees        bool   `cnf:",def=false"`                       // 是否打印出当前路由数
-	RouterAccessCount      bool   `cnf:",def=true"`                        // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
+	EnableRouteMonitor     bool   `cnf:",def=true"`                        // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
 	FitReqTimeout          int64  `cnf:",def=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	FitMaxReqContentLen    int64  `cnf:",def=33554432"`                    // 最大请求字节数
 	FitMaxReqCount         int32  `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数

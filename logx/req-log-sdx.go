@@ -5,6 +5,7 @@ package logx
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qinchende/gofast/skill/timex"
 	"time"
 )
 
@@ -47,7 +48,7 @@ var genSdxReqLogString = func(p *ReqLogEntity) string {
 		p.RawReq.Method,
 		p.RawReq.URL.Path,
 		p.ClientIP,
-		p.TimeStamp.Format(timeFormatMini),
+		timex.ToTime(p.TimeStamp).Format(timeFormatMini),
 		p.StatusCode,
 		p.BodySize,
 		p.Latency/time.Millisecond,

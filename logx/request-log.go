@@ -8,7 +8,7 @@ import (
 // 日志参数实体
 type ReqLogEntity struct {
 	RawReq     *http.Request
-	TimeStamp  time.Time
+	TimeStamp  time.Duration
 	Latency    time.Duration
 	ClientIP   string
 	StatusCode int

@@ -9,6 +9,7 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/stat"
+	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"net/http"
 	"os"
@@ -110,21 +111,39 @@ func (gft *GoFast) initHomeRouter() {
 	gft.fstMem = new(fstMemSpace)
 
 	// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
-	//gft.Before()
-	//gft.After()
+	// TODO: 因为Server初始化之后就执行了这里，所以这里的中间件在客户自定义中间件之前
+	// 加入路由的访问性能统计，但是这里还没有匹配路由，无法准确分路由统计
+	if gft.EnableRouteMonitor {
+		// 初始化全局的keeper变量
+		door.NewKeeper(gft.FullPath)
+		// 加入过滤器中间件
+		gft.After(afterRouter)
+	}
 }
 
-// 重构路由树，
+func afterRouter(c *Context) {
+	var nodeIdx int16 = -1
+	if c.match.ptrNode != nil {
+		nodeIdx = c.match.ptrNode.routerIdx
+	}
+	door.Keeper.AddItem(door.ReqItem{
+		RouterIdx: nodeIdx,
+		Duration:  timex.Since(c.EnterTime),
+	})
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NOTE：重构路由树。（重要！重要！重要！必须调用这个方法初始化路由树和中间件）
 // 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
 func (gft *GoFast) BuildRouters() {
 	gft.readyOnce.Do(func() {
 		gft.checkDefaultHandler()
-		if gft.RouterAccessCount {
-			door.NewKeeper(gft.FullPath)
-			gft.Fit(gft.routerAccessCount)
-		}
-		gft.Fit(gft.serveHTTPWithCtx)      // 全局中间件过滤之后加入下一级的处理函数
-		gft.execAppHandlers(gft.eReadyHds) // 依次执行 onReady 事件处理函数
+		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
+
+		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
+		gft.Fit(gft.serveHTTPWithCtx)
+		// 依次执行 onReady 事件处理函数
+		gft.execAppHandlers(gft.eReadyHds)
 	})
 	gft.regAllRouters()
 }
@@ -140,6 +159,9 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	cRes.ResWrap.Reset(w)
 	cRes.reset()
 
+	// 记录请求进入的时间
+	cRes.EnterTime = timex.Now()
+
 	// 开始依次执行全局拦截器
 	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
 	cRes.NextFit(r)
@@ -151,26 +173,6 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		cRes.Ctx = nil
 	}
 	gft.resPool.Put(cRes)
-}
-
-// TODO: 这里加入强大的路由统计功能。可以实现单路由的熔断降载。
-// 统计路由的拦截器（这个统计细化到所有路由的访问情况）
-func (gft *GoFast) routerAccessCount(res *GFResponse, req *http.Request) {
-	// 统计当前访问路由的处理时间
-	start := time.Now()
-	defer func() {
-		var nodeIdx int16 = -1
-		if res.Ctx.match.ptrNode != nil {
-			nodeIdx = res.Ctx.match.ptrNode.routerIdx
-		}
-		door.Keeper.AddItem(door.ReqItem{
-			RouterIdx: nodeIdx,
-			Duration:  time.Now().Sub(start),
-		})
-	}()
-
-	// 执行后面的 serveHTTPWithCtx
-	res.NextFit(req)
 }
 
 // 承上启下：从全局拦截器 过度 到路由 handlers

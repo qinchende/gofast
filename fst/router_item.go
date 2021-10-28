@@ -32,9 +32,9 @@ func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 			routerIdx: -1,
 		}
 	}
-	//ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
+	// ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
 	if hds != nil {
-		//gft.routerItem405.eHds = append(gft.routerItem405.eHds, addCtxHandlers(gft.fstMem, hds)...)
+		// gft.routerItem405.eHds = append(gft.routerItem405.eHds, addCtxHandlers(gft.fstMem, hds)...)
 		gft.routerItem405.eHds = addCtxHandlers(gft.fstMem, hds)
 	}
 }
@@ -51,6 +51,7 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouterItem{
+		config:    &RIConfig{},
 		method:    httpMethod,
 		fullPath:  absPath,
 		group:     gp,
