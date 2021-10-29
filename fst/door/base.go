@@ -41,7 +41,11 @@ type (
 	}
 )
 
-func NewKeeper(fp FuncGetPath) {
+func InitKeeper(fp FuncGetPath) {
+	if Keeper != nil {
+		return
+	}
+
 	container := &reqContainer{
 		//name: name,
 		pid: os.Getpid(),

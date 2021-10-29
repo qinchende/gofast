@@ -5,11 +5,13 @@ import (
 	"net/http"
 )
 
-func MaxReqContentLength(limit int64) fst.IncHandler {
+func MaxContentLength(limit int64) fst.IncHandler {
+	// limit <= 0 意味着根本不检查ContentLength的限制
+	if limit <= 0 {
+		return nil
+	}
+
 	return func(w *fst.GFResponse, r *http.Request) {
-		if limit <= 0 {
-			return
-		}
 		// request body length
 		if r.ContentLength > limit {
 			w.ErrorF("Request body limit is %d, but got %d, rejected with code %d", limit,
