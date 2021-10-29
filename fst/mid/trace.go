@@ -9,7 +9,13 @@ import (
 	"github.com/qinchende/gofast/skill/trace"
 )
 
+// 启动链路追踪
 func Tracing(w *fst.GFResponse, r *http.Request) {
+	// 先禁用这个功能
+	if w != nil {
+		return
+	}
+
 	carrier, err := trace.Extract(trace.HttpFormat, r.Header)
 	// ErrInvalidCarrier means no trace id was set in http header
 	if err != nil && err != trace.ErrInvalidCarrier {

@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/fst/door"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
-	"github.com/qinchende/gofast/skill/stat"
 	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"net/http"
@@ -115,21 +114,12 @@ func (gft *GoFast) initHomeRouter() {
 	// 加入路由的访问性能统计，但是这里还没有匹配路由，无法准确分路由统计
 	if gft.EnableRouteMonitor {
 		// 初始化全局的keeper变量
-		door.NewKeeper(gft.FullPath)
-		// 加入过滤器中间件
-		gft.After(afterRouter)
-	}
-}
+		door.InitKeeper(gft.FullPath)
 
-func afterRouter(c *Context) {
-	var nodeIdx int16 = -1
-	if c.match.ptrNode != nil {
-		nodeIdx = c.match.ptrNode.routerIdx
+		// 加入全局路由的中间件
+		gft.Before(theFirstBeforeHandler)
+		gft.After(theLastAfterHandler)
 	}
-	door.Keeper.AddItem(door.ReqItem{
-		RouterIdx: nodeIdx,
-		Duration:  timex.Since(c.EnterTime),
-	})
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -267,19 +257,6 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 	}()
 	gft.GracefulShutdown()
 	return
-}
-
-// 创建日志模板
-func (gft *GoFast) NewRequestMetrics() *stat.Metrics {
-	var metrics *stat.Metrics
-
-	if len(gft.Name) > 0 {
-		metrics = stat.NewMetrics(gft.Name)
-	} else {
-		metrics = stat.NewMetrics(gft.Addr)
-	}
-
-	return metrics
 }
 
 // 优雅关闭

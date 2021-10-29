@@ -154,6 +154,7 @@ func (c *Context) Render(code int, r render.Render) {
 //	c.aborted = true
 //}
 
+// TODO: 这里 abort context handlers.
 // 终止后面的程序，依次返回调用方。
 func (c *Context) AbortWithStatus(code int) {
 	c.Status(code)

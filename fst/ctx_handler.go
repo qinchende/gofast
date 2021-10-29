@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-// TODO： 底层大致有两种设计思路，目前采用第一种方案， 没有优化
+// TODO: 第一种方案：将可执行中间件分类，依次执行。
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers(ptrMini *radixMiniNode) {
 	it := c.gftApp.fstMem.hdsMiniNodes[ptrMini.hdsItemIdx]
@@ -72,7 +72,9 @@ func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
 	}
 }
 
-//
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NOTE: 下面的钩子函数不需要中断执行链。
+
 //func (c *Context) execPreBindHandlers() {
 //	if c.match.ptrNode == nil {
 //		return
@@ -101,7 +103,6 @@ func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
 //	return
 //}
 
-//func (c *Context) execPreSendHandlers(code int, r render.Render) {
 func (c *Context) execPreSendHandlers() {
 	if c.match.ptrNode == nil {
 		return
@@ -111,23 +112,23 @@ func (c *Context) execPreSendHandlers() {
 
 	// 5.preSend
 	for it.preSendLen > 0 {
-		if c.aborted {
-			goto over
-		}
+		//if c.aborted {
+		//	goto over
+		//}
 		c.gftApp.fstMem.hdsList[it.preSendIdx](c)
 		it.preSendLen--
 		it.preSendIdx++
 	}
 	for gp.preSendLen > 0 {
-		if c.aborted {
-			goto over
-		}
+		//if c.aborted {
+		//	goto over
+		//}
 		c.gftApp.fstMem.hdsList[gp.preSendIdx](c)
 		gp.preSendLen--
 		gp.preSendIdx++
 	}
-over:
-	return
+	//over:
+	//	return
 }
 
 func (c *Context) execAfterSendHandlers() {
@@ -139,29 +140,30 @@ func (c *Context) execAfterSendHandlers() {
 
 	// 6.afterSend
 	for it.afterSendLen > 0 {
-		if c.aborted {
-			goto over
-		}
+		//if c.aborted {
+		//	goto over
+		//}
 		c.gftApp.fstMem.hdsList[it.afterSendIdx](c)
 		it.afterSendLen--
 		it.afterSendIdx++
 	}
 	for gp.afterSendLen > 0 {
-		if c.aborted {
-			goto over
-		}
+		//if c.aborted {
+		//	goto over
+		//}
 		c.gftApp.fstMem.hdsList[gp.afterSendIdx](c)
 		gp.afterSendLen--
 		gp.afterSendIdx++
 	}
-over:
-	return
+	//over:
+	//	return
 }
 
-// TODO: 暂时不用
+// TODO: 第二种方案：将所有中间件组成链式（暂时不用）（实际上也无法将所有类型的filter串联起来）
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 方案2. 基于已经将所有的事件函数组织成了一个有序的索引数组。只需要一次循环就执行所有的中间件函数
-// 这种实现其实不现实，不同类型的事件是在框架封装过程中分开执行的
+// 这种实现其实不现实，不同类型的事件是在框架封装过程中分开执行的(比如 before-render | after-render 是无法和 handler 串联
+// 到一起的，它们只是 handler 中 render 的前后执行函数。)
 func (c *Context) execHandlersMini(ptrMini *radixMiniNode) {
 	it := c.gftApp.fstMem.hdsNodesPlan2[ptrMini.hdsItemIdx]
 
