@@ -63,52 +63,52 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 		n.children[i].rebuildNode(fstMem, newMini.childStart+i)
 	}
 
-	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
+	// 第一种：如果是一个路由叶子节点 (能匹配一个路由)
 	if n.leafItem != nil {
 		newMini.hdsGroupIdx = n.leafItem.group.hdsIdx     // 记录“分组”事件在 全局 事件队列中的 起始位置
 		newMini.hdsItemIdx = n.leafItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
 		newMini.routerIdx = n.leafItem.routerIdx
 
-		// 可以构造叶子节点的执行链数组，（注意：这里一定要用取地址符）
-		item := &fstMem.hdsNodes[newMini.hdsItemIdx]
-		it := fstMem.hdsNodes[newMini.hdsItemIdx]
+		// 可以构造叶子节点的执行链切片，（注意：这里一定要用取地址符）
+		eNode := &fstMem.hdsNodes[newMini.hdsItemIdx]
+		// 下面这两个不能取地址，而是值拷贝
+		me := fstMem.hdsNodes[newMini.hdsItemIdx]
 		gp := fstMem.hdsNodes[newMini.hdsGroupIdx]
 
-		size := gp.beforeLen + it.beforeLen + it.hdsLen + it.afterLen + gp.afterLen
-		item.hdsIdxChain = make([]uint16, size, size)
+		// 上级分组before + 自己before + 自己handler + 自己after + 上级分组after
+		size := gp.beforeLen + me.beforeLen + me.hdsLen + me.afterLen + gp.afterLen
+		eNode.hdsIdxChain = make([]uint16, size, size)
 
 		// 2.before
 		count := 0
 		for gp.beforeLen > 0 {
-			item.hdsIdxChain[count] = gp.beforeIdx
+			eNode.hdsIdxChain[count] = gp.beforeIdx
 			gp.beforeLen--
 			count++
 			gp.beforeIdx++
 		}
-		for it.beforeLen > 0 {
-			item.hdsIdxChain[count] = it.beforeIdx
-			it.beforeLen--
+		for me.beforeLen > 0 {
+			eNode.hdsIdxChain[count] = me.beforeIdx
+			me.beforeLen--
 			count++
-			it.beforeIdx++
+			me.beforeIdx++
 		}
-
 		// 3.handler
-		for it.hdsLen > 0 {
-			item.hdsIdxChain[count] = it.hdsIdx
-			it.hdsLen--
+		for me.hdsLen > 0 {
+			eNode.hdsIdxChain[count] = me.hdsIdx
+			me.hdsLen--
 			count++
-			it.hdsIdx++
+			me.hdsIdx++
 		}
-
 		// 4.after
-		for it.afterLen > 0 {
-			item.hdsIdxChain[count] = it.afterIdx
-			it.afterLen--
+		for me.afterLen > 0 {
+			eNode.hdsIdxChain[count] = me.afterIdx
+			me.afterLen--
 			count++
-			it.afterIdx++
+			me.afterIdx++
 		}
 		for gp.afterLen > 0 {
-			item.hdsIdxChain[count] = gp.afterIdx
+			eNode.hdsIdxChain[count] = gp.afterIdx
 			gp.afterLen--
 			count++
 			gp.afterIdx++
@@ -157,13 +157,12 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem := gft.fstMem
 
 	// TODO: 重置fstMem，方便重构路由树
-	// fstMem.treeCharT = nil
+	//fstMem.treeCharT = nil
 	fstMem.hdsNodesLen = 0
-	//fstMem.hdsNodesPlan2Len = 0
 	fstMem.treeCharsLen = 0
 	fstMem.allRadixMiniLen = 0
-	fstMem.hdsGroupCt = 0
-	fstMem.hdsItemCt = uint16(2 + len(gft.allRouters))
+	fstMem.routeGroupNum = 0
+	fstMem.routeItemNum = uint16(2 + len(gft.allRouters))
 	// end
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -171,7 +170,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	gft.combEvents = gft.RouterGroup.routeEvents
 	parentHandlerSum := gpCombineHandlers(&gft.RouterGroup)
 	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小
-	fstMem.hdsSliceLen = parentHandlerSum + fstMem.allCtxHdsLen
+	fstMem.tidyHdsLen = parentHandlerSum + fstMem.allCtxHdsLen
 	// 分配内存空间
 	allocateMemSpace(gft)
 
@@ -191,6 +190,9 @@ func (gft *GoFast) buildMiniRoutes() {
 
 	// TODO: 释放掉原始树的资源，后面不可以根据这些树结构构造路由了。
 	if gft.modeType != modeDebug {
+		fstMem.allCtxHandlers = nil
+		fstMem.allCtxHdsLen = 0
+
 		fstMem.treeCharT = nil
 
 		gft.treeGet.root = nil
@@ -218,12 +220,12 @@ func allocateMemSpace(gft *GoFast) {
 
 	// 第一种：处理函数节点空间
 	// 所有承载事件处理函数的Node个数（包括Group 和 Item）
-	hdsNodesCt := fstMem.hdsGroupCt + fstMem.hdsItemCt
+	hdsNodesCt := fstMem.routeGroupNum + fstMem.routeItemNum
 	fstMem.hdsNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
 
 	// 新的 handlers 指针数组
-	fstMem.hdsSlice = make(CtxHandlers, fstMem.hdsSliceLen, fstMem.hdsSliceLen)
-	fstMem.hdsSliceLen = 0 // 下标重置成0，后面从这里把事件加入 hdsSlice
+	fstMem.tidyHandlers = make(CtxHandlers, fstMem.tidyHdsLen, fstMem.tidyHdsLen)
+	fstMem.tidyHdsLen = 0 // 下标重置成0，后面从这里把事件加入 tidyHandlers
 
 	// 路由树 字符串
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
@@ -239,7 +241,7 @@ func allocateMemSpace(gft *GoFast) {
 // 返回所有节点新增加处理函数个数的和
 func gpCombineHandlers(gp *RouterGroup) uint16 {
 	// 所有分组个数
-	gp.gftApp.fstMem.hdsGroupCt++
+	gp.gftApp.fstMem.routeGroupNum++
 	if gp.children == nil {
 		return gp.parentHdsLen
 	}
@@ -317,16 +319,16 @@ func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(fstMem, &re.eAfterSendHds)
 }
 
-// allCtxHandlers 中无序存放的 handlers 转入 有序的 hdsSlice 中
+// allCtxHandlers 中无序存放的 handlers 转入 有序的 tidyHandlers 中
 func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx uint16) {
 	ct = uint8(len(*hds))
 	//if ct == 0 {
 	//	return
 	//}
-	startIdx = fstMem.hdsSliceLen
+	startIdx = fstMem.tidyHdsLen
 	for i := uint8(0); i < ct; i++ {
-		fstMem.hdsSlice[fstMem.hdsSliceLen] = fstMem.allCtxHandlers[(*hds)[i]]
-		fstMem.hdsSliceLen++
+		fstMem.tidyHandlers[fstMem.tidyHdsLen] = fstMem.allCtxHandlers[(*hds)[i]]
+		fstMem.tidyHdsLen++
 	}
 	return
 }
@@ -337,7 +339,7 @@ func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx u
 //	node := &fstMem.hdsNodesPlan2[fstMem.hdsNodesPlan2Len]
 //	gp := ri.group
 //
-//	node.startIdx = fstMem.hdsSliceLen
+//	node.startIdx = fstMem.tidyHdsLen
 //	node.hdsLen += tidyEventHandlersMini(&gp.ePreValidHds)
 //	node.hdsLen += tidyEventHandlersMini(&ri.ePreValidHds)
 //	node.hdsLen += tidyEventHandlersMini(&gp.eBeforeHds)
@@ -358,8 +360,8 @@ func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx u
 //func tidyEventHandlersMini(hds *[]uint16) (ct uint8) {
 //	ct = uint8(len(*hds))
 //	for i := uint8(0); i < ct; i++ {
-//		fstMem.hdsSlice[fstMem.hdsSliceLen] = fstMem.allCtxHandlers[(*hds)[i]]
-//		fstMem.hdsSliceLen++
+//		fstMem.tidyHandlers[fstMem.tidyHdsLen] = fstMem.allCtxHandlers[(*hds)[i]]
+//		fstMem.tidyHdsLen++
 //	}
 //	return
 //}
