@@ -12,7 +12,7 @@ import (
 // 注册一个404处理函数
 func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 	if gft.routerItem404 == nil {
-		gft.routerItem404 = &RouterItem{
+		gft.routerItem404 = &RouteItem{
 			group:     &gft.RouterGroup,
 			routerIdx: -1,
 		}
@@ -27,7 +27,7 @@ func (gft *GoFast) reg404Handler(hds CtxHandlers) {
 // 注册一个405处理函数
 func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 	if gft.routerItem405 == nil {
-		gft.routerItem405 = &RouterItem{
+		gft.routerItem405 = &RouteItem{
 			group:     &gft.RouterGroup,
 			routerIdx: -1,
 		}
@@ -41,7 +41,7 @@ func (gft *GoFast) reg405Handler(hds CtxHandlers) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 router handlers 都要通过此函数来注册
-func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *RouterItem {
+func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *RouteItem {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
@@ -50,7 +50,7 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	ifPanic(len(httpMethod) == 0, "HTTP method can not be empty")
 
 	// 新添加一个 GroupItem，记录所有的处理函数
-	ri := &RouterItem{
+	ri := &RouteItem{
 		config:    &RIConfig{},
 		method:    httpMethod,
 		fullPath:  absPath,
@@ -59,7 +59,7 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 	}
 	gftApp := gp.gftApp
 	ri.eHds = addCtxHandlers(gftApp.fstMem, hds)
-	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再调用设置
+	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再构造路由前缀树
 	ri.routerIdx = int16(len(gftApp.allRouters))
 	gftApp.allRouters = append(gftApp.allRouters, ri)
 	ifPanic(len(gftApp.allRouters) > math.MaxInt16, "Too many routers more than MaxInt16.")
@@ -67,44 +67,44 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 }
 
 // TODO: 有个问题，httpMethod参数没有做枚举校验，可以创建任意名称的method路由数，真要这么自由吗???
-func (gp *RouterGroup) Handle(httpMethod, relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Handle(httpMethod, relPath string, handlers ...CtxHandler) *RouteItem {
 	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
 		panic("http method " + httpMethod + " is not valid")
 	}
 	return gp.register(httpMethod, relPath, handlers)
 }
 
-func (gp *RouterGroup) Get(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Get(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodGet, relPath, handlers)
 }
 
 // POST is a shortcut for router.Handle("POST", path, handle).
-func (gp *RouterGroup) Post(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Post(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodPost, relPath, handlers)
 }
 
 // DELETE is a shortcut for router.Handle("DELETE", path, handle).
-func (gp *RouterGroup) Delete(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Delete(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodDelete, relPath, handlers)
 }
 
 // PATCH is a shortcut for router.Handle("PATCH", path, handle).
-func (gp *RouterGroup) Patch(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Patch(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodPatch, relPath, handlers)
 }
 
 // PUT is a shortcut for router.Handle("PUT", path, handle).
-func (gp *RouterGroup) Put(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Put(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodPut, relPath, handlers)
 }
 
 // OPTIONS is a shortcut for router.Handle("OPTIONS", path, handle).
-func (gp *RouterGroup) Options(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Options(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodOptions, relPath, handlers)
 }
 
 // HEAD is a shortcut for router.Handle("HEAD", path, handle).
-func (gp *RouterGroup) Head(relPath string, handlers ...CtxHandler) *RouterItem {
+func (gp *RouterGroup) Head(relPath string, handlers ...CtxHandler) *RouteItem {
 	return gp.register(http.MethodHead, relPath, handlers)
 }
 

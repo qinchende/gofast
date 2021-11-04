@@ -68,7 +68,7 @@ func (n *radixNode) prettyPrint(str *strings.Builder, prefix string, isTail bool
 	// [4-0-0-im]
 	//genPrintNode(str, []string{fmt.Sprint(n.priority), fmt.Sprint(n.maxParams), fmt.Sprint(len(n.handlers)), n.indices})
 	//genPrintNode(str, []string{fmt.Sprint(len(n.hdsItem)), n.indices})
-	genPrintNode(str, []string{fmt.Sprint(n.routerItem != nil), n.indices})
+	genPrintNode(str, []string{fmt.Sprint(n.leafItem != nil), n.indices})
 	//genPrintNode(str, []string{n.indices})
 
 	chLen := len(n.children)

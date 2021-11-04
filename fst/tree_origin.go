@@ -4,18 +4,18 @@ package fst
 
 // 目前一共 73 字节
 type radixNode struct {
-	match      string       // 16字节
-	indices    string       // 16字节
-	children   []*radixNode // 24字节
-	wildChild  bool         // 1字节
-	nType      uint8        // 8字节
-	routerItem *RouterItem  // 8字节
+	match     string       // 16字节
+	indices   string       // 16字节
+	children  []*radixNode // 24字节
+	wildChild bool         // 1字节
+	nType     uint8        // 8字节
+	leafItem  *RouteItem   // 8字节
 }
 
 // n.nType必须是通配型，seg必须以通配符(:,*)打头
 // seg: :name/buy/something
 // seg: :name
-func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *RouterItem) {
+func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *RouteItem) {
 	if seg[0] == '*' {
 		panic(spf("通配符%s已经存在，不能再注册%s", n.match, seg))
 	}
@@ -35,10 +35,10 @@ func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *Router
 	}
 	// 证明刚好完整匹配参数
 	if !hasSlash {
-		if n.routerItem != nil {
+		if n.leafItem != nil {
 			panic(spf("路由已经存在：%s\n", n.match))
 		}
-		n.routerItem = ri
+		n.leafItem = ri
 		return
 	}
 
@@ -47,7 +47,7 @@ func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *Router
 }
 
 // 只能添加 wildcard path
-func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouterItem) {
+func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouteItem) {
 	// 如果子节点是通配符节点，直接循环下一次
 	if n.wildChild {
 		n.children[0].regSegment(mTree, n, seg, ri)
@@ -67,7 +67,7 @@ func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouterItem) 
 }
 
 // 只能添加 非 wildcard path
-func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem) {
+func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouteItem) {
 	// 如果子节点是通配符节点，直接循环下一次
 	if n.wildChild {
 		n.children[0].regSegment(mTree, n, seg, ri)
@@ -94,7 +94,7 @@ func (n *radixNode) addNormalChild(mTree *methodTree, seg string, ri *RouterItem
 
 // 在当前节点下，解析指定的路由段
 // regSegment 和 bindSegment 的区别：是否有现存的n节点
-func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string, ri *RouterItem) {
+func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string, ri *RouteItem) {
 	isWildSeg := isBeginWildcard(seg)
 	// 如果当前节点已经是通配符，而加入的新路由不是 *,: 开头，报错
 	if n.nType >= param && !isWildSeg {
@@ -129,18 +129,18 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 	if i < len(n.match) {
 		// 新建splitSub，作为当前n节点的一个子节点
 		splitSub := &radixNode{
-			match:      n.match[i:],
-			indices:    n.indices,
-			children:   n.children,
-			routerItem: n.routerItem,
-			nType:      n.nType,
-			wildChild:  n.wildChild,
+			match:     n.match[i:],
+			indices:   n.indices,
+			children:  n.children,
+			leafItem:  n.leafItem,
+			nType:     n.nType,
+			wildChild: n.wildChild,
 		}
 		mTree.nodeCt++
 		n.children = []*radixNode{splitSub}
 		n.indices = string([]byte{n.match[i]})
 		n.match = seg[:i]
-		n.routerItem = nil
+		n.leafItem = nil
 		n.wildChild = false
 	}
 
@@ -160,10 +160,10 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 
 	// 2.3.2 到这里 seg 和 n.match 肯定一样
 	// 如果当前节点已经被匹配过，就证明重复了，需要报错
-	if n.routerItem != nil {
+	if n.leafItem != nil {
 		panic(spf("此路由：%s 已经存在", n.match))
 	}
-	n.routerItem = ri
+	n.leafItem = ri
 }
 
 // 在当前 空node 中绑定当前 path | 强调当前是空Node
@@ -173,7 +173,7 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 // path: wx/:name/xxx/*others
 // path: /:name/xxx/*others
 // path: :name/xxx/*others ->可能吗？可能的
-func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouterItem) {
+func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouteItem) {
 	var wildCt, slashCt, lastI int
 	var wildParts []string
 
@@ -245,7 +245,7 @@ func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouterItem) 
 		}
 		pNode = newNode
 	}
-	pNode.routerItem = ri
+	pNode.leafItem = ri
 }
 
 // 将下面这一组解析出的通配符继续拆开

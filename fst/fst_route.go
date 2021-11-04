@@ -10,6 +10,7 @@ func (gft *GoFast) regAllRouters() {
 	gft.treePost = &methodTree{method: http.MethodPost}
 	gft.treeOthers = make(methodTrees, 0, 9)
 
+	// TODO：启动server之前，注册的路由只是做了记录在allRouters变量中，这里开始一次性构造路由前缀树
 	for _, it := range gft.allRouters {
 		gft.regRouterItem(it)
 	}
@@ -30,7 +31,7 @@ func (gft *GoFast) regAllRouters() {
 }
 
 // 注册每一条的路由，生成 原始的 Radix 树
-func (gft *GoFast) regRouterItem(ri *RouterItem) {
+func (gft *GoFast) regRouterItem(ri *RouteItem) {
 	// Debug模式下打印新添加的路由
 	if gft.PrintRouteTrees {
 		debugPrintRoute(ri)
