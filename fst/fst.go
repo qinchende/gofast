@@ -38,11 +38,11 @@ type HomeRouter struct {
 
 	// 记录当前Server所有的路由信息，方便后期重构路由树
 	allRouters RouterItems
-	// 有两个特殊 RouterItem： 1. noRoute  2. noMethod
+	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
-	routerItem404 *RouterItem
+	routerItem404 *RouteItem
 	miniNode404   *radixMiniNode
-	routerItem405 *RouterItem
+	routerItem405 *RouteItem
 	miniNode405   *radixMiniNode
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
@@ -200,7 +200,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		// 如果能匹配到路径
 		if c.match.ptrNode != nil {
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
-			c.execHandlers(c.match.ptrNode)
+			c.execHandlers()
 			// 第二种方案
 			//c.execHandlersMini(nodeVal.ptrNode)
 
@@ -226,15 +226,18 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
 			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape); c.match.ptrNode != nil {
+				c.match.ptrNode = gft.miniNode405
 				c.Params = c.match.params
-				c.execHandlers(gft.miniNode405)
+				c.execHandlers()
 				return
 			}
 		}
 	}
 
+	c.match.ptrNode = gft.miniNode404
 	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
-	c.execHandlers(gft.miniNode404)
+	c.execHandlers()
+	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

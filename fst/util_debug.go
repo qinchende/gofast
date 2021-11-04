@@ -6,7 +6,7 @@ import (
 	"strings"
 )
 
-func debugPrintRoute(ri *RouterItem) {
+func debugPrintRoute(ri *RouteItem) {
 	if !logx.IsDebugging() {
 		return
 	}

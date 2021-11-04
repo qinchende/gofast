@@ -15,7 +15,7 @@ const (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 Context handlers 都要通过此函数来注册
-// 包括 RouterGroup 和 RouterItem
+// 包括 RouterGroup 和 RouteItem
 func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxHandlers) *routeEvents {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
 
@@ -75,37 +75,37 @@ func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EAfterSend, hds)
 }
 
-// RouterItem
+// RouteItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouterItem) regItemCtxHandler(eType string, hds CtxHandlers) *RouterItem {
+func (ri *RouteItem) regItemCtxHandler(eType string, hds CtxHandlers) *RouteItem {
 	ri.regCtxHandler(ri.group.gftApp.fstMem, eType, hds)
 	return ri
 }
 
 // 注册节点的所有事件
-func (ri *RouterItem) Before(hds ...CtxHandler) *RouterItem {
+func (ri *RouteItem) Before(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EBefore, hds)
 }
 
-func (ri *RouterItem) After(hds ...CtxHandler) *RouterItem {
+func (ri *RouteItem) After(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfter, hds)
 }
 
-func (ri *RouterItem) PreValid(hds ...CtxHandler) *RouterItem {
+func (ri *RouteItem) PreValid(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EPreBind, hds)
 }
 
-func (ri *RouterItem) PreSend(hds ...CtxHandler) *RouterItem {
+func (ri *RouteItem) PreSend(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EPreSend, hds)
 }
 
-func (ri *RouterItem) AfterSend(hds ...CtxHandler) *RouterItem {
+func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfterSend, hds)
 }
 
 // RouterItemConfig
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouterItem) Config(cfg *RIConfig) *RouterItem {
+func (ri *RouteItem) Config(cfg *RIConfig) *RouteItem {
 	ri.config.MaxAcc = cfg.MaxAcc
 	return ri
 }

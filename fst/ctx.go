@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/fst/render"
+	"math"
 	"net/http"
 	"net/url"
 	"sync"
@@ -15,16 +16,19 @@ type Context struct {
 	*GFResponse               // response (请求前置拦截器 要用到的上下文)
 	ReqRaw      *http.Request // request
 
-	Params     *Params                // : 或 * 对应的参数
-	Pms        map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	match      matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
-	queryCache url.Values             // param query result from c.ReqRaw.URL.Query()
-	formCache  url.Values             // the parsed form data from POST, PATCH, or PUT body parameters.
+	Params   *Params                // : 或 * 对应的参数
+	Pms      map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	match    matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
+	handlers handlersNode           // 匹配到的执行链标记
+	execIdx  uint8                  // 执行链的索引 不能大于 256 个
+	aborted  bool                   // 设置成 true ，将中断后面的所有handlers
+
+	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
+	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
 
 	// Session数据，数据存储部分可以自定义
 	Sess *CtxSession
-	// 设置成 true ，将中断后面的所有handlers
-	aborted bool
+
 	// render.Render 对象
 	PRender *render.Render // render 对象
 
@@ -60,6 +64,7 @@ func (c *Context) reset() {
 	c.match.rts = false
 	c.match.allowRTS = c.gftApp.RedirectTrailingSlash
 	c.Params = c.match.params
+	c.execIdx = math.MaxUint8
 
 	c.Pms = nil
 	c.queryCache = nil

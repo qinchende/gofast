@@ -49,7 +49,7 @@ func (trees methodTrees) getTree(method string) *methodTree {
 }
 
 // 注册一条完整的路由
-func (tr *methodTree) regRoute(path string, ri *RouterItem) {
+func (tr *methodTree) regRoute(path string, ri *RouteItem) {
 	if tr.root == nil {
 		tr.root = &radixNode{nType: root}
 		tr.nodeCt++
