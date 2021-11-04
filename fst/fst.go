@@ -33,11 +33,12 @@ type GoFast struct {
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
-	// HomeRouter 本身就是一个路由分组
-	RouterGroup
+	// NOTE：
+	// RouterGroup: 每个server有自己的根分组，以及整颗分组树。
+	// allRouters: 记录所有真实的路由节点
+	RouterGroup              // HomeRouter 本身就是一个路由分组
+	allRouters  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
 
-	// 记录当前Server所有的路由信息，方便后期重构路由树
-	allRouters RouterItems
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
 	routerItem404 *RouteItem
@@ -106,7 +107,7 @@ func (gft *GoFast) initHomeRouter() {
 	gft.prefix = "/"
 	gft.gftApp = gft
 
-	gft.allRouters = make(RouterItems, 0)
+	gft.allRouters = make([]*RouteItem, 0)
 	gft.fstMem = new(fstMemSpace)
 
 	// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）

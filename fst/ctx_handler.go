@@ -21,7 +21,7 @@ func (c *Context) execHandlers() {
 // 执行下一个拦截器
 func (c *Context) Next() {
 	for c.execIdx < uint8(len(c.handlers.hdsIdxChain)) {
-		c.gftApp.fstMem.hdsSlice[c.handlers.hdsIdxChain[c.execIdx]](c)
+		c.gftApp.fstMem.tidyHandlers[c.handlers.hdsIdxChain[c.execIdx]](c)
 		c.execIdx++
 	}
 }
@@ -41,7 +41,7 @@ func (c *Context) execPreSendHandlers() {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.hdsSlice[it.preSendIdx](c)
+		c.gftApp.fstMem.tidyHandlers[it.preSendIdx](c)
 		it.preSendLen--
 		it.preSendIdx++
 	}
@@ -49,7 +49,7 @@ func (c *Context) execPreSendHandlers() {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.hdsSlice[gp.preSendIdx](c)
+		c.gftApp.fstMem.tidyHandlers[gp.preSendIdx](c)
 		gp.preSendLen--
 		gp.preSendIdx++
 	}
@@ -69,7 +69,7 @@ func (c *Context) execAfterSendHandlers() {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.hdsSlice[it.afterSendIdx](c)
+		c.gftApp.fstMem.tidyHandlers[it.afterSendIdx](c)
 		it.afterSendLen--
 		it.afterSendIdx++
 	}
@@ -77,7 +77,7 @@ func (c *Context) execAfterSendHandlers() {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.hdsSlice[gp.afterSendIdx](c)
+		c.gftApp.fstMem.tidyHandlers[gp.afterSendIdx](c)
 		gp.afterSendLen--
 		gp.afterSendIdx++
 	}
@@ -137,7 +137,7 @@ func (c *Context) execAfterSendHandlers() {
 //	//	if c.aborted {
 //	//		goto over
 //	//	}
-//	//	c.gftApp.fstMem.hdsSlice[it.hdsIdx](c)
+//	//	c.gftApp.fstMem.tidyHandlers[it.hdsIdx](c)
 //	//	it.hdsLen--
 //	//	it.hdsIdx++
 //	//}
@@ -172,7 +172,7 @@ func (c *Context) execAfterSendHandlers() {
 //		if c.aborted {
 //			return
 //		}
-//		c.gftApp.fstMem.hdsSlice[it.hdsIdx](c)
+//		c.gftApp.fstMem.tidyHandlers[it.hdsIdx](c)
 //		it.hdsLen--
 //		it.hdsIdx++
 //	}

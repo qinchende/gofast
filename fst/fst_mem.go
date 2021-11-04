@@ -11,19 +11,16 @@ type fstMemSpace struct {
 	allCtxHdsLen   uint16      // 意味这所有 handler 不能超过 uint16 能标识的最大值
 
 	// 新的handlers, 有序的, 按分组和事件类型排序
-	// 将上面 allCtxHandlers (无序的)，转换成 hdsList （有序的）
-	hdsSlice    CtxHandlers
-	hdsSliceLen uint16
+	// 将上面 allCtxHandlers (无序的)，转换成 tidyHandlers （有序的）, 按分组或路由节点整理处理函数
+	tidyHandlers CtxHandlers
+	tidyHdsLen   uint16
 
-	// 路由节点对应的处理方法索引结构
-	hdsGroupCt  uint16 // 所有分组个数，网站根目录就是第一个分组
-	hdsItemCt   uint16 // 所有路由节点的个数，1个路由匹配就是一个ItemNode
-	hdsNodes    []handlersNode
-	hdsNodesLen uint16
+	routeGroupNum uint16 // 所有分组个数，网站根目录就是第一个分组
+	routeItemNum  uint16 // 所有路由节点的个数，1个路由匹配就是一个ItemNode
 
-	// 用于第二种方案（暂时不用）
-	//hdsNodesPlan2    []handlersNodePlan2
-	//hdsNodesPlan2Len uint16
+	// handlers节点切片（专门用户记录 不同类型处理函数 的索引值）
+	hdsNodes    []handlersNode // 专门记录事件处理函数的节点切片
+	hdsNodesLen uint16         // 节点数量
 
 	// 将路由树节点中的前缀字符 拼接 成一个大的字符串，以后所有路由查找都在这个字符串中
 	treeCharT    []byte
