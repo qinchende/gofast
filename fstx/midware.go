@@ -31,6 +31,11 @@ func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
 	return gft
 }
 
+func AddDefaultHandlers(gft *fst.GoFast) *fst.GoFast {
+	gft.Before()
+	return gft
+}
+
 //  chain := alice.New(
 //  handler.TracingHandler,
 //  s.getLogHandler(),
