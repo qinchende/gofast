@@ -11,28 +11,27 @@ import (
 // GoFast提供默认的全套拦截器，开启微服务治理
 // 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
 func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
-	// 初始化一个全局的路由统计器
-	door.InitKeeper(gft.FullPath)
-
-	gft.Fit(mid.MaxConnections(gft.FitMaxConnections))                           // 最大同时处理请求数量：100万
-	gft.Fit(mid.Tracing)                                                         // 加入调用链路追踪标记
-	gft.Fit(mid.ReqLogger)                                                       // 所有请求写日志，根据配置输出日志样式
-	gft.Fit(mid.CpuMetric(nil))                                                  // cpu 统计 | 熔断
-	gft.Fit(mid.ReqTimeout(time.Duration(gft.FitReqTimeout) * time.Millisecond)) // 超时自动返回，后台处理继续，默认3000毫秒
-	gft.Fit(mid.Recovery())                                                      // 截获所有异常
-	gft.Fit(mid.RouteMetric)                                                     // path 访问统计
-	gft.Fit(mid.MaxContentLength(gft.FitMaxContentLength))                       // 最大的请求头限制，默认32MB
-	gft.Fit(mid.Gunzip)                                                          // 自动 gunzip 解压缩
-
-	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
-	//gft.Fit(mid.BreakerDoor())
-	//gft.Fit(mid.JwtAuthorize(gft.FitJwtSecret))
+	gft.Fit(mid.MaxConnections(gft.FitMaxConnections)) // 最大同时处理请求数量：100万
+	gft.Fit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
 
 	return gft
 }
 
 func AddDefaultHandlers(gft *fst.GoFast) *fst.GoFast {
-	gft.Before()
+	// 初始化一个全局的路由统计器
+	door.InitKeeper(gft.FullPath)
+
+	//gft.Fit(mid.Tracing)                                                         // 加入调用链路追踪标记
+	gft.Before(mid.ReqLogger)                                                       // 所有请求写日志，根据配置输出日志样式
+	gft.Before(mid.ReqTimeout(time.Duration(gft.FitReqTimeout) * time.Millisecond)) // 超时自动返回，后台处理继续，默认3000毫秒
+	gft.Before(mid.Recovery())                                                      // 截获所有异常
+	gft.Before(mid.RouteMetric)                                                     // path 访问统计
+	gft.Before(mid.MaxContentLength(gft.FitMaxContentLength))                       // 最大的请求头限制，默认32MB
+	gft.Before(mid.Gunzip)                                                          // 自动 gunzip 解压缩
+
+	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
+	//gft.Fit(mid.BreakerDoor())
+	//gft.Fit(mid.JwtAuthorize(gft.FitJwtSecret))
 	return gft
 }
 

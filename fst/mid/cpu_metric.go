@@ -16,13 +16,13 @@ func CpuMetric(metrics *stat.Metrics) fst.IncHandler {
 		return nil
 	}
 
-	return func(w *fst.GFResponse, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		defer func() {
 			metrics.AddItem(stat.ReqItem{
 				Duration: time.Now().Sub(start),
 			})
 		}()
-		w.NextFit(r)
+		//w.NextFit(r)
 	}
 }

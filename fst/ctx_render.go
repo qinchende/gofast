@@ -170,6 +170,10 @@ func (c *Context) AbortWithError(code int, err error) *Error {
 	return c.CollectError(err)
 }
 
+func (c *Context) Abort() {
+	c.execIdx = maxHandlers
+}
+
 /************************************/
 /******** RESPONSE RENDERING ********/
 /************************************/
