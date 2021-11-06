@@ -8,48 +8,46 @@ import (
 	"github.com/qinchende/gofast/skill/bytesconv"
 	"net"
 	"net/http"
-	"strings"
-	"time"
 )
 
-// 自定义 Response，暂且叫做：GFResponse
-type GFResponse struct {
-	ResWrap   *ResWriterWrap
-	Ctx       *Context
-	EnterTime time.Duration // 请求起始时间
-	gftApp    *GoFast       // 用于上下文
-	fitIdx    int
-	Errors    errMessages // []*Error
-}
-
-func (w *GFResponse) reset() {
-	w.Ctx = nil
-	w.fitIdx = -1
-	w.Errors = w.Errors[0:0]
-}
-
-func (w *GFResponse) ClientIP(r *http.Request) string {
-	if w.gftApp.ForwardedByClientIP {
-		clientIP := r.Header.Get("X-Forwarded-For")
-		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
-		if clientIP == "" {
-			clientIP = r.Header.Get("X-Real-Ip")
-		}
-		if clientIP != "" {
-			return clientIP
-		}
-	}
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
-		return ip
-	}
-	return ""
-}
-
-func (w *GFResponse) AbortWithStatus(code int) {
-	w.ResWrap.WriteHeader(code)
-	w.ResWrap.WriteHeaderNow()
-	w.AbortFit()
-}
+//// 自定义 Response，暂且叫做：GFResponse
+//type GFResponse struct {
+//	ResWrap   *ResWriterWrap
+//	Ctx       *Context
+//	EnterTime time.Duration // 请求起始时间
+//	gftApp    *GoFast       // 用于上下文
+//	fitIdx    int
+//	Errors    errMessages // []*Error
+//}
+//
+//func (w *GFResponse) reset() {
+//	w.Ctx = nil
+//	w.fitIdx = -1
+//	w.Errors = w.Errors[0:0]
+//}
+//
+//func (w *GFResponse) ClientIP(r *http.Request) string {
+//	if w.gftApp.ForwardedByClientIP {
+//		clientIP := r.Header.Get("X-Forwarded-For")
+//		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
+//		if clientIP == "" {
+//			clientIP = r.Header.Get("X-Real-Ip")
+//		}
+//		if clientIP != "" {
+//			return clientIP
+//		}
+//	}
+//	if ip, _, err := net.SplitHostPort(strings.TrimSpace(r.RemoteAddr)); err == nil {
+//		return ip
+//	}
+//	return ""
+//}
+//
+//func (w *GFResponse) AbortWithStatus(code int) {
+//	w.ResWrap.WriteHeader(code)
+//	w.ResWrap.WriteHeaderNow()
+//	w.AbortFit()
+//}
 
 //func (w *GFResponse) AbortWithError(code int, err error) *Error {
 //	w.AbortWithStatus(code)
@@ -58,9 +56,9 @@ func (w *GFResponse) AbortWithStatus(code int) {
 
 // NOTE: add by chende 2021.10.13 为了解决请求超时问题。
 // 为方便自定义GFResponse对象，加入http标准生命周期。
-func (w *GFResponse) ServeHTTP(res http.ResponseWriter, r *http.Request) {
-	w.NextFit(r)
-}
+//func (w *GFResponse) ServeHTTP(res http.ResponseWriter, r *http.Request) {
+//	w.NextFit(r)
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
@@ -69,6 +67,7 @@ const (
 	defaultStatus  = http.StatusOK
 )
 
+// 自定义 ResponseWriter, 对标准库的一层包裹处理
 // 实现接口 ResponseWriter
 type ResWriterWrap struct {
 	http.ResponseWriter

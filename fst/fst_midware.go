@@ -7,7 +7,7 @@ import (
 )
 
 // 添加一组全局拦截器
-func (gft *GoFast) Fits(gftFunc goFastRegFunc) *GoFast {
+func (gft *GoFast) Fits(gftFunc fitRegFunc) *GoFast {
 	return gftFunc(gft)
 }
 
@@ -21,18 +21,18 @@ func (gft *GoFast) Fit(hds IncHandler) *GoFast {
 }
 
 // 执行下一个拦截器
-func (w *GFResponse) NextFit(r *http.Request) {
-	w.fitIdx++
-	for w.fitIdx < len(w.gftApp.fitHandlers) {
-		w.gftApp.fitHandlers[w.fitIdx](w, r)
-		w.fitIdx++
-	}
+func (gft *GoFast) NextFit(w http.ResponseWriter, r *http.Request) {
+	//w.fitIdx++
+	//for w.fitIdx < len(w.gftApp.fitHandlers) {
+	//	w.gftApp.fitHandlers[w.fitIdx](w, r)
+	//	w.fitIdx++
+	//}
 }
 
-func (w *GFResponse) IsAborted() bool {
-	return w.fitIdx >= maxFitLen
+func (gft *GoFast) IsAborted() bool {
+	return gft.fitIdx >= maxFitLen
 }
 
-func (w *GFResponse) AbortFit() {
-	w.fitIdx = maxFitLen
+func (gft *GoFast) AbortFit() {
+	gft.fitIdx = maxFitLen
 }

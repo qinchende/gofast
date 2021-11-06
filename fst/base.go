@@ -10,8 +10,9 @@ import (
 )
 
 type (
-	KV          map[string]interface{}
-	IncHandler  func(w *GFResponse, r *http.Request)
+	KV map[string]interface{}
+	//IncHandler  func(w *GFResponse, r *http.Request)
+	IncHandler  func(w http.ResponseWriter, r *http.Request)
 	IncHandlers []IncHandler
 	CtxHandler  func(ctx *Context)
 	CtxHandlers []CtxHandler
@@ -20,7 +21,7 @@ type (
 	GFPanic     error
 
 	// 抽取出一些常用函数原型
-	goFastRegFunc func(*GoFast) *GoFast
+	fitRegFunc func(*GoFast) *GoFast
 )
 
 const (
