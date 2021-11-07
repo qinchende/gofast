@@ -2,7 +2,6 @@ package mid
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/httpx"
@@ -14,32 +13,32 @@ import (
 
 const breakerSeparator = "://"
 
-func BreakerDoor() fst.IncHandler {
-	return func(w *fst.GFResponse, r *http.Request) {
-
-		brk := breaker.NewBreaker(breaker.WithName(strings.Join([]string{r.Method, r.URL.Path}, breakerSeparator)))
-
-		promise, _ := brk.Allow()
-		//promise, err := brk.Allow()
-		//if err != nil && metrics != nil {
-		//	metrics.AddDrop()
-		//	logx.Errorf("[http] dropped, %s - %s - %s",
-		//		r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
-		//	w.WriteHeader(http.StatusServiceUnavailable)
-		//	return
-		//}
-
-		cw := &security.WithCodeResponseWriter{Writer: w.ResWrap}
-		defer func() {
-			if cw.Code < http.StatusInternalServerError {
-				promise.Accept()
-			} else {
-				promise.Reject(fmt.Sprintf("%d %s", cw.Code, http.StatusText(cw.Code)))
-			}
-		}()
-		//next.ServeHTTP(cw, r)
-	}
-}
+//func BreakerDoor() fst.IncHandler {
+//	return func(w *fst.GFResponse, r *http.Request) {
+//
+//		brk := breaker.NewBreaker(breaker.WithName(strings.Join([]string{r.Method, r.URL.Path}, breakerSeparator)))
+//
+//		promise, _ := brk.Allow()
+//		//promise, err := brk.Allow()
+//		//if err != nil && metrics != nil {
+//		//	metrics.AddDrop()
+//		//	logx.Errorf("[http] dropped, %s - %s - %s",
+//		//		r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
+//		//	w.WriteHeader(http.StatusServiceUnavailable)
+//		//	return
+//		//}
+//
+//		cw := &security.WithCodeResponseWriter{Writer: w.ResWrap}
+//		defer func() {
+//			if cw.Code < http.StatusInternalServerError {
+//				promise.Accept()
+//			} else {
+//				promise.Reject(fmt.Sprintf("%d %s", cw.Code, http.StatusText(cw.Code)))
+//			}
+//		}()
+//		//next.ServeHTTP(cw, r)
+//	}
+//}
 
 func BreakerHandler(method, path string, metrics *stat.Metrics) func(http.Handler) http.Handler {
 	brk := breaker.NewBreaker(breaker.WithName(strings.Join([]string{method, path}, breakerSeparator)))

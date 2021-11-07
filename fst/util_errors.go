@@ -65,7 +65,7 @@ func (c *Context) CollectError(err error) *Error {
 	return parsedError
 }
 
-func (w *GFResponse) Error(err error) *Error {
+func (c *Context) Error(err error) *Error {
 	if err == nil {
 		panic("err is nil")
 	}
@@ -78,16 +78,16 @@ func (w *GFResponse) Error(err error) *Error {
 		}
 	}
 
-	w.Errors = append(w.Errors, parsedError)
+	c.Errors = append(c.Errors, parsedError)
 	return parsedError
 }
 
-func (w *GFResponse) ErrorN(err interface{}) {
+func (c *Context) ErrorN(err interface{}) {
 	//_ = w.Error(err)
 }
 
-func (w *GFResponse) ErrorF(format string, v ...interface{}) {
-	_ = w.Error(errors.New(fmt.Sprintf(format, v...)))
+func (c *Context) ErrorF(format string, v ...interface{}) {
+	_ = c.Error(errors.New(fmt.Sprintf(format, v...)))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

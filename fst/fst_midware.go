@@ -22,11 +22,11 @@ func (gft *GoFast) Fit(hds IncHandler) *GoFast {
 
 // 执行下一个拦截器
 func (gft *GoFast) NextFit(w http.ResponseWriter, r *http.Request) {
-	//w.fitIdx++
-	//for w.fitIdx < len(w.gftApp.fitHandlers) {
-	//	w.gftApp.fitHandlers[w.fitIdx](w, r)
-	//	w.fitIdx++
-	//}
+	gft.fitIdx++
+	for gft.fitIdx < len(gft.fitHandlers) {
+		gft.fitHandlers[gft.fitIdx](w, r)
+		gft.fitIdx++
+	}
 }
 
 func (gft *GoFast) IsAborted() bool {
@@ -35,4 +35,11 @@ func (gft *GoFast) IsAborted() bool {
 
 func (gft *GoFast) AbortFit() {
 	gft.fitIdx = maxFitLen
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+// 添加一组全局的中间件函数
+func (gft *GoFast) RegHandlers(gftFunc fitRegFunc) *GoFast {
+	return gftFunc(gft)
 }

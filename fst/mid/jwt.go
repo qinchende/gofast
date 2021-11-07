@@ -64,39 +64,40 @@ func JwtAuthHandler(secret string) fst.CtxHandler {
 	}
 }
 
-func JwtAuthorize(secret string) fst.IncHandler {
-	jwtParser := jwtx.NewTokenParser()
-
-	return func(w *fst.GFResponse, r *http.Request) {
-		tok, err := jwtParser.ParseToken(r, secret, secret)
-		if err != nil {
-			unauthorized(w, r, err)
-			return
-		}
-
-		if !tok.Valid {
-			unauthorized(w, r, errInvalidToken)
-			return
-		}
-
-		claims, ok := tok.Claims.(jwt.MapClaims)
-		if !ok {
-			unauthorized(w, r, errNoClaims)
-			return
-		}
-
-		// 上下文中加入一些token
-		ctx := r.Context()
-		for k, v := range claims {
-			switch k {
-			case jwtAudience, jwtExpire, jwtId, jwtIssueAt, jwtIssuer, jwtNotBefore, jwtSubject:
-				// ignore the standard claims
-			default:
-				ctx = context.WithValue(ctx, k, v)
-			}
-		}
-	}
-}
+//
+//func JwtAuthorize(secret string) fst.IncHandler {
+//	jwtParser := jwtx.NewTokenParser()
+//
+//	return func(w *fst.GFResponse, r *http.Request) {
+//		tok, err := jwtParser.ParseToken(r, secret, secret)
+//		if err != nil {
+//			unauthorized(w, r, err)
+//			return
+//		}
+//
+//		if !tok.Valid {
+//			unauthorized(w, r, errInvalidToken)
+//			return
+//		}
+//
+//		claims, ok := tok.Claims.(jwt.MapClaims)
+//		if !ok {
+//			unauthorized(w, r, errNoClaims)
+//			return
+//		}
+//
+//		// 上下文中加入一些token
+//		ctx := r.Context()
+//		for k, v := range claims {
+//			switch k {
+//			case jwtAudience, jwtExpire, jwtId, jwtIssueAt, jwtIssuer, jwtNotBefore, jwtSubject:
+//				// ignore the standard claims
+//			default:
+//				ctx = context.WithValue(ctx, k, v)
+//			}
+//		}
+//	}
+//}
 
 func detailAuthLog(r *http.Request, reason string) {
 	// discard dump error, only for debug purpose
@@ -104,17 +105,17 @@ func detailAuthLog(r *http.Request, reason string) {
 	logx.Errorf("authorize failed: %s\n=> %+v", reason, string(details))
 }
 
-func unauthorized(w *fst.GFResponse, r *http.Request, err error) {
-	if err != nil {
-		detailAuthLog(r, err.Error())
-	} else {
-		detailAuthLog(r, noDetailReason)
-	}
-
-	w.ErrorF("Authorize failed, rejected with code %d", http.StatusUnauthorized)
-	w.ResWrap.WriteHeader(http.StatusUnauthorized)
-	w.AbortFit()
-}
+//func unauthorized(w *fst.GFResponse, r *http.Request, err error) {
+//	if err != nil {
+//		detailAuthLog(r, err.Error())
+//	} else {
+//		detailAuthLog(r, noDetailReason)
+//	}
+//
+//	w.ErrorF("Authorize failed, rejected with code %d", http.StatusUnauthorized)
+//	w.ResWrap.WriteHeader(http.StatusUnauthorized)
+//	w.AbortFit()
+//}
 
 func unauthorizedPanic(r *http.Request, err error) {
 	detailAuthLog(r, err.Error())

@@ -2,8 +2,6 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "math"
-
 // 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
@@ -147,7 +145,7 @@ func addCtxHandlers(fstMem *fstMemSpace, hds CtxHandlers) (idxes []uint16) {
 		idxes[i] = fstMem.allCtxHdsLen + i
 	}
 	fstMem.allCtxHdsLen += hLen
-	ifPanic(fstMem.allCtxHdsLen >= math.MaxUint16, "Too many handlers more than MaxUInt16.")
+	ifPanic(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
 	return
 }
 

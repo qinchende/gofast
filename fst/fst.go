@@ -8,6 +8,7 @@ import (
 	"github.com/qinchende/gofast/fst/door"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
+	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"net/http"
 	"os"
@@ -171,6 +172,7 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c := gft.ctxPool.Get().(*Context)
+	c.EnterTime = timex.Now()
 	//res.Ctx = c
 	//c.GFResponse = res
 	c.ResWrap.Reset(w)
