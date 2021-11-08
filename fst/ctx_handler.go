@@ -2,14 +2,6 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func (c CtxHandlers) Last() CtxHandler {
-//	if length := len(c); length > 0 {
-//		return c[length-1]
-//	}
-//	return nil
-//}
-
 // TODO: 第一种方案：将可执行中间件分类，依次执行。
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers() {
@@ -84,6 +76,14 @@ func (c *Context) execAfterSendHandlers() {
 	//over:
 	//	return
 }
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func (c CtxHandlers) Last() CtxHandler {
+//	if length := len(c); length > 0 {
+//		return c[length-1]
+//	}
+//	return nil
+//}
 
 //// TODO: 第二种方案：将所有中间件组成链式（暂时不用）（实际上也无法将所有类型的filter串联起来）
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

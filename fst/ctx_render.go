@@ -171,7 +171,7 @@ func (c *Context) AbortWithError(code int, err error) *Error {
 }
 
 func (c *Context) Abort() {
-	c.execIdx = maxHandlers
+	c.execIdx = maxRouteHandlers
 }
 
 /************************************/

@@ -7,16 +7,18 @@ import (
 	"time"
 )
 
+// 第一级：
 // NOTE：Fit系列是全局的，针对所有请求起作用，而且不区分路由，这个时候还根本没有开始匹配路由。
 // GoFast提供默认的全套拦截器，开启微服务治理
 // 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
 func AddDefaultFits(gft *fst.GoFast) *fst.GoFast {
-	gft.Fit(mid.MaxConnections(gft.FitMaxConnections)) // 最大同时处理请求数量：100万
-	gft.Fit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
-
+	gft.Fit(mid.MaxConnections(gft, gft.FitMaxConnections)) // 最大同时处理请求数量：100万
+	gft.Fit(mid.CpuMetric(nil))                             // cpu 统计 | 熔断
 	return gft
 }
 
+// 第二级：
+// 带上下文 gofast.fst.Context 的执行链
 func AddDefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的路由统计器
 	door.InitKeeper(gft.FullPath)
@@ -35,6 +37,7 @@ func AddDefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	return gft
 }
 
+// ++++++++++++++++++++++++++++++++++ go-zero default handler chains
 //  chain := alice.New(
 //  handler.TracingHandler,
 //  s.getLogHandler(),
