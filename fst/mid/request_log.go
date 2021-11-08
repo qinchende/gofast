@@ -35,9 +35,9 @@ import (
 //}
 
 func ReqLogger(ctx *fst.Context) {
-	if ctx == nil {
-		return
-	}
+	//if ctx == nil {
+	//	return
+	//}
 
 	// 执行完后面的请求，再打印日志
 	ctx.Next()

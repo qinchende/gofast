@@ -5,7 +5,6 @@ package fst
 import (
 	"context"
 	"fmt"
-	"github.com/qinchende/gofast/fst/door"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/timex"
@@ -21,15 +20,14 @@ import (
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
-	srv         *http.Server // WebServer
-	*AppConfig               // 引用配置
-	*HomeRouter              // 根路由组（Root Group）
-	appEvents                // 应用级事件
-	fitHandlers IncHandlers  // 全局中间件处理函数，incoming request handlers
-	fitIdx      int
-	//resPool     sync.Pool    // 第一级：GFResponse context pools
-	ctxPool   sync.Pool // 第二级：Handler context pools
-	readyOnce sync.Once // WebServer初始化只能执行一次
+	srv         *http.Server        // WebServer
+	*AppConfig                      // 引用配置
+	*HomeRouter                     // 根路由组（Root Group）
+	appEvents                       // 应用级事件
+	fitHandlers []IncMiddlewareFunc // 全局中间件处理函数，incoming request handlers
+	fitIdx      uint8               // fit执行链执行到的索引位置
+	ctxPool     sync.Pool           // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
+	readyOnce   sync.Once           // WebServer初始化只能执行一次
 }
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
@@ -85,9 +83,6 @@ func CreateServer(cfg *AppConfig) *GoFast {
 
 // 初始化资源池
 func (gft *GoFast) initResourcePool() {
-	//gft.resPool.New = func() interface{} {
-	//	return &GFResponse{gftApp: gft, fitIdx: -1, ResWrap: &ResWriterWrap{}}
-	//}
 	gft.ctxPool.New = func() interface{} {
 		c := &Context{gftApp: gft, ResWrap: &ResWriterWrap{}}
 		// c.Pms = make(map[string]string)
@@ -111,17 +106,17 @@ func (gft *GoFast) initHomeRouter() {
 	gft.allRouters = make([]*RouteItem, 0)
 	gft.fstMem = new(fstMemSpace)
 
-	// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
-	// TODO: 因为Server初始化之后就执行了这里，所以这里的中间件在客户自定义中间件之前
-	// 加入路由的访问性能统计，但是这里还没有匹配路由，无法准确分路由统计
-	if gft.EnableRouteMonitor {
-		// 初始化全局的keeper变量
-		door.InitKeeper(gft.FullPath)
-
-		// 加入全局路由的中间件
-		gft.Before(theFirstBeforeHandler)
-		gft.After(theLastAfterHandler)
-	}
+	//// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
+	//// TODO: 因为Server初始化之后就执行了这里，所以这里的中间件在客户自定义中间件之前
+	//// 加入路由的访问性能统计，但是这里还没有匹配路由，无法准确分路由统计
+	//if gft.EnableRouteMonitor {
+	//	// 初始化全局的keeper变量
+	//	door.InitKeeper(gft.FullPath)
+	//
+	//	// 加入全局路由的中间件
+	//	gft.Before(theFirstBeforeHandler)
+	//	gft.After(theLastAfterHandler)
+	//}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -129,11 +124,11 @@ func (gft *GoFast) initHomeRouter() {
 // 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
 func (gft *GoFast) BuildRouters() {
 	gft.readyOnce.Do(func() {
-		gft.checkDefaultHandler()
-		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
+		gft.initDefaultHandlers()
 
+		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
 		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
-		gft.Fit(gft.serveHTTPWithCtx)
+		gft.Fit(gft.serveHTTPWithCtx(gft.fitHandlers))
 
 		// 依次执行 onReady 事件处理函数
 		gft.execAppHandlers(gft.eReadyHds)
@@ -148,38 +143,27 @@ func (gft *GoFast) BuildRouters() {
 // Note:
 // 1. 这是请求进来之后的第一级上下文，为了节省内存空间，第一级的拦截器通过之后，会进入第二级更丰富的Context上下文（占用内存更多）
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	//cRes := gft.resPool.Get().(*GFResponse)
-	//cRes.ResWrap.Reset(w)
-	//cRes.reset()
-	//
-	//// 记录请求进入的时间
-	//cRes.EnterTime = timex.Now()
-
-	// 开始依次执行全局拦截器
+	// 开始依次执行全局拦截器，开始是第一级的fits系列
 	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
-	gft.NextFit(w, r)
-
-	//// 请求处理完成，开始回收资源
-	//if cRes.Ctx != nil {
-	//	cRes.Ctx.GFResponse = nil
-	//	gft.ctxPool.Put(cRes.Ctx)
-	//	cRes.Ctx = nil
-	//}
-	//gft.resPool.Put(cRes)
+	//gft.NextFit(w, r)
+	gft.fitHandlers[0](w, r)
 }
 
+// 这里是第二级执行链
 // 承上启下：从全局拦截器 过度 到路由 handlers
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
-func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
-	c := gft.ctxPool.Get().(*Context)
-	c.EnterTime = timex.Now()
-	//res.Ctx = c
-	//c.GFResponse = res
-	c.ResWrap.Reset(w)
-	c.ReqRaw = r
-	c.reset()
-	gft.handleHTTPRequest(c)
-	gft.ctxPool.Put(c)
+func (gft *GoFast) serveHTTPWithCtx(next IncHandler) IncHandler {
+	return func(w http.ResponseWriter, r *http.Request) {
+		next(w, r)
+
+		c := gft.ctxPool.Get().(*Context)
+		c.EnterTime = timex.Now() // 请求开始进入上下文阶段，开始计时
+		c.ResWrap.Reset(w)
+		c.ReqRaw = r
+		c.reset()
+		gft.handleHTTPRequest(c)
+		gft.ctxPool.Put(c)
+	}
 }
 
 // 处理所有请求，匹配路由并执行指定的路由处理函数

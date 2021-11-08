@@ -30,7 +30,7 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 // 特殊函数处理
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果没有配置，添加默认的处理函数
-func (gft *GoFast) checkDefaultHandler() {
+func (gft *GoFast) initDefaultHandlers() {
 	if gft.routerItem404 == nil {
 		if gft.DisableDefNoRoute {
 			gft.NoRoute()

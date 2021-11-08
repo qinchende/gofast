@@ -2,39 +2,43 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import (
-	"net/http"
-)
-
 // 添加一组全局拦截器
-func (gft *GoFast) Fits(gftFunc fitRegFunc) *GoFast {
+func (gft *GoFast) RegFits(gftFunc fitRegFunc) *GoFast {
 	return gftFunc(gft)
 }
 
 // 添加单个全局拦截器
-func (gft *GoFast) Fit(hds IncHandler) *GoFast {
+func (gft *GoFast) Fit(hds IncMiddlewareFunc) *GoFast {
 	if hds != nil {
 		gft.fitHandlers = append(gft.fitHandlers, hds)
-		ifPanic(len(gft.fitHandlers) >= maxFitLen, "Fit handlers more the 127 error.")
+		ifPanic(uint8(len(gft.fitHandlers)) >= maxFits, "Fit handlers more the 255 error.")
 	}
 	return gft
 }
 
-// 执行下一个拦截器
-func (gft *GoFast) NextFit(w http.ResponseWriter, r *http.Request) {
-	gft.fitIdx++
-	for gft.fitIdx < len(gft.fitHandlers) {
-		gft.fitHandlers[gft.fitIdx](w, r)
-		gft.fitIdx++
+//
+//// 执行下一个拦截器
+//func (gft *GoFast) NextFit(w http.ResponseWriter, r *http.Request) {
+//	for gft.fitIdx < uint8(len(gft.fitHandlers)) {
+//		gft.fitHandlers[gft.fitIdx](w, r)
+//		gft.fitIdx++
+//	}
+//}
+
+// 这是构造链式中间件的关键函数
+func applyIncMiddleware(h IncHandler, middleware ...IncMiddlewareFunc) IncHandler {
+	for i := len(middleware) - 1; i >= 0; i-- {
+		h = middleware[i](h)
 	}
+	return h
 }
 
 func (gft *GoFast) IsAborted() bool {
-	return gft.fitIdx >= maxFitLen
+	return gft.fitIdx >= maxFits
 }
 
 func (gft *GoFast) AbortFit() {
-	gft.fitIdx = maxFitLen
+	gft.fitIdx = maxFits
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
