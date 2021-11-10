@@ -20,14 +20,15 @@ import (
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
-	srv         *http.Server        // WebServer
-	*AppConfig                      // 引用配置
-	*HomeRouter                     // 根路由组（Root Group）
-	appEvents                       // 应用级事件
-	fitHandlers []IncMiddlewareFunc // 全局中间件处理函数，incoming request handlers
-	fitIdx      uint8               // fit执行链执行到的索引位置
-	ctxPool     sync.Pool           // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
-	readyOnce   sync.Once           // WebServer初始化只能执行一次
+	srv        *http.Server // WebServer
+	*AppConfig              // 引用配置
+	appEvents               // 应用级事件
+
+	*HomeRouter                  // 根路由组（Root Group）
+	fitHandlers []FitFunc        // 全局中间件处理函数，incoming request handlers
+	fitEnter    http.HandlerFunc // fit系列中间件函数的入口
+	ctxPool     sync.Pool        // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
+	readyOnce   sync.Once        // WebServer初始化只能执行一次
 }
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
@@ -128,7 +129,7 @@ func (gft *GoFast) BuildRouters() {
 
 		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
 		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
-		gft.Fit(gft.serveHTTPWithCtx(gft.fitHandlers))
+		gft.bindContextFit(gft.serveHTTPWithCtx)
 
 		// 依次执行 onReady 事件处理函数
 		gft.execAppHandlers(gft.eReadyHds)
@@ -145,25 +146,20 @@ func (gft *GoFast) BuildRouters() {
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 开始依次执行全局拦截器，开始是第一级的fits系列
 	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
-	//gft.NextFit(w, r)
-	gft.fitHandlers[0](w, r)
+	gft.fitEnter(w, r)
 }
 
 // 这里是第二级执行链
 // 承上启下：从全局拦截器 过度 到路由 handlers
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
-func (gft *GoFast) serveHTTPWithCtx(next IncHandler) IncHandler {
-	return func(w http.ResponseWriter, r *http.Request) {
-		next(w, r)
-
-		c := gft.ctxPool.Get().(*Context)
-		c.EnterTime = timex.Now() // 请求开始进入上下文阶段，开始计时
-		c.ResWrap.Reset(w)
-		c.ReqRaw = r
-		c.reset()
-		gft.handleHTTPRequest(c)
-		gft.ctxPool.Put(c)
-	}
+func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
+	c := gft.ctxPool.Get().(*Context)
+	c.EnterTime = timex.Now() // 请求开始进入上下文阶段，开始计时
+	c.ResWrap.Reset(w)
+	c.ReqRaw = r
+	c.reset()
+	gft.handleHTTPRequest(c)
+	gft.ctxPool.Put(c)
 }
 
 // 处理所有请求，匹配路由并执行指定的路由处理函数
@@ -257,7 +253,7 @@ func (gft *GoFast) GracefulShutdown() {
 	quit := make(chan os.Signal)
 	// kill (no param) default send syscall.SIGTERM
 	// kill -2 is syscall.SIGINT
-	// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+	// kill -9 is syscall. SIGKILL but can't catch
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 	log.Println("Shutdown Server ...")

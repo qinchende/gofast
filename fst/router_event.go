@@ -16,8 +16,20 @@ const (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 Context handlers 都要通过此函数来注册
 // 包括 RouterGroup 和 RouteItem
-func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxHandlers) *routeEvents {
-	ifPanic(len(hds) <= 0, "there must be at least one handler")
+func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxHandlers) (*routeEvents, uint16) {
+	// 是空的就啥也不做
+	// ifPanic(len(hds) <= 0, "there must be at least one handler")
+	if len(hds) == 0 || hds[0] == nil {
+		return re, 0
+	}
+
+	// 如果 hds 里面的有为 nil 的函数，丢弃掉
+	tHds := make(CtxHandlers, len(hds))
+	for _, h := range hds {
+		if h != nil {
+			tHds = append(tHds, h)
+		}
+	}
 
 	switch eType {
 	case EPreBind:
@@ -37,15 +49,15 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxH
 		panic("Event type error, can't find this type.")
 	}
 
-	return re
+	return re, uint16(len(tHds))
 }
 
 // RouterGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gp *RouterGroup) regGroupCtxHandler(eType string, hds CtxHandlers) *RouterGroup {
-	gp.regCtxHandler(gp.gftApp.fstMem, eType, hds)
+	_, ct := gp.regCtxHandler(gp.gftApp.fstMem, eType, hds)
 	// 记录分组中一共加入的 处理 函数个数
-	gp.selfHdsLen += uint16(len(hds))
+	gp.selfHdsLen += ct
 	return gp
 }
 

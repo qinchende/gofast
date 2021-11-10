@@ -11,7 +11,7 @@ import (
 // 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
 //
 
-//func CpuMetric(metrics *stat.Metrics) fst.IncHandler {
+//func CpuMetric(metrics *stat.Metrics) http.HandlerFunc {
 //	if metrics == nil {
 //		return nil
 //	}
@@ -27,12 +27,12 @@ import (
 //	}
 //}
 
-func CpuMetric(metrics *stat.Metrics) fst.IncMiddlewareFunc {
+func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
 	if metrics == nil {
 		return nil
 	}
 
-	return func(next fst.IncHandler) fst.IncHandler {
+	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			start := time.Now()
 			defer func() {
@@ -40,6 +40,8 @@ func CpuMetric(metrics *stat.Metrics) fst.IncMiddlewareFunc {
 					Duration: time.Now().Sub(start),
 				})
 			}()
+
+			next(w, r)
 		}
 	}
 }

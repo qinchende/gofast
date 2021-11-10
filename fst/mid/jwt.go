@@ -65,7 +65,7 @@ func JwtAuthHandler(secret string) fst.CtxHandler {
 }
 
 //
-//func JwtAuthorize(secret string) fst.IncHandler {
+//func JwtAuthorize(secret string) http.HandlerFunc {
 //	jwtParser := jwtx.NewTokenParser()
 //
 //	return func(w *fst.GFResponse, r *http.Request) {

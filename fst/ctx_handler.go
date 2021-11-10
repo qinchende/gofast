@@ -6,13 +6,14 @@ package fst
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers() {
 	c.handlers = c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-	c.execIdx = 0
+	c.execIdx = -1
 	c.Next()
 }
 
-// 执行下一个拦截器
+// 执行下一个中间件函数
 func (c *Context) Next() {
-	for c.execIdx < uint8(len(c.handlers.hdsIdxChain)) {
+	c.execIdx++
+	for c.execIdx < int8(len(c.handlers.hdsIdxChain)) {
 		c.gftApp.fstMem.tidyHandlers[c.handlers.hdsIdxChain[c.execIdx]](c)
 		c.execIdx++
 	}
@@ -20,7 +21,6 @@ func (c *Context) Next() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // NOTE: 下面的钩子函数不需要中断执行链。
-
 func (c *Context) execPreSendHandlers() {
 	if c.match.ptrNode == nil {
 		return

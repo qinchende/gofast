@@ -320,9 +320,6 @@ func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 // allCtxHandlers 中无序存放的 handlers 转入 有序的 tidyHandlers 中
 func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx uint16) {
 	ct = uint8(len(*hds))
-	//if ct == 0 {
-	//	return
-	//}
 	startIdx = fstMem.tidyHdsLen
 	for i := uint8(0); i < ct; i++ {
 		fstMem.tidyHandlers[fstMem.tidyHdsLen] = fstMem.allCtxHandlers[(*hds)[i]]

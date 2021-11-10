@@ -13,7 +13,7 @@ import (
 
 const breakerSeparator = "://"
 
-//func BreakerDoor() fst.IncHandler {
+//func BreakerDoor() http.HandlerFunc {
 //	return func(w *fst.GFResponse, r *http.Request) {
 //
 //		brk := breaker.NewBreaker(breaker.WithName(strings.Join([]string{r.Method, r.URL.Path}, breakerSeparator)))

@@ -32,7 +32,7 @@ func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 //// TODO：注意下面的注释
 //// NOTE：这个只是简易的方案，存在不严谨的情况。比如返回结果render了一部分，结果G被Cancel掉了。上面的标准库处理了这个问题。
 //// 方式一却自定义了 response write 加入了 输出缓存，返回结果全部好了之后才会一次性 render 给客户端。
-//func ReqTimeout(dur time.Duration) fst.IncHandler {
+//func ReqTimeout(dur time.Duration) http.HandlerFunc {
 //	// Debug模式不设置超时
 //	if logx.IsDebugging() {
 //		return nil
@@ -96,7 +96,7 @@ func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 //// ++++++++++++++++++ add by chende 2021.10.13
 //// NOTE：完善方式二，使其达到方式一的效果，同时满足本自定义框架的特点。
 //// 这种方式有个问题，就是用不了标准库中 buffer 的 responseWrite 。这样还不如使用方式二
-//func ReqTimeoutSuper(dur time.Duration) fst.IncHandler {
+//func ReqTimeoutSuper(dur time.Duration) http.HandlerFunc {
 //	// Debug模式不设置超时
 //	if logx.IsDebugging() {
 //		return nil

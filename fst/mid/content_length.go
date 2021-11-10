@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-//func MaxContentLength(limit int64) fst.IncHandler {
+//func MaxContentLength(limit int64) http.HandlerFunc {
 //	// limit <= 0 意味着根本不检查ContentLength的限制
 //	if limit <= 0 {
 //		return nil
@@ -34,7 +34,7 @@ func MaxContentLength(limit int64) fst.CtxHandler {
 			ctx.ErrorF("Request body limit is %d, but got %d, rejected with code %d", limit,
 				ctx.ReqRaw.ContentLength, http.StatusRequestEntityTooLarge)
 			ctx.ResWrap.WriteHeader(http.StatusRequestEntityTooLarge)
-			ctx.Abort()
+			ctx.AbortBehind()
 		}
 	}
 }

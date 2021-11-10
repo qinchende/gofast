@@ -17,8 +17,8 @@ type routeEvents struct {
 }
 
 type RouterGroup struct {
-	routeEvents
-	combEvents   routeEvents // 合并分组事件到最后一级分组
+	routeEvents              // 直接作用于本节点的事件可能为空
+	combEvents   routeEvents // 合并父节点的分组事件，routeEvents可能为空，但是combEvents几乎不会为空
 	gftApp       *GoFast
 	prefix       string
 	children     []*RouterGroup
