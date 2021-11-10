@@ -99,12 +99,12 @@ func (c *Context) faiKV(jsonData KV) {
 // 如果需要
 func (c *Context) Render(code int, r render.Render) {
 	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
-	if c.PRender != nil {
+	if c.rendered {
 		logx.Info("[WARNING] Double render, this render func canceled.")
 		return
 	}
 	// Render之前加入对应的 render 数据
-	c.PRender = &r
+	c.rendered = true
 
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execPreSendHandlers()
@@ -170,7 +170,7 @@ func (c *Context) AbortWithError(code int, err error) *Error {
 	return c.CollectError(err)
 }
 
-func (c *Context) Abort() {
+func (c *Context) AbortBehind() {
 	c.execIdx = maxRouteHandlers
 }
 

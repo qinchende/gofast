@@ -55,7 +55,7 @@ func Recovery() fst.CtxHandler {
 			// 说明是程序自己触发的异常，带有一定的预见性(类似退出当前协程等)。
 			if _, ok := err.(fst.GFPanic); ok {
 				recoveryHandler(ctx, err.(error))
-				ctx.Abort()
+				ctx.AbortBehind()
 				return
 			}
 
@@ -97,7 +97,7 @@ func Recovery() fst.CtxHandler {
 			} else {
 				recoveryHandler(ctx, err)
 			}
-			ctx.Abort()
+			ctx.AbortBehind()
 		}()
 
 		ctx.Next()
@@ -116,7 +116,7 @@ func Recovery() fst.CtxHandler {
 //	_ = render.WriteJSON(w.ResWrap, jsonData)
 //}
 
-//func Recovery() fst.IncHandler {
+//func Recovery() http.HandlerFunc {
 //	var logger *log.Logger
 //	if logx.DefErrorWriter != nil {
 //		logger = log.New(logx.DefErrorWriter, "\n\n\x1b[31m", log.LstdFlags)

@@ -8,7 +8,7 @@ import (
 )
 
 //// 限制最大并发连接数，相当于做一个请求资源数量连接池
-//func MaxConnections(gft *fst.GoFast, limit int32) fst.IncHandler {
+//func MaxConnections(gft *fst.GoFast, limit int32) http.HandlerFunc {
 //	// 并发数不做限制
 //	if limit <= 0 {
 //		return nil
@@ -35,30 +35,27 @@ import (
 //}
 
 // 限制最大并发连接数，相当于做一个请求资源数量连接池
-func MaxConnections(gft *fst.GoFast, limit int32) fst.IncMiddlewareFunc {
+func MaxConnections(limit int32) fst.FitFunc {
 	// 并发数不做限制
 	if limit <= 0 {
 		return nil
 	}
 
 	latch := syncx.Counter{Max: limit}
-	return func(next fst.IncHandler) fst.IncHandler {
+	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			if latch.TryBorrow() {
 				defer func() {
 					if err := latch.Return(); err != nil {
 						//w.ErrorN(err)
 						logx.Error(err)
-						gft.AbortFit()
 					}
 				}()
 				next(w, r)
-				//gft.NextFit(w, r)
 			} else {
 				//w.ErrorF("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
 				logx.Errorf("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
 				w.WriteHeader(http.StatusServiceUnavailable)
-				gft.AbortFit()
 			}
 		}
 	}

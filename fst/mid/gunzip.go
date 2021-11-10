@@ -24,7 +24,7 @@ func Gunzip(ctx *fst.Context) {
 		reader, err := gzip.NewReader(ctx.ReqRaw.Body)
 		if err != nil {
 			ctx.ResWrap.WriteHeader(http.StatusBadRequest)
-			ctx.Abort()
+			ctx.AbortBehind()
 		}
 		ctx.ReqRaw.Body = reader
 	}

@@ -3,7 +3,6 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/fst/render"
 	"math"
 	"net/http"
 	"net/url"
@@ -29,17 +28,15 @@ type Context struct {
 	Pms      map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	match    matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	handlers handlersNode           // 匹配到的执行链标记
-	execIdx  uint8                  // 执行链的索引 不能大于 256 个
+	execIdx  int8                   // 执行链的索引 不能大于 127 个
 	aborted  bool                   // 设置成 true ，将中断后面的所有handlers
+	rendered bool                   // 是否已经执行了Render
 
 	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
 
 	// Session数据，数据存储部分可以自定义
 	Sess *CtxSession
-
-	// render.Render 对象
-	PRender *render.Render // render 对象
 
 	// This mutex protect Keys map
 	mu sync.RWMutex
@@ -73,13 +70,13 @@ func (c *Context) reset() {
 	c.match.rts = false
 	c.match.allowRTS = c.gftApp.RedirectTrailingSlash
 	c.Params = c.match.params
-	c.execIdx = math.MaxUint8
+	c.execIdx = math.MaxInt8
 
 	c.Pms = nil
 	c.queryCache = nil
 	c.formCache = nil
 	c.aborted = false
-	c.PRender = nil
+	c.rendered = false
 }
 
 //// 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context
