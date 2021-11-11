@@ -20,15 +20,16 @@ import (
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
-	srv        *http.Server // WebServer
 	*AppConfig              // 引用配置
+	srv        *http.Server // WebServer
 	appEvents               // 应用级事件
+	readyOnce  sync.Once    // WebServer初始化只能执行一次
 
+	// 根路由组相关属性
 	*HomeRouter                  // 根路由组（Root Group）
 	fitHandlers []FitFunc        // 全局中间件处理函数，incoming request handlers
 	fitEnter    http.HandlerFunc // fit系列中间件函数的入口
 	ctxPool     sync.Pool        // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
-	readyOnce   sync.Once        // WebServer初始化只能执行一次
 }
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
@@ -67,6 +68,7 @@ func Default() *GoFast {
 	return app
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 第一步：初始化一个 WebServer , 配置各种参数
 func CreateServer(cfg *AppConfig) *GoFast {
 	// 初始化当前环境变量
@@ -76,7 +78,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 	} else {
 		app.AppConfig = cfg
 	}
-	app.initServerEnv()
+	app.initServerConfig()
 	app.initResourcePool()
 	app.initHomeRouter()
 	return app
@@ -118,23 +120,6 @@ func (gft *GoFast) initHomeRouter() {
 	//	gft.Before(theFirstBeforeHandler)
 	//	gft.After(theLastAfterHandler)
 	//}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// NOTE：重构路由树。（重要！重要！重要！必须调用这个方法初始化路由树和中间件）
-// 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
-func (gft *GoFast) BuildRouters() {
-	gft.readyOnce.Do(func() {
-		gft.initDefaultHandlers()
-
-		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
-		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
-		gft.bindContextFit(gft.serveHTTPWithCtx)
-
-		// 依次执行 onReady 事件处理函数
-		gft.execAppHandlers(gft.eReadyHds)
-	})
-	gft.regAllRouters()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -224,6 +209,23 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
 	c.execHandlers()
 	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NOTE：重构路由树。（重要！重要！重要！必须调用这个方法初始化路由树和中间件）
+// 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
+func (gft *GoFast) BuildRouters() {
+	gft.readyOnce.Do(func() {
+		gft.initDefaultHandlers()
+
+		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
+		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
+		gft.bindContextFit(gft.serveHTTPWithCtx)
+
+		// 依次执行 onReady 事件处理函数
+		gft.execAppHandlers(gft.eReadyHds)
+	})
+	gft.regAllRouters()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

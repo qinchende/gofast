@@ -1,3 +1,5 @@
+// Copyright 2021 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package mid
 
 import (
@@ -9,24 +11,6 @@ import (
 
 // ++++++++++++++++++++++ add by cd.net 2021.10.14
 // 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
-//
-
-//func CpuMetric(metrics *stat.Metrics) http.HandlerFunc {
-//	if metrics == nil {
-//		return nil
-//	}
-//
-//	return func(w http.ResponseWriter, r *http.Request) {
-//		start := time.Now()
-//		defer func() {
-//			metrics.AddItem(stat.ReqItem{
-//				Duration: time.Now().Sub(start),
-//			})
-//		}()
-//
-//	}
-//}
-
 func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
 	if metrics == nil {
 		return nil

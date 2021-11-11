@@ -17,5 +17,6 @@ import (
 func RouteMetric(ctx *fst.Context) {
 	// 执行请求
 	ctx.Next()
+	// 统计请求处理的时长
 	ctx.AddRouteMetric()
 }

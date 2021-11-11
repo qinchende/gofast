@@ -28,7 +28,7 @@ type AppConfig struct {
 	PrintRouteTrees        bool   `cnf:",def=false"`                       // 是否打印出当前路由数
 	FitReqTimeout          int64  `cnf:",def=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	FitMaxContentLength    int64  `cnf:",def=0"`                           // 最大请求字节数，32MB（def=33554432）
-	FitMaxConnections      int32  `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数
+	FitMaxConnections      int32  `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数，默认100万个请求同时进入
 	FitJwtSecret           string `cnf:",NA"`                              // JWT认证的秘钥
 	FitLogType             string `cnf:",def=json,enum=json|sdx"`
 	modeType               int8   `cnf:",NA"` // 内部记录状态
@@ -36,7 +36,7 @@ type AppConfig struct {
 	//EnableRouteMonitor bool `cnf:",def=true"` // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
 }
 
-func (gft *GoFast) initServerEnv() {
+func (gft *GoFast) initServerConfig() {
 	//if gft.MaxMultipartMemory == 0 {
 	//	gft.MaxMultipartMemory = defMultipartMemory
 	//}
