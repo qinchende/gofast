@@ -100,6 +100,7 @@ func Recovery() fst.CtxHandler {
 			ctx.AbortBehind()
 		}()
 
+		// 有 defer 函数，所以这里的 ctx.Next() 有意义。
 		ctx.Next()
 	}
 }

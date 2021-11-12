@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/fst/door"
+	"github.com/qinchende/gofast/fst/check"
 	"github.com/qinchende/gofast/skill/stat"
 	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
@@ -53,7 +53,7 @@ func (c *Context) AddRouteMetric() {
 	if c != nil && c.match.ptrNode != nil {
 		nodeIdx = c.match.ptrNode.routerIdx
 	}
-	door.Keeper.AddItem(door.ReqItem{
+	check.Keeper.AddItem(check.ReqItem{
 		RouterIdx: nodeIdx,
 		Duration:  timex.Since(c.EnterTime),
 	})

@@ -67,6 +67,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 		newMini.hdsItemIdx = n.leafItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
 		newMini.routerIdx = n.leafItem.routerIdx
 
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 		// 可以构造叶子节点的执行链切片，（注意：这里一定要用取地址符）
 		eNode := &fstMem.hdsNodes[newMini.hdsItemIdx]
 		// 下面这两个不能取地址，而是值拷贝
@@ -111,6 +112,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 			count++
 			gp.afterIdx++
 		}
+		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	}
 	// 释放掉资源
 	n.leafItem = nil
@@ -307,11 +309,12 @@ func (ri *RouteItem) rebuildHandlers() (idx int16) {
 func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 	node := &fstMem.hdsNodes[fstMem.hdsNodesLen]
 
-	// 获取所有的 handlers
+	// 获取所有的 handlers (执行链)
 	node.hdsLen, node.hdsIdx = tidyEventHandlers(fstMem, &re.eHds)
 	node.beforeLen, node.beforeIdx = tidyEventHandlers(fstMem, &re.eBeforeHds)
 	node.afterLen, node.afterIdx = tidyEventHandlers(fstMem, &re.eAfterHds)
 
+	// 装饰器
 	node.validLen, node.validIdx = tidyEventHandlers(fstMem, &re.ePreValidHds)
 	node.preSendLen, node.preSendIdx = tidyEventHandlers(fstMem, &re.ePreSendHds)
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(fstMem, &re.eAfterSendHds)
@@ -319,7 +322,9 @@ func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 
 // allCtxHandlers 中无序存放的 handlers 转入 有序的 tidyHandlers 中
 func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx uint16) {
+	// 多少个
 	ct = uint8(len(*hds))
+	// 新构造的所有函数指针切片，依次增长。
 	startIdx = fstMem.tidyHdsLen
 	for i := uint8(0); i < ct; i++ {
 		fstMem.tidyHandlers[fstMem.tidyHdsLen] = fstMem.allCtxHandlers[(*hds)[i]]

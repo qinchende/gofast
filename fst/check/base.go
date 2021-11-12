@@ -1,6 +1,6 @@
 // Copyright 2021 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package door
+package check
 
 import (
 	"github.com/qinchende/gofast/skill/executors"
@@ -14,7 +14,7 @@ var (
 )
 
 type (
-	FuncGetPath func(id int16) string
+	GetRoutePath func(id int16) string
 	//Writer interface {
 	//	Write(report *MetricInfo) error
 	//}
@@ -35,13 +35,13 @@ type (
 	}
 
 	keeper struct {
-		getPath   FuncGetPath
+		getPath   GetRoutePath
 		executor  *executors.IntervalExecutor
 		container *reqContainer
 	}
 )
 
-func InitKeeper(fp FuncGetPath) {
+func InitKeeper(fp GetRoutePath) {
 	if Keeper != nil {
 		return
 	}
