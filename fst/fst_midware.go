@@ -3,9 +3,7 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/fst/check"
 	"github.com/qinchende/gofast/skill/stat"
-	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
 )
 
@@ -45,16 +43,4 @@ func (gft *GoFast) NewMetricsProject() *stat.Metrics {
 		name = gft.Addr
 	}
 	return stat.NewMetrics(name)
-}
-
-// 统计当前路径的执行时间
-func (c *Context) AddRouteMetric() {
-	var nodeIdx int16 = -1
-	if c != nil && c.match.ptrNode != nil {
-		nodeIdx = c.match.ptrNode.routerIdx
-	}
-	check.Keeper.AddItem(check.ReqItem{
-		RouterIdx: nodeIdx,
-		Duration:  timex.Since(c.EnterTime),
-	})
 }

@@ -58,7 +58,6 @@ func (rc *cpuContainer) Execute(items interface{}) {
 	}
 	if size > 0 {
 		//report.PerDur = (ret.duration / time.Millisecond) / size
-		report.Path = Keeper.getPath(ret.items[0].RouterIdx)
 	}
 
 	cpuLog(report)

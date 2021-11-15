@@ -8,6 +8,8 @@ import (
 )
 
 type (
+	FuncGetPath func(id int16) string
+
 	ReqItem struct {
 		Duration  time.Duration // 任务耗时
 		RouterIdx int16         // 路由节点的index
@@ -21,6 +23,7 @@ type (
 	}
 
 	reqContainer struct {
+		getPath FuncGetPath
 		//name     string
 		pid      int
 		items    []ReqItem
@@ -58,7 +61,7 @@ func (rc *reqContainer) Execute(items interface{}) {
 	}
 	if size > 0 {
 		//report.PerDur = (ret.duration / time.Millisecond) / size
-		report.Path = Keeper.getPath(ret.items[0].RouterIdx)
+		report.Path = rc.getPath(ret.items[0].RouterIdx)
 	}
 
 	log(report)

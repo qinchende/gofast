@@ -29,8 +29,8 @@ type Context struct {
 	match    matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	handlers handlersNode           // 匹配到的执行链标记
 	execIdx  int8                   // 执行链的索引 不能大于 127 个
-	aborted  bool                   // 设置成 true ，将中断后面的所有handlers
-	rendered bool                   // 是否已经执行了Render
+	//aborted  bool                   // 设置成 true ，将中断后面的所有handlers
+	rendered bool // 是否已经执行了Render
 
 	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
@@ -75,7 +75,7 @@ func (c *Context) reset() {
 	c.Pms = nil
 	c.queryCache = nil
 	c.formCache = nil
-	c.aborted = false
+	//c.aborted = false
 	c.rendered = false
 }
 

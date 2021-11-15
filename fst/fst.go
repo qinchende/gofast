@@ -43,8 +43,8 @@ type HomeRouter struct {
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
 	routerItem404 *RouteItem
-	miniNode404   *radixMiniNode
 	routerItem405 *RouteItem
+	miniNode404   *radixMiniNode
 	miniNode405   *radixMiniNode
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
@@ -90,7 +90,6 @@ func (gft *GoFast) initResourcePool() {
 		c := &Context{gftApp: gft, ResWrap: &ResWriterWrap{}}
 		// c.Pms = make(map[string]string)
 		// c.match.needRTS = gft.RedirectTrailingSlash
-		// c.GFResponse = &GFResponse{gftApp: gft}
 		return c
 	}
 }
@@ -107,6 +106,16 @@ func (gft *GoFast) initHomeRouter() {
 	gft.gftApp = gft
 
 	gft.allRouters = make([]*RouteItem, 0)
+	//// 404 Default Route
+	//gft.allRouters = append(gft.allRouters, &RouteItem{
+	//	group:     &gft.RouterGroup,
+	//	routerIdx: 0,
+	//})
+	//// 405 Default Route
+	//gft.allRouters = append(gft.allRouters, &RouteItem{
+	//	group:     &gft.RouterGroup,
+	//	routerIdx: 1,
+	//})
 	gft.fstMem = new(fstMemSpace)
 
 	//// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
@@ -161,7 +170,8 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		reqPath = httpx.CleanPath(reqPath)
 	}
 
-	// 看能不能找到 http method 对应的路由树
+	// 已下分A、B、C三步走
+	// A. 看能不能找到 http method 对应的路由树
 	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
@@ -172,9 +182,6 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		if c.match.ptrNode != nil {
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers()
-			// 第二种方案
-			//c.execHandlersMini(nodeVal.ptrNode)
-
 			c.ResWrap.WriteHeaderNow()
 			return
 		}
@@ -187,6 +194,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		}
 	}
 
+	// B. 可以尝试是否不同的Method中能匹配路由
 	// 如果需要查找非本Method中的路由匹配，就尝试去找。
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
@@ -205,6 +213,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		}
 	}
 
+	// C. 以上都无法匹配，就走404逻辑
 	c.match.ptrNode = gft.miniNode404
 	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
 	c.execHandlers()

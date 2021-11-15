@@ -66,53 +66,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 		newMini.hdsGroupIdx = n.leafItem.group.hdsIdx     // 记录“分组”事件在 全局 事件队列中的 起始位置
 		newMini.hdsItemIdx = n.leafItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
 		newMini.routerIdx = n.leafItem.routerIdx
-
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-		// 可以构造叶子节点的执行链切片，（注意：这里一定要用取地址符）
-		eNode := &fstMem.hdsNodes[newMini.hdsItemIdx]
-		// 下面这两个不能取地址，而是值拷贝
-		me := fstMem.hdsNodes[newMini.hdsItemIdx]
-		gp := fstMem.hdsNodes[newMini.hdsGroupIdx]
-
-		// 上级分组before + 自己before + 自己handler + 自己after + 上级分组after
-		size := gp.beforeLen + me.beforeLen + me.hdsLen + me.afterLen + gp.afterLen
-		eNode.hdsIdxChain = make([]uint16, size, size)
-
-		// 2.before
-		count := 0
-		for gp.beforeLen > 0 {
-			eNode.hdsIdxChain[count] = gp.beforeIdx
-			gp.beforeLen--
-			count++
-			gp.beforeIdx++
-		}
-		for me.beforeLen > 0 {
-			eNode.hdsIdxChain[count] = me.beforeIdx
-			me.beforeLen--
-			count++
-			me.beforeIdx++
-		}
-		// 3.handler
-		for me.hdsLen > 0 {
-			eNode.hdsIdxChain[count] = me.hdsIdx
-			me.hdsLen--
-			count++
-			me.hdsIdx++
-		}
-		// 4.after
-		for me.afterLen > 0 {
-			eNode.hdsIdxChain[count] = me.afterIdx
-			me.afterLen--
-			count++
-			me.afterIdx++
-		}
-		for gp.afterLen > 0 {
-			eNode.hdsIdxChain[count] = gp.afterIdx
-			gp.afterLen--
-			count++
-			gp.afterIdx++
-		}
-		// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+		combNodeHandlers(fstMem, newMini, true) // 构造执行链
 	}
 	// 释放掉资源
 	n.leafItem = nil
@@ -122,17 +76,70 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	//newMini.wildChild = n.wildChild
 }
 
+// 默认特殊路径的路由执行链构造。
+func combNodeHandlers(fstMem *fstMemSpace, miniNode *radixMiniNode, needGroup bool) {
+	// 可以构造叶子节点的执行链切片，（注意：这里一定要用取地址符）
+	eNode := &fstMem.hdsNodes[miniNode.hdsItemIdx]
+	// 下面这两个不能取地址，而是值拷贝
+	me := fstMem.hdsNodes[miniNode.hdsItemIdx]
+	gp := fstMem.hdsNodes[miniNode.hdsGroupIdx]
+
+	// 上级分组before + 自己before + 自己handler + 自己after + 上级分组after
+	size := me.beforeLen + me.hdsLen + me.afterLen
+	if needGroup {
+		size += gp.beforeLen + gp.afterLen
+	}
+	eNode.hdsIdxChain = make([]uint16, size, size)
+
+	// 2.before
+	count := 0
+	for needGroup && gp.beforeLen > 0 {
+		eNode.hdsIdxChain[count] = gp.beforeIdx
+		gp.beforeLen--
+		count++
+		gp.beforeIdx++
+	}
+	for me.beforeLen > 0 {
+		eNode.hdsIdxChain[count] = me.beforeIdx
+		me.beforeLen--
+		count++
+		me.beforeIdx++
+	}
+	// 3.handler
+	for me.hdsLen > 0 {
+		eNode.hdsIdxChain[count] = me.hdsIdx
+		me.hdsLen--
+		count++
+		me.hdsIdx++
+	}
+	// 4.after
+	for me.afterLen > 0 {
+		eNode.hdsIdxChain[count] = me.afterIdx
+		me.afterLen--
+		count++
+		me.afterIdx++
+	}
+	for needGroup && gp.afterLen > 0 {
+		eNode.hdsIdxChain[count] = gp.afterIdx
+		gp.afterLen--
+		count++
+		gp.afterIdx++
+	}
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 重建特殊节点
 func rebuildDefaultHandlers(home *GoFast) {
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
-	home.miniNode404 = &radixMiniNode{routerIdx: -1}
+	home.miniNode404 = &radixMiniNode{routerIdx: home.routerItem404.routerIdx}
 	home.miniNode404.hdsGroupIdx = home.routerItem404.group.hdsIdx
 	home.miniNode404.hdsItemIdx = home.routerItem404.rebuildHandlers()
+	combNodeHandlers(home.fstMem, home.miniNode404, true)
 
-	home.miniNode405 = &radixMiniNode{routerIdx: -1}
+	home.miniNode405 = &radixMiniNode{routerIdx: home.routerItem405.routerIdx}
 	home.miniNode405.hdsGroupIdx = home.routerItem405.group.hdsIdx
 	home.miniNode405.hdsItemIdx = home.routerItem405.rebuildHandlers()
+	combNodeHandlers(home.fstMem, home.miniNode405, true)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -162,7 +169,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem.treeCharsLen = 0
 	fstMem.allRadixMiniLen = 0
 	fstMem.routeGroupNum = 0
-	fstMem.routeItemNum = uint16(2 + len(gft.allRouters))
+	fstMem.routeItemNum = uint16(2 + len(gft.allRouters)) // 有404和405这两个默认节点
 	// end
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 

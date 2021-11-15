@@ -158,7 +158,8 @@ func (c *Context) Render(code int, r render.Render) {
 // 终止后面的程序，依次返回调用方。
 func (c *Context) AbortWithStatus(code int) {
 	c.Status(code)
-	c.aborted = true
+	//c.aborted = true
+	c.execIdx = maxRouteHandlers
 }
 
 // AbortWithError calls `AbortWithStatus()` and `Error()` internally.
@@ -166,11 +167,12 @@ func (c *Context) AbortWithStatus(code int) {
 // See Context.Error() for more details.
 func (c *Context) AbortWithError(code int, err error) *Error {
 	c.Status(code)
-	c.aborted = true
+	//c.aborted = true
+	c.execIdx = maxRouteHandlers
 	return c.CollectError(err)
 }
 
-func (c *Context) AbortBehind() {
+func (c *Context) AbortChain() {
 	c.execIdx = maxRouteHandlers
 }
 

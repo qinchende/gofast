@@ -55,7 +55,7 @@ func Recovery() fst.CtxHandler {
 			// 说明是程序自己触发的异常，带有一定的预见性(类似退出当前协程等)。
 			if _, ok := err.(fst.GFPanic); ok {
 				recoveryHandler(ctx, err.(error))
-				ctx.AbortBehind()
+				ctx.AbortChain()
 				return
 			}
 
@@ -97,7 +97,7 @@ func Recovery() fst.CtxHandler {
 			} else {
 				recoveryHandler(ctx, err)
 			}
-			ctx.AbortBehind()
+			ctx.AbortChain()
 		}()
 
 		// 有 defer 函数，所以这里的 ctx.Next() 有意义。
