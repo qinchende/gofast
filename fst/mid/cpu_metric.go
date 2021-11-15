@@ -4,7 +4,9 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/fst/check"
 	"github.com/qinchende/gofast/skill/stat"
+	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
 	"time"
 )
@@ -27,5 +29,20 @@ func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
 
 			next(w, r)
 		}
+	}
+}
+
+func HardwareMetric(kp *check.RequestKeeper) fst.CtxHandler {
+	if kp == nil {
+		return nil
+	}
+
+	return func(c *fst.Context) {
+		c.Next()
+
+		kp.AddItem(check.ReqItem{
+			RouterIdx: c.RouteIndex(),
+			Duration:  timex.Since(c.EnterTime),
+		})
 	}
 }

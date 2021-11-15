@@ -1,3 +1,5 @@
+// Copyright 2021 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package mid
 
 import (
@@ -8,23 +10,12 @@ import (
 	"strings"
 )
 
-//func Gunzip(w *fst.GFResponse, r *http.Request) {
-//	if strings.Contains(r.Header.Get(httpx.ContentEncoding), "gzip") {
-//		reader, err := gzip.NewReader(r.Body)
-//		if err != nil {
-//			w.ResWrap.WriteHeader(http.StatusBadRequest)
-//			w.AbortFit()
-//		}
-//		r.Body = reader
-//	}
-//}
-
 func Gunzip(ctx *fst.Context) {
 	if strings.Contains(ctx.ReqRaw.Header.Get(httpx.ContentEncoding), "gzip") {
 		reader, err := gzip.NewReader(ctx.ReqRaw.Body)
 		if err != nil {
 			ctx.ResWrap.WriteHeader(http.StatusBadRequest)
-			ctx.AbortBehind()
+			ctx.AbortChain()
 		}
 		ctx.ReqRaw.Body = reader
 	}
