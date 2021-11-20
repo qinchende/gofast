@@ -8,10 +8,10 @@ import (
 )
 
 type (
-	FuncGetPath func(id int16) string // 获取当前请求对应的路径
+	FuncGetPath func(id uint16) string // 获取当前请求对应的路径
 
 	ReqItem struct {
-		RouterIdx int16         // 当前请求对应路由树节点的index
+		RouterIdx uint16        // 当前请求对应路由树节点的index
 		Duration  time.Duration // 请求耗时
 		Drop      bool          // 是否是一个被丢弃的请求（这样好统计服务器的压力，单单只是出错不能算后台服务压力大吧？）
 	}
@@ -23,8 +23,8 @@ type (
 	}
 
 	reqContainer struct {
-		getPath FuncGetPath
-		//name     string
+		getPath  FuncGetPath
+		name     string
 		pid      int
 		duration time.Duration
 		items    []ReqItem

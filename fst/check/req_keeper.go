@@ -3,25 +3,35 @@
 package check
 
 import (
+	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/executors"
 	"os"
+	"strconv"
 )
 
 type RequestKeeper struct {
 	executor  *executors.IntervalExecutor
 	container *reqContainer
+	Breakers  []breaker.Breaker
 }
 
-func CreateReqKeeper(fp FuncGetPath) *RequestKeeper {
+func CreateReqKeeper(name string, len uint16, fp FuncGetPath) *RequestKeeper {
 	container := &reqContainer{
+		name:    name,
+		pid:     os.Getpid(),
 		getPath: fp,
-		//name: name,
-		pid: os.Getpid(),
+	}
+
+	// 建好 breakers
+	bks := make([]breaker.Breaker, len)
+	for i := 0; i < int(len); i++ {
+		bks = append(bks, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
 	}
 
 	return &RequestKeeper{
 		executor:  executors.NewIntervalExecutor(LogInterval, container),
 		container: container,
+		Breakers:  bks,
 	}
 }
 

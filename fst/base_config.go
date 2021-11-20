@@ -86,6 +86,14 @@ func (gft *GoFast) IsDebugging() bool {
 	return gft.modeType == modeDebug
 }
 
+func (gft *GoFast) AppName() (name string) {
+	name = gft.Name
+	if len(name) <= 0 {
+		name = gft.Addr
+	}
+	return
+}
+
 // 日志文件的目标系统
 const (
 	LogTypeConsole    = "console"

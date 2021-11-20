@@ -19,7 +19,7 @@ type (
 	GFPanic     error
 
 	// 抽取出一些常用函数原型
-	fitRegFunc func(*GoFast) *GoFast
+	injectFunc func(*GoFast) *GoFast
 )
 
 const (
