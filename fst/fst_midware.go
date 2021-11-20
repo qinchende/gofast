@@ -2,19 +2,11 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import (
-	"github.com/qinchende/gofast/skill/stat"
-	"net/http"
-)
+import "net/http"
 
-// 添加一组全局的中间件函数
-func (gft *GoFast) RegHandlers(gftFunc fitRegFunc) *GoFast {
-	return gftFunc(gft)
-}
-
-// 添加一组全局拦截器
-func (gft *GoFast) RegFits(gftFunc fitRegFunc) *GoFast {
-	return gftFunc(gft)
+// 用于封装，框架自定义一组
+func (gft *GoFast) Apply(inject injectFunc) *GoFast {
+	return inject(gft)
 }
 
 // 添加单个全局拦截器
@@ -35,12 +27,23 @@ func (gft *GoFast) bindContextFit(handler http.HandlerFunc) {
 	gft.fitEnter = handler
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 创建日志模板
-func (gft *GoFast) NewMetricsProject() *stat.Metrics {
-	name := gft.Name
-	if len(name) <= 0 {
-		name = gft.Addr
-	}
-	return stat.NewMetrics(name)
-}
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// 添加一组全局的中间件函数
+//func (gft *GoFast) RegHandlers(inject injectFunc) *GoFast {
+//	return inject(gft)
+//}
+//
+//// 添加一组全局拦截器
+//func (gft *GoFast) RegFits(inject injectFunc) *GoFast {
+//	return inject(gft)
+//}
+
+//
+//// 创建日志模板
+//func (gft *GoFast) NewMetricsProject() *stat.Metrics {
+//	name := gft.Name
+//	if len(name) <= 0 {
+//		name = gft.Addr
+//	}
+//	return stat.NewMetrics(name)
+//}

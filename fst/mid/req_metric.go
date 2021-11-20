@@ -19,7 +19,7 @@ func TimeMetric(kp *check.RequestKeeper) fst.CtxHandler {
 		c.Next()
 
 		kp.AddItem(check.ReqItem{
-			RouterIdx: c.RouteIndex(),
+			RouterIdx: c.RouteID,
 			Duration:  timex.Since(c.EnterTime),
 		})
 	}

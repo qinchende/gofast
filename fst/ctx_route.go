@@ -11,6 +11,10 @@ func (gft *GoFast) FullPath(idx int16) string {
 	}
 }
 
+func (gft *GoFast) RoutesLen() uint16 {
+	return uint16(len(gft.allRouters))
+}
+
 func (c *Context) FullPath() string {
 	if c.match.ptrNode != nil && c.match.ptrNode.routerIdx >= 0 {
 		return c.gftApp.allRouters[c.match.ptrNode.routerIdx].fullPath
@@ -23,10 +27,10 @@ func (ri *RouteItem) FullPath() string {
 	return ri.fullPath
 }
 
-func (c *Context) RouteIndex() int16 {
-	var nodeIdx int16 = -1
-	if c != nil && c.match.ptrNode != nil {
-		nodeIdx = c.match.ptrNode.routerIdx
-	}
-	return nodeIdx
-}
+//func (c *Context) RouteIndex() int16 {
+//	var nodeIdx int16 = -1
+//	if c != nil && c.match.ptrNode != nil {
+//		nodeIdx = c.match.ptrNode.routerIdx
+//	}
+//	return nodeIdx
+//}

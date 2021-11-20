@@ -106,16 +106,16 @@ func (gft *GoFast) initHomeRouter() {
 	gft.gftApp = gft
 
 	gft.allRouters = make([]*RouteItem, 0)
-	//// 404 Default Route
-	//gft.allRouters = append(gft.allRouters, &RouteItem{
-	//	group:     &gft.RouterGroup,
-	//	routerIdx: 0,
-	//})
-	//// 405 Default Route
-	//gft.allRouters = append(gft.allRouters, &RouteItem{
-	//	group:     &gft.RouterGroup,
-	//	routerIdx: 1,
-	//})
+	// 404 Default Route
+	gft.allRouters = append(gft.allRouters, &RouteItem{
+		group:     &gft.RouterGroup,
+		routerIdx: 0,
+	})
+	// 405 Default Route
+	gft.allRouters = append(gft.allRouters, &RouteItem{
+		group:     &gft.RouterGroup,
+		routerIdx: 1,
+	})
 	gft.fstMem = new(fstMemSpace)
 
 	//// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
@@ -170,7 +170,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		reqPath = httpx.CleanPath(reqPath)
 	}
 
-	// 已下分A、B、C三步走
+	// 以下分A、B、C三步走
 	// A. 看能不能找到 http method 对应的路由树
 	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
 	if miniRoot != nil {

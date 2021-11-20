@@ -28,6 +28,7 @@ type Context struct {
 	Pms      map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	match    matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	handlers handlersNode           // 匹配到的执行链标记
+	RouteID  uint16                 // router的标识
 	execIdx  int8                   // 执行链的索引 不能大于 127 个
 	//aborted  bool                   // 设置成 true ，将中断后面的所有handlers
 	rendered bool // 是否已经执行了Render
@@ -71,6 +72,7 @@ func (c *Context) reset() {
 	c.match.allowRTS = c.gftApp.RedirectTrailingSlash
 	c.Params = c.match.params
 	c.execIdx = math.MaxInt8
+	c.RouteID = 0
 
 	c.Pms = nil
 	c.queryCache = nil

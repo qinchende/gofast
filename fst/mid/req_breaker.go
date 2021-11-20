@@ -7,7 +7,6 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/fst/check"
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/security"
 	"net/http"
@@ -57,11 +56,8 @@ func Breaker(kp *check.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
-	// TODO: 要生成 所有路由的 Breaker
-
-	//brk := breaker.NewBreaker(breaker.WithName())
 	return func(c *fst.Context) {
-		brk := breaker.NewBreaker(breaker.WithName(c.FullPath()))
+		brk := kp.Breakers[c.RouteID]
 
 		promise, err := brk.Allow()
 		if err != nil && kp != nil {

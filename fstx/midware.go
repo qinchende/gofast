@@ -22,9 +22,9 @@ func DefaultFits(gft *fst.GoFast) *fst.GoFast {
 // 带上下文 gofast.fst.Context 的执行链
 func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
-	reqKeeper := check.CreateReqKeeper(gft.FullPath)
+	reqKeeper := check.CreateReqKeeper(gft.AppName(), gft.RoutesLen(), gft.FullPath)
 
-	gft.Before(mid.Tracing)                                                         // 链路追踪，在日志打印之前执行
+	gft.Before(mid.Tracing)                                                         // 链路追踪，在日志打印之前执行，日志才会体现出标记
 	gft.Before(mid.ReqLogger)                                                       // 所有请求写日志，根据配置输出日志样式
 	gft.Before(mid.HardwareMetric(nil))                                             // 硬件资源利用率高，答应信息并熔断
 	gft.Before(mid.Breaker(reqKeeper))                                              // 针对不同路由的配置，启动熔断机制
