@@ -3,7 +3,7 @@
 package fst
 
 // 获取所在节点的Path |
-func (gft *GoFast) FullPath(idx int16) string {
+func (gft *GoFast) FullPath(idx uint16) string {
 	if idx >= 0 && gft.allRouters[idx] != nil {
 		return gft.allRouters[idx].fullPath
 	} else {
@@ -11,7 +11,7 @@ func (gft *GoFast) FullPath(idx int16) string {
 	}
 }
 
-func (gft *GoFast) RoutesLen() uint16 {
+func (gft *GoFast) RouteLength() uint16 {
 	return uint16(len(gft.allRouters))
 }
 

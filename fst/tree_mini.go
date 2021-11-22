@@ -8,7 +8,7 @@ package fst
 // 一共 ? 字节
 type radixMiniNode struct {
 	// router index (2字节)
-	routerIdx int16
+	routerIdx uint16
 
 	// 前缀字符（3字节）
 	matchStart uint16
@@ -131,20 +131,20 @@ func combNodeHandlers(fstMem *fstMemSpace, miniNode *radixMiniNode, needGroup bo
 // 重建特殊节点
 func rebuildDefaultHandlers(home *GoFast) {
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
-	home.miniNode404 = &radixMiniNode{routerIdx: home.routerItem404.routerIdx}
-	home.miniNode404.hdsGroupIdx = home.routerItem404.group.hdsIdx
-	home.miniNode404.hdsItemIdx = home.routerItem404.rebuildHandlers()
+	home.miniNode404 = &radixMiniNode{routerIdx: home.allRouters[1].routerIdx}
+	home.miniNode404.hdsGroupIdx = home.allRouters[1].group.hdsIdx
+	home.miniNode404.hdsItemIdx = home.allRouters[1].rebuildHandlers()
 	combNodeHandlers(home.fstMem, home.miniNode404, true)
 
-	home.miniNode405 = &radixMiniNode{routerIdx: home.routerItem405.routerIdx}
-	home.miniNode405.hdsGroupIdx = home.routerItem405.group.hdsIdx
-	home.miniNode405.hdsItemIdx = home.routerItem405.rebuildHandlers()
+	home.miniNode405 = &radixMiniNode{routerIdx: home.allRouters[2].routerIdx}
+	home.miniNode405.hdsGroupIdx = home.allRouters[2].group.hdsIdx
+	home.miniNode405.hdsItemIdx = home.allRouters[2].rebuildHandlers()
 	combNodeHandlers(home.fstMem, home.miniNode405, true)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 将所有的 中间件函数 放入一个大的数组当中，以后都是通过数组索引来访问函数
-func addCtxHandlers(fstMem *fstMemSpace, hds CtxHandlers) (idxes []uint16) {
+func addCtxHandlers(fstMem *fstMemSpace, hds []CtxHandler) (idxes []uint16) {
 	// 所有处理函数的切片
 	fstMem.allCtxHandlers = append(fstMem.allCtxHandlers, hds...)
 
@@ -169,7 +169,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem.treeCharsLen = 0
 	fstMem.allRadixMiniLen = 0
 	fstMem.routeGroupNum = 0
-	fstMem.routeItemNum = uint16(2 + len(gft.allRouters)) // 有404和405这两个默认节点
+	fstMem.routeItemNum = uint16(len(gft.allRouters) - 1) // 有404和405这两个默认节点，但是第一个节点是占位，无意义
 	// end
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -231,14 +231,14 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem.hdsNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
 
 	// 新的 handlers 指针数组
-	fstMem.tidyHandlers = make(CtxHandlers, fstMem.tidyHdsLen, fstMem.tidyHdsLen)
+	fstMem.tidyHandlers = make([]CtxHandler, fstMem.tidyHdsLen, fstMem.tidyHdsLen)
 	fstMem.tidyHdsLen = 0 // 下标重置成0，后面从这里把事件加入 tidyHandlers
 
 	// 路由树 字符串
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
 	fstMem.allRadixMiniNodes = make([]radixMiniNode, totalNodes, totalNodes)
 	for idx := 0; idx < len(fstMem.allRadixMiniNodes); idx++ {
-		fstMem.allRadixMiniNodes[idx].routerIdx = -1
+		fstMem.allRadixMiniNodes[idx].routerIdx = 0
 		fstMem.allRadixMiniNodes[idx].hdsGroupIdx = -1
 		fstMem.allRadixMiniNodes[idx].hdsItemIdx = -1
 	}

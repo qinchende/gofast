@@ -42,10 +42,10 @@ type HomeRouter struct {
 
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
-	routerItem404 *RouteItem
-	routerItem405 *RouteItem
-	miniNode404   *radixMiniNode
-	miniNode405   *radixMiniNode
+	//routerItem404 *RouteItem
+	//routerItem405 *RouteItem
+	miniNode404 *radixMiniNode
+	miniNode405 *radixMiniNode
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
 	// 绝大部分应用Get和Post路由居多，我们能尽快匹配就不需要无用的Method比较选择的过程
@@ -106,15 +106,20 @@ func (gft *GoFast) initHomeRouter() {
 	gft.gftApp = gft
 
 	gft.allRouters = make([]*RouteItem, 0)
+	// 默认为空的节点
+	gft.allRouters = append(gft.allRouters, &RouteItem{
+		group:     nil,
+		routerIdx: 0,
+	})
 	// 404 Default Route
 	gft.allRouters = append(gft.allRouters, &RouteItem{
 		group:     &gft.RouterGroup,
-		routerIdx: 0,
+		routerIdx: 1,
 	})
 	// 405 Default Route
 	gft.allRouters = append(gft.allRouters, &RouteItem{
 		group:     &gft.RouterGroup,
-		routerIdx: 1,
+		routerIdx: 2,
 	})
 	gft.fstMem = new(fstMemSpace)
 
@@ -226,15 +231,13 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 func (gft *GoFast) BuildRouters() {
 	gft.readyOnce.Do(func() {
 		gft.initDefaultHandlers()
-
 		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
 		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
 		gft.bindContextFit(gft.serveHTTPWithCtx)
-
-		// 依次执行 onReady 事件处理函数
-		gft.execAppHandlers(gft.eReadyHds)
 	})
-	gft.regAllRouters()
+	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
+	gft.buildAllRouters()
+	gft.execAppHandlers(gft.eAfterBuildRoutesHds) // after build routes
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -243,6 +246,9 @@ func (gft *GoFast) BuildRouters() {
 func (gft *GoFast) Listen(addr ...string) (err error) {
 	// listen接受请求之前，必须调用这个来生成最终的路由树
 	gft.BuildRouters()
+
+	// 依次执行 onReady 事件处理函数
+	gft.execAppHandlers(gft.eReadyHds)
 
 	defer logx.DebugPrintError(err)
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求

@@ -1,6 +1,6 @@
 // Copyright 2021 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package check
+package gate
 
 import (
 	"github.com/qinchende/gofast/logx"
@@ -8,33 +8,29 @@ import (
 )
 
 type (
-	FuncGetPath func(id uint16) string // 获取当前请求对应的路径
-
-	ReqItem struct {
-		RouterIdx uint16        // 当前请求对应路由树节点的index
-		Duration  time.Duration // 请求耗时
-		Drop      bool          // 是否是一个被丢弃的请求（这样好统计服务器的压力，单单只是出错不能算后台服务压力大吧？）
+	CpuItem struct {
+		Duration  time.Duration // 任务耗时
+		RouterIdx int16         // 路由节点的index
+		Drop      bool          // 是否是一个丢弃的任务
 	}
 
-	reqItems struct {
+	cpuItems struct {
 		items    []ReqItem
 		duration time.Duration
 		drops    int
 	}
 
-	reqContainer struct {
-		getPath  FuncGetPath
-		name     string
+	cpuContainer struct {
+		//name     string
 		pid      int
-		duration time.Duration
 		items    []ReqItem
+		duration time.Duration
 		drops    int
 	}
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加统计项目
-func (rc *reqContainer) AddItem(v interface{}) bool {
+func (rc *cpuContainer) AddItem(v interface{}) bool {
 	if item, ok := v.(ReqItem); ok {
 		if item.Drop {
 			rc.drops++
@@ -47,10 +43,10 @@ func (rc *reqContainer) AddItem(v interface{}) bool {
 }
 
 // 执行
-func (rc *reqContainer) Execute(items interface{}) {
+func (rc *cpuContainer) Execute(items interface{}) {
 	ret := items.(reqItems)
-	// items := pair.items
-	// duration := pair.duration
+	//items := pair.items
+	//duration := pair.duration
 	drops := ret.drops
 	size := len(ret.items)
 	report := &PrintInfo{
@@ -61,15 +57,14 @@ func (rc *reqContainer) Execute(items interface{}) {
 		Drops:         drops,
 	}
 	if size > 0 {
-		// report.PerDur = (ret.duration / time.Millisecond) / size
-		report.Path = rc.getPath(ret.items[0].RouterIdx)
+		//report.PerDur = (ret.duration / time.Millisecond) / size
 	}
 
-	log(report)
+	cpuLog(report)
 }
 
-// 返回当前容器中的所有数据，同时清空容器
-func (rc *reqContainer) RemoveAll() interface{} {
+// 返回当前容器中的所有数据
+func (rc *cpuContainer) RemoveAll() interface{} {
 	items := rc.items
 	duration := rc.duration
 	drops := rc.drops
@@ -84,7 +79,7 @@ func (rc *reqContainer) RemoveAll() interface{} {
 	}
 }
 
-func log(report *PrintInfo) {
+func cpuLog(report *PrintInfo) {
 	// writeReport(report)
 	logx.Statf("(%s) | %s - qps: %.1f/s", report.Name, report.Path, report.ReqsPerSecond)
 }

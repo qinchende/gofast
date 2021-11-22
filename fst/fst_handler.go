@@ -31,20 +31,20 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
-	if gft.routerItem404 == nil {
-		if gft.DisableDefNoRoute {
-			gft.NoRoute()
-		} else {
-			gft.NoRoute(defErrorHandler(http.StatusNotFound, default404Body))
-		}
+	//if gft.routerItem404 == nil {
+	if gft.DisableDefNoRoute {
+		gft.NoRoute()
+	} else {
+		gft.NoRoute(defErrorHandler(http.StatusNotFound, default404Body))
 	}
-	if gft.routerItem405 == nil {
-		if gft.DisableDefNotAllowed {
-			gft.NoMethod()
-		} else {
-			gft.NoMethod(defErrorHandler(http.StatusMethodNotAllowed, default405Body))
-		}
+	//}
+	//if gft.routerItem405 == nil {
+	if gft.DisableDefNotAllowed {
+		gft.NoMethod()
+	} else {
+		gft.NoMethod(defErrorHandler(http.StatusMethodNotAllowed, default405Body))
 	}
+	//}
 }
 
 // 每次设置都会替换掉以前设置好的方法
