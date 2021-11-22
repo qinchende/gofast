@@ -33,7 +33,7 @@ type RIConfig struct {
 }
 
 type RouteItem struct {
-	RIConfig                 // router config
+	//RIConfig                 // router config
 	group       *RouterGroup // router group
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径

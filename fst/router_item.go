@@ -9,41 +9,43 @@ import (
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 注册一个404处理函数
-func (gft *GoFast) reg404Handler(hds CtxHandlers) {
-	if gft.routerItem404 == nil {
-		gft.routerItem404 = &RouteItem{
-			group:     &gft.RouterGroup,
-			fullPath:  "/404",
-			routerIdx: -1,
-		}
-	}
-	//ifPanic(gft.routerItem404 != nil, "重复，你可能已经设置了NoRoute处理函数")
+// 注册一个404处理函数, 只能设置一次
+func (gft *GoFast) reg404Handler(hds []CtxHandler) {
+	//if gft.routerItem404 == nil {
+	//	gft.routerItem404 = &RouteItem{
+	//		group:     &gft.RouterGroup,
+	//		fullPath:  "/404",
+	//		routerIdx: 1,
+	//	}
+	//}
+	ifPanic(len(gft.allRouters[1].eHds) > 0, "重复，你可能已经设置了NoRoute处理函数")
 	if hds != nil {
 		//gft.routerItem404.eHds = append(gft.routerItem404.eHds, addCtxHandlers(gft.fstMem, hds)...)
-		gft.routerItem404.eHds = addCtxHandlers(gft.fstMem, hds)
+		//gft.routerItem404.eHds = addCtxHandlers(gft.fstMem, hds)
+		gft.allRouters[1].eHds = addCtxHandlers(gft.fstMem, hds)
 	}
 }
 
-// 注册一个405处理函数
-func (gft *GoFast) reg405Handler(hds CtxHandlers) {
-	if gft.routerItem405 == nil {
-		gft.routerItem405 = &RouteItem{
-			group:     &gft.RouterGroup,
-			fullPath:  "/405",
-			routerIdx: -2,
-		}
-	}
-	// ifPanic(gft.routerItem405 != nil, "重复，你可能已经设置了NoMethod处理函数")
+// 注册一个405处理函数, 只能设置一次
+func (gft *GoFast) reg405Handler(hds []CtxHandler) {
+	//if gft.routerItem405 == nil {
+	//	gft.routerItem405 = &RouteItem{
+	//		group:     &gft.RouterGroup,
+	//		fullPath:  "/405",
+	//		routerIdx: 2,
+	//	}
+	//}
+	ifPanic(len(gft.allRouters[2].eHds) > 0, "重复，你可能已经设置了NoMethod处理函数")
 	if hds != nil {
 		// gft.routerItem405.eHds = append(gft.routerItem405.eHds, addCtxHandlers(gft.fstMem, hds)...)
-		gft.routerItem405.eHds = addCtxHandlers(gft.fstMem, hds)
+		//gft.routerItem405.eHds = addCtxHandlers(gft.fstMem, hds)
+		gft.allRouters[2].eHds = addCtxHandlers(gft.fstMem, hds)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 router handlers 都要通过此函数来注册
-func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *RouteItem {
+func (gp *RouterGroup) register(httpMethod, relPath string, hds []CtxHandler) *RouteItem {
 	ifPanic(len(hds) <= 0, "there must be at least one handler")
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
@@ -56,12 +58,12 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds CtxHandlers) *Ro
 		method:    httpMethod,
 		fullPath:  absPath,
 		group:     gp,
-		routerIdx: -1,
+		routerIdx: 0,
 	}
 	gftApp := gp.gftApp
 	ri.eHds = addCtxHandlers(gftApp.fstMem, hds)
 	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再构造路由前缀树
-	ri.routerIdx = int16(len(gftApp.allRouters))
+	ri.routerIdx = uint16(len(gftApp.allRouters))
 	gftApp.allRouters = append(gftApp.allRouters, ri)
 	ifPanic(len(gftApp.allRouters) > math.MaxInt16, "Too many routers more than MaxInt16.")
 	return ri

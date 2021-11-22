@@ -4,13 +4,13 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/fst/check"
+	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/skill/timex"
 )
 
 // ++++++++++++++++++++++ add by cd.net 2021.10.14
 // 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
-func TimeMetric(kp *check.RequestKeeper) fst.CtxHandler {
+func TimeMetric(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
@@ -18,7 +18,7 @@ func TimeMetric(kp *check.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		c.Next()
 
-		kp.AddItem(check.ReqItem{
+		kp.AddItem(gate.ReqItem{
 			RouterIdx: c.RouteID,
 			Duration:  timex.Since(c.EnterTime),
 		})

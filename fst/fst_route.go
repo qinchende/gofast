@@ -4,16 +4,20 @@ package fst
 
 import "net/http"
 
-// 一次性注册所有路由项
-func (gft *GoFast) regAllRouters() {
+// 一次性构建Mini内存版的所有路由项
+func (gft *GoFast) buildAllRouters() {
 	gft.treeGet = &methodTree{method: http.MethodGet}
 	gft.treePost = &methodTree{method: http.MethodPost}
 	gft.treeOthers = make(methodTrees, 0, 9)
 
 	// TODO：启动server之前，注册的路由只是做了记录在allRouters变量中，这里开始一次性构造路由前缀树
-	for _, it := range gft.allRouters {
-		gft.regRouterItem(it)
+	// 前面三个路由项是系统默认的特殊路由，不参与具体的路由树构造
+	for i := 3; i < len(gft.allRouters); i++ {
+		gft.regRouterItem(gft.allRouters[i])
 	}
+	//for _, it := range gft.allRouters {
+	//	gft.regRouterItem(it)
+	//}
 
 	// 设置 treeAll
 	lenTreeOthers := len(gft.treeOthers)

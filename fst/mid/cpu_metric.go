@@ -4,7 +4,7 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/fst/check"
+	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/skill/stat"
 	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
@@ -32,7 +32,7 @@ func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
 	}
 }
 
-func HardwareMetric(kp *check.RequestKeeper) fst.CtxHandler {
+func HardwareMetric(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
@@ -40,7 +40,7 @@ func HardwareMetric(kp *check.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		c.Next()
 
-		kp.AddItem(check.ReqItem{
+		kp.AddItem(gate.ReqItem{
 			RouterIdx: c.RouteID,
 			Duration:  timex.Since(c.EnterTime),
 		})

@@ -10,13 +10,11 @@ import (
 )
 
 type (
-	KV          map[string]interface{}
-	FitFunc     func(http.HandlerFunc) http.HandlerFunc
-	CtxHandler  func(ctx *Context)
-	CtxHandlers []CtxHandler
-	AppHandler  func(gft *GoFast)
-	AppHandlers []AppHandler
-	GFPanic     error
+	KV         map[string]interface{}
+	FitFunc    func(http.HandlerFunc) http.HandlerFunc
+	CtxHandler func(ctx *Context)
+	AppHandler func(gft *GoFast)
+	GFPanic    error
 
 	// 抽取出一些常用函数原型
 	injectFunc func(*GoFast) *GoFast

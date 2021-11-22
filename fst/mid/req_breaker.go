@@ -5,7 +5,7 @@ package mid
 import (
 	"fmt"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/fst/check"
+	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/security"
@@ -52,7 +52,7 @@ import (
 //}
 
 // 请求分析，针对不同留有分别执行熔断策略
-func Breaker(kp *check.RequestKeeper) fst.CtxHandler {
+func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}

@@ -16,7 +16,7 @@ const (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 Context handlers 都要通过此函数来注册
 // 包括 RouterGroup 和 RouteItem
-func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxHandlers) (*routeEvents, uint16) {
+func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []CtxHandler) (*routeEvents, uint16) {
 	// 是空的就啥也不做
 	// ifPanic(len(hds) <= 0, "there must be at least one handler")
 	if len(hds) == 0 || hds[0] == nil {
@@ -24,7 +24,7 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxH
 	}
 
 	// 如果 hds 里面的有为 nil 的函数，丢弃掉
-	tHds := make(CtxHandlers, len(hds))
+	tHds := make([]CtxHandler, len(hds))
 	for _, h := range hds {
 		if h != nil {
 			tHds = append(tHds, h)
@@ -54,7 +54,7 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds CtxH
 
 // RouterGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (gp *RouterGroup) regGroupCtxHandler(eType string, hds CtxHandlers) *RouterGroup {
+func (gp *RouterGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouterGroup {
 	_, ct := gp.regCtxHandler(gp.gftApp.fstMem, eType, hds)
 	// 记录分组中一共加入的 处理 函数个数
 	gp.selfHdsLen += ct
@@ -89,7 +89,7 @@ func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
 
 // RouteItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouteItem) regItemCtxHandler(eType string, hds CtxHandlers) *RouteItem {
+func (ri *RouteItem) regItemCtxHandler(eType string, hds []CtxHandler) *RouteItem {
 	ri.regCtxHandler(ri.group.gftApp.fstMem, eType, hds)
 	return ri
 }
@@ -118,6 +118,6 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 // RouterItemConfig
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouteItem) Config(cfg *RIConfig) *RouteItem {
-	ri.MaxAcc = cfg.MaxAcc
+	//ri.MaxAcc = cfg.MaxAcc
 	return ri
 }
