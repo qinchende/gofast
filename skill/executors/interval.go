@@ -29,13 +29,12 @@ type (
 
 	// 管理周期执行的实体对象
 	IntervalExecutor struct {
-		commander chan interface{}
-		interval  time.Duration
-		container ItemContainer
-		waitGroup sync.WaitGroup
-		// avoid race condition on waitGroup when calling wg.Add/Done/Wait(...)
-		wgBarrier   syncx.Barrier
+		commander   chan interface{}
 		confirmChan chan lang.PlaceholderType
+		interval    time.Duration
+		container   ItemContainer
+		waitGroup   sync.WaitGroup
+		wgBarrier   syncx.Barrier // avoid race condition on waitGroup when calling wg.Add/Done/Wait(...)
 		inflight    int32
 		isRunning   bool
 		newTicker   func(duration time.Duration) timex.Ticker
@@ -48,9 +47,9 @@ func NewIntervalExecutor(interval time.Duration, container ItemContainer) *Inter
 	executor := &IntervalExecutor{
 		// buffer 1 to let the caller go quickly
 		commander:   make(chan interface{}, 1),
+		confirmChan: make(chan struct{}),
 		interval:    interval,
 		container:   container,
-		confirmChan: make(chan struct{}),
 		newTicker: func(d time.Duration) timex.Ticker {
 			return timex.NewTicker(d)
 		},
@@ -63,6 +62,7 @@ func NewIntervalExecutor(interval time.Duration, container ItemContainer) *Inter
 }
 
 func (pe *IntervalExecutor) Add(item interface{}) {
+	// 外界可以强制刷新日志，并将values传入可执行函数
 	if values, ok := pe.addAndCheck(item); ok {
 		pe.commander <- values
 		<-pe.confirmChan
@@ -92,6 +92,7 @@ func (pe *IntervalExecutor) Wait() {
 	})
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (pe *IntervalExecutor) addAndCheck(item interface{}) (interface{}, bool) {
 	pe.lock.Lock()
 	defer func() {
@@ -103,6 +104,7 @@ func (pe *IntervalExecutor) addAndCheck(item interface{}) (interface{}, bool) {
 		pe.lock.Unlock()
 	}()
 
+	// 外部容器可以试图返回 true，这样能立刻执行统计请求。
 	if pe.container.AddItem(item) {
 		atomic.AddInt32(&pe.inflight, 1)
 		return pe.container.RemoveAll(), true
@@ -121,9 +123,10 @@ func (pe *IntervalExecutor) loopFlush() {
 		ticker := pe.newTicker(pe.interval)
 		defer ticker.Stop()
 
-		// 开启循环检测
+		// 外部命令立即输出
 		var commanded bool
 		last := timex.Now()
+		// 开启死循环循环检测。手动指令，或者定时任务 都可以输出统计结果
 		for {
 			select {
 			case values := <-pe.commander:
@@ -134,6 +137,7 @@ func (pe *IntervalExecutor) loopFlush() {
 				pe.executeTasks(values)
 				last = timex.Now()
 			case <-ticker.Chan():
+				// 如果上面手动输出一次，那么本次自动输出将轮空
 				if commanded {
 					commanded = false
 				} else if pe.Flush() {
@@ -143,8 +147,28 @@ func (pe *IntervalExecutor) loopFlush() {
 				}
 			}
 		}
+		// +++++++++++++++++++++++++++++++++++++++++++++++++++++
 	})
 }
+
+// 一定次数循环发现没有新任务，自动退出定时循环
+func (pe *IntervalExecutor) quitLoop(last time.Duration) (stop bool) {
+	if timex.Since(last) <= pe.interval*idleRound {
+		return
+	}
+
+	// checking pe.inflight and setting pe.guarded should be locked together
+	pe.lock.Lock()
+	if atomic.LoadInt32(&pe.inflight) == 0 {
+		pe.isRunning = false
+		stop = true
+	}
+	pe.lock.Unlock()
+
+	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 func (pe *IntervalExecutor) doneExecution() {
 	pe.waitGroup.Done()
@@ -177,20 +201,4 @@ func (pe *IntervalExecutor) hasTasks(items interface{}) bool {
 		// unknown type, let caller execute it
 		return true
 	}
-}
-
-func (pe *IntervalExecutor) quitLoop(last time.Duration) (stop bool) {
-	if timex.Since(last) <= pe.interval*idleRound {
-		return
-	}
-
-	// checking pe.inflight and setting pe.guarded should be locked together
-	pe.lock.Lock()
-	if atomic.LoadInt32(&pe.inflight) == 0 {
-		pe.isRunning = false
-		stop = true
-	}
-	pe.lock.Unlock()
-
-	return
 }
