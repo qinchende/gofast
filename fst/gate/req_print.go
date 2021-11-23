@@ -52,6 +52,7 @@ type (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加统计项目
+// 如果这里返回true，意味着要立刻刷新当前所有统计数据，这个开关用户自定义输出日志
 func (rc *reqContainer) AddItem(v interface{}) bool {
 	if item, ok := v.(ReqItem); ok {
 		if item.Drop {
@@ -61,7 +62,23 @@ func (rc *reqContainer) AddItem(v interface{}) bool {
 			rc.duration += item.Duration
 		}
 	}
-	return false
+	return true
+}
+
+// 返回当前容器中的所有数据，同时清空容器
+func (rc *reqContainer) RemoveAll() interface{} {
+	items := rc.items
+	duration := rc.duration
+	drops := rc.drops
+	rc.items = nil
+	rc.duration = 0
+	rc.drops = 0
+
+	return reqItems{
+		items:    items,
+		duration: duration,
+		drops:    drops,
+	}
 }
 
 // 执行，
@@ -84,22 +101,6 @@ func (rc *reqContainer) Execute(items interface{}) {
 	}
 
 	log(report)
-}
-
-// 返回当前容器中的所有数据，同时清空容器
-func (rc *reqContainer) RemoveAll() interface{} {
-	items := rc.items
-	duration := rc.duration
-	drops := rc.drops
-	rc.items = nil
-	rc.duration = 0
-	rc.drops = 0
-
-	return reqItems{
-		items:    items,
-		duration: duration,
-		drops:    drops,
-	}
 }
 
 func log(report *PrintInfo) {
