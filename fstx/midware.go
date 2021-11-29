@@ -31,11 +31,11 @@ func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 
 	gft.Before(mid.Tracing)                                                         // 链路追踪，在日志打印之前执行，日志才会体现出标记
 	gft.Before(mid.ReqLogger)                                                       // 所有请求写日志，根据配置输出日志样式
-	gft.Before(mid.HardwareMetric(nil))                                             // 硬件资源利用率高，答应信息并熔断
-	gft.Before(mid.Breaker(reqKeeper))                                              // 针对不同路由的配置，启动熔断机制
+	gft.Before(mid.LoadShedding(nil))                                               // 自适应降载（判断CPU和最大并发数）（主要保护自己不跑爆）
+	gft.Before(mid.Breaker(reqKeeper))                                              // 针对不同route，启动熔断机制（主要保护下游资源不被挤兑）
 	gft.Before(mid.ReqTimeout(time.Duration(gft.FitReqTimeout) * time.Millisecond)) // 超时自动返回，后台处理继续，默认3000毫秒
 	gft.Before(mid.Recovery)                                                        // 截获所有异常
-	gft.Before(mid.TimeMetric(reqKeeper))                                           // 请求耗时统计
+	gft.Before(mid.DoneTime(reqKeeper))                                             // 请求处理耗时统计
 	gft.Before(mid.Prometheus)                                                      // 适合 prometheus 的统计信息
 	gft.Before(mid.MaxContentLength(gft.FitMaxContentLength))                       // 最大的请求头限制，默认32MB
 	gft.Before(mid.Gunzip)                                                          // 自动 gunzip 解压缩
