@@ -32,7 +32,8 @@ func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
 	}
 }
 
-func HardwareMetric(kp *gate.RequestKeeper) fst.CtxHandler {
+// 自适应降载，主要是CPU实用率和最大并发数超过一定阈值，主动断开请求，等待一段时间的冷却
+func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}

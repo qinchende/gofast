@@ -12,10 +12,9 @@ var LogInterval = time.Minute
 
 type (
 	FuncGetPath func(id uint16) string // 获取当前请求对应的路径
-
-	ReqItem struct {
-		RouterIdx uint16        // 当前请求对应路由树节点的index
-		Duration  time.Duration // 请求耗时
+	ReqItem     struct {
+		RouterIdx uint16        // 当前请求对应路由树节点的index，这用来单独统计不同route
+		Duration  time.Duration // 单次请求耗时
 		Drop      bool          // 是否是一个被丢弃的请求（熔断或者资源超限拒绝处理）
 	}
 
@@ -29,7 +28,7 @@ type (
 		getPath  FuncGetPath
 		name     string
 		pid      int
-		duration time.Duration
+		duration time.Duration // 本容器中所有请求的总耗时
 		items    []ReqItem
 		drops    int
 	}
