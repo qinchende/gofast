@@ -29,11 +29,13 @@ type RouterGroup struct {
 
 // 高级功能：每项路由可选配置，精准控制
 type RIConfig struct {
-	MaxAcc int32 `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数
+	MaxReq    int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量
+	Timeout   int32   `cnf:",def=3000,range=[0:600000]"`       // 超时时间毫秒
+	BreakRate float32 `cnf:",def=3000,range=[0:600000]"`       //
 }
 
 type RouteItem struct {
-	//RIConfig                 // router config
+	*RIConfig                // router config
 	group       *RouterGroup // router group
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径
