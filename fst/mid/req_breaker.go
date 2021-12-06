@@ -70,6 +70,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 
 		cw := &security.WithCodeResponseWriter{Writer: c.ResWrap}
 		defer func() {
+			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是处理失败。
 			if cw.Code < http.StatusInternalServerError {
 				promise.Accept()
 			} else {

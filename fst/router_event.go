@@ -117,7 +117,7 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 
 // RouterItemConfig
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouteItem) Config(cfg *RIConfig) *RouteItem {
-	//ri.MaxAcc = cfg.MaxAcc
+func (ri *RouteItem) Config(cfg *RouteConfig) *RouteItem {
+	//ri.RIConfig = cfg
 	return ri
 }

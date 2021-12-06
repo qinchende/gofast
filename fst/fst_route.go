@@ -10,6 +10,8 @@ func (gft *GoFast) buildAllRouters() {
 	gft.treePost = &methodTree{method: http.MethodPost}
 	gft.treeOthers = make(methodTrees, 0, 9)
 
+	// RouteItem Config Init
+
 	// TODO：启动server之前，注册的路由只是做了记录在allRouters变量中，这里开始一次性构造路由前缀树
 	// 前面三个路由项是系统默认的特殊路由，不参与具体的路由树构造
 	for i := 3; i < len(gft.allRouters); i++ {

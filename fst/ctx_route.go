@@ -4,7 +4,7 @@ package fst
 
 // 获取所在节点的Path |
 func (gft *GoFast) FullPath(idx uint16) string {
-	if idx >= 0 && gft.allRouters[idx] != nil {
+	if gft.allRouters[idx] != nil {
 		return gft.allRouters[idx].fullPath
 	} else {
 		return ""
@@ -16,11 +16,19 @@ func (gft *GoFast) RouteLength() uint16 {
 }
 
 func (c *Context) FullPath() string {
-	if c.match.ptrNode != nil && c.match.ptrNode.routerIdx >= 0 {
+	if c.match.ptrNode != nil {
 		return c.gftApp.allRouters[c.match.ptrNode.routerIdx].fullPath
 	} else {
 		return ""
 	}
+}
+
+// 获取当前路由节点
+func (c *Context) CurrRoute() *RouteItem {
+	if c.RouteID <= 0 || c.RouteID >= uint16(len(c.gftApp.allRouters)) {
+		return nil
+	}
+	return c.gftApp.allRouters[c.RouteID]
 }
 
 func (ri *RouteItem) FullPath() string {
