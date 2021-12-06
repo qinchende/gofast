@@ -8,7 +8,7 @@ import (
 	"github.com/qinchende/gofast/skill/timex"
 )
 
-func ReqLogger(ctx *fst.Context) {
+func Logger(ctx *fst.Context) {
 	// 执行完后面的请求，再打印日志
 	ctx.Next()
 

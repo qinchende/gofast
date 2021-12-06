@@ -4,7 +4,6 @@ package mid
 
 import (
 	"context"
-	"fmt"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
 	"log"
@@ -33,20 +32,26 @@ func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 // TODO：注意下面的注释
 // NOTE：这个只是简易的方案，存在不严谨的情况。比如返回结果render了一部分，结果G被Cancel掉了。上面的标准库处理了这个问题。
 // 方式一却自定义了 response write 加入了 输出缓存，返回结果全部好了之后才会一次性 render 给客户端。
-func ReqTimeout(dur time.Duration) fst.CtxHandler {
+func Timeout() fst.CtxHandler {
 	// Debug模式不设置超时
 	if logx.IsDebugging() {
 		return nil
 	}
-
-	// 默认所有请求超时是 3 秒钟
-	if dur <= 0*time.Second {
-		dur = 3 * time.Second
-	}
-	midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, dur/time.Millisecond)
+	//// 默认所有请求超时是 3 秒钟
+	//if defDur <= 0*time.Second {
+	//	defDur = 3 * time.Second
+	//}
+	//midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, defDur/time.Millisecond)
 
 	return func(ctx *fst.Context) {
-		ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), dur)
+		//rt := ctx.CurrRoute()
+		//dur := defDur
+		//if rt.Timeout != 0 {
+		//	dur = time.Duration(rt.Timeout) * time.Millisecond
+		//}
+
+		//ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
+		ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(3000)*time.Millisecond)
 		defer cancelCtx()
 
 		panicChan := make(chan interface{}, 1)

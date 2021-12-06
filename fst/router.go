@@ -28,14 +28,14 @@ type RouterGroup struct {
 }
 
 // 高级功能：每项路由可选配置，精准控制
-type RIConfig struct {
-	MaxReq    int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量
-	Timeout   int32   `cnf:",def=3000,range=[0:600000]"`       // 超时时间毫秒
-	BreakRate float32 `cnf:",def=3000,range=[0:600000]"`       //
+type RouteConfig struct {
+	MaxReq        int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量
+	MaxContentLen int64   `cnf:",def=0"`                           // 最大请求字节数，32MB（def=33554432）
+	Timeout       int32   `cnf:",def=3000,range=[0:600000]"`       // 超时时间毫秒
+	BreakRate     float32 `cnf:",def=3000,range=[0:600000]"`       // google sre算法K值敏感度，K 越小越容易丢请求，推荐 1.5-2 之间
 }
 
 type RouteItem struct {
-	*RIConfig                // router config
 	group       *RouterGroup // router group
 	method      string       // httpMethod
 	fullPath    string       // 路由的完整路径
