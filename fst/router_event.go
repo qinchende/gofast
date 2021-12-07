@@ -117,7 +117,7 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 
 // RouterItemConfig
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouteItem) Config(cfg *RouteConfig) *RouteItem {
-	//ri.RIConfig = cfg
+func (ri *RouteItem) Config(rc RouteConfig) *RouteItem {
+	rc.AddToList(ri.routerIdx)
 	return ri
 }

@@ -44,14 +44,14 @@ func Timeout() fst.CtxHandler {
 	//midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, defDur/time.Millisecond)
 
 	return func(ctx *fst.Context) {
-		//rt := ctx.CurrRoute()
+		rt := RConfigs[ctx.RouteID]
 		//dur := defDur
 		//if rt.Timeout != 0 {
 		//	dur = time.Duration(rt.Timeout) * time.Millisecond
 		//}
 
 		//ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
-		ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(3000)*time.Millisecond)
+		ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
 		defer cancelCtx()
 
 		panicChan := make(chan interface{}, 1)

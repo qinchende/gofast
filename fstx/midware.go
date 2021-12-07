@@ -26,7 +26,9 @@ func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	// 因为Routes的数量只能在加载完所有路由之后才知道
 	// 所以这里选择延时构造所有Breakers
 	gft.OnBeforeBuildRoutes(func(gft *fst.GoFast) {
-		reqKeeper.SetBreakers(gft.RouteLength())
+		rtLength := gft.RouteLength()
+		reqKeeper.SetBreakers(rtLength)
+		mid.RConfigs.Reordering(rtLength)
 	})
 
 	gft.Before(mid.Tracing)             // 链路追踪，在日志打印之前执行，日志才会体现出标记
