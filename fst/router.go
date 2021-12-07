@@ -27,14 +27,6 @@ type RouterGroup struct {
 	parentHdsLen uint16 // 记录所属上级分组的所有处理函数个数（仅包含上级分组，不含本分组的事件个数）
 }
 
-// 高级功能：每项路由可选配置，精准控制
-type RouteConfig struct {
-	MaxReq        int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量
-	MaxContentLen int64   `cnf:",def=0"`                           // 最大请求字节数，32MB（def=33554432）
-	Timeout       int32   `cnf:",def=3000,range=[0:600000]"`       // 超时时间毫秒
-	BreakRate     float32 `cnf:",def=3000,range=[0:600000]"`       // google sre算法K值敏感度，K 越小越容易丢请求，推荐 1.5-2 之间
-}
-
 type RouteItem struct {
 	group       *RouterGroup // router group
 	method      string       // httpMethod
@@ -72,3 +64,17 @@ type handlersNode struct {
 //	startIdx uint16 // 2字节
 //	hdsLen   uint8  // 1字节
 //}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 路由节点支持自定义扩展。可以自定义配置项，和配置项集合。
+type RouteConfigs interface {
+	Reordering(uint16)
+}
+
+type RouteConfig interface {
+	AddToList(uint16)
+}
+
+type RouteIndex struct {
+	Idx uint16 // 此路由在路由数组中的索引值
+}

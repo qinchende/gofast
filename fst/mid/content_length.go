@@ -35,7 +35,7 @@ func MaxContentLength() fst.CtxHandler {
 	//}
 
 	return func(ctx *fst.Context) {
-		rt := ctx.CurrRoute()
+		rt := RConfigs[ctx.RouteID]
 		if rt.MaxContentLen <= 0 {
 			return
 		}
