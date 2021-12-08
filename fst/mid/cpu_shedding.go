@@ -42,8 +42,8 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 		c.Next()
 
 		kp.AddItem(gate.ReqItem{
-			RouterIdx: c.RouteID,
-			Duration:  timex.Since(c.EnterTime),
+			RouteIdx: c.RouteIdx,
+			LossTime: timex.Since(c.EnterTime),
 		})
 	}
 }

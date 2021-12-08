@@ -125,7 +125,9 @@ func (gp *RouterGroup) All(relPath string, handlers ...CtxHandler) {
 	gp.register(http.MethodTrace, relPath, handlers)
 }
 
-func (gp *RouterGroup) GetPost(relPath string, handlers ...CtxHandler) {
-	gp.register(http.MethodGet, relPath, handlers)
-	gp.register(http.MethodPost, relPath, handlers)
+// 特殊类型
+func (gp *RouterGroup) GetPost(relPath string, handlers ...CtxHandler) (get, post *RouteItem) {
+	get = gp.register(http.MethodGet, relPath, handlers)
+	post = gp.register(http.MethodPost, relPath, handlers)
+	return
 }

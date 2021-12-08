@@ -39,7 +39,7 @@ func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	gft.Before(mid.Recovery)            // 截获所有异常
 	gft.Before(mid.DoneTime(reqKeeper)) // 请求处理耗时统计
 	gft.Before(mid.Prometheus)          // 适合 prometheus 的统计信息
-	gft.Before(mid.MaxContentLength())  // 最大的请求头限制，默认32MB
+	gft.Before(mid.MaxContentLength)    // 最大的请求头限制，默认32MB
 	gft.Before(mid.Gunzip)              // 自动 gunzip 解压缩
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。

@@ -28,24 +28,17 @@ func MaxContentData(limit int64) fst.FitFunc {
 }
 
 // 限制当前路径的请求最大数据长度
-func MaxContentLength() fst.CtxHandler {
-	//// limit <= 0 意味着根本不检查ContentLength的限制
-	//if limit <= 0 {
-	//	return nil
-	//}
+func MaxContentLength(ctx *fst.Context) {
+	rt := RConfigs[ctx.RouteIdx]
+	if rt.MaxContentLen <= 0 {
+		return
+	}
 
-	return func(ctx *fst.Context) {
-		rt := RConfigs[ctx.RouteID]
-		if rt.MaxContentLen <= 0 {
-			return
-		}
-
-		// request body length
-		if ctx.ReqRaw.ContentLength > rt.MaxContentLen {
-			ctx.ErrorF("Request body limit is %d, but got %d, rejected with code %d", rt.MaxContentLen,
-				ctx.ReqRaw.ContentLength, http.StatusRequestEntityTooLarge)
-			ctx.ResWrap.WriteHeader(http.StatusRequestEntityTooLarge)
-			ctx.AbortChain()
-		}
+	// request body length
+	if ctx.ReqRaw.ContentLength > rt.MaxContentLen {
+		ctx.ErrorF("Request body limit is %d, but got %d, rejected with code %d", rt.MaxContentLen,
+			ctx.ReqRaw.ContentLength, http.StatusRequestEntityTooLarge)
+		ctx.ResWrap.WriteHeader(http.StatusRequestEntityTooLarge)
+		ctx.AbortChain()
 	}
 }
