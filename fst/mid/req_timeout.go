@@ -44,7 +44,7 @@ func Timeout() fst.CtxHandler {
 	//midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, defDur/time.Millisecond)
 
 	return func(ctx *fst.Context) {
-		rt := RConfigs[ctx.RouteID]
+		rt := RConfigs[ctx.RouteIdx]
 		//dur := defDur
 		//if rt.Timeout != 0 {
 		//	dur = time.Duration(rt.Timeout) * time.Millisecond

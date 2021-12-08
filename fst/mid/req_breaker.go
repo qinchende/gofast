@@ -57,7 +57,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		return nil
 	}
 	return func(c *fst.Context) {
-		brk := kp.Breakers[c.RouteID]
+		brk := kp.Breakers[c.RouteIdx]
 
 		promise, err := brk.Allow()
 		if err != nil && kp != nil {

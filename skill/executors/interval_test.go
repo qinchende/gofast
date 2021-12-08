@@ -47,7 +47,7 @@ func (c *container) RemoveAll() interface{} {
 
 func TestPeriodicalExecutor_Sync(t *testing.T) {
 	var done int32
-	exec := NewPeriodicalExecutor(time.Second, newContainer(time.Millisecond*500, nil))
+	exec := NewIntervalExecutor(time.Second, newContainer(time.Millisecond*500, nil))
 	exec.Sync(func() {
 		atomic.AddInt32(&done, 1)
 	})
@@ -56,7 +56,7 @@ func TestPeriodicalExecutor_Sync(t *testing.T) {
 
 func TestPeriodicalExecutor_QuitGoroutine(t *testing.T) {
 	ticker := timex.NewFakeTicker()
-	exec := NewPeriodicalExecutor(time.Millisecond, newContainer(time.Millisecond, nil))
+	exec := NewIntervalExecutor(time.Millisecond, newContainer(time.Millisecond, nil))
 	exec.newTicker = func(d time.Duration) timex.Ticker {
 		return ticker
 	}
@@ -74,7 +74,7 @@ func TestPeriodicalExecutor_Bulk(t *testing.T) {
 	var vals []int
 	// avoid data race
 	var lock sync.Mutex
-	exec := NewPeriodicalExecutor(time.Millisecond, newContainer(time.Millisecond, func(tasks interface{}) {
+	exec := NewIntervalExecutor(time.Millisecond, newContainer(time.Millisecond, func(tasks interface{}) {
 		t := tasks.([]int)
 		for _, each := range t {
 			lock.Lock()
@@ -152,7 +152,7 @@ func TestPeriodicalExecutor_hasTasks(t *testing.T) {
 	ticker := timex.NewFakeTicker()
 	defer ticker.Stop()
 
-	exec := NewPeriodicalExecutor(time.Millisecond, newContainer(time.Millisecond, nil))
+	exec := NewIntervalExecutor(time.Millisecond, newContainer(time.Millisecond, nil))
 	exec.newTicker = func(d time.Duration) timex.Ticker {
 		return ticker
 	}
@@ -164,7 +164,7 @@ func TestPeriodicalExecutor_hasTasks(t *testing.T) {
 func BenchmarkExecutor(b *testing.B) {
 	b.ReportAllocs()
 
-	executor := NewPeriodicalExecutor(time.Second, newContainer(time.Millisecond*500, nil))
+	executor := NewIntervalExecutor(time.Second, newContainer(time.Millisecond*500, nil))
 	for i := 0; i < b.N; i++ {
 		executor.Add(1)
 	}

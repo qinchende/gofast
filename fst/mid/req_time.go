@@ -17,10 +17,10 @@ func DoneTime(kp *gate.RequestKeeper) fst.CtxHandler {
 
 	return func(c *fst.Context) {
 		c.Next()
-
+		// 执行完所有处理之后统计耗时
 		kp.AddItem(gate.ReqItem{
-			RouterIdx: c.RouteID,
-			Duration:  timex.Since(c.EnterTime),
+			RouteIdx: c.RouteIdx,
+			LossTime: timex.Since(c.EnterTime),
 		})
 	}
 }

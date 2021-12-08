@@ -25,10 +25,10 @@ func (c *Context) FullPath() string {
 
 // 获取当前路由节点
 func (c *Context) CurrRoute() *RouteItem {
-	if c.RouteID <= 0 || c.RouteID >= uint16(len(c.gftApp.allRouters)) {
+	if c.RouteIdx <= 0 || c.RouteIdx >= uint16(len(c.gftApp.allRouters)) {
 		return nil
 	}
-	return c.gftApp.allRouters[c.RouteID]
+	return c.gftApp.allRouters[c.RouteIdx]
 }
 
 func (ri *RouteItem) FullPath() string {

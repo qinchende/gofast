@@ -36,7 +36,7 @@ func (rc *cpuContainer) AddItem(v interface{}) bool {
 			rc.drops++
 		} else {
 			rc.items = append(rc.items, item)
-			rc.duration += item.Duration
+			rc.duration += item.LossTime
 		}
 	}
 	return false
