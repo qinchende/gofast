@@ -73,9 +73,9 @@ func (rc *cpuContainer) RemoveAll() interface{} {
 	rc.drops = 0
 
 	return reqItems{
-		items:    items,
-		duration: duration,
-		drops:    drops,
+		items:     items,
+		totalTime: duration,
+		drops:     drops,
 	}
 }
 

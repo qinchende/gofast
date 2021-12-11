@@ -4,6 +4,7 @@ package gate
 
 import (
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/executors"
 	"time"
 )
 
@@ -20,19 +21,19 @@ type (
 	}
 
 	reqItems struct {
-		items    []ReqItem
-		duration time.Duration
-		drops    int
+		items     []ReqItem
+		totalTime time.Duration
+		drops     int
 	}
 
 	// 存放所有请求的处理时间，作为统计的容器
 	reqContainer struct {
-		getPath  FuncGetPath
-		name     string
-		pid      int
-		duration time.Duration // 本容器中所有请求的总耗时
-		items    []ReqItem
-		drops    int
+		getPath   FuncGetPath
+		name      string
+		pid       int
+		totalTime time.Duration // 本容器中所有请求的总耗时
+		items     []ReqItem
+		drops     int
 	}
 
 	PrintInfo struct {
@@ -54,39 +55,52 @@ type (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加统计项目
 // 如果这里返回true，意味着要立刻刷新当前所有统计数据，这个开关用户自定义输出日志
-func (rc *reqContainer) AddItem(v interface{}) bool {
-	if item, ok := v.(ReqItem); ok {
-		if item.Drop {
-			rc.drops++
-		} else {
-			rc.items = append(rc.items, item)
-			rc.duration += item.LossTime
-		}
-	}
+func (rc *reqContainer) AddItem(item executors.TaskItem) bool {
+	//if item, ok := v.(ReqItem); ok {
+	//	if item.Drop {
+	//		rc.drops++
+	//	} else {
+	//		rc.items = append(rc.items, item)
+	//		rc.totalTime += item.LossTime
+	//	}
+	//}
+	item.AddToContainer()
 	return true
 }
 
+func (item *ReqItem) AddToContainer() {
+
+	//if item.Drop {
+	//	rc.drops++
+	//} else {
+	//	rc.items = append(rc.items, item)
+	//	rc.totalTime += item.LossTime
+	//}
+
+}
+
 // 返回当前容器中的所有数据，同时重置容器
-func (rc *reqContainer) RemoveAll() interface{} {
+func (rc *reqContainer) RemoveAll() executors.TaskItems {
 	ret := reqItems{
-		items:    rc.items,
-		duration: rc.duration,
-		drops:    rc.drops,
+		items:     rc.items,
+		totalTime: rc.totalTime,
+		drops:     rc.drops,
 	}
 	rc.items = nil
-	rc.duration = 0
+	rc.totalTime = 0
 	rc.drops = 0
 
 	return ret
 }
 
 // 执行，
-func (rc *reqContainer) Execute(items interface{}) {
-	ret := items.(reqItems)
-	//items := ret.items
-	duration := ret.duration
-	drops := ret.drops
-	size := len(ret.items)
+func (rc *reqContainer) Execute(items executors.TaskItems) {
+	collects := items.(reqItems)
+	reqs := collects.items
+	totalTime := collects.totalTime
+	drops := collects.drops
+	size := len(reqs)
+
 	report := &PrintInfo{
 		Name:          "Door.PrintInfo",
 		Timestamp:     time.Now().Unix(),
@@ -95,8 +109,8 @@ func (rc *reqContainer) Execute(items interface{}) {
 		Drops:         drops,
 	}
 	if size > 0 {
-		report.Average = float32(duration/time.Millisecond) / (float32(size))
-		report.Path = rc.getPath(ret.items[0].RouteIdx)
+		report.Average = float32(totalTime/time.Millisecond) / (float32(size))
+		report.Path = rc.getPath(collects.items[0].RouteIdx)
 	}
 
 	log(report)

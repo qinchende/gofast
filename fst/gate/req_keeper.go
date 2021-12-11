@@ -30,13 +30,15 @@ func CreateReqKeeper(name string, fp FuncGetPath) *RequestKeeper {
 }
 
 // 每项路由都有自己单独的熔断器，熔断器采用滑动窗口限流算法
-func (rk *RequestKeeper) SetBreakers(length uint16) {
+func (rk *RequestKeeper) InitKeeper(length uint16) {
+	// rk.container.
 	rk.Breakers = make([]breaker.Breaker, 0, length)
 	for i := 0; i < int(length); i++ {
 		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
 	}
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加一次请求项目
 func (rk *RequestKeeper) AddItem(item ReqItem) {
 	rk.executor.Add(item)
