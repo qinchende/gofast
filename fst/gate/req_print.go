@@ -4,7 +4,6 @@ package gate
 
 import (
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/executors"
 	"time"
 )
 
@@ -13,6 +12,7 @@ var LogInterval = time.Minute
 
 type (
 	FuncGetPath func(id uint16) string // 获取当前请求对应的路径
+
 	// 每个请求需要消耗 2个字长 16字节的空间
 	ReqItem struct {
 		LossTime time.Duration // 单次请求耗时
@@ -20,176 +20,108 @@ type (
 		Drop     bool          // 是否是一个被丢弃的请求（熔断或者资源超限拒绝处理）
 	}
 
-	reqItems struct {
-		items     []ReqItem
-		totalTime time.Duration
-		drops     int
+	// 包裹一层，用于在定时任务器中传递对象
+	deliverItems struct {
+		reqs []ReqItem
+	}
+
+	// 2个字节
+	routeSum struct {
+		sumTime time.Duration
+		accepts uint32
+		drops   uint32
+		maxLoss time.Duration
 	}
 
 	// 存放所有请求的处理时间，作为统计的容器
 	reqContainer struct {
-		getPath   FuncGetPath
-		name      string
-		pid       int
-		totalTime time.Duration // 本容器中所有请求的总耗时
-		items     []ReqItem
-		drops     int
-	}
+		getPath FuncGetPath
+		name    string
+		pid     int
 
-	PrintInfo struct {
-		Name          string  `json:"name"`
-		Path          string  `json:"path"`
-		Timestamp     int64   `json:"tm"`
-		Pid           int     `json:"pid"`
-		PerDur        int     `json:"ptime"`
-		ReqsPerSecond float32 `json:"qps"`
-		Drops         int     `json:"drops"`
-		Average       float32 `json:"avg"`
-		Median        float32 `json:"med"`
-		Top90th       float32 `json:"t90"`
-		Top99th       float32 `json:"t99"`
-		Top99p9th     float32 `json:"t99p9"`
+		currReqs  []ReqItem
+		sumRoutes []routeSum
 	}
 )
+
+// 重置统计相关参数
+func (rc *reqContainer) resetSum() {
+	for i := 0; i < len(rc.sumRoutes); i++ {
+		rc.sumRoutes[i].sumTime = 0
+		rc.sumRoutes[i].accepts = 0
+		rc.sumRoutes[i].drops = 0
+		rc.sumRoutes[i].maxLoss = 0
+	}
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加统计项目
 // 如果这里返回true，意味着要立刻刷新当前所有统计数据，这个开关用户自定义输出日志
-func (rc *reqContainer) AddItem(item executors.TaskItem) bool {
-	//if item, ok := v.(ReqItem); ok {
-	//	if item.Drop {
-	//		rc.drops++
-	//	} else {
-	//		rc.items = append(rc.items, item)
-	//		rc.totalTime += item.LossTime
-	//	}
-	//}
-	item.AddToContainer()
-	return true
-}
-
-func (item *ReqItem) AddToContainer() {
-
-	//if item.Drop {
-	//	rc.drops++
-	//} else {
-	//	rc.items = append(rc.items, item)
-	//	rc.totalTime += item.LossTime
-	//}
-
+// 一般这里都应该返回 false
+func (rc *reqContainer) AddItem(v interface{}) bool {
+	if item, ok := v.(ReqItem); ok {
+		rc.currReqs = append(rc.currReqs, item)
+	}
+	return false
 }
 
 // 返回当前容器中的所有数据，同时重置容器
-func (rc *reqContainer) RemoveAll() executors.TaskItems {
-	ret := reqItems{
-		items:     rc.items,
-		totalTime: rc.totalTime,
-		drops:     rc.drops,
+func (rc *reqContainer) RemoveAll() interface{} {
+	ret := deliverItems{
+		reqs: rc.currReqs,
 	}
-	rc.items = nil
-	rc.totalTime = 0
-	rc.drops = 0
 
+	//reqs := rc.currReqs
+	rc.currReqs = nil
 	return ret
 }
 
-// 执行，
-func (rc *reqContainer) Execute(items executors.TaskItems) {
-	collects := items.(reqItems)
-	reqs := collects.items
-	totalTime := collects.totalTime
-	drops := collects.drops
-	size := len(reqs)
+// 执行统计输出
+func (rc *reqContainer) Execute(items interface{}) {
+	// 这里不需要断言判断类型转换的真假，因为结果是上面 RemoveAll 返回的
+	ret := items.(deliverItems)
+	reqs := ret.reqs
+	rc.resetSum()
 
-	report := &PrintInfo{
-		Name:          "Door.PrintInfo",
-		Timestamp:     time.Now().Unix(),
-		Pid:           rc.pid,
-		ReqsPerSecond: float32(size) / float32(LogInterval/time.Second),
-		Drops:         drops,
-	}
-	if size > 0 {
-		report.Average = float32(totalTime/time.Millisecond) / (float32(size))
-		report.Path = rc.getPath(collects.items[0].RouteIdx)
+	// 用一次循环，分别统计不同route的访问情况
+	rtsAll := &rc.sumRoutes[0]
+	for _, req := range reqs {
+		rts := &rc.sumRoutes[req.RouteIdx]
+		if req.Drop {
+			rtsAll.drops++
+			rts.drops++
+		} else {
+			rtsAll.accepts++
+			rts.accepts++
+
+			rtsAll.sumTime += req.LossTime
+			rts.sumTime += req.LossTime
+
+			// 记录其中最长的响应时间
+			if req.LossTime > rts.maxLoss {
+				rts.maxLoss = req.LossTime
+			}
+		}
 	}
 
-	log(report)
+	rc.logPrint()
 }
 
-func log(report *PrintInfo) {
-	// writeReport(report)
-	logx.Statf("(%s) | %s - qps: %.1f/s", report.Name, report.Path, report.ReqsPerSecond)
+// 打印每个路由的请求数据。
+// TODO: 其实每项路由分钟级的日志应该是收集起来，放入数据库，可视化展示和分析
+func (rc *reqContainer) logPrint() {
+	for idx, route := range rc.sumRoutes {
+		if idx != 0 && route.accepts == 0 && route.drops == 0 {
+			continue
+		}
+
+		qps := float32(route.accepts) / float32(LogInterval/time.Second)
+		var aveTime float32
+		if route.accepts > 0 {
+			aveTime = float32(route.sumTime/time.Millisecond) / float32(route.accepts)
+		}
+
+		logx.Statf("%s | suc: %d, drop: %d, qps: %.1f/s ave: %.1fms, max: %.1fms",
+			rc.getPath(uint16(idx)), route.accepts, route.drops, qps, aveTime, float32(route.maxLoss/time.Millisecond))
+	}
 }
-
-//func (c *metricsContainer) Execute(v interface{}) {
-//	pair := v.(tasksDurationPair)
-//	tasks := pair.tasks
-//	duration := pair.duration
-//	drops := pair.drops
-//	size := len(tasks)
-//	report := &StatReport{
-//		Name:          c.name,
-//		Timestamp:     time.Now().Unix(),
-//		Pid:           c.pid,
-//		ReqsPerSecond: float32(size) / float32(logInterval/time.Second),
-//		Drops:         drops,
-//	}
-//
-//	if size > 0 {
-//		report.Average = float32(duration/time.Millisecond) / float32(size)
-//
-//		fiftyPercent := size >> 1
-//		if fiftyPercent > 0 {
-//			top50pTasks := topK(tasks, fiftyPercent)
-//			medianTask := top50pTasks[0]
-//			report.Median = float32(medianTask.Duration) / float32(time.Millisecond)
-//			tenPercent := fiftyPercent / 5
-//			if tenPercent > 0 {
-//				top10pTasks := topK(tasks, tenPercent)
-//				task90th := top10pTasks[0]
-//				report.Top90th = float32(task90th.Duration) / float32(time.Millisecond)
-//				onePercent := tenPercent / 10
-//				if onePercent > 0 {
-//					top1pTasks := topK(top10pTasks, onePercent)
-//					task99th := top1pTasks[0]
-//					report.Top99th = float32(task99th.Duration) / float32(time.Millisecond)
-//					pointOnePercent := onePercent / 10
-//					if pointOnePercent > 0 {
-//						topPointOneTasks := topK(top1pTasks, pointOnePercent)
-//						task99Point9th := topPointOneTasks[0]
-//						report.Top99p9th = float32(task99Point9th.Duration) / float32(time.Millisecond)
-//					} else {
-//						report.Top99p9th = getTopDuration(top1pTasks)
-//					}
-//				} else {
-//					mostDuration := getTopDuration(top10pTasks)
-//					report.Top99th = mostDuration
-//					report.Top99p9th = mostDuration
-//				}
-//			} else {
-//				mostDuration := getTopDuration(tasks)
-//				report.Top90th = mostDuration
-//				report.Top99th = mostDuration
-//				report.Top99p9th = mostDuration
-//			}
-//		} else {
-//			mostDuration := getTopDuration(tasks)
-//			report.Median = mostDuration
-//			report.Top90th = mostDuration
-//			report.Top99th = mostDuration
-//			report.Top99p9th = mostDuration
-//		}
-//	}
-//
-//	log(report)
-//}
-
-//func log(report *StatReport) {
-//	writeReport(report)
-//	if logEnabled.True() {
-//		logx.Statf("(%s) - qps: %.1f/s, drops: %d, avg time: %.1fms, med: %.1fms, "+
-//			"90th: %.1fms, 99th: %.1fms, 99.9th: %.1fms",
-//			report.Name, report.ReqsPerSecond, report.Drops, report.Average, report.Median,
-//			report.Top90th, report.Top99th, report.Top99p9th)
-//	}
-//}

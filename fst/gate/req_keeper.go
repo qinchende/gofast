@@ -17,23 +17,25 @@ type RequestKeeper struct {
 }
 
 func CreateReqKeeper(name string, fp FuncGetPath) *RequestKeeper {
-	container := &reqContainer{
+	counter := &reqContainer{
 		name:    name,
 		pid:     os.Getpid(),
 		getPath: fp,
 	}
 
 	return &RequestKeeper{
-		executor:  executors.NewIntervalExecutor(LogInterval, container),
-		container: container,
+		executor:  executors.NewIntervalExecutor(LogInterval, counter),
+		container: counter,
 	}
 }
 
 // 每项路由都有自己单独的熔断器，熔断器采用滑动窗口限流算法
-func (rk *RequestKeeper) InitKeeper(length uint16) {
+func (rk *RequestKeeper) InitKeeper(rtLen uint16) {
+	// 初始化整个路由统计结构
+	rk.container.sumRoutes = make([]routeSum, rtLen, rtLen)
 	// rk.container.
-	rk.Breakers = make([]breaker.Breaker, 0, length)
-	for i := 0; i < int(length); i++ {
+	rk.Breakers = make([]breaker.Breaker, 0, rtLen)
+	for i := 0; i < int(rtLen); i++ {
 		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
 	}
 }
@@ -45,8 +47,9 @@ func (rk *RequestKeeper) AddItem(item ReqItem) {
 }
 
 // 添加一次被丢弃的请求，只需要标记本次
-func (rk *RequestKeeper) AddDrop() {
+func (rk *RequestKeeper) AddDrop(idx uint16) {
 	rk.executor.Add(ReqItem{
-		Drop: true,
+		RouteIdx: idx,
+		Drop:     true,
 	})
 }

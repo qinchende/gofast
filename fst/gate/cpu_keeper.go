@@ -3,7 +3,6 @@
 package gate
 
 import (
-	"github.com/qinchende/gofast/logx"
 	"time"
 )
 
@@ -44,42 +43,43 @@ func (rc *cpuContainer) AddItem(v interface{}) bool {
 
 // 执行
 func (rc *cpuContainer) Execute(items interface{}) {
-	ret := items.(reqItems)
-	//items := pair.items
-	//duration := pair.duration
-	drops := ret.drops
-	size := len(ret.items)
-	report := &PrintInfo{
-		Name:          "Door.PrintInfo",
-		Timestamp:     time.Now().Unix(),
-		Pid:           rc.pid,
-		ReqsPerSecond: float32(size) / float32(LogInterval/time.Second),
-		Drops:         drops,
-	}
-	if size > 0 {
-		//report.PerDur = (ret.duration / time.Millisecond) / size
-	}
+	//ret := items.(reqItems)
+	////items := pair.items
+	////duration := pair.duration
+	//drops := ret.drops
+	//size := len(ret.items)
+	//report := &PrintInfo{
+	//	Name:          "Door.PrintInfo",
+	//	Timestamp:     time.Now().Unix(),
+	//	Pid:           rc.pid,
+	//	ReqsPerSecond: float32(size) / float32(LogInterval/time.Second),
+	//	Drops:         drops,
+	//}
+	//if size > 0 {
+	//	//report.PerDur = (ret.duration / time.Millisecond) / size
+	//}
 
-	cpuLog(report)
+	//cpuLog(report)
 }
 
 // 返回当前容器中的所有数据
 func (rc *cpuContainer) RemoveAll() interface{} {
-	items := rc.items
-	duration := rc.duration
-	drops := rc.drops
-	rc.items = nil
-	rc.duration = 0
-	rc.drops = 0
-
-	return reqItems{
-		items:     items,
-		totalTime: duration,
-		drops:     drops,
-	}
+	//items := rc.items
+	//duration := rc.duration
+	//drops := rc.drops
+	//rc.items = nil
+	//rc.duration = 0
+	//rc.drops = 0
+	//
+	//return reqItems{
+	//	items:     items,
+	//	totalTime: duration,
+	//	drops:     drops,
+	//}
+	return nil
 }
 
-func cpuLog(report *PrintInfo) {
-	// writeReport(report)
-	logx.Statf("(%s) | %s - qps: %.1f/s", report.Name, report.Path, report.ReqsPerSecond)
-}
+//func cpuLog(report *PrintInfo) {
+//	// writeReport(report)
+//	logx.Statf("(%s) | %s - qps: %.1f/s", report.Name, report.Path, report.ReqsPerSecond)
+//}
