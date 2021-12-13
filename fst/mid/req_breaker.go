@@ -61,7 +61,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 
 		promise, err := brk.Allow()
 		if err != nil && kp != nil {
-			kp.AddDrop()
+			kp.AddDrop(c.RouteIdx)
 			logx.Errorf("[http] dropped, %s - %s - %s",
 				c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
 			c.ResWrap.WriteHeader(http.StatusServiceUnavailable)

@@ -109,16 +109,19 @@ func (gft *GoFast) initHomeRouter() {
 	// 默认为空的节点
 	gft.allRouters = append(gft.allRouters, &RouteItem{
 		group:     nil,
+		fullPath:  "*",
 		routerIdx: 0,
 	})
 	// 404 Default Route
 	gft.allRouters = append(gft.allRouters, &RouteItem{
 		group:     &gft.RouterGroup,
+		fullPath:  "/404",
 		routerIdx: 1,
 	})
 	// 405 Default Route
 	gft.allRouters = append(gft.allRouters, &RouteItem{
 		group:     &gft.RouterGroup,
+		fullPath:  "/405",
 		routerIdx: 2,
 	})
 	gft.fstMem = new(fstMemSpace)
