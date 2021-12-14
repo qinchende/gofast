@@ -18,9 +18,9 @@ func NewProba() *Proba {
 	}
 }
 
-func (p *Proba) TrueOnProba(proba float64) (truth bool) {
+func (p *Proba) TrueOnProba(pb float64) (truth bool) {
 	p.lock.Lock()
-	truth = p.r.Float64() < proba
+	truth = p.r.Float64() < pb
 	p.lock.Unlock()
 	return
 }

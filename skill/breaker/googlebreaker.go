@@ -19,18 +19,18 @@ const (
 // googleBreaker is a netflixBreaker pattern from google.
 // see Client-Side Throttling section in https://landing.google.com/sre/sre-book/chapters/handling-overload/
 type googleBreaker struct {
-	k     float64
-	stat  *collection.RollingWindow
-	proba *mathx.Proba
+	k    float64
+	rWin *collection.RollingWindow
+	prob *mathx.Proba
 }
 
 func newGoogleBreaker() *googleBreaker {
 	bucketDuration := time.Duration(int64(window) / int64(buckets))
-	st := collection.NewRollingWindow(buckets, bucketDuration)
+	rWin := collection.NewRollingWindow(buckets, bucketDuration)
 	return &googleBreaker{
-		stat:  st,
-		k:     k,
-		proba: mathx.NewProba(),
+		rWin: rWin,
+		k:    k,
+		prob: mathx.NewProba(),
 	}
 }
 
@@ -44,7 +44,7 @@ func (gBrk *googleBreaker) accept() error {
 		return nil
 	}
 
-	if gBrk.proba.TrueOnProba(dropRatio) {
+	if gBrk.prob.TrueOnProba(dropRatio) {
 		return ErrServiceUnavailable
 	}
 	return nil
@@ -85,15 +85,15 @@ func (gBrk *googleBreaker) doReq(req func() error, fallback func(err error) erro
 }
 
 func (gBrk *googleBreaker) markSuccess() {
-	gBrk.stat.Add(1)
+	gBrk.rWin.Add(1)
 }
 
 func (gBrk *googleBreaker) markFailure() {
-	gBrk.stat.Add(0)
+	gBrk.rWin.Add(0)
 }
 
 func (gBrk *googleBreaker) history() (accepts, total int64) {
-	gBrk.stat.Reduce(func(b *collection.Bucket) {
+	gBrk.rWin.Reduce(func(b *collection.Bucket) {
 		accepts += int64(b.Sum)
 		total += b.Count
 	})
