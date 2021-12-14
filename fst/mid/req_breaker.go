@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
-	"github.com/qinchende/gofast/skill/security"
 	"net/http"
 )
 
@@ -51,7 +50,7 @@ import (
 //	}
 //}
 
-// 请求分析，针对不同留有分别执行熔断策略
+// 请求分析，针对不同路由分别执行熔断策略
 func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
@@ -59,24 +58,26 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		brk := kp.Breakers[c.RouteIdx]
 
+		// 检查是否允许本次访问通过，主要是滑动窗口判断是否达到熔断条件
 		promise, err := brk.Allow()
-		if err != nil && kp != nil {
+		if err != nil {
 			kp.AddDrop(c.RouteIdx)
-			logx.Errorf("[http] dropped, %s - %s - %s",
-				c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
+			logx.Errorf("[http] dropped, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
 			c.ResWrap.WriteHeader(http.StatusServiceUnavailable)
 			return
 		}
 
-		cw := &security.WithCodeResponseWriter{Writer: c.ResWrap}
 		defer func() {
-			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是处理失败。
-			if cw.Code < http.StatusInternalServerError {
+			code := c.ResWrap.Status()
+			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是拒绝服务
+			if code < http.StatusInternalServerError {
 				promise.Accept()
 			} else {
-				promise.Reject(fmt.Sprintf("%d %s", cw.Code, http.StatusText(cw.Code)))
+				promise.Reject(fmt.Sprintf("%d %s", code, http.StatusText(code)))
 			}
 		}()
+
+		// 执行后面的处理函数
 		c.Next()
 	}
 }

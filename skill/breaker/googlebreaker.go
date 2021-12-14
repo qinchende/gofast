@@ -10,10 +10,10 @@ import (
 
 const (
 	// 250ms for bucket duration
-	window     = time.Second * 10
-	buckets    = 40
-	k          = 1.5
-	protection = 5
+	window     = time.Second * 3600 // 10秒钟是一个完整的窗口周期
+	buckets    = 10                 // 本周期分成40个桶, 那么每个桶占用250ms, 1秒钟分布4个桶。（这个粒度还是比较通用的）
+	k          = 1.5                // 熔断算法中的一个系数
+	protection = 5                  // 最小请求个数，窗口期少于本请求数，不检查熔断
 )
 
 // googleBreaker is a netflixBreaker pattern from google.
@@ -34,68 +34,66 @@ func newGoogleBreaker() *googleBreaker {
 	}
 }
 
-func (b *googleBreaker) accept() error {
-	accepts, total := b.history()
-	weightedAccepts := b.k * float64(accepts)
+// 谷歌公布的一段熔断算法：max(0, (requests - k*accepts) / (requests + 1))
+func (gBrk *googleBreaker) accept() error {
+	accepts, total := gBrk.history()
+	weightedAccepts := gBrk.k * float64(accepts)
 	// https://landing.google.com/sre/sre-book/chapters/handling-overload/#eq2101
 	dropRatio := math.Max(0, (float64(total-protection)-weightedAccepts)/float64(total+1))
 	if dropRatio <= 0 {
 		return nil
 	}
 
-	if b.proba.TrueOnProba(dropRatio) {
+	if gBrk.proba.TrueOnProba(dropRatio) {
 		return ErrServiceUnavailable
 	}
-
 	return nil
 }
 
-func (b *googleBreaker) allow() (internalPromise, error) {
-	if err := b.accept(); err != nil {
+func (gBrk *googleBreaker) allow() (internalPromise, error) {
+	if err := gBrk.accept(); err != nil {
 		return nil, err
 	}
-
 	return googlePromise{
-		b: b,
+		brk: gBrk,
 	}, nil
 }
 
-func (b *googleBreaker) doReq(req func() error, fallback func(err error) error, acceptable Acceptable) error {
-	if err := b.accept(); err != nil {
+func (gBrk *googleBreaker) doReq(req func() error, fallback func(err error) error, acceptable Acceptable) error {
+	if err := gBrk.accept(); err != nil {
 		if fallback != nil {
 			return fallback(err)
 		}
-
 		return err
 	}
 
 	defer func() {
 		if e := recover(); e != nil {
-			b.markFailure()
+			gBrk.markFailure()
 			panic(e)
 		}
 	}()
 
 	err := req()
 	if acceptable(err) {
-		b.markSuccess()
+		gBrk.markSuccess()
 	} else {
-		b.markFailure()
+		gBrk.markFailure()
 	}
 
 	return err
 }
 
-func (b *googleBreaker) markSuccess() {
-	b.stat.Add(1)
+func (gBrk *googleBreaker) markSuccess() {
+	gBrk.stat.Add(1)
 }
 
-func (b *googleBreaker) markFailure() {
-	b.stat.Add(0)
+func (gBrk *googleBreaker) markFailure() {
+	gBrk.stat.Add(0)
 }
 
-func (b *googleBreaker) history() (accepts, total int64) {
-	b.stat.Reduce(func(b *collection.Bucket) {
+func (gBrk *googleBreaker) history() (accepts, total int64) {
+	gBrk.stat.Reduce(func(b *collection.Bucket) {
 		accepts += int64(b.Sum)
 		total += b.Count
 	})
@@ -103,14 +101,16 @@ func (b *googleBreaker) history() (accepts, total int64) {
 	return
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 用于回调成功或者失败
 type googlePromise struct {
-	b *googleBreaker
+	brk *googleBreaker
 }
 
-func (p googlePromise) Accept() {
-	p.b.markSuccess()
+func (gPromise googlePromise) Accept() {
+	gPromise.brk.markSuccess()
 }
 
-func (p googlePromise) Reject() {
-	p.b.markFailure()
+func (gPromise googlePromise) Reject() {
+	gPromise.brk.markFailure()
 }
