@@ -98,8 +98,8 @@ func (rw *RollingWindow) updateOffset() {
 
 // Bucket defines the bucket that holds sum and num of additions.
 type Bucket struct {
-	Sum   float64
-	Count int64
+	Sum   float64 // 求和（因为是通用模块，其实可以用于一些计算值的场景）
+	Count int64   // 次数
 }
 
 func (b *Bucket) add(v float64) {
