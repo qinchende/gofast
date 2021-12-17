@@ -4,8 +4,8 @@ import (
 	"sort"
 	"testing"
 
+	"github.com/qinchende/gofast/logx"
 	"github.com/stretchr/testify/assert"
-	"github.com/qinchende/gofast/skill/logx"
 )
 
 func init() {

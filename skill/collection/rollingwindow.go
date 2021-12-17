@@ -42,14 +42,14 @@ func NewRollingWindow(size int, interval time.Duration, opts ...RollingWindowOpt
 	return w
 }
 
-// Add adds value to current bucket.
-func (rw *RollingWindow) Add(v float64) {
-	rw.lock.Lock()
-	defer rw.lock.Unlock()
-	rw.updateOffset()
-	rw.win.add(rw.offset, v)
+// IgnoreCurrentBucket lets the Reduce call ignore current bucket.
+func IgnoreCurrentBucket() RollingWindowOption {
+	return func(w *RollingWindow) {
+		w.ignoreCurrent = true
+	}
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Reduce runs fn on all buckets, ignore current bucket if ignoreCurrent was set.
 func (rw *RollingWindow) Reduce(fn func(b *Bucket)) {
 	rw.lock.RLock()
@@ -67,6 +67,15 @@ func (rw *RollingWindow) Reduce(fn func(b *Bucket)) {
 		offset := (rw.offset + span + 1) % rw.size
 		rw.win.reduce(offset, diff, fn)
 	}
+}
+
+// Add adds value to current bucket.
+// 加锁临界区的执行应该是越少越好
+func (rw *RollingWindow) Add(v float64) {
+	rw.lock.Lock()
+	defer rw.lock.Unlock()
+	rw.updateOffset()
+	rw.win.add(rw.offset, v)
 }
 
 func (rw *RollingWindow) span() int {
@@ -90,12 +99,15 @@ func (rw *RollingWindow) updateOffset() {
 		rw.win.resetBucket((offset + i + 1) % rw.size)
 	}
 
+	// 滑动窗口中记录上次所处桶的偏移量
 	rw.offset = (offset + span) % rw.size
 	now := timex.Now()
+
 	// align to interval time boundary
 	rw.lastTime = now - (now-rw.lastTime)%rw.interval
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Bucket defines the bucket that holds sum and num of additions.
 type Bucket struct {
 	Sum   float64 // 求和（因为是通用模块，其实可以用于一些计算值的场景）
@@ -103,8 +115,8 @@ type Bucket struct {
 }
 
 func (b *Bucket) add(v float64) {
-	b.Sum += v
-	b.Count++
+	b.Sum += v // 每次的值可以任意指定。意味这个可以灵活应用于更多场景
+	b.Count++  // 调用次数是递增的。可以用这个来记录调用次数
 }
 
 func (b *Bucket) reset() {
@@ -140,11 +152,4 @@ func (w *window) reduce(start, count int, fn func(b *Bucket)) {
 
 func (w *window) resetBucket(offset int) {
 	w.buckets[offset%w.size].reset()
-}
-
-// IgnoreCurrentBucket lets the Reduce call ignore current bucket.
-func IgnoreCurrentBucket() RollingWindowOption {
-	return func(w *RollingWindow) {
-		w.ignoreCurrent = true
-	}
 }

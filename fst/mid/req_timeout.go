@@ -37,21 +37,10 @@ func Timeout() fst.CtxHandler {
 	if logx.IsDebugging() {
 		return nil
 	}
-	//// 默认所有请求超时是 3 秒钟
-	//if defDur <= 0*time.Second {
-	//	defDur = 3 * time.Second
-	//}
-	//midTimeoutMsg = fmt.Sprintf(midTimeoutMsg, defDur/time.Millisecond)
 
-	return func(ctx *fst.Context) {
-		rt := RConfigs[ctx.RouteIdx]
-		//dur := defDur
-		//if rt.Timeout != 0 {
-		//	dur = time.Duration(rt.Timeout) * time.Millisecond
-		//}
-
-		//ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
-		ctx2, cancelCtx := context.WithTimeout(ctx.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
+	return func(c *fst.Context) {
+		rt := RConfigs[c.RouteIdx]
+		ctxTimeout, cancelCtx := context.WithTimeout(c.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
 		defer cancelCtx()
 
 		panicChan := make(chan interface{}, 1)
@@ -59,17 +48,19 @@ func Timeout() fst.CtxHandler {
 
 		// 启动的协程 没有办法杀死，唯一的办法只能用通道通知他，让协程自己退出
 		// 如果协程一直不退出，将会一直占用协程的堆栈内存，并且一直处于GMP的待处理队列，影响整体性能
+		// 如果外面超时退出，这里的调用处理还是会继续走下去的。（即有可能调用者看到的错误提示，但是后台却是处理成功的）
 		go func() {
 			defer func() {
+				// 其实这个是执行不到的，因为Recovery函数把异常吃掉了
 				if p := recover(); p != nil {
 					// NOTE：这里必须使用带缓冲的通道，否则本G可能因为父G的提前退出，而卡死在这里，导致G泄露
 					panicChan <- p
 					// TODO：无法确定上面的异常是否传递出去，下面的日志还是需要打印的。
-					log.Println("ReqTimeout panic: ", p)
+					log.Println("ReqTimeout-Panic: ", p)
 				}
 			}()
 			// 不管超不超时，本次请求都会执行完毕，或者等到自己超时退出
-			ctx.Next()
+			c.Next()
 			// 执行完成之后通知 主协程，我做完了，你可以退出了
 			close(finishChan)
 		}()
@@ -79,14 +70,16 @@ func Timeout() fst.CtxHandler {
 		case pic := <-panicChan:
 			// 子G发生异常，抛出传递给上层G
 			panic(pic)
+			return
 		case <-finishChan:
 			// 正常退出
 			//log.Println("I am back.")
 			return
-		case <-ctx2.Done():
+		case <-ctxTimeout.Done():
+			//log.Printf("Timeout %d\n", rt.Timeout)
 			// 超时退出
-			ctx.ResWrap.WriteHeader(http.StatusServiceUnavailable)
-			fst.RaisePanic(midTimeoutMsg)
+			c.ResWrap.WriteHeader(http.StatusServiceUnavailable)
+			//fst.RaisePanic(midTimeoutMsg)
 			return
 		}
 	}

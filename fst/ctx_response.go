@@ -10,22 +10,6 @@ import (
 	"net/http"
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
-const (
-	notWritAnyData = -1
-	defaultStatus  = http.StatusOK
-)
-
-// 自定义 ResponseWriter, 对标准库的一层包裹处理
-// 实现接口 ResponseWriter
-type ResWriterWrap struct {
-	http.ResponseWriter
-	size       int
-	status     int
-	WriteBytes []byte // 记录响应的数据
-}
-
 // 自定义接口 ResponseWriter
 // 我们自己定义的 GFResponse 结构需要实现这个接口
 type ResponseWriter interface {
@@ -52,6 +36,22 @@ type ResponseWriter interface {
 
 	// get the http.Pusher for server push
 	Pusher() http.Pusher
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
+const (
+	notWritAnyData = -1
+	defaultStatus  = http.StatusOK
+)
+
+// 自定义 ResponseWriter, 对标准库的一层包裹处理
+// 实现接口 ResponseWriter
+type ResWriterWrap struct {
+	http.ResponseWriter
+	size       int
+	status     int
+	WriteBytes []byte // 记录响应的数据
 }
 
 // 验证是否实现了接口所有的方法
@@ -119,6 +119,7 @@ func (w *ResWriterWrap) Size() int {
 	return w.size
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Hijack implements the http.Hijacker interface.
 func (w *ResWriterWrap) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if w.size < 0 {
