@@ -65,7 +65,7 @@ func Timeout() fst.CtxHandler {
 			close(finishChan)
 		}()
 
-		// 任何一个先触发都会执行，并结束当前函数
+		// 任何一个先触发都会执行，并结束当前函数，不会两个以上都触发
 		select {
 		case pic := <-panicChan:
 			// 子G发生异常，抛出传递给上层G
@@ -76,6 +76,9 @@ func Timeout() fst.CtxHandler {
 			//log.Println("I am back.")
 			return
 		case <-ctxTimeout.Done():
+
+			c.ResWrap.RenderNow()
+
 			//log.Printf("Timeout %d\n", rt.Timeout)
 			// 超时退出
 			c.ResWrap.WriteHeader(http.StatusServiceUnavailable)

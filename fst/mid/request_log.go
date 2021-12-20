@@ -20,7 +20,7 @@ func Logger(ctx *fst.Context) {
 	p.Pms = ctx.Pms
 	p.ClientIP = ctx.ClientIP()
 	p.StatusCode = ctx.ResWrap.Status()
-	p.WriteBytes = &ctx.ResWrap.WriteBytes
+	p.ResData = ctx.ResWrap.WrittenBytes()
 	p.BodySize = ctx.ResWrap.Size()
 
 	// TODO: 内部错误信息一般不返回给调用者，而是打印日志

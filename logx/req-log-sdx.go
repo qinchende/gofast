@@ -22,7 +22,7 @@ var genSdxReqLogString = func(p *ReqLogEntity) string {
   R: %s%s
 `
 	// 最长打印出 1024个字节的结果
-	tLen := len(*p.WriteBytes)
+	tLen := len(p.ResData)
 	if tLen > 1024 {
 		tLen = 1024
 	}
@@ -54,7 +54,7 @@ var genSdxReqLogString = func(p *ReqLogEntity) string {
 		p.Latency/time.Millisecond,
 		reqBaseParams,
 		reqParams,
-		(*p.WriteBytes)[:tLen],
+		(p.ResData)[:tLen],
 		p.ErrorMsg,
 	)
 }
