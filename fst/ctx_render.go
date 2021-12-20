@@ -110,11 +110,14 @@ func (c *Context) Render(code int, r render.Render) {
 	c.execPreSendHandlers()
 
 	c.Status(code)
+
+	// 如果指定的返回状态，不能返回数据内容。需要特殊处理
 	if !bodyAllowedForStatus(code) {
 		r.WriteContentType(c.ResWrap)
-		c.ResWrap.WriteHeaderNow()
+		//c.ResWrap.WriteHeaderNow()
 		return
 	}
+
 	// TODO: render之前，统一保存 session
 	if c.Sess != nil {
 		c.Sess.Save()
@@ -123,6 +126,11 @@ func (c *Context) Render(code int, r render.Render) {
 	if err := r.Render(c.ResWrap); err != nil {
 		panic(err)
 	}
+	// really render
+	if _, err := c.ResWrap.RenderNow(); err != nil {
+		panic(err)
+	}
+
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execAfterSendHandlers()
 
@@ -196,7 +204,7 @@ func bodyAllowedForStatus(status int) bool {
 // Status sets the HTTP response code.
 func (c *Context) Status(code int) {
 	c.ResWrap.WriteHeader(code)
-	c.ResWrap.WriteHeaderNow()
+	//c.ResWrap.WriteHeaderNow()
 }
 
 // JSON serializes the given struct as JSON into the response body.

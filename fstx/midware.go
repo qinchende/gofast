@@ -31,7 +31,7 @@ func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 		mid.RConfigs.Reordering(rtLength)
 	})
 
-	gft.Before(mid.Tracing)             // 链路追踪，在日志打印之前执行，日志才会体现出标记
+	//gft.Before(mid.Tracing)             // 链路追踪，在日志打印之前执行，日志才会体现出标记
 	gft.Before(mid.Logger)              // 所有请求写日志，根据配置输出日志样式
 	gft.Before(mid.LoadShedding(nil))   // 自适应降载（判断CPU和最大并发数）（主要保护自己不跑爆）
 	gft.Before(mid.Breaker(reqKeeper))  // 针对不同route，启动熔断机制（主要保护下游资源不被挤兑）

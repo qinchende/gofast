@@ -7,6 +7,7 @@ package test
 import (
 	"bytes"
 	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/cst"
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
@@ -119,7 +120,7 @@ func createRequestMultipartFiles(t *testing.T, files ...testFile) *http.Request 
 	req, err := http.NewRequest("POST", "/", &body)
 	assert.NoError(t, err)
 
-	req.Header.Set("Content-Type", binding.MIMEMultipartPOSTForm+"; boundary="+mw.Boundary())
+	req.Header.Set("Content-Type", cst.MIMEMultiPostForm+"; boundary="+mw.Boundary())
 	return req
 }
 
