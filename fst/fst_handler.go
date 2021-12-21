@@ -12,9 +12,9 @@ import (
 func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 	return func(c *Context) {
 		c.ResWrap.WriteHeader(code)
-		if c.ResWrap.WriteStarted() {
-			return
-		}
+		//if c.ResWrap.WriteStarted() {
+		//	return
+		//}
 		if c.ResWrap.Status() == code {
 			c.ResWrap.Header()["Content-Type"] = mimePlain
 			_, err := c.ResWrap.Write(defaultMessage)
@@ -23,7 +23,7 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 			}
 			return
 		}
-		c.ResWrap.WriteHeaderNow()
+		//c.ResWrap.WriteHeaderNow()
 	}
 }
 
@@ -86,5 +86,5 @@ func redirectRequest(c *Context) {
 	}
 	logx.DebugPrint("redirecting request %d: %s --> %s", code, rPath, rURL)
 	http.Redirect(c.ResWrap, req, rURL, code)
-	c.ResWrap.WriteHeaderNow()
+	//c.ResWrap.WriteHeaderNow()
 }
