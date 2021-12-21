@@ -11,7 +11,8 @@ import (
 	"time"
 )
 
-var midTimeoutMsg = "Request Timeout. Over %d millisecond."
+// 超时之后的返回内容
+var midTimeoutBody = "<html><head><title>Timeout</title></head><body><h1>Timeout</h1></body></html>"
 
 // ++++++++++++++++++++++ add by cd.net 2021.10.14
 // 总说：如果中间件拦截器超时退出，那么fst模块中的 request content 对象 就会被缓冲池回首。
@@ -21,7 +22,7 @@ var midTimeoutMsg = "Request Timeout. Over %d millisecond."
 func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		if duration > 0 {
-			return http.TimeoutHandler(next, duration, midTimeoutMsg)
+			return http.TimeoutHandler(next, duration, midTimeoutBody)
 		} else {
 			return next
 		}
@@ -76,13 +77,12 @@ func Timeout() fst.CtxHandler {
 			//log.Println("I am back.")
 			return
 		case <-ctxTimeout.Done():
-
-			c.ResWrap.RenderNow()
-
-			//log.Printf("Timeout %d\n", rt.Timeout)
 			// 超时退出
-			c.ResWrap.WriteHeader(http.StatusServiceUnavailable)
-			//fst.RaisePanic(midTimeoutMsg)
+			// 此时需要强制 render 服务器出现错误的状态。
+			if err := c.ResWrap.RenderHijack(http.StatusServiceUnavailable, midTimeoutBody); err != nil {
+				panic(err)
+			}
+			//log.Printf("Timeout %d\n", rt.Timeout)
 			return
 		}
 	}

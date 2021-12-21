@@ -190,7 +190,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		if c.match.ptrNode != nil {
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers()
-			c.ResWrap.WriteHeaderNow()
+			//c.ResWrap.WriteHeaderNow()
 			return
 		}
 
