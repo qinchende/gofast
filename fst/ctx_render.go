@@ -37,7 +37,7 @@ func (c *Context) Fai(code int32, msg string, obj interface{}) {
 	if obj != nil {
 		jsonData["data"] = obj
 	}
-	c.faiKV(jsonData)
+	c.kvSucFai("fai", jsonData)
 }
 
 // +++++
@@ -54,32 +54,14 @@ func (c *Context) Suc(code int32, msg string, obj interface{}) {
 	if obj != nil {
 		jsonData["data"] = obj
 	}
-	c.sucKV(jsonData)
+	c.kvSucFai("suc", jsonData)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (c *Context) sucKV(jsonData KV) {
+func (c *Context) kvSucFai(status string, jsonData KV) {
 	if jsonData == nil {
 		jsonData = make(KV)
 	}
-	jsonData["status"] = "suc"
-	if jsonData["msg"] == nil {
-		jsonData["msg"] = ""
-	}
-	if jsonData["code"] == nil {
-		jsonData["code"] = 0
-	}
-	if c.Sess != nil && c.Sess.TokenIsNew {
-		jsonData["tok"] = c.Sess.Token
-	}
-	c.JSON(http.StatusOK, jsonData)
-}
-
-func (c *Context) faiKV(jsonData KV) {
-	if jsonData == nil {
-		jsonData = make(KV)
-	}
-	jsonData["status"] = "fai"
+	jsonData["status"] = status
 	if jsonData["msg"] == nil {
 		jsonData["msg"] = ""
 	}
@@ -96,7 +78,7 @@ func (c *Context) faiKV(jsonData KV) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Render writes the response headers and calls render.Render to render data.
 // 返回数据的接口
-// 如果需要
+// 可以自定义扩展自己需要的Render
 func (c *Context) Render(code int, r render.Render) {
 	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 	if c.rendered {
@@ -109,12 +91,10 @@ func (c *Context) Render(code int, r render.Render) {
 	// add preSend & afterSend events by sdx on 2021.01.06
 	c.execPreSendHandlers()
 
-	c.Status(code)
-
+	c.ResWrap.WriteHeader(code)
 	// 如果指定的返回状态，不能返回数据内容。需要特殊处理
 	if !bodyAllowedForStatus(code) {
 		r.WriteContentType(c.ResWrap)
-		//c.ResWrap.WriteHeaderNow()
 		return
 	}
 
@@ -123,11 +103,12 @@ func (c *Context) Render(code int, r render.Render) {
 		c.Sess.Save()
 	}
 
+	// 返回结果先写入缓存
 	if err := r.Render(c.ResWrap); err != nil {
 		panic(err)
 	}
-	// really render
-	if _, err := c.ResWrap.RenderNow(); err != nil {
+	// really send response data
+	if _, err := c.ResWrap.Send(); err != nil {
 		panic(err)
 	}
 
@@ -150,7 +131,6 @@ func (c *Context) Render(code int, r render.Render) {
 //// AbortWithStatus calls `Abort()` and writes the headers with the specified status code.
 //// For example, a failed attempt to authenticate a request could use: context.AbortWithStatus(401).
 //func (c *Context) PanicWithStatus(code int) {
-//	c.Status(code)
 //	panic("Handler exception!")
 //}
 //
@@ -159,30 +139,41 @@ func (c *Context) Render(code int, r render.Render) {
 //// It also sets the Content-Type as "application/json".
 //func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
 //	c.JSON(code, jsonObj)
-//	c.aborted = true
 //}
 
-// TODO: 这里 abort context handlers.
-// 终止后面的程序，依次返回调用方。
-func (c *Context) AbortWithStatus(code int) {
-	c.Status(code)
-	//c.aborted = true
+// Abort系列函数都将终止当前 handlers 的执行
+// 自定义返回结果和状态
+func (c *Context) AbortAndRender(status int, msg string) {
+	c.execIdx = maxRouteHandlers
+	c.JSON(status, msg)
+}
+
+func (c *Context) AbortHandlers() {
 	c.execIdx = maxRouteHandlers
 }
 
-// AbortWithError calls `AbortWithStatus()` and `Error()` internally.
-// This method stops the chain, writes the status code and pushes the specified error to `c.Errors`.
-// See Context.Error() for more details.
-func (c *Context) AbortWithError(code int, err error) *Error {
-	c.Status(code)
-	//c.aborted = true
+//// TODO: 这里 abort context handlers.
+//// 终止后面的程序，依次返回调用方。
+//func (c *Context) AbortWithStatus(status int) {
+//	c.execIdx = maxRouteHandlers
+//	c.ResWrap.WriteHeader(status)
+//}
+
+// 强行终止处理，返回指定结果，不执行Render
+func (c *Context) AbortAndHijack(status int, msg string) {
 	c.execIdx = maxRouteHandlers
-	return c.CollectError(err)
+	_, _ = c.ResWrap.SendHijack(status, msg)
 }
 
-func (c *Context) AbortChain() {
-	c.execIdx = maxRouteHandlers
-}
+//
+//// AbortWithError calls `AbortWithStatus()` and `Error()` internally.
+//// This method stops the chain, writes the status code and pushes the specified error to `c.Errors`.
+//// See Context.Error() for more details.
+//func (c *Context) AbortWithError(code int, err error) *Error {
+//	c.execIdx = maxRouteHandlers
+//	c.ResWrap.SetHeader(code)
+//	return c.CollectError(err)
+//}
 
 /************************************/
 /******** RESPONSE RENDERING ********/
@@ -199,12 +190,6 @@ func bodyAllowedForStatus(status int) bool {
 		return false
 	}
 	return true
-}
-
-// Status sets the HTTP response code.
-func (c *Context) Status(code int) {
-	c.ResWrap.WriteHeader(code)
-	//c.ResWrap.WriteHeaderNow()
 }
 
 // JSON serializes the given struct as JSON into the response body.

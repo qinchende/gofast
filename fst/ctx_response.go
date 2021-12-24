@@ -4,135 +4,140 @@ package fst
 
 import (
 	"bytes"
-	"errors"
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/bytesconv"
 	"net/http"
 	"sync"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
+// var errAlreadyRendered = errors.New("ResponseWrap: already send")
 const (
-	notWritAnyData = 0
-	defaultStatus  = http.StatusOK
+	defaultStatus      = 0
+	errAlreadyRendered = "[WARNING] ResponseWrap: already send"
 )
-
-var errAlreadyRendered = errors.New("ResponseWriter: already rendered")
 
 // 自定义 ResponseWriter, 对标准库的一层包裹处理，需要对返回的数据做缓存，做到更灵活的控制。
 // 实现接口 ResponseWriter
-type ResWriterWrap struct {
+type ResponseWrap struct {
 	http.ResponseWriter
-	mu       sync.Mutex
-	rendered bool
-	status   int
-	dataSize int
-	dataBuf  *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
+	mu sync.Mutex
+
+	committed bool
+	status    int
+	dataBuf   *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (w *ResWriterWrap) Reset(res http.ResponseWriter) {
+func (w *ResponseWrap) Reset(res http.ResponseWriter) {
+	w.committed = false
 	w.ResponseWriter = res
-	w.status = defaultStatus    // 默认返回200 OK
-	w.dataSize = notWritAnyData // 一定要初始化为-1，因为0代表已设置好返回状态
+	w.status = defaultStatus
 	w.dataBuf = new(bytes.Buffer)
-	w.rendered = false
 }
 
-func (w *ResWriterWrap) Header() http.Header {
+// TODO：这是个问题，如何重置已经被写入的 Header 值
+func (w *ResponseWrap) Header() http.Header {
 	return w.ResponseWriter.Header()
 }
 
-// 在没有调用 WriteHeaderNow() 之前，设置status code都是可以的，会对最终response起作用
-// add by sdx 2021.08.25
-// 否则：
 // Gin: 只会改变这里的w.status值，而不会改变response给客户端的状态了。（这没有多大意义，GoFast做出改变）
-// GoFast: 打印警告日志，不改变变量。
-func (w *ResWriterWrap) WriteHeader(newStatus int) {
-	// 设置不一样的状态时要做一定处理，否则啥也不做。
-	if w.status != newStatus {
-		if w.status == -1 {
-			logx.DebugPrint("[WARNING] HTTP status %d rendered, so status %d is useless.", w.status, newStatus)
-		} else {
-			logx.DebugPrint("[WARNING] HTTP status %d, now change to %d.", w.status, newStatus)
-			w.status = newStatus
-		}
+// GoFast: 打印警告日志，不改变变量。也就是只能被调用一次。
+func (w *ResponseWrap) WriteHeader(newStatus int) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.committed {
+		logx.Infof("[WARNING] Response status %d committed, the status %d is useless.", w.status, newStatus)
+		return
+	}
+
+	if w.status <= defaultStatus {
+		w.status = newStatus
 	} else {
-		logx.DebugPrint("[WARNING] HTTP status %d rendered, so status %d is useless.", w.status, newStatus)
+		logx.Infof("[WARNING] Response status already %d, can't change to %d.", w.status, newStatus)
 	}
 }
 
 // 最后都要通过这个函数Render所有数据
 // 问题1: 是否要避免 double render?
 // 答：目前不需要管这个事，调用多少次Write，就往返回流写入多少数据。double render是前段业务逻辑的问题，开发应该主动避免。
-func (w *ResWriterWrap) Write(data []byte) (n int, err error) {
+func (w *ResponseWrap) Write(data []byte) (n int, err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.committed {
+		logx.Infof(errAlreadyRendered)
+		return 0, nil
+	}
 	n, err = w.dataBuf.Write(data)
-	w.dataSize += n
 	return
 }
 
-func (w *ResWriterWrap) WriteString(s string) (n int, err error) {
+func (w *ResponseWrap) WriteString(s string) (n int, err error) {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.committed {
+		logx.Infof(errAlreadyRendered)
+		return 0, nil
+	}
 	n, err = w.dataBuf.WriteString(s)
-	w.dataSize += n
 	return
 }
 
-func (w *ResWriterWrap) Status() int {
+func (w *ResponseWrap) Status() int {
 	return w.status
 }
 
 // 数据长度
-func (w *ResWriterWrap) Size() int {
-	return w.dataSize
+func (w *ResponseWrap) DataSize() int {
+	return w.dataBuf.Len()
 }
 
 // 当前已写的数据内容
-func (w *ResWriterWrap) WrittenBytes() []byte {
+func (w *ResponseWrap) WrittenData() []byte {
 	return w.dataBuf.Bytes()
 }
 
-// 如果当前还没有response 重置当前 response 数据
-func (w *ResWriterWrap) ResetResponse() bool {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Render才会真的往返回通道写数据，Render只执行一次
+func (w *ResponseWrap) Send() (n int, err error) {
 	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if w.rendered {
-		return false
+	// 不允许 double render
+	if w.committed {
+		logx.Infof(errAlreadyRendered)
+		return 0, nil
 	}
+	w.committed = true
+	w.mu.Unlock()
 
-	w.status = defaultStatus
-	w.dataSize = notWritAnyData
-	w.dataBuf.Reset()
-	return true
-}
-
-// 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
-func (w *ResWriterWrap) RenderHijack(status int, body string) (err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
-
-	if w.rendered {
-		return nil
+	if w.status == defaultStatus {
+		w.status = http.StatusOK
 	}
-	w.rendered = true
-
-	w.ResponseWriter.WriteHeader(status)
-	_, err = w.ResponseWriter.Write(bytesconv.StringToBytes(body))
+	w.ResponseWriter.WriteHeader(w.status)
+	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
 	return
 }
 
-// Render才会真的往返回通道写数据，Render只执行一次
-func (w *ResWriterWrap) RenderNow() (n int, err error) {
+// 这个主要用于严重错误的时候，特殊状态的返回
+// 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
+func (w *ResponseWrap) SendHijack(status int, body string) (n int, err error) {
 	w.mu.Lock()
-	defer w.mu.Unlock()
+	// 已经render，无法打劫，啥也不做
+	if w.committed {
+		return 0, nil
+	}
+	w.committed = true
+	w.mu.Unlock()
 
-	// 不允许 double render
-	if w.rendered {
-		return 0, errAlreadyRendered
+	// 打劫成功，强制改写返回结果
+	w.status = status
+	w.dataBuf.Reset()
+	if n, err = w.dataBuf.WriteString(body); err != nil {
+		return
 	}
 
-	w.rendered = true
 	w.ResponseWriter.WriteHeader(w.status)
 	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
 	return

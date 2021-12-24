@@ -8,27 +8,27 @@ import (
 	"github.com/qinchende/gofast/skill/timex"
 )
 
-func Logger(ctx *fst.Context) {
+func Logger(c *fst.Context) {
 	// 执行完后面的请求，再打印日志
-	ctx.Next()
+	c.Next()
 
 	// 请求处理完，并成功返回了，接下来就是打印请求日志
 	p := &logx.ReqLogEntity{
-		RawReq: ctx.ReqRaw,
+		RawReq: c.ReqRaw,
 		// isTerm:  isTerm,
 	}
-	p.Pms = ctx.Pms
-	p.ClientIP = ctx.ClientIP()
-	p.StatusCode = ctx.ResWrap.Status()
-	p.ResData = ctx.ResWrap.WrittenBytes()
-	p.BodySize = ctx.ResWrap.Size()
+	p.Pms = c.Pms
+	p.ClientIP = c.ClientIP()
+	p.StatusCode = c.ResWrap.Status()
+	p.ResData = c.ResWrap.WrittenData()
+	p.BodySize = len(p.ResData)
 
 	// TODO: 内部错误信息一般不返回给调用者，而是打印日志
-	p.ErrorMsg = ctx.Errors.String(logx.Style())
+	p.ErrorMsg = c.Errors.String(logx.Style())
 
 	// Stop timer
 	p.TimeStamp = timex.Now()
-	p.Latency = p.TimeStamp - ctx.EnterTime
+	p.Latency = p.TimeStamp - c.EnterTime
 
 	// 打印请求日志
 	logx.WriteReqLog(p)
