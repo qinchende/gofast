@@ -17,17 +17,17 @@ type Context struct {
 	gftApp    *GoFast       // 用于上下文
 	Errors    errMessages   // []*Error
 
-	ResWrap *ResWriterWrap
+	ResWrap *ResponseWrap
 	ReqRaw  *http.Request // request
 
-	Params   *Params                // : 或 * 对应的参数
-	Pms      map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	match    matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
-	handlers handlersNode           // 匹配到的执行链标记
-	RouteIdx uint16                 // router的标识
-	execIdx  int8                   // 执行链的索引 不能大于 127 个
-	//aborted  bool                   // 设置成 true ，将中断后面的所有handlers
-	rendered bool // 是否已经执行了Render
+	Params    *Params                // : 或 * 对应的参数
+	Pms       map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	match     matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
+	handlers  handlersNode           // 匹配到的执行链标记
+	RouteIdx  uint16                 // router的标识
+	execIdx   int8                   // 执行链的索引 不能大于 127 个
+	rendered  bool                   // 是否已经执行了Render
+	IsTimeout bool                   // 是否变成超时请求
 
 	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
@@ -75,6 +75,7 @@ func (c *Context) reset() {
 	c.formCache = nil
 	//c.aborted = false
 	c.rendered = false
+	c.IsTimeout = false
 }
 
 //// 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context

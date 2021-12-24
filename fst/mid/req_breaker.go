@@ -65,18 +65,19 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		if err != nil {
 			kp.AddDrop(c.RouteIdx)
 			logx.Errorf("[http] dropped, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
-			c.ResWrap.WriteHeader(http.StatusServiceUnavailable)
+			c.AbortAndHijack(http.StatusServiceUnavailable, "Break!!!")
+			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
 			return
 		}
 
 		defer func() {
-			code := c.ResWrap.Status()
+			status := c.ResWrap.Status()
 			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是拒绝服务
-			if code < http.StatusInternalServerError {
+			if status < http.StatusInternalServerError {
 				promise.Accept() // 熔断器记录为一次正常请求
 			} else {
 				// 熔断器记录一次异常返回，错误多了会触发入口熔断的。
-				promise.Reject(fmt.Sprintf("%d %s", code, http.StatusText(code)))
+				promise.Reject(fmt.Sprintf("%d %s", status, http.StatusText(status)))
 			}
 		}()
 

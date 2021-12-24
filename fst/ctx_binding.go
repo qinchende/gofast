@@ -4,7 +4,6 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/fst/binding"
-	"net/http"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -34,7 +33,7 @@ func (c *Context) BindXML(obj interface{}) error {
 // See the binding package.
 func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
 	if err := c.ShouldBindWith(obj, b); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
+		//c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
 		return err
 	}
 	return nil

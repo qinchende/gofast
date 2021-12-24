@@ -1,6 +1,7 @@
 package mid
 
 import (
+	"fmt"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
 	"net/http"
@@ -28,17 +29,14 @@ func MaxContentData(limit int64) fst.FitFunc {
 }
 
 // 限制当前路径的请求最大数据长度
-func MaxContentLength(ctx *fst.Context) {
-	rt := RConfigs[ctx.RouteIdx]
+func MaxContentLength(c *fst.Context) {
+	rt := RConfigs[c.RouteIdx]
 	if rt.MaxContentLen <= 0 {
 		return
 	}
 
 	// request body length
-	if ctx.ReqRaw.ContentLength > rt.MaxContentLen {
-		ctx.ErrorF("Request body limit is %d, but got %d, rejected with code %d", rt.MaxContentLen,
-			ctx.ReqRaw.ContentLength, http.StatusRequestEntityTooLarge)
-		ctx.ResWrap.WriteHeader(http.StatusRequestEntityTooLarge)
-		ctx.AbortChain()
+	if c.ReqRaw.ContentLength > rt.MaxContentLen {
+		c.AbortAndRender(http.StatusRequestEntityTooLarge, fmt.Sprintf("Request body large then %d", rt.MaxContentLen))
 	}
 }

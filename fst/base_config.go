@@ -26,6 +26,7 @@ type AppConfig struct {
 	UseRawPath             bool   `cnf:",def=false"`                       // 默认取原始的Path，不需要自动转义
 	UnescapePathValues     bool   `cnf:",def=true"`                        // 默认把URL中的参数值做转义
 	PrintRouteTrees        bool   `cnf:",def=false"`                       // 是否打印出当前路由数
+	FitDisableTimeout      bool   `cnf:",def=false"`                       // 是否支持超时自动返回
 	FitReqTimeout          int64  `cnf:",def=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	FitMaxContentLength    int64  `cnf:",def=0"`                           // 最大请求字节数，32MB（def=33554432）
 	FitMaxConnections      int32  `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数，默认100万个请求同时进入

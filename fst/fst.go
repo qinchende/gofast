@@ -87,7 +87,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 // 初始化资源池
 func (gft *GoFast) initResourcePool() {
 	gft.ctxPool.New = func() interface{} {
-		c := &Context{gftApp: gft, ResWrap: &ResWriterWrap{}}
+		c := &Context{gftApp: gft, ResWrap: &ResponseWrap{}}
 		// c.Pms = make(map[string]string)
 		// c.match.needRTS = gft.RedirectTrailingSlash
 		return c
@@ -161,7 +161,10 @@ func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c.ReqRaw = r
 	c.reset()
 	gft.handleHTTPRequest(c)
-	gft.ctxPool.Put(c)
+	// 超时引发的对象不能放回缓存池
+	if !c.IsTimeout {
+		gft.ctxPool.Put(c)
+	}
 }
 
 // 处理所有请求，匹配路由并执行指定的路由处理函数
