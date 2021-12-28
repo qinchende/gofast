@@ -16,6 +16,10 @@ func (c *Context) Next() {
 	c.execIdx++
 	for c.execIdx < int8(len(c.handlers.hdsIdxChain)) {
 		c.gftApp.fstMem.tidyHandlers[c.handlers.hdsIdxChain[c.execIdx]](c)
+		// 可能被设置成了 abort ，这样后面的 handlers 不用再调用了
+		if c.execIdx == maxRouteHandlers {
+			break
+		}
 		c.execIdx++
 	}
 }

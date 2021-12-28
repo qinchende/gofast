@@ -9,10 +9,10 @@ import (
 
 const (
 	// 250ms for bucket duration
-	window     = time.Second * 600 // 10秒钟是一个完整的窗口周期
-	buckets    = 10                // 本周期分成40个桶, 那么每个桶占用250ms, 1秒钟分布4个桶。（这个粒度还是比较通用的）
-	k          = 1.5               // 熔断算法中的一个系数
-	protection = 1                 // 最小请求个数，窗口期少于本请求数，即使都出错也不熔断
+	window     = time.Second * 10 // 10秒钟是一个完整的窗口周期
+	buckets    = 40               // 本周期分成40个桶, 那么每个桶占用250ms, 1秒钟分布4个桶。（这个粒度还是比较通用的）
+	k          = 1.5              // 熔断算法中的一个系数
+	protection = 5                // 最小请求个数，窗口期少于本请求数，即使都出错也不熔断
 )
 
 // googleBreaker is a netflixBreaker pattern from google.
@@ -40,6 +40,7 @@ func (gBrk *googleBreaker) accept() error {
 	weightedAccepts := gBrk.k * accepts
 	// https://landing.google.com/sre/sre-book/chapters/handling-overload/#eq2101
 	dropRatio := math.Max(0, (float64(total-protection)-weightedAccepts)/float64(total+1))
+	// logx.Error("total: ", total, " accepts: ", accepts, " dropRatio: ", dropRatio)
 	if dropRatio <= 0 {
 		return nil
 	}

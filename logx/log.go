@@ -61,6 +61,7 @@ func setupWithConsole(c *LogConfig) {
 		// 一般输出
 		infoLog = newLogWriter(log.New(os.Stdout, "", flags))
 		statLog = infoLog
+		warnLog = infoLog
 		// 错误输出
 		errorLog = newLogWriter(log.New(os.Stderr, "", flags))
 		severeLog = newLogWriter(log.New(os.Stderr, "", flags))
@@ -98,6 +99,7 @@ func setupWithFiles(c *LogConfig) error {
 		}
 
 		accessFile := path.Join(c.Path, prefix+accessFilename)
+		warnFile := path.Join(c.Path, prefix+warnFilename)
 		errorFile := path.Join(c.Path, prefix+errorFilename)
 		severeFile := path.Join(c.Path, prefix+severeFilename)
 		slowFile := path.Join(c.Path, prefix+slowFilename)
@@ -108,6 +110,7 @@ func setupWithFiles(c *LogConfig) error {
 			return
 		}
 		if c.FileNumber == fileOne {
+			warnLog = infoLog
 			severeLog = infoLog
 			slowLog = infoLog
 			statLog = infoLog
@@ -121,6 +124,9 @@ func setupWithFiles(c *LogConfig) error {
 			statLog = errorLog
 			//stackLog = errorLog
 		} else {
+			if warnLog, err = createOutput(warnFile); err != nil {
+				return
+			}
 			if errorLog, err = createOutput(errorFile); err != nil {
 				return
 			}

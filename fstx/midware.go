@@ -13,7 +13,7 @@ import (
 func DefaultFits(gft *fst.GoFast) *fst.GoFast {
 	gft.Fit(mid.MaxConnections(gft.FitMaxConnections))   // 最大同时处理请求数量：100万
 	gft.Fit(mid.MaxContentData(gft.FitMaxContentLength)) // 最大的请求头限制，默认32MB
-	//gft.Fit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
+	// gft.Fit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
 	return gft
 }
 

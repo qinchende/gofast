@@ -52,7 +52,7 @@ func Timeout(disable bool) fst.CtxHandler {
 					// NOTE：这里必须使用带缓冲的通道，否则本G可能因为父G的提前退出，而卡死在这里，导致G泄露
 					panicChan <- pic
 					// TODO：无法确定上面的异常是否传递出去，下面的日志还是需要打印的。
-					logx.Info("ReqTimeout-Panic: ", pic)
+					logx.Errorf("ReqTimeout-Panic: ", pic)
 				}
 			}()
 			// 不管超不超时，本次请求都会执行完毕，或者等到自己超时退出
@@ -76,7 +76,7 @@ func Timeout(disable bool) fst.CtxHandler {
 			// 超时退出
 			// 如果还没有render，强制返回服务器出错的状态，而不是超时。
 			if _, err := c.ResWrap.SendHijack(http.StatusServiceUnavailable, midTimeoutBody); err != nil {
-				logx.Info("ReqTimeout-Render-Err: %v\n", err)
+				logx.Errorf("ReqTimeout-Render-Err: %v\n", err)
 			}
 			//log.Printf("Timeout %d\n", rt.Timeout)
 			return

@@ -38,6 +38,7 @@ const (
 
 	accessFilename = "access.log"
 	errorFilename  = "error.log"
+	warnFilename   = "warn.log"
 	severeFilename = "severe.log"
 	slowFilename   = "slow.log"
 	statFilename   = "stat.log"
@@ -48,6 +49,7 @@ const (
 	levelAlert  = "alert"
 	levelInfo   = "info"
 	levelError  = "error"
+	levelWarn   = "warn"
 	levelSevere = "severe"
 	levelFatal  = "fatal"
 	levelSlow   = "slow"
@@ -66,6 +68,7 @@ var (
 	logLevel     uint32
 	// 6个不同等级的日志输出
 	infoLog   WriterCloser
+	warnLog   WriterCloser
 	errorLog  WriterCloser
 	severeLog WriterCloser
 	slowLog   WriterCloser

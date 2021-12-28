@@ -49,13 +49,13 @@ func GetMinVer(v string) (uint64, error) {
 
 func DebugPrintWarningDefault() {
 	if v, e := GetMinVer(runtime.Version()); e == nil && v <= gftSupportMinGoVer {
-		DebugPrint("[WARNING] Now GoFast requires Go 1.14 or later and Go 1.16 will be required soon.\n")
+		DebugPrint("[WARN] Now GoFast requires Go 1.14 or later and Go 1.16 will be required soon.\n")
 	}
-	DebugPrint("[WARNING] Creating an Engine instance with the Logger and Recovery middleware already attached.\n")
+	DebugPrint("[WARN] Creating an Engine instance with the Logger and Recovery middleware already attached.\n")
 }
 
 //func DebugPrintWARNINGNew() {
-//	DebugPrint(`[WARNING] Running in "debug" mode. Switch to "release" mode in production.
+//	DebugPrint(`[WARN] Running in "debug" mode. Switch to "release" mode in production.
 // - using env:	export GoFast_MODE=release
 // - using code:	fst.SetMode(fst.ReleaseMode)
 //
@@ -63,7 +63,7 @@ func DebugPrintWarningDefault() {
 //}
 //
 //func DebugPrintWARNINGSetHTMLTemplate() {
-//	DebugPrint(`[WARNING] Since SetHTMLTemplate() is NOT thread-safe. It should only be called
+//	DebugPrint(`[WARN] Since SetHTMLTemplate() is NOT thread-safe. It should only be called
 //at initialization. ie. before any route is registered or the router is listening in a socket:
 //
 //	router := fst.Default()

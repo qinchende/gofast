@@ -76,13 +76,31 @@ func (c *Context) kvSucFai(status string, jsonData KV) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Abort系列函数都将终止当前 handlers 的执行
+// 自定义返回结果和状态
+func (c *Context) AbortAndRender(status int, msg string) {
+	c.execIdx = maxRouteHandlers
+	c.JSON(status, msg)
+}
+
+func (c *Context) AbortHandlers() {
+	c.execIdx = maxRouteHandlers
+}
+
+// 强行终止处理，返回指定结果，不执行Render
+func (c *Context) AbortAndHijack(status int, msg string) {
+	c.execIdx = maxRouteHandlers
+	_, _ = c.ResWrap.SendHijack(status, msg)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Render writes the response headers and calls render.Render to render data.
 // 返回数据的接口
 // 可以自定义扩展自己需要的Render
 func (c *Context) Render(code int, r render.Render) {
 	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 	if c.rendered {
-		logx.Info("[WARNING] Double render, this render func canceled.")
+		logx.Warn("Double render, this render func canceled.")
 		return
 	}
 	// Render之前加入对应的 render 数据
@@ -104,7 +122,7 @@ func (c *Context) Render(code int, r render.Render) {
 	}
 
 	// 返回结果先写入缓存
-	if err := r.Render(c.ResWrap); err != nil {
+	if err := r.Write(c.ResWrap); err != nil {
 		panic(err)
 	}
 	// really send response data
@@ -140,30 +158,6 @@ func (c *Context) Render(code int, r render.Render) {
 //func (c *Context) AbortWithStatusJSON(code int, jsonObj interface{}) {
 //	c.JSON(code, jsonObj)
 //}
-
-// Abort系列函数都将终止当前 handlers 的执行
-// 自定义返回结果和状态
-func (c *Context) AbortAndRender(status int, msg string) {
-	c.execIdx = maxRouteHandlers
-	c.JSON(status, msg)
-}
-
-func (c *Context) AbortHandlers() {
-	c.execIdx = maxRouteHandlers
-}
-
-//// TODO: 这里 abort context handlers.
-//// 终止后面的程序，依次返回调用方。
-//func (c *Context) AbortWithStatus(status int) {
-//	c.execIdx = maxRouteHandlers
-//	c.ResWrap.WriteHeader(status)
-//}
-
-// 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortAndHijack(status int, msg string) {
-	c.execIdx = maxRouteHandlers
-	_, _ = c.ResWrap.SendHijack(status, msg)
-}
 
 //
 //// AbortWithError calls `AbortWithStatus()` and `Error()` internally.

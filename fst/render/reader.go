@@ -19,7 +19,7 @@ type Reader struct {
 }
 
 // Render (Reader) writes data with custom ContentType and headers.
-func (r Reader) Render(w http.ResponseWriter) (err error) {
+func (r Reader) Write(w http.ResponseWriter) (err error) {
 	r.WriteContentType(w)
 	if r.ContentLength >= 0 {
 		if r.Headers == nil {

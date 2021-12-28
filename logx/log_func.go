@@ -33,6 +33,12 @@ func Close() error {
 		}
 	}
 
+	if warnLog != nil {
+		if err := warnLog.Close(); err != nil {
+			return err
+		}
+	}
+
 	if errorLog != nil {
 		if err := errorLog.Close(); err != nil {
 			return err
@@ -73,6 +79,24 @@ func Disable() {
 	})
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// 严格输出指定字符串，不做任何修饰格式化
+//func strictInfoSync(msg string) {
+//	outputString(infoLog, msg)
+//}
+
+// 直接打印所给的数据
+func Print(v ...interface{}) {
+	outputString(infoLog, fmt.Sprint(v...))
+}
+
+// 直接打印所给的数据
+func Printf(format string, v ...interface{}) {
+	outputString(infoLog, fmt.Sprintf(format, v...))
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 func Error(v ...interface{}) {
 	ErrorCaller(1, v...)
 }
@@ -97,6 +121,14 @@ func ErrorStack(v ...interface{}) {
 func ErrorStackf(format string, v ...interface{}) {
 	// there is newline in stack string
 	stackSync(fmt.Sprintf(format, v...))
+}
+
+func Warn(v ...interface{}) {
+	warnSync(fmt.Sprint(v...))
+}
+
+func Warnf(format string, v ...interface{}) {
+	warnSync(fmt.Sprintf(format, v...))
 }
 
 func Info(v ...interface{}) {
@@ -183,6 +215,12 @@ func getTimestampMini() string {
 func infoSync(msg string) {
 	if shouldLog(InfoLevel) {
 		output(infoLog, levelInfo, msg)
+	}
+}
+
+func warnSync(msg string) {
+	if shouldLog(InfoLevel) {
+		output(infoLog, levelWarn, msg)
 	}
 }
 

@@ -77,7 +77,7 @@ func (r HTMLDebug) loadTemplate() *template.Template {
 }
 
 // Render (HTML) executes template and writes its result with custom ContentType for response.
-func (r HTML) Render(w http.ResponseWriter) error {
+func (r HTML) Write(w http.ResponseWriter) error {
 	r.WriteContentType(w)
 
 	if r.Name == "" {
