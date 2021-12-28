@@ -8,9 +8,9 @@ type LogConfig struct {
 	ServiceName        string `cnf:",NA"`
 	Mode               string `cnf:",def=console,enum=console|file|volume"`
 	Level              string `cnf:",def=info,enum=info|error|severe"` // 记录日志的级别
-	Path               string `cnf:",def=logs"`                           // 日志文件路径
-	FilePrefix         string `cnf:",NA"`                               // 日志文件名统一前缀
-	FileNumber         int8   `cnf:",def=0,range=[0:2]"`                  // 日志文件数量
+	Path               string `cnf:",def=logs"`                        // 日志文件路径
+	FilePrefix         string `cnf:",NA"`                              // 日志文件名统一前缀
+	FileNumber         int8   `cnf:",def=0,range=[0:2]"`               // 日志文件数量
 	Compress           bool   `cnf:",NA"`
 	KeepDays           int    `cnf:",NA"`
 	StackArchiveMillis int    `cnf:",def=100"`

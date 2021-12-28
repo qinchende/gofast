@@ -17,7 +17,7 @@ type XML struct {
 var xmlContentType = []string{"application/xml; charset=utf-8"}
 
 // Render (XML) encodes the given interface object and writes data with custom ContentType.
-func (r XML) Render(w http.ResponseWriter) error {
+func (r XML) Write(w http.ResponseWriter) error {
 	r.WriteContentType(w)
 	return xml.NewEncoder(w).Encode(r.Data)
 }

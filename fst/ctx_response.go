@@ -14,7 +14,7 @@ import (
 // var errAlreadyRendered = errors.New("ResponseWrap: already send")
 const (
 	defaultStatus      = 0
-	errAlreadyRendered = "[WARNING] ResponseWrap: already send"
+	errAlreadyRendered = "ResponseWrap: already committed. "
 )
 
 // 自定义 ResponseWriter, 对标准库的一层包裹处理，需要对返回的数据做缓存，做到更灵活的控制。
@@ -48,14 +48,14 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 	defer w.mu.Unlock()
 
 	if w.committed {
-		logx.Infof("[WARNING] Response status %d committed, the status %d is useless.", w.status, newStatus)
+		logx.Warnf("Response status %d committed, the status %d is useless.", w.status, newStatus)
 		return
 	}
 
 	if w.status <= defaultStatus {
 		w.status = newStatus
 	} else {
-		logx.Infof("[WARNING] Response status already %d, can't change to %d.", w.status, newStatus)
+		logx.Warnf("Response status already %d, can't change to %d.", w.status, newStatus)
 	}
 }
 
@@ -67,7 +67,7 @@ func (w *ResponseWrap) Write(data []byte) (n int, err error) {
 	defer w.mu.Unlock()
 
 	if w.committed {
-		logx.Infof(errAlreadyRendered)
+		logx.Warn(errAlreadyRendered, "Can't Write.")
 		return 0, nil
 	}
 	n, err = w.dataBuf.Write(data)
@@ -79,7 +79,7 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 	defer w.mu.Unlock()
 
 	if w.committed {
-		logx.Infof(errAlreadyRendered)
+		logx.Warn(errAlreadyRendered, "Can't WriteString.")
 		return 0, nil
 	}
 	n, err = w.dataBuf.WriteString(s)
@@ -106,7 +106,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 	w.mu.Lock()
 	// 不允许 double render
 	if w.committed {
-		logx.Infof(errAlreadyRendered)
+		logx.Warn(errAlreadyRendered, "Can't Send.")
 		return 0, nil
 	}
 	w.committed = true

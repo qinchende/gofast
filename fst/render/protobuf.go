@@ -18,7 +18,7 @@ type ProtoBuf struct {
 var protobufContentType = []string{"application/x-protobuf"}
 
 // Render (ProtoBuf) marshals the given interface object and writes data with custom ContentType.
-func (r ProtoBuf) Render(w http.ResponseWriter) error {
+func (r ProtoBuf) Write(w http.ResponseWriter) error {
 	r.WriteContentType(w)
 
 	bytes, err := proto.Marshal(r.Data.(proto.Message))

@@ -9,10 +9,6 @@ import (
 	"time"
 )
 
-func writeSdxReqLog(p *ReqLogEntity) {
-	infoSync(genSdxReqLogString(p))
-}
-
 // 通过模板构造字符串可能性能更好。
 var genSdxReqLogString = func(p *ReqLogEntity) string {
 	formatStr := `

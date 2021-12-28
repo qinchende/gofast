@@ -24,13 +24,13 @@ type ReqLogEntity struct {
 func WriteReqLog(p *ReqLogEntity) {
 	switch currConfig.style {
 	case StyleSdx:
-		writeSdxReqLog(p)
+		Print(genSdxReqLogString(p))
 	case StyleSdxMini:
-		writeSdxReqLog(p)
+		Print(genSdxReqLogString(p))
 	case StyleJson:
-		writeSdxReqLog(p)
+		Print(genSdxReqLogString(p))
 	case StyleJsonMini:
-		writeSdxReqLog(p)
+		Print(genSdxReqLogString(p))
 	default:
 	}
 }

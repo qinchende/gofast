@@ -29,7 +29,7 @@ func (r MsgPack) WriteContentType(w http.ResponseWriter) {
 }
 
 // Render (MsgPack) encodes the given interface object and writes data with custom ContentType.
-func (r MsgPack) Render(w http.ResponseWriter) error {
+func (r MsgPack) Write(w http.ResponseWriter) error {
 	return WriteMsgPack(w, r.Data)
 }
 
