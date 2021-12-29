@@ -5,6 +5,7 @@ package gate
 import (
 	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/executors"
+	"github.com/qinchende/gofast/skill/load"
 	"os"
 	"strconv"
 )
@@ -13,7 +14,13 @@ import (
 type RequestKeeper struct {
 	executor  *executors.IntervalExecutor
 	container *reqContainer
-	Breakers  []breaker.Breaker
+
+	// 熔断器
+	Breakers []breaker.Breaker
+
+	// 降载组件
+	Shedding     load.Shedder
+	SheddingStat *SheddingStat
 }
 
 func CreateReqKeeper(name string, fp FuncGetPath) *RequestKeeper {
@@ -38,6 +45,11 @@ func (rk *RequestKeeper) InitKeeper(rtLen uint16) {
 	for i := 0; i < int(rtLen); i++ {
 		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
 	}
+
+	// 初始化 降载 组件
+	rk.SheddingStat = NewSheddingStat("cpu")
+	rk.Shedding = load.NewAdaptiveShedder()
+	//rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

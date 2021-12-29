@@ -5,32 +5,10 @@ package mid
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/fst/gate"
-	"github.com/qinchende/gofast/skill/stat"
-	"github.com/qinchende/gofast/skill/timex"
+	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/httpx"
 	"net/http"
-	"time"
 )
-
-// ++++++++++++++++++++++ add by cd.net 2021.10.14
-// 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
-func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
-	if metrics == nil {
-		return nil
-	}
-
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			start := time.Now()
-			defer func() {
-				metrics.AddItem(stat.ReqItem{
-					Duration: time.Now().Sub(start),
-				})
-			}()
-
-			next(w, r)
-		}
-	}
-}
 
 // 自适应降载，主要是CPU实用率和最大并发数超过一定阈值，主动断开请求，等待一段时间的冷却
 func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
@@ -39,11 +17,88 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 	}
 
 	return func(c *fst.Context) {
-		c.Next()
+		kp.SheddingStat.Total()
+		promise, err := kp.Shedding.Allow()
 
-		kp.AddItem(gate.ReqItem{
-			RouteIdx: c.RouteIdx,
-			LossTime: timex.Since(c.EnterTime),
-		})
+		if err != nil {
+			kp.AddDrop(c.RouteIdx)
+			kp.SheddingStat.Drop()
+			logx.Errorf("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
+			c.AbortAndHijack(http.StatusServiceUnavailable, "LoadShedding!!!")
+
+			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
+			return
+		}
+
+		status := c.ResWrap.Status()
+		defer func() {
+			if status == http.StatusServiceUnavailable {
+				promise.Fail()
+			} else {
+				kp.SheddingStat.Pass()
+				promise.Pass()
+			}
+		}()
+
+		// 执行后面的处理函数
+		c.Next()
 	}
 }
+
+// ++++++++++++++++++++++ add by cd.net 2021.10.14
+// 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
+//func CpuMetric(metrics *stat.Metrics) fst.FitFunc {
+//	if metrics == nil {
+//		return nil
+//	}
+//
+//	return func(next http.HandlerFunc) http.HandlerFunc {
+//		return func(w http.ResponseWriter, r *http.Request) {
+//			start := time.Now()
+//			defer func() {
+//				metrics.AddItem(stat.ReqItem{
+//					Duration: time.Now().Sub(start),
+//				})
+//			}()
+//
+//			next(w, r)
+//		}
+//	}
+//}
+
+//// SheddingHandler returns a middleware that does load shedding.
+//func SheddingHandler(shedder load.Shedder, metrics *stat.Metrics) func(http.Handler) http.Handler {
+//	if shedder == nil {
+//		return func(next http.Handler) http.Handler {
+//			return next
+//		}
+//	}
+//
+//	ensureSheddingStat()
+//
+//	return func(next http.Handler) http.Handler {
+//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//			sheddingStat.IncrementTotal()
+//			promise, err := shedder.Allow()
+//			if err != nil {
+//				metrics.AddDrop()
+//				sheddingStat.IncrementDrop()
+//				logx.Errorf("[http] dropped, %s - %s - %s",
+//					r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
+//				w.WriteHeader(http.StatusServiceUnavailable)
+//				return
+//			}
+//
+//			cw := &security.WithCodeResponseWriter{Writer: w}
+//			defer func() {
+//				if cw.Code == http.StatusServiceUnavailable {
+//					promise.Fail()
+//				} else {
+//					sheddingStat.IncrementPass()
+//					promise.Pass()
+//				}
+//			}()
+//			next.ServeHTTP(cw, r)
+//		})
+//	}
+//}

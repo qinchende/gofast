@@ -55,8 +55,8 @@ func main() {
 		PrintRouteTrees:        true,
 		HandleMethodNotAllowed: true,
 		RunMode:                "debug",
-		FitMaxReqCount:         1,
-		FitMaxReqContentLen:    10 * 1024,
+		//FitMaxReqCount:         1,
+		//FitMaxReqContentLen:    10 * 1024,
 	})
 
 	// 拦截器，微服务治理 ++++++++++++++++++++++++++++++++++++++
