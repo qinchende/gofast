@@ -37,14 +37,15 @@ func newGoogleBreaker() *googleBreaker {
 // 谷歌公布的一段熔断算法：max(0, (requests - k*accepts) / (requests + 1))
 func (gBrk *googleBreaker) accept() error {
 	accepts, total := gBrk.rWin.CurrWinValue()
-	weightedAccepts := gBrk.k * accepts
 	// https://landing.google.com/sre/sre-book/chapters/handling-overload/#eq2101
-	dropRatio := math.Max(0, (float64(total-protection)-weightedAccepts)/float64(total+1))
+	dropRatio := math.Max(0, (float64(total-protection)-gBrk.k*accepts)/float64(total+1))
 	// logx.Error("total: ", total, " accepts: ", accepts, " dropRatio: ", dropRatio)
 	if dropRatio <= 0 {
 		return nil
 	}
 
+	// 取一个 0-1 之间的随机数 和 失败比率 做比较。失败比率越大越容易触发熔断。
+	// 这种算法也决定了，在窗口熔断期内 还是随机存在一定比例的请求会被放过，起到了在熔断窗口期试探的作用。
 	if gBrk.prob.TrueOnProba(dropRatio) {
 		return ErrServiceUnavailable
 	}

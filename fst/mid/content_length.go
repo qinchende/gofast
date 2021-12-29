@@ -8,7 +8,7 @@ import (
 )
 
 // 全局判断所有请求类型的最大长度
-func MaxContentData(limit int64) fst.FitFunc {
+func FitMaxContentLength(limit int64) fst.FitFunc {
 	// limit <= 0 意味着根本不检查ContentLength的限制
 	if limit <= 0 {
 		return nil
@@ -31,12 +31,12 @@ func MaxContentData(limit int64) fst.FitFunc {
 // 限制当前路径的请求最大数据长度
 func MaxContentLength(c *fst.Context) {
 	rt := RConfigs[c.RouteIdx]
-	if rt.MaxContentLen <= 0 {
+	if rt.MaxLen <= 0 {
 		return
 	}
 
 	// request body length
-	if c.ReqRaw.ContentLength > rt.MaxContentLen {
-		c.AbortAndRender(http.StatusRequestEntityTooLarge, fmt.Sprintf("Request body large then %d", rt.MaxContentLen))
+	if c.ReqRaw.ContentLength > rt.MaxLen {
+		c.AbortAndRender(http.StatusRequestEntityTooLarge, fmt.Sprintf("Request body large then %d", rt.MaxLen))
 	}
 }

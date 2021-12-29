@@ -10,7 +10,7 @@ import (
 
 // ++++++++++++++++++++++ add by cd.net 2021.10.14
 // 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
-func DoneTime(kp *gate.RequestKeeper) fst.CtxHandler {
+func HandlerTime(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
