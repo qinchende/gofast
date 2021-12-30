@@ -1,6 +1,6 @@
 // +build !linux
 
-package tips
+package cpu
 
 func RefreshCpu() uint64 {
 	return 0

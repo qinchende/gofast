@@ -3,12 +3,12 @@ package breaker
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/logx"
 	"strings"
 	"sync"
 
 	"github.com/qinchende/gofast/skill/mathx"
 	"github.com/qinchende/gofast/skill/proc"
-	"github.com/qinchende/gofast/skill/stat"
 	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 )
@@ -181,7 +181,7 @@ func (lt loggedThrottle) doReq(req func() error, fallback func(err error) error,
 func (lt loggedThrottle) logError(err error) error {
 	if err == ErrServiceUnavailable {
 		// if circuit open, not possible to have empty error window
-		stat.Report(fmt.Sprintf(
+		logx.Report(fmt.Sprintf(
 			"proc(%s/%d), callee: %s, breaker is open and requests dropped\nlast errors:\n%s",
 			proc.ProcessName(), proc.Pid(), lt.name, lt.errWin))
 	}

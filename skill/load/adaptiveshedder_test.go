@@ -10,7 +10,6 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/collection"
 	"github.com/qinchende/gofast/skill/mathx"
-	"github.com/qinchende/gofast/skill/stat"
 	"github.com/qinchende/gofast/skill/syncx"
 	"github.com/stretchr/testify/assert"
 )
@@ -21,7 +20,7 @@ const (
 )
 
 func init() {
-	stat.SetReporter(nil)
+	logx.SetReporter(nil)
 }
 
 func TestAdaptiveShedder(t *testing.T) {

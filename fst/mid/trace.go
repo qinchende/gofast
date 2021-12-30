@@ -5,7 +5,7 @@ package mid
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/sysx"
+	"github.com/qinchende/gofast/skill/sysx/host"
 	"github.com/qinchende/gofast/skill/trace"
 )
 
@@ -37,7 +37,7 @@ func Tracing(ctx *fst.Context) {
 		logx.Error(err)
 	}
 
-	newCtx, span := trace.StartServerSpan(ctx.ReqRaw.Context(), carrier, sysx.Hostname(), ctx.ReqRaw.RequestURI)
+	newCtx, span := trace.StartServerSpan(ctx.ReqRaw.Context(), carrier, host.Hostname(), ctx.ReqRaw.RequestURI)
 	defer span.Finish()
 	ctx.ReqRaw = ctx.ReqRaw.WithContext(newCtx)
 

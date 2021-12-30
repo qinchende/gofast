@@ -1,6 +1,6 @@
 // +build !linux
 
-package stat
+package logx
 
 func Report(string) {
 }

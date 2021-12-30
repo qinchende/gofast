@@ -1,7 +1,7 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/skill/sysx"
+	"github.com/qinchende/gofast/skill/sysx/host"
 	"log"
 	"os"
 	"path"
@@ -150,7 +150,7 @@ func setupWithVolume(c *LogConfig) error {
 	if len(c.ServiceName) == 0 {
 		return ErrLogServiceNameNotSet
 	}
-	c.Path = path.Join(c.Path, c.ServiceName, sysx.Hostname())
+	c.Path = path.Join(c.Path, c.ServiceName, host.Hostname())
 	return setupWithFiles(c)
 }
 

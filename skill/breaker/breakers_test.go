@@ -3,14 +3,14 @@ package breaker
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/logx"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/qinchende/gofast/skill/stat"
 )
 
 func init() {
-	stat.SetReporter(nil)
+	logx.SetReporter(nil)
 }
 
 func TestBreakersDo(t *testing.T) {

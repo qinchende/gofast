@@ -6,7 +6,7 @@ import (
 )
 
 func TestSheddingStat(t *testing.T) {
-	st := NewSheddingStat("any")
+	st := createSheddingStat("any")
 	for i := 0; i < 3; i++ {
 		st.Total()
 	}
@@ -17,7 +17,7 @@ func TestSheddingStat(t *testing.T) {
 		st.Drop()
 	}
 	result := st.reset()
-	assert.Equal(t, int64(3), result.Total)
-	assert.Equal(t, int64(5), result.Pass)
-	assert.Equal(t, int64(7), result.Drop)
+	assert.Equal(t, int64(3), result.total)
+	assert.Equal(t, int64(5), result.pass)
+	assert.Equal(t, int64(7), result.drop)
 }
