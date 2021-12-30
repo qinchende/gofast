@@ -26,6 +26,7 @@ func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	// 所以这里选择延时构造所有Breakers
 	gft.OnBeforeBuildRoutes(func(gft *fst.GoFast) {
 		rtLength := gft.RouteLength()
+
 		reqKeeper.InitKeeper(rtLength)
 		mid.RConfigs.Reordering(rtLength)
 	})

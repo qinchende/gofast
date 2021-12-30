@@ -3,13 +3,13 @@ package load
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/skill/sysx"
 	"math"
 	"sync/atomic"
 	"time"
 
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/collection"
-	"github.com/qinchende/gofast/skill/stat"
 	"github.com/qinchende/gofast/skill/syncx"
 	"github.com/qinchende/gofast/skill/timex"
 )
@@ -22,7 +22,7 @@ const (
 	defaultMinRt        = float64(time.Second / time.Millisecond)
 	// moving average hyperparameter beta for calculating requests on the fly
 	flyingBeta      = 0.9
-	coolOffDuration = time.Second
+	coolOffDuration = time.Second // 冷却期默认为1秒
 )
 
 var (
@@ -33,7 +33,7 @@ var (
 	enabled = syncx.ForAtomicBool(true)
 	// make it a variable for unit test
 	systemOverloadChecker = func(cpuThreshold int64) bool {
-		return stat.CpuUsage() >= cpuThreshold
+		return sysx.CpuUsage() >= cpuThreshold
 	}
 )
 
@@ -193,9 +193,9 @@ func (as *adaptiveShedder) shouldDrop() bool {
 			as.avgFlyingLock.Unlock()
 			msg := fmt.Sprintf(
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
-				stat.CpuUsage(), as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
+				sysx.CpuUsage(), as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
 			logx.Error(msg)
-			stat.Report(msg)
+			logx.Report(msg)
 			return true
 		}
 	}

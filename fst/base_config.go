@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/sysx"
 )
 
 // GoFast WEB框架的配置参数
@@ -27,6 +28,7 @@ type AppConfig struct {
 	UnescapePathValues     bool   `cnf:",def=true"`                        // 默认把URL中的参数值做转义
 	PrintRouteTrees        bool   `cnf:",def=false"`                       // 是否打印出当前路由数
 	FitDisableTimeout      bool   `cnf:",def=false"`                       // 是否支持超时自动返回
+	NeedCpuCheck           bool   `cnf:",def=true"`                        // 是否启动CPU使用情况的定时检查工作
 	FitReqTimeout          int64  `cnf:",def=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	FitMaxContentLength    int64  `cnf:",def=0"`                           // 最大请求字节数，32MB（def=33554432）
 	FitMaxConnections      int32  `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数，默认100万个请求同时进入
@@ -45,6 +47,10 @@ func (gft *GoFast) initServerConfig() {
 	//	gft.FitMaxReqContentLen = defMultipartMemory
 	//}
 
+	// 是否启动CPU检查
+	if gft.NeedCpuCheck {
+		sysx.StartCpuCheck()
+	}
 	gft.SetMode(gft.RunMode)
 }
 

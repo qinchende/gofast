@@ -14,7 +14,6 @@ type LogConfig struct {
 	Compress           bool   `cnf:",NA"`
 	KeepDays           int    `cnf:",NA"`
 	StackArchiveMillis int    `cnf:",def=100"`
-	NeedCpuMem         bool   `cnf:",def=true"`
 	StyleName          string `cnf:",def=sdx,enum=json|json-mini|sdx|sdx-mini"`
 	style              int8   `inner:",NA"` // 日志模板样式
 }

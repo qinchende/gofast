@@ -7,36 +7,38 @@ import (
 	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
+	"github.com/qinchende/gofast/skill/sysx"
 	"net/http"
 )
 
-// 自适应降载，主要是CPU实用率和最大并发数超过一定阈值，主动断开请求，等待一段时间的冷却
+// 自适应降载，主要是CPU使用率和最大并发数超过一定阈值，主动断开请求，等待一段时间的冷却
+// 判断高负载主要取决于两个指标（必须同时满足才能降载）：
+// 1. cpu 是否过载。
+// 2. 最大并发数是否过载。
 func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
-	if kp == nil {
+	if kp == nil || sysx.CpuChecked == false {
 		return nil
 	}
 
 	return func(c *fst.Context) {
 		kp.SheddingStat.Total()
-		promise, err := kp.Shedding.Allow()
 
+		shedding, err := kp.Shedding.Allow()
 		if err != nil {
-			kp.AddDrop(c.RouteIdx)
+			kp.CounterAddDrop(c.RouteIdx)
 			kp.SheddingStat.Drop()
+
 			logx.Errorf("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
 			c.AbortAndHijack(http.StatusServiceUnavailable, "LoadShedding!!!")
-
-			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
 			return
 		}
 
-		status := c.ResWrap.Status()
 		defer func() {
-			if status == http.StatusServiceUnavailable {
-				promise.Fail()
+			if c.ResWrap.Status() == http.StatusServiceUnavailable {
+				shedding.Fail()
 			} else {
 				kp.SheddingStat.Pass()
-				promise.Pass()
+				shedding.Pass()
 			}
 		}()
 

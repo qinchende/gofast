@@ -1,19 +1,18 @@
 // +build linux
 
-package stat
+package logx
 
 import (
 	"flag"
 	"fmt"
+	"github.com/qinchende/gofast/skill/sysx/host"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
-	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/executors"
 	"github.com/qinchende/gofast/skill/proc"
-	"github.com/qinchende/gofast/skill/sysx"
 	"github.com/qinchende/gofast/skill/timex"
 )
 
@@ -24,7 +23,7 @@ const (
 )
 
 var (
-	reporter     = logx.Alert
+	reporter     = Alert
 	lock         sync.RWMutex
 	lessExecutor = executors.NewLessExecutor(time.Minute * 5)
 	dropped      int32
@@ -49,7 +48,7 @@ func Report(msg string) {
 			if len(clusterName) > 0 {
 				fmt.Fprintf(&builder, "cluster: %s\n", clusterName)
 			}
-			fmt.Fprintf(&builder, "host: %s\n", sysx.Hostname())
+			fmt.Fprintf(&builder, "host: %s\n", host.Hostname())
 			dp := atomic.SwapInt32(&dropped, 0)
 			if dp > 0 {
 				fmt.Fprintf(&builder, "dropped: %d\n", dp)

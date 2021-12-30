@@ -18,7 +18,7 @@ func HandlerTime(kp *gate.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		c.Next()
 		// 执行完所有处理之后统计耗时
-		kp.AddItem(gate.ReqItem{
+		kp.CounterAdd(gate.ReqItem{
 			RouteIdx: c.RouteIdx,
 			LossTime: timex.Since(c.EnterTime),
 		})

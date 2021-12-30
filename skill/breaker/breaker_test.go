@@ -3,16 +3,16 @@ package breaker
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/logx"
 	"strconv"
 	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/qinchende/gofast/skill/stat"
 )
 
 func init() {
-	stat.SetReporter(nil)
+	logx.SetReporter(nil)
 }
 
 func TestCircuitBreaker_Allow(t *testing.T) {

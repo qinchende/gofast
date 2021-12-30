@@ -1,4 +1,4 @@
-package sysx
+package host
 
 import (
 	"testing"
