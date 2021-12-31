@@ -1,4 +1,4 @@
-package cpu
+package cpux
 
 import (
 	"errors"

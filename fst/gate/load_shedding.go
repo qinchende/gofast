@@ -17,12 +17,12 @@ type (
 		pass  int64
 		drop  int64
 	}
-
-	snapshot struct {
-		total int64
-		pass  int64
-		drop  int64
-	}
+	//
+	//snapshot struct {
+	//	total int64
+	//	pass  int64
+	//	drop  int64
+	//}
 )
 
 // NewSheddingStat returns a SheddingStat.

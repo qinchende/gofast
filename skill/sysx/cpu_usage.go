@@ -1,9 +1,11 @@
 package sysx
 
 import (
+	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/gmp"
-	"github.com/qinchende/gofast/skill/sysx/cpu"
+	"github.com/qinchende/gofast/skill/sysx/cpux"
+	"github.com/shirou/gopsutil/v3/cpu"
 	"runtime"
 	"sync/atomic"
 	"time"
@@ -29,6 +31,13 @@ var (
 func StartCpuCheck() {
 	CpuChecked = true
 
+	infos, _ := cpu.Info()
+	logx.Info(infos)
+
+	totalPercent, _ := cpu.Percent(3*time.Second, false)
+	perPercents, _ := cpu.Percent(3*time.Second, true)
+	fmt.Printf("total percent:%v per percents:%v", totalPercent, perPercents)
+
 	go func() {
 		cpuTicker := time.NewTicker(cpuRefreshInterval)
 		defer cpuTicker.Stop()
@@ -39,7 +48,7 @@ func StartCpuCheck() {
 			select {
 			case <-cpuTicker.C:
 				gmp.RunSafe(func() {
-					curUsage := cpu.RefreshCpu()
+					curUsage := cpux.RefreshCpu()
 					prevUsage := atomic.LoadInt64(&cpuUsage)
 					// cpu = cpuᵗ⁻¹ * beta + cpuᵗ * (1 - beta)
 					usage := int64(float64(prevUsage)*beta + float64(curUsage)*(1-beta))
