@@ -39,6 +39,7 @@ func gftMiddlewareHandle(ctx *fst.Context) int {
 	//return arr[0]
 	return int(time.Since(nowTime))
 }
+
 func gftHandle2(_ *fst.Context) {
 	//print(1)
 }

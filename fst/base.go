@@ -11,9 +11,9 @@ import (
 
 type (
 	KV         map[string]interface{}
+	AppHandler func(gft *GoFast)
 	FitFunc    func(http.HandlerFunc) http.HandlerFunc
 	CtxHandler func(ctx *Context)
-	AppHandler func(gft *GoFast)
 	GFPanic    error
 
 	// 抽取出一些常用函数原型
