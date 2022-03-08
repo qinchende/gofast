@@ -6,7 +6,8 @@ import (
 )
 
 func TestSheddingStat(t *testing.T) {
-	st := createSheddingStat("any")
+	//st := createSheddingStat("any")
+	st := createSheddingStat()
 	for i := 0; i < 3; i++ {
 		st.Total()
 	}

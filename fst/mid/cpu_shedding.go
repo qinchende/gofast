@@ -13,7 +13,7 @@ import (
 
 // 自适应降载，主要是CPU使用率和请求大量超时，主动断开请求，等待一段时间的冷却
 // 判断高负载主要取决于两个指标（必须同时满足才能降载）：
-// 1. cpu 是否过载。利用率 > 90%
+// 1. cpu 是否过载。利用率 > 95%
 // 2. 请求大量熔断，最好不分路由的普遍发生熔断。
 func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil || sysx.CpuChecked == false {

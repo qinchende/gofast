@@ -32,9 +32,9 @@ func DefaultHandlers(gft *fst.GoFast) *fst.GoFast {
 	})
 
 	//gft.Before(mid.Tracing)                        // 链路追踪，在日志打印之前执行，日志才会体现出标记
-	gft.Before(mid.Logger)                         // 所有请求写日志，根据配置输出日志样式
-	gft.Before(mid.Breaker(reqKeeper))             // 自适应熔断：针对不同route，启动熔断机制（主要保护下游资源不被挤兑）
-	gft.Before(mid.LoadShedding(reqKeeper))        // 自适应降载：（判断CPU和最大并发数）（主要保护自己不跑爆）
+	gft.Before(mid.Logger)             // 所有请求写日志，根据配置输出日志样式
+	gft.Before(mid.Breaker(reqKeeper)) // 自适应熔断：针对不同route，启动熔断机制（主要保护下游资源不被挤兑）
+	//gft.Before(mid.LoadShedding(reqKeeper))        // 自适应降载：（判断CPU和最大并发数）（主要保护自己不跑爆）
 	gft.Before(mid.Timeout(gft.FitDisableTimeout)) // 超时自动返回，后台处理继续，默认3000毫秒
 	gft.Before(mid.Recovery)                       // @@@@@ 截获所有异常 @@@@@
 	gft.Before(mid.HandlerTime(reqKeeper))         // 请求处理耗时统计

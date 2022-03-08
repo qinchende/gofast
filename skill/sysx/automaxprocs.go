@@ -7,7 +7,7 @@ import (
 
 // 自动设置
 // Automatically set GOMAXPROCS to match Linux container CPU quota.
-func init() {
+func initClose() {
 	info, err := maxprocs.Set(maxprocs.Logger(log.Printf))
 	info()
 	if err != nil {
