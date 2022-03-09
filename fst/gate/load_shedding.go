@@ -67,7 +67,7 @@ func (s *sheddingStat) run() {
 		if st.total == 0 && st.pass == 0 && st.drop == 0 {
 			continue
 		}
-		cpu := sysx.CpuSmoothUsage()
+		cpu := sysx.CpuSmoothUsage
 		logx.Statf("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
 
 		//if st.drop == 0 {

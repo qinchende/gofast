@@ -32,8 +32,8 @@ var (
 	// default to be enabled
 	enabled = syncx.ForAtomicBool(true)
 	// make it a variable for unit test
-	systemOverloadChecker = func(cpuThreshold float32) bool {
-		return sysx.CpuSmoothUsage() >= cpuThreshold
+	systemOverloadChecker = func(cpuThreshold float64) bool {
+		return sysx.CpuSmoothUsage >= cpuThreshold
 	}
 )
 
@@ -59,11 +59,11 @@ type (
 	shedderOptions struct {
 		window       time.Duration
 		buckets      int
-		cpuThreshold float32
+		cpuThreshold float64
 	}
 
 	adaptiveShedder struct {
-		cpuThreshold    float32
+		cpuThreshold    float64
 		windows         int64
 		flying          int64
 		avgFlying       float64
@@ -193,7 +193,7 @@ func (as *adaptiveShedder) shouldDrop() bool {
 			as.avgFlyingLock.Unlock()
 			msg := fmt.Sprintf(
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
-				sysx.CpuSmoothUsage(), as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
+				sysx.CpuSmoothUsage, as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
 			logx.Error(msg)
 			logx.Report(msg)
 			return true
@@ -233,7 +233,7 @@ func WithBuckets(buckets int) ShedderOption {
 }
 
 // WithCpuThreshold customizes the Shedder with given cpu threshold.
-func WithCpuThreshold(threshold float32) ShedderOption {
+func WithCpuThreshold(threshold float64) ShedderOption {
 	return func(opts *shedderOptions) {
 		opts.cpuThreshold = threshold
 	}
