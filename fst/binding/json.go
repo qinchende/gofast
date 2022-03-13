@@ -6,7 +6,6 @@ package binding
 
 import (
 	"bytes"
-	"fmt"
 	"github.com/qinchende/gofast/skill/json"
 	"io"
 	"net/http"
@@ -30,11 +29,17 @@ func (jsonBinding) Name() string {
 }
 
 func (jsonBinding) Bind(req *http.Request, obj interface{}) error {
-	if req == nil || req.Body == nil {
-		return fmt.Errorf("invalid request")
-	}
+	//if req == nil || req.Body == nil {
+	//	return fmt.Errorf("invalid request")
+	//}
 	return decodeJSON(req.Body, obj)
 }
+
+//func (jsonBinding) Bind(req *http.Request, obj interface{}) error {
+//	bodyStr := []byte("{}")
+//	_, _ = req.Body.Read(bodyStr)
+//	return decodeJSON(bytes.NewReader(bodyStr), obj)
+//}
 
 func (jsonBinding) BindBody(body []byte, obj interface{}) error {
 	return decodeJSON(bytes.NewReader(body), obj)
@@ -48,8 +53,10 @@ func decodeJSON(r io.Reader, obj interface{}) error {
 	if EnableDecoderDisallowUnknownFields {
 		decoder.DisallowUnknownFields()
 	}
-	// return validate(obj)
-	if err := decoder.Decode(obj); err != nil {
+
+	// Modify by sdx on 20220311 如果body为空，不抛异常
+	// if err := decoder.Decode(obj); err != nil {
+	if err := decoder.Decode(obj); err != nil && err != io.EOF {
 		return err
 	}
 	return validate(obj)

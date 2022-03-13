@@ -27,8 +27,8 @@ func Close() error {
 
 	atomic.StoreUint32(&initialized, 0)
 
-	if infoLog != nil {
-		if err := infoLog.Close(); err != nil {
+	if accessLog != nil {
+		if err := accessLog.Close(); err != nil {
 			return err
 		}
 	}
@@ -87,12 +87,12 @@ func Disable() {
 
 // 直接打印所给的数据
 func Print(v ...interface{}) {
-	outputString(infoLog, fmt.Sprint(v...))
+	outputString(accessLog, fmt.Sprint(v...))
 }
 
 // 直接打印所给的数据
 func Printf(format string, v ...interface{}) {
-	outputString(infoLog, fmt.Sprintf(format, v...))
+	outputString(accessLog, fmt.Sprintf(format, v...))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -214,13 +214,13 @@ func getTimestampMini() string {
 
 func infoSync(msg string) {
 	if shouldLog(InfoLevel) {
-		output(infoLog, levelInfo, msg)
+		output(accessLog, levelInfo, msg)
 	}
 }
 
 func warnSync(msg string) {
 	if shouldLog(InfoLevel) {
-		output(infoLog, levelWarn, msg)
+		output(warnLog, levelWarn, msg)
 	}
 }
 

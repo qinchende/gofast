@@ -54,9 +54,8 @@ func SdxSessBuilder(ctx *fst.Context) {
 	ctx.Sess.Token = tok.(string)
 
 	// 没有tok，赋予当前请求token，同时走后面的逻辑
-	if ctx.Sess.Token == "" || len(ctx.Sess.Token) < 50 {
+	if len(ctx.Sess.Token) < 50 {
 		newSdxToken(ctx)
-		// innerSS.loadCtxValues(ctx)
 		return
 	}
 
@@ -104,7 +103,6 @@ func newSdxToken(ctx *fst.Context) {
 	if ctx.Sess.Values == nil {
 		ctx.Sess.Values = make(map[string]interface{})
 	}
-	// ctx.Pms["tok"] = tok
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -67,9 +67,9 @@ var (
 	writeConsole bool
 	logLevel     uint32
 	// 6个不同等级的日志输出
-	infoLog   WriterCloser
-	warnLog   WriterCloser
+	accessLog WriterCloser
 	errorLog  WriterCloser
+	warnLog   WriterCloser
 	severeLog WriterCloser
 	slowLog   WriterCloser
 	statLog   WriterCloser

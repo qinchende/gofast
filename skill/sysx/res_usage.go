@@ -6,16 +6,18 @@ import (
 	"github.com/qinchende/gofast/skill/sysx/cpux"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"runtime"
+	"sync"
 	"time"
 )
 
 const (
 	cpuRefreshInterval   = time.Second * 3 // 查询CPU使用率的最小间隔
-	beta                 = 0.7             // 估算最近CPU使用率的参数
+	beta                 = 0.75            // 估算最近CPU使用率的参数
 	printRefreshInterval = time.Minute     // 打印系统资源的时间间隔
 )
 
 var (
+	ckLook     sync.Mutex
 	CpuChecked bool // CPU 资源利用率监控是否启用
 
 	CpuCurUsage    float64 // CPU 最近3秒内的平均利用率
@@ -26,8 +28,16 @@ var (
 )
 
 // 启动CPU和内存统计
-func StartCpuCheck() {
+func StartSysCheck(print bool) {
+	// 此方法不能重复执行，
+	ckLook.Lock()
+	if CpuChecked {
+		ckLook.Unlock()
+		return
+	}
 	CpuChecked = true
+	ckLook.Unlock()
+
 	//// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++三方包CPU测试
 	//// 打印CPU基础信息
 	////infos, _ := cpu.Info()
@@ -64,21 +74,28 @@ func StartCpuCheck() {
 					CpuSmoothUsage = CpuSmoothUsage*(1-beta) + CpuCurUsage*beta
 				})
 			case <-printTicker.C: // 60秒打印一次
-				cpuStatPrintLast := cpuStatPrint
-				cpuStatPrint, _ = cpu.Times(false)
-				printUsage(cpux.BusyPercent(cpuStatPrintLast[0], cpuStatPrint[0]))
+				if print {
+					cpuStatPrintLast := cpuStatPrint
+					cpuStatPrint, _ = cpu.Times(false)
+					printUsage(cpux.BusyPercent(cpuStatPrintLast[0], cpuStatPrint[0]))
+				}
 			}
 		}
 	}()
 }
 
 // 打印系统资源的使用情况统计
-func printUsage(cpuUsage float64) {
+func printUsage(cpuAvaUsage float64) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	logx.Statf("CPU: [%.2f,%.2f,%.2f], Mem: [%.1fMB, %.1fMB, %.1fMB], Gor: %d, GC: %d",
-		CpuCurUsage, CpuSmoothUsage, cpuUsage, bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys), runtime.NumGoroutine(), m.NumGC)
+	logx.Statf("CPU: [%.2f, %.2f], Mem: [%.1fMB, %.1fMB, %.1fMB], Gor: %d, GC: %d",
+		CpuSmoothUsage, cpuAvaUsage, bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys), runtime.NumGoroutine(), m.NumGC)
+}
+
+// 字节 到 MB 的转换.
+func bToMb(b uint64) float32 {
+	return float32(b) / 1024 / 1024
 }
 
 //// CPU当前统计周期内使用率
@@ -90,11 +107,6 @@ func printUsage(cpuUsage float64) {
 //func CpuSmoothUsage() float32 {
 //	return float32(atomic.LoadInt32(&cpuSmoothRate)) / 100
 //}
-
-// 字节 到 MB 的转换.
-func bToMb(b uint64) float32 {
-	return float32(b) / 1024 / 1024
-}
 
 //// 切片中每个值都保留2位小数
 //func decimalPlace2(arr []float64) {
