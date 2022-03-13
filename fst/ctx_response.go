@@ -107,6 +107,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 	// 不允许 double render
 	if w.committed {
 		logx.Warn(errAlreadyRendered, "Can't Send.")
+		w.mu.Unlock()
 		return 0, nil
 	}
 	w.committed = true
@@ -126,6 +127,7 @@ func (w *ResponseWrap) SendHijack(status int, body string) (n int, err error) {
 	w.mu.Lock()
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
+		w.mu.Unlock()
 		return 0, nil
 	}
 	w.committed = true

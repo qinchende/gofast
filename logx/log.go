@@ -59,9 +59,9 @@ func setupWithConsole(c *LogConfig) {
 		setupLogLevel(c)
 
 		// 一般输出
-		infoLog = newLogWriter(log.New(os.Stdout, "", flags))
-		statLog = infoLog
-		warnLog = infoLog
+		accessLog = newLogWriter(log.New(os.Stdout, "", flags))
+		statLog = accessLog
+		warnLog = accessLog
 		// 错误输出
 		errorLog = newLogWriter(log.New(os.Stderr, "", flags))
 		severeLog = newLogWriter(log.New(os.Stderr, "", flags))
@@ -98,45 +98,58 @@ func setupWithFiles(c *LogConfig) error {
 			prefix += "."
 		}
 
-		accessFile := path.Join(c.Path, prefix+accessFilename)
-		warnFile := path.Join(c.Path, prefix+warnFilename)
-		errorFile := path.Join(c.Path, prefix+errorFilename)
-		severeFile := path.Join(c.Path, prefix+severeFilename)
-		slowFile := path.Join(c.Path, prefix+slowFilename)
-		statFile := path.Join(c.Path, prefix+statFilename)
+		accessFilePath := path.Join(c.Path, prefix+accessFilename)
+		errorFilePath := path.Join(c.Path, prefix+errorFilename)
+		warnFilePath := path.Join(c.Path, prefix+warnFilename)
+		severeFilePath := path.Join(c.Path, prefix+severeFilename)
+		slowFilePath := path.Join(c.Path, prefix+slowFilename)
+		statFilePath := path.Join(c.Path, prefix+statFilename)
 
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		if infoLog, err = createOutput(accessFile); err != nil {
+		if accessLog, err = createOutput(accessFilePath); err != nil {
 			return
 		}
 		if c.FileNumber == fileOne {
-			warnLog = infoLog
-			severeLog = infoLog
-			slowLog = infoLog
-			statLog = infoLog
+			errorLog = accessLog
+			warnLog = accessLog
+			severeLog = accessLog
+			slowLog = accessLog
+			statLog = accessLog
 			//stackLog = infoLog
 		} else if c.FileNumber == fileTwo {
-			if errorLog, err = createOutput(errorFile); err != nil {
+			if errorLog, err = createOutput(errorFilePath); err != nil {
 				return
 			}
+			warnLog = errorLog
 			severeLog = errorLog
 			slowLog = errorLog
 			statLog = errorLog
 			//stackLog = errorLog
+		} else if c.FileNumber == fileThree {
+			if errorLog, err = createOutput(errorFilePath); err != nil {
+				return
+			}
+			if statLog, err = createOutput(statFilePath); err != nil {
+				return
+			}
+			warnLog = errorLog
+			severeLog = errorLog
+			slowLog = errorLog
+			//stackLog = errorLog
 		} else {
-			if warnLog, err = createOutput(warnFile); err != nil {
+			if warnLog, err = createOutput(warnFilePath); err != nil {
 				return
 			}
-			if errorLog, err = createOutput(errorFile); err != nil {
+			if errorLog, err = createOutput(errorFilePath); err != nil {
 				return
 			}
-			if severeLog, err = createOutput(severeFile); err != nil {
+			if severeLog, err = createOutput(severeFilePath); err != nil {
 				return
 			}
-			if slowLog, err = createOutput(slowFile); err != nil {
+			if slowLog, err = createOutput(slowFilePath); err != nil {
 				return
 			}
-			if statLog, err = createOutput(statFile); err != nil {
+			if statLog, err = createOutput(statFilePath); err != nil {
 				return
 			}
 			//stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)

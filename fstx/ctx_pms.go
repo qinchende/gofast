@@ -5,7 +5,7 @@ import "github.com/qinchende/gofast/fst"
 func PmsParser(ctx *fst.Context) {
 	err := ctx.ParseRequestData()
 	if err != nil {
-		ctx.FaiErr(err)
+		ctx.FaiMsg("PmsParser err: " + err.Error())
 	}
 }
 

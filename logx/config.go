@@ -10,7 +10,7 @@ type LogConfig struct {
 	Level              string `cnf:",def=info,enum=info|error|severe"` // 记录日志的级别
 	Path               string `cnf:",def=logs"`                        // 日志文件路径
 	FilePrefix         string `cnf:",NA"`                              // 日志文件名统一前缀
-	FileNumber         int8   `cnf:",def=0,range=[0:2]"`               // 日志文件数量
+	FileNumber         int8   `cnf:",def=0,range=[0:3]"`               // 日志文件数量
 	Compress           bool   `cnf:",NA"`
 	KeepDays           int    `cnf:",NA"`
 	StackArchiveMillis int    `cnf:",def=100"`
@@ -19,9 +19,10 @@ type LogConfig struct {
 }
 
 const (
-	fileAll int8 = iota // 默认0：不同级别放入不同的日志文件
-	fileOne             // 1：全部放在一个日志文件access中
-	fileTwo             // 2：只分access和error两个文件
+	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
+	fileOne               // 1：全部放在一个日志文件access中
+	fileTwo               // 2：只分access和error两个文件
+	fileThree             // 3：只分access和error和stat三个文件
 )
 
 // 日志样式名称

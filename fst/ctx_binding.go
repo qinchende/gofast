@@ -18,14 +18,19 @@ func (c *Context) BindPms(obj interface{}) error {
 	return binding.Pms.BindPms(c.Pms, obj)
 }
 
-// BindJSON is a shortcut for c.MustBindWith(obj, binding.JSON).
 func (c *Context) BindJSON(obj interface{}) error {
-	return c.MustBindWith(obj, binding.JSON)
+	return c.ShouldBindWith(obj, binding.JSON)
 }
 
-// BindXML is a shortcut for c.MustBindWith(obj, binding.BindXML).
 func (c *Context) BindXML(obj interface{}) error {
-	return c.MustBindWith(obj, binding.XML)
+	return c.ShouldBindWith(obj, binding.XML)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
+	// add preBind events by sdx on 2021.03.18
+	//c.execPreBindHandlers()
+	return b.Bind(c.ReqRaw, obj)
 }
 
 // MustBindWith binds the passed struct pointer using the specified binding format.
@@ -39,14 +44,8 @@ func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
 	return nil
 }
 
-// ShouldBindWith binds the passed struct pointer using the specified binding gftApp.
-// See the binding package.
-func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
-	// add preBind events by sdx on 2021.03.18
-	//c.execPreBindHandlers()
-	return b.Bind(c.ReqRaw, obj)
-}
-
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 以下来自gin的代码，暂时不需要了
 ///************************************/
 ///******* binding and validate *******/
 ///************************************/
