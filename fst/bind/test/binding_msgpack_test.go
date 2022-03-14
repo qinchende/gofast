@@ -31,12 +31,12 @@ func TestBindingMsgPack(t *testing.T) {
 	data := buf.Bytes()
 
 	testMsgPackBodyBinding(t,
-		binding.MsgPack, "msgpack",
+		bind.MsgPack, "msgpack",
 		"/", "/",
 		string(data), string(data[1:]))
 }
 
-func testMsgPackBodyBinding(t *testing.T, b binding.Binding, name, path, badPath, body, badBody string) {
+func testMsgPackBodyBinding(t *testing.T, b bind.Binding, name, path, badPath, body, badBody string) {
 	assert.Equal(t, name, b.Name())
 
 	obj := FooStruct{}
@@ -49,11 +49,11 @@ func testMsgPackBodyBinding(t *testing.T, b binding.Binding, name, path, badPath
 	obj = FooStruct{}
 	req = requestWithBody("POST", badPath, badBody)
 	req.Header.Add("Content-Type", cst.MIMEMsgPack)
-	err = binding.MsgPack.Bind(req, &obj)
+	err = bind.MsgPack.Bind(req, &obj)
 	assert.Error(t, err)
 }
 
 func TestBindingDefaultMsgPack(t *testing.T) {
-	assert.Equal(t, binding.MsgPack, binding.Default("POST", cst.MIMEMsgPack))
-	assert.Equal(t, binding.MsgPack, binding.Default("PUT", cst.MIMEXMsgPack))
+	assert.Equal(t, bind.MsgPack, bind.Default("POST", cst.MIMEMsgPack))
+	assert.Equal(t, bind.MsgPack, bind.Default("PUT", cst.MIMEXMsgPack))
 }

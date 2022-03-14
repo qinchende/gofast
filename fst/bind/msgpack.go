@@ -4,7 +4,7 @@
 
 // +build !nomsgpack
 
-package binding
+package bind
 
 import (
 	"bytes"
