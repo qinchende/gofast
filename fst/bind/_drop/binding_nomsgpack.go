@@ -1,13 +1,13 @@
-// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
+// Copyright 2020 Gin Core Team. All rights reserved.
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// +build !nomsgpack
+// +build nomsgpack
 
-package binding
+package _drop
 
 import (
-	"github.com/qinchende/gofast/fst/cst"
+	"github.com/qinchende/gofast/fst/binding"
 	"net/http"
 )
 
@@ -53,44 +53,40 @@ type StructValidator interface {
 // Validator is the default validator which implements the StructValidator
 // interface. It uses https://github.com/go-playground/validator/tree/v8.18.2
 // under the hood.
-var Validator StructValidator = &defaultValidator{}
+var Validator StructValidator = &bind.defaultValidator{}
 
 // These implement the Binding interface and can be used to bind the data
 // present in the request to struct instances.
 var (
-	Pms           = pmsBinding{} // 这是个特殊
-	JSON          = jsonBinding{}
-	XML           = xmlBinding{}
-	Form          = formBinding{}
-	Query         = queryBinding{}
-	FormPost      = formPostBinding{}
-	FormMultipart = formMultipartBinding{}
-	ProtoBuf      = protobufBinding{}
-	MsgPack       = msgpackBinding{}
-	YAML          = yamlBinding{}
-	Uri           = uriBinding{}
-	Header        = headerBinding{}
+	JSON          = bind.jsonBinding{}
+	XML           = bind.xmlBinding{}
+	Form          = bind.formBinding{}
+	Query         = bind.queryBinding{}
+	FormPost      = bind.formPostBinding{}
+	FormMultipart = bind.formMultipartBinding{}
+	ProtoBuf      = bind.protobufBinding{}
+	YAML          = bind.yamlBinding{}
+	Uri           = bind.uriBinding{}
+	Header        = bind.headerBinding{}
 )
 
 // Default returns the appropriate Binding instance based on the HTTP method
 // and the content type.
 func Default(method, contentType string) Binding {
-	if method == http.MethodGet {
+	if method == "GET" {
 		return Form
 	}
 
 	switch contentType {
-	case cst.MIMEAppJson:
+	case MIMEcnf:
 		return JSON
-	case cst.MIMEAppXml, cst.MIMEXml:
+	case MIMEXML, MIMEXML2:
 		return XML
-	case cst.MIMEProtoBuf:
+	case MIMEPROTOBUF:
 		return ProtoBuf
-	case cst.MIMEMsgPack, cst.MIMEXMsgPack:
-		return MsgPack
-	case cst.MIMEYaml:
+	case MIMEYAML:
 		return YAML
-	case cst.MIMEMultiPostForm:
+	case MIMEMultipartPOSTForm:
 		return FormMultipart
 	default: // case MIMEPOSTForm:
 		return Form

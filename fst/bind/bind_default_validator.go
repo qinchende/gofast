@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package binding
+package bind
 
 import (
 	"reflect"
@@ -26,7 +26,7 @@ func (v *defaultValidator) ValidateStruct(obj interface{}) error {
 		valueType = value.Elem().Kind()
 	}
 	if valueType == reflect.Struct {
-		v.lazyinit()
+		v.lazyInit()
 		if err := v.validate.Struct(obj); err != nil {
 			return err
 		}
@@ -39,13 +39,13 @@ func (v *defaultValidator) ValidateStruct(obj interface{}) error {
 // or struct level validations. See validator GoDoc for more info -
 // https://godoc.org/gopkg.in/go-playground/validator.v8
 func (v *defaultValidator) Engine() interface{} {
-	v.lazyinit()
+	v.lazyInit()
 	return v.validate
 }
 
-func (v *defaultValidator) lazyinit() {
+func (v *defaultValidator) lazyInit() {
 	v.once.Do(func() {
 		v.validate = validator.New()
-		v.validate.SetTagName("binding")
+		v.validate.SetTagName("valid") // 指定模型中验证字段的tag标记
 	})
 }

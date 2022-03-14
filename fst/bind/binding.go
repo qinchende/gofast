@@ -1,12 +1,13 @@
-// Copyright 2020 Gin Core Team. All rights reserved.
+// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-// +build nomsgpack
+package bind
 
-package binding
-
-import "net/http"
+import (
+	"github.com/qinchende/gofast/fst/cst"
+	"net/http"
+)
 
 // Binding describes the interface which needs to be implemented for binding the
 // data present in the request such as JSON request body, query parameters or
@@ -55,35 +56,39 @@ var Validator StructValidator = &defaultValidator{}
 // These implement the Binding interface and can be used to bind the data
 // present in the request to struct instances.
 var (
-	JSON          = jsonBinding{}
-	XML           = xmlBinding{}
-	Form          = formBinding{}
-	Query         = queryBinding{}
-	FormPost      = formPostBinding{}
+	Pms  = pmsBinding{} // 这是个特殊
+	JSON = jsonBinding{}
+	XML  = xmlBinding{}
+	Form = formBinding{}
+	//Query         = queryBinding{}
+	//FormPost      = formPostBinding{}
 	FormMultipart = formMultipartBinding{}
 	ProtoBuf      = protobufBinding{}
+	MsgPack       = msgpackBinding{}
 	YAML          = yamlBinding{}
-	Uri           = uriBinding{}
-	Header        = headerBinding{}
+	//Uri           = uriBinding{}
+	//Header        = headerBinding{}
 )
 
 // Default returns the appropriate Binding instance based on the HTTP method
 // and the content type.
 func Default(method, contentType string) Binding {
-	if method == "GET" {
+	if method == http.MethodGet {
 		return Form
 	}
 
 	switch contentType {
-	case MIMEcnf:
+	case cst.MIMEAppJson:
 		return JSON
-	case MIMEXML, MIMEXML2:
+	case cst.MIMEAppXml, cst.MIMEXml:
 		return XML
-	case MIMEPROTOBUF:
+	case cst.MIMEProtoBuf:
 		return ProtoBuf
-	case MIMEYAML:
+	case cst.MIMEMsgPack, cst.MIMEXMsgPack:
+		return MsgPack
+	case cst.MIMEYaml:
 		return YAML
-	case MIMEMultipartPOSTForm:
+	case cst.MIMEMultiPostForm:
 		return FormMultipart
 	default: // case MIMEPOSTForm:
 		return Form

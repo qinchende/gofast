@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/bind"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -15,19 +15,19 @@ func (c *Context) BindPms(obj interface{}) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
 
-	return binding.Pms.BindPms(c.Pms, obj)
+	return bind.Pms.BindPms(c.Pms, obj)
 }
 
 func (c *Context) BindJSON(obj interface{}) error {
-	return c.ShouldBindWith(obj, binding.JSON)
+	return c.ShouldBindWith(obj, bind.JSON)
 }
 
 func (c *Context) BindXML(obj interface{}) error {
-	return c.ShouldBindWith(obj, binding.XML)
+	return c.ShouldBindWith(obj, bind.XML)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
+func (c *Context) ShouldBindWith(obj interface{}, b bind.Binding) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
 	return b.Bind(c.ReqRaw, obj)
@@ -36,7 +36,7 @@ func (c *Context) ShouldBindWith(obj interface{}, b binding.Binding) error {
 // MustBindWith binds the passed struct pointer using the specified binding format.
 // It will abort the request with HTTP 400 if any error occurs.
 // See the binding package.
-func (c *Context) MustBindWith(obj interface{}, b binding.Binding) error {
+func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
 	if err := c.ShouldBindWith(obj, b); err != nil {
 		//c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
 		return err
