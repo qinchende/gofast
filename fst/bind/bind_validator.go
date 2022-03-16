@@ -26,7 +26,7 @@ func (v *defaultValidator) ValidateStruct(obj interface{}) error {
 		valueType = value.Elem().Kind()
 	}
 	if valueType == reflect.Struct {
-		v.lazyInit()
+		//v.lazyInit()
 		if err := v.validate.Struct(obj); err != nil {
 			return err
 		}

@@ -13,8 +13,7 @@ import (
 // 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
 func (c *Context) BindPms(obj interface{}) error {
 	// add preBind events by sdx on 2021.03.18
-	//c.execPreBindHandlers()
-
+	// c.execPreBindHandlers()
 	return bind.Pms.BindPms(c.Pms, obj)
 }
 
