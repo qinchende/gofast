@@ -53,6 +53,12 @@ type StructValidator interface {
 // under the hood.
 var Validator StructValidator = &defaultValidator{}
 
+// 初始化, add by cd.net on 20220316
+func init() {
+	Validator.Engine()
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // These implement the Binding interface and can be used to bind the data
 // present in the request to struct instances.
 var (
