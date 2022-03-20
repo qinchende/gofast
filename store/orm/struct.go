@@ -1,8 +1,9 @@
 package orm
 
 import (
-	"github.com/qinchende/gofast/logx"
+	"fmt"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -11,106 +12,89 @@ const (
 	dbTagOther = "pms"
 )
 
-func DbFieldValues2(ins ...interface{}) ([]string, []interface{}) {
-	fls := make([]string, 0)
-	values := make([]interface{}, 0)
-
-	for i := 0; i < len(ins); i++ {
-		tF, tV := DbFieldValues(ins[i])
-
-		fls = append(fls, tF...)
-		values = append(values, tV...)
+// 结构体中属性的数据库字段名称合集
+func FieldValuesForDB(obj interface{}, includes ...bool) ([]string, []interface{}) {
+	rVal := reflect.Indirect(reflect.ValueOf(obj))
+	if rVal.Kind() != reflect.Struct {
+		panic(fmt.Errorf("ToMap only accepts structs; got %T", rVal))
 	}
 
-	return fls, values
+	// 看类型，缓存有就直接用，否则计算一次并缓存
+	var fields []string
+	rTyp := rVal.Type()
+	cModel := cacheGetModel(rTyp)
+	if cModel == nil {
+		f1, f2 := structFields(obj)
+		fields = f1
+
+		cModel = &cachedModel{
+			fields:        fields,
+			fieldIndexMap: make(map[string]int, len(fields)),
+		}
+		for idx, name := range f2 {
+			cModel.fieldIndexMap[name] = idx
+		}
+		cacheSetModel(rTyp, cModel)
+	} else {
+		fields = cModel.fields
+	}
+
+	// 反射取值
+	values := structValues(obj)
+	return fields, values
 }
 
-// 结构体中属性的数据库字段名称合集
-func DbFieldValues(in interface{}, includes ...bool) ([]string, []interface{}) {
-	fls := make([]string, 0)
-	values := make([]interface{}, 0)
+func structFields(obj interface{}) ([]string, []string) {
+	rVal := reflect.Indirect(reflect.ValueOf(obj))
+	rTyp := rVal.Type()
 
-	sVal := reflect.ValueOf(in)
-	if sVal.Kind() == reflect.Ptr {
-		sVal = sVal.Elem()
-	}
+	fls1 := make([]string, 0)
+	fls2 := make([]string, 0)
 
-	// we only accept structs
-	if sVal.Kind() != reflect.Struct {
-		//panic(fmt.Errorf("ToMap only accepts structs; got %T", sVal))
-		s, v := singleField(sVal.Interface())
-		fls = append(fls, s)
-		values = append(values, v)
-
-		return fls, values
-	}
-
-	if _, ok := sVal.Interface().(time.Time); ok {
-		s, v := singleField(sVal.Interface())
-		fls = append(fls, s)
-		values = append(values, v)
-		return fls, values
-	}
-
-	typ := sVal.Type()
-	for i := 0; i < sVal.NumField(); i++ {
-		// value: get value
-		va := sVal.Field(i)
+	for i := 0; i < rVal.NumField(); i++ {
+		// 通过值类型来确定后面
+		va := rVal.Field(i)
 		if va.Kind() == reflect.Struct {
-			vaInter := va.Interface()
-			if _, ok := vaInter.(time.Time); !ok {
-				subFields, subValues := DbFieldValues(vaInter)
-				fls = append(fls, subFields...)
-				values = append(values, subValues...)
+			vaI := va.Interface()
+			if _, ok := vaI.(time.Time); !ok {
+				s1, s2 := structFields(vaI)
+				fls1 = append(fls1, s1...)
+				fls2 = append(fls2, s2...)
 				continue
 			}
 		}
-		values = append(values, va.Interface())
 
-		// type: gets us a StructField
-		fi := typ.Field(i)
+		// 通过字段类型，查找其中的标记
+		fi := rTyp.Field(i)
 		dbf := fi.Tag.Get(dbTag)
 		if dbf == "" {
 			dbf = fi.Tag.Get(dbTagOther)
 		}
 		if dbf != "" {
-			fls = append(fls, dbf)
+			fls1 = append(fls1, dbf)
 		} else {
-			fls = append(fls, fi.Name)
+			fls1 = append(fls1, strings.ToLower(fi.Name))
 		}
+		fls2 = append(fls2, fi.Name)
 	}
-	//var includeId bool
-	//if len(includes) > 0 {
-	//	includeId = includes[0]
-	//}
-
-	return fls, values
+	return fls1, fls2
 }
 
-func singleField(in interface{}) (string, interface{}) {
-	typ := reflect.TypeOf(in)
-	sVal := reflect.ValueOf(in)
+func structValues(obj interface{}) []interface{} {
+	rVal := reflect.Indirect(reflect.ValueOf(obj))
+	values := make([]interface{}, 0)
 
-	logx.Info(typ)
-	logx.Info(sVal)
-
-	//sVal
-	//
-	//values = append(values, va.Interface())
-	//
-	//typ := sVal.Type()
-	//
-	//// type: gets us a StructField
-	//fi := typ.Field(i)
-	//dbf := fi.Tag.Get(dbTag)
-	//if dbf == "" {
-	//	dbf = fi.Tag.Get(dbTagOther)
-	//}
-	//if dbf != "" {
-	//	fls = append(fls, dbf)
-	//} else {
-	//	fls = append(fls, fi.Name)
-	//}
-
-	return "", ""
+	for i := 0; i < rVal.NumField(); i++ {
+		va := rVal.Field(i)
+		if va.Kind() == reflect.Struct {
+			vaI := va.Interface()
+			if _, ok := vaI.(time.Time); !ok {
+				subValues := structValues(vaI)
+				values = append(values, subValues...)
+				continue
+			}
+		}
+		values = append(values, va.Interface())
+	}
+	return values
 }
