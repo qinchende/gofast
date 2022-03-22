@@ -3,7 +3,7 @@ package mysql
 import (
 	"context"
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
+	"github.com/qinchende/gofast/store/sqlx"
 	"log"
 	"time"
 )
@@ -12,16 +12,12 @@ type (
 	ConnConfig struct {
 		ConnStr string `cnf:",NA"`
 		MaxOpen int    `cnf:",def=100,range=[1:1000]"`
-		MaxIdle int    `cnf:",NA"`
-	}
-	MSqlX struct {
-		Cli *sql.DB
-		Ctx context.Context
+		MaxIdle int    `cnf:",def=100,NA"`
 	}
 )
 
-func NewMysqlConn(cf *ConnConfig) *MSqlX {
-	mysqlX := MSqlX{Ctx: context.Background()}
+func NewMysqlConn(cf *ConnConfig) *sqlx.MysqlORM {
+	mysqlX := sqlx.MysqlORM{Ctx: context.Background()}
 
 	db, err := sql.Open("mysql", cf.ConnStr)
 	if err != nil {
@@ -32,6 +28,6 @@ func NewMysqlConn(cf *ConnConfig) *MSqlX {
 	db.SetMaxOpenConns(cf.MaxOpen)
 	db.SetMaxIdleConns(cf.MaxIdle)
 
-	mysqlX.Cli = db
+	mysqlX.Client = db
 	return &mysqlX
 }
