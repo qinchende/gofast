@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strings"
 	"time"
@@ -51,15 +52,10 @@ func SchemaValues(obj ApplyOrmStruct) (*ModelSchema, []interface{}) {
 		if priIndex == -1 {
 			panic(fmt.Errorf("%T, model has no primary key", rVal)) // 不能没有主键
 		}
-		// 2. updated 的索引位置
-		var updatedIndex = -1
-		for idx, f := range fStruct {
-			if f == mFields[1] {
-				updatedIndex = idx
-				break
-			}
-		}
-
+		//if rVal.FieldByName(mFields[0]).Kind() != reflect.Uint {
+		//	panic("primary key must uint") // 主键必须是 uint 类型
+		//}
+		// +++++++++++++++++++++++++
 		// db column name
 		fKeyName := fDB[priIndex]
 		fDBNew := make([]string, 0, len(fDB))
@@ -73,10 +69,21 @@ func SchemaValues(obj ApplyOrmStruct) (*ModelSchema, []interface{}) {
 		fStructNew = append(fStructNew, fStruct[:priIndex]...)
 		fStructNew = append(fStructNew, fStruct[priIndex+1:]...)
 		// +++++++++++++++++++++++++
+		// 2. updated 的索引位置
+		var updatedIndex = -1
+		for idx, f := range fStructNew {
+			if f == mFields[1] {
+				updatedIndex = idx
+				break
+			}
+		}
 
-		//fields = fDBNew
+		tbName := obj.TableName()
+		if tbName == "" {
+			tbName = stringx.Camel2Snake(rTyp.Name())
+		}
 		cModel = &ModelSchema{
-			tableName:    obj.TableName(),
+			tableName:    tbName,
 			fields:       make(map[string]int8, len(fDBNew)),
 			columns:      fDBNew,
 			primaryIndex: int8(priIndex),
@@ -89,7 +96,7 @@ func SchemaValues(obj ApplyOrmStruct) (*ModelSchema, []interface{}) {
 	}
 
 	// 反射取值
-	values := make([]interface{}, cModel.Length())
+	values := make([]interface{}, cModel.Length(), cModel.Length()+1)
 	var valIndex int8 = 0
 	var priIndex = cModel.primaryIndex
 	pValIndex := &valIndex
@@ -129,7 +136,7 @@ func structFields(obj interface{}, mFields *[2]string) ([]string, []string) {
 		if dbf != "" {
 			fColumns = append(fColumns, dbf)
 		} else {
-			fColumns = append(fColumns, strings.ToLower(fi.Name))
+			fColumns = append(fColumns, stringx.Camel2Snake(fi.Name))
 		}
 		fFields = append(fFields, fi.Name)
 		// 查找 primary

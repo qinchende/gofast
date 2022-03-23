@@ -2,8 +2,8 @@ package jwtx
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/bytesconv"
 	"github.com/qinchende/gofast/skill/json"
+	"github.com/qinchende/gofast/skill/stringx"
 	"time"
 )
 
@@ -14,7 +14,7 @@ func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
 	if str == "" || err != nil {
 		str = `{}`
 	}
-	err = json.Unmarshal(bytesconv.StringToBytes(str), &ctx.Sess.Values)
+	err = json.Unmarshal(stringx.StringToBytes(str), &ctx.Sess.Values)
 	if err != nil {
 		ctx.Fai(110, "获取SESSION失败，请重新访问系统。", fst.KV{})
 	}
