@@ -6,8 +6,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qinchende/gofast/skill/bytesconv"
 	"github.com/qinchende/gofast/skill/json"
+	"github.com/qinchende/gofast/skill/stringx"
 )
 
 func setWithProperType(val string, value reflect.Value, field reflect.StructField) error {
@@ -49,9 +49,9 @@ func setWithProperType(val string, value reflect.Value, field reflect.StructFiel
 		case time.Time:
 			return setTimeField(val, field, value)
 		}
-		return json.Unmarshal(bytesconv.StringToBytes(val), value.Addr().Interface())
+		return json.Unmarshal(stringx.StringToBytes(val), value.Addr().Interface())
 	case reflect.Map:
-		return json.Unmarshal(bytesconv.StringToBytes(val), value.Addr().Interface())
+		return json.Unmarshal(stringx.StringToBytes(val), value.Addr().Interface())
 	default:
 		return errUnknownType
 	}

@@ -14,23 +14,50 @@ type MysqlORM struct {
 }
 
 func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) sql.Result {
-	obj.BeforeSave()
+	obj.BeforeSave() // 设置值
 	schema, values := orm.SchemaValues(obj)
 	insSQL := insertSql(schema)
 	logx.DebugPrint(insSQL)
-	return conn.Exec(insSQL, values[1:]...)
+
+	ret := conn.Exec(insSQL, values[1:]...)
+	obj.AfterInsert(ret) // 反写值
+	return ret
 }
 
 func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) sql.Result {
-	return nil
-}
-
-func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, fields ...string) sql.Result {
 	obj.BeforeSave()
 	schema, values := orm.SchemaValues(obj)
-	logx.Info(schema)
-	logx.Info(values)
-	return nil
+
+	upSQL := updateSql(schema)
+	logx.DebugPrint(upSQL)
+
+	// primaryKey value as the last value
+	idVal := values[0]
+	copy(values, values[1:])
+	values[len(values)-1] = idVal
+
+	return conn.Exec(upSQL, values...)
+}
+
+//// 更新特定字段
+//func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, fields ...interface{}) sql.Result {
+//	obj.BeforeSave()
+//	schema, values := orm.SchemaValues(obj)
+//
+//	upSQL, tValues := updateColumnsSql(schema, values, fields)
+//	logx.DebugPrint(upSQL)
+//
+//	return conn.Exec(upSQL, tValues...)
+//}
+
+func (conn *MysqlORM) UpdateByNames(obj orm.ApplyOrmStruct, names ...string) sql.Result {
+	obj.BeforeSave()
+	schema, values := orm.SchemaValues(obj)
+
+	upSQL, tValues := updateColumnsSql(schema, values, names)
+	logx.DebugPrint(upSQL)
+
+	return conn.Exec(upSQL, tValues...)
 }
 
 //func (conn *MysqlORM) Select(obj interface{}) sql.Result {
