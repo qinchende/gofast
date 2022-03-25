@@ -4,76 +4,119 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/store/orm"
+	"reflect"
 	"strings"
 )
 
-func insertSql(ms *orm.ModelSchema) string {
-	cls := ms.Columns()
+func insertSql(mss *orm.ModelSchema) string {
+	return mss.InsertSQL(func(ms *orm.ModelSchema) string {
+		cls := ms.Columns()
+		clsLen := len(cls)
 
-	vls := make([]byte, (len(cls)-1)*2-1)
-	for i := 0; i < len(cls)-2; i++ {
-		vls[2*i] = '?'
-		vls[2*i+1] = ','
-	}
-	vls[len(vls)-1] = '?'
+		sBuf := strings.Builder{}
+		sBuf.Grow(256)
+		bVal := make([]byte, (clsLen-1)*2-1)
 
-	return fmt.Sprintf("INSERT INTO %s (%s) values (%s);", ms.TableName(), strings.Join(cls[1:], ","), stringx.BytesToString(vls))
+		priIdx := ms.PrimaryIndex()
+		ct := 0
+		for i := 1; i < clsLen; i++ {
+			if ct > 0 {
+				sBuf.WriteByte(',')
+				bVal[ct] = ','
+				ct++
+			}
+			// 写第一个字段值
+			if priIdx == int8(i) {
+				sBuf.WriteString(cls[0])
+			} else {
+				sBuf.WriteString(cls[i])
+			}
+
+			bVal[ct] = '?'
+			ct++
+		}
+		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ms.TableName(), sBuf.String(), stringx.BytesToString(bVal))
+	})
 }
 
-func updateSql(ms *orm.ModelSchema) string {
-	cls := ms.Columns()
+func deleteSql(mss *orm.ModelSchema) string {
+	return mss.DeleteSQL(func(ms *orm.ModelSchema) string {
+		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+	})
+}
 
-	sBuf := strings.Builder{}
-	for i := 1; i < len(cls); i++ {
-		if i > 1 {
-			sBuf.WriteString(", ")
+func updateSql(mss *orm.ModelSchema) string {
+	return mss.UpdateSQL(func(ms *orm.ModelSchema) string {
+		cls := ms.Columns()
+		clsLen := len(cls) - 1
+		sBuf := strings.Builder{}
+		sBuf.Grow(256)
+
+		priIdx := ms.PrimaryIndex()
+		for i := 0; i < clsLen; i++ {
+			if i > 0 {
+				sBuf.WriteByte(',')
+			}
+
+			if priIdx == int8(i) {
+				sBuf.WriteString(cls[clsLen])
+			} else {
+				sBuf.WriteString(cls[i])
+			}
+			sBuf.WriteString("=?")
 		}
-		sBuf.WriteString(cls[i])
-		sBuf.WriteString("=?")
-	}
-
-	return fmt.Sprintf("UPDATE %s SET %s WHERE %s = ?;", ms.TableName(), sBuf.String(), cls[0])
+		return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ms.TableName(), sBuf.String(), cls[priIdx])
+	})
 }
 
 // 更新特定字段
-func updateColumnsSql(ms *orm.ModelSchema, values []interface{}, fields []string) (string, []interface{}) {
-	cls := ms.Columns()
+func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fields []string) (string, []interface{}) {
+	tgLen := len(fields)
+	if tgLen <= 0 {
+		panic("UpdateByNames params [names] is empty")
+	}
+
 	fls := ms.Fields()
-
-	tValues := make([]interface{}, len(fields)+2)
-	count := 0
-	upIdx := ms.UpdatedIndex()
-
+	cls := ms.Columns()
 	sBuf := strings.Builder{}
-	// 当前schema有更新时间的字段
+	tValues := make([]interface{}, tgLen+2)
+
+	for i := 0; i < tgLen; i++ {
+		idx, ok := fls[fields[i]]
+		if !ok {
+			panic(fmt.Errorf("field %s not exist", fields[i]))
+		}
+
+		// 更新字符串
+		if i > 0 {
+			sBuf.WriteByte(',')
+		}
+		sBuf.WriteString(cls[idx])
+		sBuf.WriteString("=?")
+
+		// 值
+		tValues[i] = ms.ValueByIndex(rVal, idx)
+	}
+
+	// 更新字段
+	upIdx := ms.UpdatedIndex()
+	priIdx := ms.PrimaryIndex()
 	if upIdx >= 0 {
+		sBuf.WriteByte(',')
 		sBuf.WriteString(cls[upIdx])
 		sBuf.WriteString("=?")
-
-		tValues[count] = values[upIdx]
-		count++
+		tValues[tgLen] = ms.ValueByIndex(rVal, upIdx)
+		tValues[tgLen+1] = ms.ValueByIndex(rVal, priIdx)
+	} else {
+		tValues[tgLen] = ms.ValueByIndex(rVal, priIdx)
+		tValues = tValues[:tgLen+1]
 	}
 
-	var clIndex int8
-	for i := 0; i < len(fields); i++ {
-		clIndex = fls[fields[i]]
-		// 发现更新的字段是主键，跳过去
-		if clIndex == 0 {
-			continue
-		}
-		if sBuf.Len() > 0 {
-			sBuf.WriteString(", ")
-		}
-		sBuf.WriteString(cls[clIndex])
-		sBuf.WriteString("=?")
+	return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ms.TableName(), sBuf.String(), cls[priIdx]), tValues
+}
 
-		tValues[count] = values[clIndex]
-		count++
-	}
-
-	// 加入主键ID值
-	tValues[count] = values[0]
-	count++
-
-	return fmt.Sprintf("UPDATE %s SET %s WHERE %s = ?;", ms.TableName(), sBuf.String(), cls[0]), tValues[:count]
+func selectSqlByID(mss *orm.ModelSchema) string {
+	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
+		return fmt.Sprintf("SELECT * FROM %s WHERE %s=?;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+	})
 }
