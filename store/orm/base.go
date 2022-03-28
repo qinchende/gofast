@@ -17,4 +17,5 @@ type ApplyOrmStruct interface {
 	TableName() string
 	BeforeSave()
 	AfterInsert(sql.Result)
+	//AfterQuery(*sql.Rows)
 }

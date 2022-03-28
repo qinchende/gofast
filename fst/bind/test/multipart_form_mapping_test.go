@@ -6,7 +6,7 @@ package test
 
 import (
 	"bytes"
-	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/bind"
 	"github.com/qinchende/gofast/fst/cst"
 	"io/ioutil"
 	"mime/multipart"

@@ -76,7 +76,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fields []string
 		panic("UpdateByNames params [names] is empty")
 	}
 
-	fls := ms.Fields()
+	fls := ms.FieldsKV()
 	cls := ms.Columns()
 	sBuf := strings.Builder{}
 	tValues := make([]interface{}, tgLen+2)
@@ -119,4 +119,22 @@ func selectSqlByID(mss *orm.ModelSchema) string {
 	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=?;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})
+}
+
+// 不带缓存
+func selectSqlByCondition(mss *orm.ModelSchema, condition string) string {
+	if condition == "" {
+		condition = "1=1"
+	}
+	return fmt.Sprintf("SELECT * FROM %s WHERE %s;", mss.TableName(), condition)
+}
+
+func selectSqlByFields(mss *orm.ModelSchema, someFields, condition string) string {
+	if someFields == "" {
+		someFields = "*"
+	}
+	if condition == "" {
+		condition = "1=1"
+	}
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", someFields, mss.TableName(), condition)
 }

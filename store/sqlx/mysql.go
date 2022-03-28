@@ -67,3 +67,89 @@ func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, fields ...string) sq
 //
 //	return conn.UpdateByNames(obj, names...)
 //}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (conn *MysqlORM) QueryID(obj orm.ApplyOrmStruct, id interface{}) {
+	schema := orm.Schema(obj)
+	rows := conn.QueryRaw(selectSqlByID(schema), id)
+	defer rows.Close()
+
+	smColumns := schema.ColumnsKV()
+	dbColumns, _ := rows.Columns()
+	fieldsAddr := make([]interface{}, len(dbColumns))
+
+	rVal := reflect.Indirect(reflect.ValueOf(obj))
+	// 每一个db-column都应该有对应的变量接收值
+	for cIdx, column := range dbColumns {
+		idx, ok := smColumns[column]
+		if ok {
+			fieldsAddr[cIdx] = schema.AddrByIndex(&rVal, idx)
+		} else {
+			// 这个值会被丢弃
+			fieldsAddr[cIdx] = new(interface{})
+		}
+	}
+
+	if rows.Next() {
+		err := rows.Scan(fieldsAddr...)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (conn *MysqlORM) QueryWhere(obj orm.ApplyOrmStruct, condition string, values ...interface{}) []interface{} {
+	schema := orm.Schema(obj)
+	rows := conn.QueryRaw(selectSqlByCondition(schema, condition), values...)
+	defer rows.Close()
+
+	smColumns := schema.ColumnsKV()
+	dbColumns, _ := rows.Columns()
+	fieldsAddr := make([]interface{}, len(dbColumns))
+	rVal := reflect.Indirect(reflect.ValueOf(obj))
+	rTpe := rVal.Type()
+
+	rets := make([]interface{}, 0)
+	for rows.Next() {
+		newObj := reflect.Indirect(reflect.New(rTpe))
+
+		// 每一个db-column都应该有对应的变量接收值
+		for cIdx, column := range dbColumns {
+			idx, ok := smColumns[column]
+			if ok {
+				fieldsAddr[cIdx] = schema.AddrByIndex(&newObj, idx)
+			} else if fieldsAddr[cIdx] == nil {
+				// 这个值会被丢弃
+				fieldsAddr[cIdx] = new(interface{})
+			}
+		}
+
+		err := rows.Scan(fieldsAddr...)
+		if err != nil {
+			panic(err)
+		}
+
+		rets = append(rets, newObj.Interface())
+	}
+
+	return rets
+}
+
+func (conn *MysqlORM) QueryFields(obj orm.ApplyOrmStruct, fields string, condition string, values ...interface{}) {
+	schema := orm.Schema(obj)
+	rows := conn.QueryRaw(selectSqlByFields(schema, fields, condition), values)
+	defer rows.Close()
+
+	//rVal := reflect.Indirect(reflect.ValueOf(obj))
+	//rTpe := rVal.Type()
+	//
+	//newObj := reflect.New(rTpe)
+}
+
+func (conn *MysqlORM) QueryDemo(typ reflect.Type) {
+
+}
+
+//func (conn *MysqlORM) QuerySql(sql string, args ...interface{}) {
+//
+//}
