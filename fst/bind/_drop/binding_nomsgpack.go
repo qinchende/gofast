@@ -7,7 +7,7 @@
 package _drop
 
 import (
-	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/bind"
 	"net/http"
 )
 

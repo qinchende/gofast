@@ -7,10 +7,12 @@ import (
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type ModelSchema struct {
-	tableName    string          // 数据库表名称
-	fields       map[string]int8 // Struct的字段
-	fieldsIndex  [][]int         // Struct标准字段索引
-	columns      []string        // 对应数据库的列名称
+	tableName string // 数据库表名称
+
+	columns      []string        // column_name
+	fieldsKV     map[string]int8 // field_name index
+	columnsKV    map[string]int8 // column_name index
+	fieldsIndex  [][]int         // reflect fields index
 	primaryIndex int8            // 主键字段原始索引位置
 	updatedIndex int8            // 更新字段原始索引位置，没有则为-1
 
@@ -28,8 +30,12 @@ func (ms *ModelSchema) TableName() string {
 	return ms.tableName
 }
 
-func (ms *ModelSchema) Fields() map[string]int8 {
-	return ms.fields
+func (ms *ModelSchema) FieldsKV() map[string]int8 {
+	return ms.fieldsKV
+}
+
+func (ms *ModelSchema) ColumnsKV() map[string]int8 {
+	return ms.columnsKV
 }
 
 func (ms *ModelSchema) Columns() []string {
@@ -79,6 +85,10 @@ func (ms *ModelSchema) PrimaryValue(obj ApplyOrmStruct) interface{} {
 
 func (ms *ModelSchema) ValueByIndex(rVal *reflect.Value, index int8) interface{} {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Interface()
+}
+
+func (ms *ModelSchema) AddrByIndex(rVal *reflect.Value, index int8) interface{} {
+	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

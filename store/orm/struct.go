@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strings"
@@ -89,6 +90,16 @@ func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
 			}
 		}
 
+		logx.Info(rVal.NumMethod())
+
+		//tbName := ""
+		//tbNameFunc := structMethod(rVal, "TableName")
+		//if tbNameFunc.IsZero() {
+		//	tbName = stringx.Camel2Snake(rTyp.Name())
+		//} else {
+		//	tbName = tbNameFunc.Call(nil)[0].Interface().(string)
+		//}
+
 		// 缓存schema
 		tbName := obj.TableName()
 		if tbName == "" {
@@ -101,14 +112,18 @@ func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
 		copy(fDBNew, fDB)
 		mSchema = &ModelSchema{
 			tableName:    tbName,
-			fields:       make(map[string]int8, len(fStruct)),
-			fieldsIndex:  fIndexesNew,
 			columns:      fDBNew,
+			fieldsKV:     make(map[string]int8, len(fStruct)),
+			columnsKV:    make(map[string]int8, len(fStruct)),
+			fieldsIndex:  fIndexesNew,
 			primaryIndex: int8(priIndex),
 			updatedIndex: int8(updateIndex),
 		}
 		for idx, name := range fStruct {
-			mSchema.fields[name] = int8(idx)
+			mSchema.fieldsKV[name] = int8(idx)
+		}
+		for idx, name := range fDBNew {
+			mSchema.columnsKV[name] = int8(idx)
 		}
 		cacheSetSchema(rTyp, mSchema)
 	}
@@ -178,6 +193,25 @@ func structFields(obj interface{}, parentIdx []int, mFields *[2]string) ([]strin
 		fIndexes = append(fIndexes, cIdx)
 	}
 	return fColumns, fFields, fIndexes
+}
+
+func structMethod(rVal reflect.Value, methodName string) reflect.Value {
+	tgFunc := rVal.MethodByName(methodName)
+	if !tgFunc.IsZero() {
+		return tgFunc
+	}
+
+	for i := 0; i < rVal.NumField(); i++ {
+		va := rVal.Field(i)
+		if va.Kind() == reflect.Struct {
+			mFunc := structMethod(va, methodName)
+			if !mFunc.IsZero() {
+				tgFunc = mFunc
+				break
+			}
+		}
+	}
+	return tgFunc
 }
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

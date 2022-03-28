@@ -8,7 +8,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/qinchende/gofast/fst/binding"
+	"github.com/qinchende/gofast/fst/bind"
 	"github.com/qinchende/gofast/fst/cst"
 	"github.com/qinchende/gofast/fst/test/testdata/protoexample"
 	"io"

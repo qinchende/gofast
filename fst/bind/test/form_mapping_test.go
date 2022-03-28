@@ -3,9 +3,10 @@
 //// license that can be found in the LICENSE file.
 //
 package test
+
 //
 //import (
-//	"github.com/qinchende/gofast/fst/binding"
+//	"github.com/qinchende/gofast/fst/bind"
 //	"reflect"
 //	"testing"
 //	"time"
