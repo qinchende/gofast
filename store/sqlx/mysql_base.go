@@ -7,6 +7,7 @@ import (
 
 func errPanic(err error) {
 	if err != nil {
+		logx.Error(err)
 		panic(err)
 	}
 }

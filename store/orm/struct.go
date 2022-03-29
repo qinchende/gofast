@@ -2,7 +2,6 @@ package orm
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strings"
@@ -10,12 +9,16 @@ import (
 )
 
 func Schema(obj ApplyOrmStruct) *ModelSchema {
-	return fetchSchema(obj)
+	return fetchSchema(reflect.TypeOf(obj))
+}
+
+func SchemaOfType(rTyp reflect.Type) *ModelSchema {
+	return fetchSchema(rTyp)
 }
 
 // 结构体中属性的数据库字段名称合集
 func SchemaValues(obj ApplyOrmStruct) (*ModelSchema, []interface{}) {
-	mSchema := fetchSchema(obj)
+	mSchema := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
 	values := make([]interface{}, mSchema.Length())
@@ -46,20 +49,24 @@ func structValues(values *[]interface{}, nextIndex *int8, obj interface{}) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的ORM Schema元数据
-func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
-	rVal := reflect.Indirect(reflect.ValueOf(obj))
-	rTyp := rVal.Type()
+func fetchSchema(rTyp reflect.Type) *ModelSchema {
+	//valueOf := reflect.ValueOf(obj)
+	//rVal := reflect.Indirect(valueOf)
+	//rTyp := rVal.Type()
+	for rTyp.Kind() == reflect.Ptr {
+		rTyp = rTyp.Elem()
+	}
 
 	mSchema := cacheGetSchema(rTyp) // 看类型，缓存有就直接用，否则计算一次并缓存
 	if mSchema == nil {
-		if rVal.Kind() != reflect.Struct {
-			panic(fmt.Errorf("must structs; got %T", rVal))
+		if rTyp.Kind() != reflect.Struct {
+			panic(fmt.Errorf("must structs; got %T", rTyp))
 		}
 
 		// primary, updated
 		mFields := [2]string{}
 		rootIdx := make([]int, 0)
-		fDB, fStruct, fIndexes := structFields(obj, rootIdx, &mFields)
+		fDB, fStruct, fIndexes := structFields(rTyp, rootIdx, &mFields)
 		if mFields[0] == "" {
 			mFields[0] = dbDefPrimaryKeyName
 		}
@@ -76,7 +83,7 @@ func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
 			}
 		}
 		if priIndex == -1 {
-			panic(fmt.Errorf("%T, model has no primary key", rVal)) // 不能没有主键
+			panic(fmt.Errorf("%T, model has no primary key", rTyp)) // 不能没有主键
 		}
 		//if rVal.FieldByName(mFields[0]).Kind() != reflect.Uint {
 		//	panic("primary key must uint") // 主键必须是 uint 类型
@@ -90,18 +97,17 @@ func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
 			}
 		}
 
-		logx.Info(rVal.NumMethod())
+		// 获取 table name
+		tbName := ""
+		rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
+		tbNameFunc := rTypVal.MethodByName("TableName")
+		if !tbNameFunc.IsZero() {
+			tbName = tbNameFunc.Call(nil)[0].Interface().(string)
+		}
 
-		//tbName := ""
-		//tbNameFunc := structMethod(rVal, "TableName")
-		//if tbNameFunc.IsZero() {
-		//	tbName = stringx.Camel2Snake(rTyp.Name())
-		//} else {
-		//	tbName = tbNameFunc.Call(nil)[0].Interface().(string)
+		//if ok {
+		//	tbName = tbNameFunc.Func.Call(nil)[0].Interface().(string)
 		//}
-
-		// 缓存schema
-		tbName := obj.TableName()
 		if tbName == "" {
 			tbName = stringx.Camel2Snake(rTyp.Name())
 		}
@@ -110,6 +116,7 @@ func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
 		copy(fIndexesNew, fIndexes)
 		fDBNew := make([]string, len(fDB))
 		copy(fDBNew, fDB)
+		// 构造ORM Model元数据
 		mSchema = &ModelSchema{
 			tableName:    tbName,
 			columns:      fDBNew,
@@ -132,25 +139,24 @@ func fetchSchema(obj ApplyOrmStruct) *ModelSchema {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(obj interface{}, parentIdx []int, mFields *[2]string) ([]string, []string, [][]int) {
-	rVal := reflect.Indirect(reflect.ValueOf(obj))
-	rTyp := rVal.Type()
-
+func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]string, []string, [][]int) {
 	fColumns := make([]string, 0)
 	fFields := make([]string, 0)
 	fIndexes := make([][]int, 0)
 
-	for i := 0; i < rVal.NumField(); i++ {
+	for i := 0; i < rTyp.NumField(); i++ {
+		fi := rTyp.Field(i)
+
 		// 通过值类型来确定后面
-		va := rVal.Field(i)
-		if va.Kind() == reflect.Struct {
-			vaI := va.Interface()
-			if _, ok := vaI.(time.Time); !ok {
+		fdType := fi.Type
+		if fdType.Kind() == reflect.Struct {
+			vaI := reflect.New(fdType).Interface()
+			if _, ok := vaI.(*time.Time); !ok {
 				newPIdx := make([]int, 0)
 				newPIdx = append(newPIdx, parentIdx...)
 				newPIdx = append(newPIdx, i)
 
-				c, f, x := structFields(vaI, newPIdx, mFields)
+				c, f, x := structFields(fdType, newPIdx, mFields)
 				fColumns = append(fColumns, c...)
 				fFields = append(fFields, f...)
 				fIndexes = append(fIndexes, x...)
@@ -159,7 +165,6 @@ func structFields(obj interface{}, parentIdx []int, mFields *[2]string) ([]strin
 		}
 
 		// 1. 查找tag，确定数据库列名称
-		fi := rTyp.Field(i)
 		dbf := fi.Tag.Get(dbColumnNameTag)
 		if dbf == "" {
 			dbf = fi.Tag.Get(dbColumnNameTag2)
@@ -193,25 +198,6 @@ func structFields(obj interface{}, parentIdx []int, mFields *[2]string) ([]strin
 		fIndexes = append(fIndexes, cIdx)
 	}
 	return fColumns, fFields, fIndexes
-}
-
-func structMethod(rVal reflect.Value, methodName string) reflect.Value {
-	tgFunc := rVal.MethodByName(methodName)
-	if !tgFunc.IsZero() {
-		return tgFunc
-	}
-
-	for i := 0; i < rVal.NumField(); i++ {
-		va := rVal.Field(i)
-		if va.Kind() == reflect.Struct {
-			mFunc := structMethod(va, methodName)
-			if !mFunc.IsZero() {
-				tgFunc = mFunc
-				break
-			}
-		}
-	}
-	return tgFunc
 }
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
