@@ -135,19 +135,59 @@ func (conn *MysqlORM) QueryWhere(obj orm.ApplyOrmStruct, condition string, value
 	return rets
 }
 
-func (conn *MysqlORM) QueryFields(obj orm.ApplyOrmStruct, fields string, condition string, values ...interface{}) {
-	schema := orm.Schema(obj)
-	rows := conn.QueryRaw(selectSqlByFields(schema, fields, condition), values)
+//
+//func (conn *MysqlORM) QueryFields(obj orm.ApplyOrmStruct, fields string, condition string, values ...interface{}) {
+//	schema := orm.Schema(obj)
+//	rows := conn.QueryRaw(selectSqlByFields(schema, fields, condition), values)
+//	defer rows.Close()
+//
+//	//rVal := reflect.Indirect(reflect.ValueOf(obj))
+//	//rTpe := rVal.Type()
+//	//
+//	//newObj := reflect.New(rTpe)
+//}
+
+//func (conn *MysqlORM) QueryDemo(typ reflect.Type) {
+//
+//}
+
+func (conn *MysqlORM) QuerySome(dest interface{}, condition string, pms ...interface{}) {
+	rVal := reflect.Indirect(reflect.ValueOf(dest))
+	rTpe := rVal.Type()
+	//typ := reflect.TypeOf(dest)
+	//valOf := reflect.ValueOf(dest)
+
+	schema := orm.SchemaOfType(rTpe)
+	rows := conn.QueryRaw(selectSqlByCondition(schema, condition), pms...)
 	defer rows.Close()
 
-	//rVal := reflect.Indirect(reflect.ValueOf(obj))
-	//rTpe := rVal.Type()
-	//
-	//newObj := reflect.New(rTpe)
-}
+	smColumns := schema.ColumnsKV()
+	dbColumns, _ := rows.Columns()
+	fieldsAddr := make([]interface{}, len(dbColumns))
+	//rVal := reflect.Indirect(valOf)
 
-func (conn *MysqlORM) QueryDemo(typ reflect.Type) {
+	rets := make([]interface{}, 0)
+	for rows.Next() {
+		newObj := reflect.Indirect(reflect.New(rTpe))
 
+		// 每一个db-column都应该有对应的变量接收值
+		for cIdx, column := range dbColumns {
+			idx, ok := smColumns[column]
+			if ok {
+				fieldsAddr[cIdx] = schema.AddrByIndex(&newObj, idx)
+			} else if fieldsAddr[cIdx] == nil {
+				// 这个值会被丢弃
+				fieldsAddr[cIdx] = new(interface{})
+			}
+		}
+
+		err := rows.Scan(fieldsAddr...)
+		if err != nil {
+			panic(err)
+		}
+
+		rets = append(rets, newObj.Interface())
+	}
 }
 
 //func (conn *MysqlORM) QuerySql(sql string, args ...interface{}) {
