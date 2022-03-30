@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Schema(obj ApplyOrmStruct) *ModelSchema {
+func Schema(obj interface{}) *ModelSchema {
 	return fetchSchema(reflect.TypeOf(obj))
 }
 
@@ -17,7 +17,7 @@ func SchemaOfType(rTyp reflect.Type) *ModelSchema {
 }
 
 // 结构体中属性的数据库字段名称合集
-func SchemaValues(obj ApplyOrmStruct) (*ModelSchema, []interface{}) {
+func SchemaValues(obj interface{}) (*ModelSchema, []interface{}) {
 	mSchema := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
@@ -50,9 +50,6 @@ func structValues(values *[]interface{}, nextIndex *int8, obj interface{}) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的ORM Schema元数据
 func fetchSchema(rTyp reflect.Type) *ModelSchema {
-	//valueOf := reflect.ValueOf(obj)
-	//rVal := reflect.Indirect(valueOf)
-	//rTyp := rVal.Type()
 	for rTyp.Kind() == reflect.Ptr {
 		rTyp = rTyp.Elem()
 	}
@@ -104,13 +101,13 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if !tbNameFunc.IsZero() {
 			tbName = tbNameFunc.Call(nil)[0].Interface().(string)
 		}
-
 		//if ok {
 		//	tbName = tbNameFunc.Func.Call(nil)[0].Interface().(string)
 		//}
 		if tbName == "" {
 			tbName = stringx.Camel2Snake(rTyp.Name())
 		}
+
 		// 收缩切片
 		fIndexesNew := make([][]int, len(fIndexes))
 		copy(fIndexesNew, fIndexes)

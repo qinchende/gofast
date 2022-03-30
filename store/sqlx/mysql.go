@@ -69,16 +69,21 @@ func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, fields ...string) sq
 //}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *MysqlORM) QueryID(obj orm.ApplyOrmStruct, id interface{}) {
-	schema := orm.Schema(obj)
+func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int {
+	rVal := reflect.Indirect(reflect.ValueOf(dest))
+
+	schema := orm.SchemaOfType(rVal.Type())
 	rows := conn.QueryRaw(selectSqlByID(schema), id)
 	defer rows.Close()
 
-	smColumns := schema.ColumnsKV()
+	if !rows.Next() {
+		return 0
+	}
+
 	dbColumns, _ := rows.Columns()
+	smColumns := schema.ColumnsKV()
 	fieldsAddr := make([]interface{}, len(dbColumns))
 
-	rVal := reflect.Indirect(reflect.ValueOf(obj))
 	// 每一个db-column都应该有对应的变量接收值
 	for cIdx, column := range dbColumns {
 		idx, ok := smColumns[column]
@@ -89,50 +94,51 @@ func (conn *MysqlORM) QueryID(obj orm.ApplyOrmStruct, id interface{}) {
 			fieldsAddr[cIdx] = new(interface{})
 		}
 	}
-
-	if rows.Next() {
-		err := rows.Scan(fieldsAddr...)
-		if err != nil {
-			panic(err)
-		}
-	}
+	err := rows.Scan(fieldsAddr...)
+	errPanic(err)
+	return 1
 }
 
-func (conn *MysqlORM) QueryWhere(obj orm.ApplyOrmStruct, condition string, values ...interface{}) []interface{} {
-	schema := orm.Schema(obj)
-	rows := conn.QueryRaw(selectSqlByCondition(schema, condition), values...)
-	defer rows.Close()
+func (conn *MysqlORM) QueryWhere(dest interface{}, condition string, pms ...interface{}) {
+	dSliceTyp, dItemType, isPtr := checkQueryType(dest)
 
+	schema := orm.SchemaOfType(dItemType)
+	sqlRows := conn.QueryRaw(selectSqlByCondition(schema, condition), pms...)
+	defer sqlRows.Close()
+
+	dbColumns, _ := sqlRows.Columns()
 	smColumns := schema.ColumnsKV()
-	dbColumns, _ := rows.Columns()
-	fieldsAddr := make([]interface{}, len(dbColumns))
-	rVal := reflect.Indirect(reflect.ValueOf(obj))
-	rTpe := rVal.Type()
 
-	rets := make([]interface{}, 0)
-	for rows.Next() {
-		newObj := reflect.Indirect(reflect.New(rTpe))
+	valuesAddr := make([]interface{}, len(dbColumns))
+	tpItems := make([]reflect.Value, 0, 25)
+	for sqlRows.Next() {
+		itemPtr := reflect.New(dItemType)
+		itemVal := reflect.Indirect(itemPtr)
 
 		// 每一个db-column都应该有对应的变量接收值
 		for cIdx, column := range dbColumns {
+			// TODO：这里可以优化，不用每次map查找，而是只查一次，然后缓存index关系
 			idx, ok := smColumns[column]
 			if ok {
-				fieldsAddr[cIdx] = schema.AddrByIndex(&newObj, idx)
-			} else if fieldsAddr[cIdx] == nil {
-				// 这个值会被丢弃
-				fieldsAddr[cIdx] = new(interface{})
+				valuesAddr[cIdx] = schema.AddrByIndex(&itemVal, idx)
+			} else if valuesAddr[cIdx] == nil {
+				valuesAddr[cIdx] = new(interface{}) // 这个值会被丢弃
 			}
 		}
 
-		err := rows.Scan(fieldsAddr...)
-		if err != nil {
-			panic(err)
-		}
+		err := sqlRows.Scan(valuesAddr...)
+		errPanic(err)
 
-		rets = append(rets, newObj.Interface())
+		if isPtr {
+			tpItems = append(tpItems, itemPtr)
+		} else {
+			tpItems = append(tpItems, itemVal)
+		}
 	}
 
-	return rets
+	records := reflect.MakeSlice(dSliceTyp, 0, len(tpItems))
+	records = reflect.Append(records, tpItems...)
+	reflect.ValueOf(dest).Elem().Set(records)
 }
 
 //
@@ -151,43 +157,26 @@ func (conn *MysqlORM) QueryWhere(obj orm.ApplyOrmStruct, condition string, value
 //
 //}
 
-func (conn *MysqlORM) QuerySome(dest interface{}, condition string, pms ...interface{}) {
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
-	rTpe := rVal.Type()
-	//typ := reflect.TypeOf(dest)
-	//valOf := reflect.ValueOf(dest)
-
-	schema := orm.SchemaOfType(rTpe)
-	rows := conn.QueryRaw(selectSqlByCondition(schema, condition), pms...)
-	defer rows.Close()
-
-	smColumns := schema.ColumnsKV()
-	dbColumns, _ := rows.Columns()
-	fieldsAddr := make([]interface{}, len(dbColumns))
-	//rVal := reflect.Indirect(valOf)
-
-	rets := make([]interface{}, 0)
-	for rows.Next() {
-		newObj := reflect.Indirect(reflect.New(rTpe))
-
-		// 每一个db-column都应该有对应的变量接收值
-		for cIdx, column := range dbColumns {
-			idx, ok := smColumns[column]
-			if ok {
-				fieldsAddr[cIdx] = schema.AddrByIndex(&newObj, idx)
-			} else if fieldsAddr[cIdx] == nil {
-				// 这个值会被丢弃
-				fieldsAddr[cIdx] = new(interface{})
-			}
-		}
-
-		err := rows.Scan(fieldsAddr...)
-		if err != nil {
-			panic(err)
-		}
-
-		rets = append(rets, newObj.Interface())
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Utils
+func checkQueryType(dest interface{}) (reflect.Type, reflect.Type, bool) {
+	dTyp := reflect.TypeOf(dest)
+	if dTyp.Kind() != reflect.Ptr {
+		panic("dest must be pointer.")
 	}
+	dSliceTyp := dTyp.Elem()
+	if dSliceTyp.Kind() != reflect.Slice {
+		panic("dest must be slice.")
+	}
+
+	isPtr := false
+	dItemType := dSliceTyp.Elem()
+	if dItemType.Kind() == reflect.Ptr {
+		isPtr = true
+		dItemType = dItemType.Elem()
+	}
+
+	return dSliceTyp, dItemType, isPtr
 }
 
 //func (conn *MysqlORM) QuerySql(sql string, args ...interface{}) {
