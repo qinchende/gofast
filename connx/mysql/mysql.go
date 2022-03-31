@@ -29,5 +29,7 @@ func NewMysqlConn(cf *ConnConfig) *sqlx.MysqlORM {
 	db.SetMaxIdleConns(cf.MaxIdle)
 
 	mysqlX.Client = db
+	mysqlX.Writer = db
+	mysqlX.Reader = db
 	return &mysqlX
 }

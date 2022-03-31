@@ -5,13 +5,6 @@ import (
 	"github.com/qinchende/gofast/logx"
 )
 
-func errPanic(err error) {
-	if err != nil {
-		logx.Error(err)
-		panic(err)
-	}
-}
-
 func (conn *MysqlORM) QueryRaw(sql string, args ...interface{}) *sql.Rows {
 	logx.DebugPrint(sql)
 	rows, err := conn.Client.Query(sql, args...)

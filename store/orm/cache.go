@@ -78,7 +78,7 @@ func (ms *ModelSchema) DeleteSQL(fn func(*ModelSchema) string) string {
 	return ms.deleteSQL
 }
 
-func (ms *ModelSchema) PrimaryValue(obj ApplyOrmStruct) interface{} {
+func (ms *ModelSchema) PrimaryValue(obj interface{}) interface{} {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 	return rVal.FieldByIndex(ms.fieldsIndex[ms.primaryIndex]).Interface()
 }

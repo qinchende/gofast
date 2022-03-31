@@ -57,7 +57,13 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 	mSchema := cacheGetSchema(rTyp) // 看类型，缓存有就直接用，否则计算一次并缓存
 	if mSchema == nil {
 		if rTyp.Kind() != reflect.Struct {
-			panic(fmt.Errorf("must structs; got %T", rTyp))
+			// 如果是 KV map 类型的。统一
+			if rTyp.String() == "fst.KV" {
+				mSchema = &ModelSchema{}
+				cacheSetSchema(rTyp, mSchema)
+				return mSchema
+			}
+			panic(fmt.Errorf("dest type must be structs; but got %T", rTyp))
 		}
 
 		// primary, updated
