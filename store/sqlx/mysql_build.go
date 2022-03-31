@@ -70,21 +70,25 @@ func updateSql(mss *orm.ModelSchema) string {
 }
 
 // 更新特定字段
-func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fields []string) (string, []interface{}) {
-	tgLen := len(fields)
-	if tgLen <= 0 {
-		panic("UpdateByNames params [names] is empty")
+func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []string) (string, []interface{}) {
+	if len(columns) == 1 {
+		columns = strings.Split(columns[0], ",")
 	}
 
-	fls := ms.FieldsKV()
+	tgLen := len(columns)
+	if tgLen <= 0 {
+		panic("UpdateByColumns params [columns] is empty")
+	}
+
+	clsKV := ms.ColumnsKV()
 	cls := ms.Columns()
 	sBuf := strings.Builder{}
 	tValues := make([]interface{}, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx, ok := fls[fields[i]]
+		idx, ok := clsKV[columns[i]]
 		if !ok {
-			panic(fmt.Errorf("field %s not exist", fields[i]))
+			panic(fmt.Errorf("field %s not exist", columns[i]))
 		}
 
 		// 更新字符串
@@ -115,26 +119,41 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fields []string
 	return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ms.TableName(), sBuf.String(), cls[priIdx]), tValues
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 查询 select * from
+
 func selectSqlByID(mss *orm.ModelSchema) string {
 	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
-		return fmt.Sprintf("SELECT * FROM %s WHERE %s=?;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? limit 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})
 }
 
 // 不带缓存
-func selectSqlByCondition(mss *orm.ModelSchema, condition string) string {
-	if condition == "" {
-		condition = "1=1"
+func selectSqlByWhere(mss *orm.ModelSchema, fields string, where string) string {
+	if fields == "" {
+		fields = "*"
 	}
-	return fmt.Sprintf("SELECT * FROM %s WHERE %s;", mss.TableName(), condition)
+	if where == "" {
+		where = "1=1"
+	}
+	if strings.Index(where, "limit") < 0 {
+		where += " limit 10000" // 最多1万条记录
+	}
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, mss.TableName(), where)
 }
 
-func selectSqlByFields(mss *orm.ModelSchema, someFields, condition string) string {
-	if someFields == "" {
-		someFields = "*"
+func selectSqlByPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	if pet.Table == "" {
+		pet.Table = mss.TableName()
 	}
-	if condition == "" {
-		condition = "1=1"
+	if pet.Columns == "" {
+		pet.Columns = "*"
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", someFields, mss.TableName(), condition)
+	if pet.Limit <= 0 {
+		pet.Limit = 10000
+	}
+	if pet.Where == "" {
+		pet.Where = "1=1"
+	}
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s limit %d offset %d;", pet.Columns, pet.Table, pet.Where, pet.Limit, pet.Offset)
 }

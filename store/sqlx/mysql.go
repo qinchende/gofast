@@ -1,19 +1,14 @@
 package sqlx
 
 import (
-	"context"
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
 
-type MysqlORM struct {
-	Client *sql.DB
-	Ctx    context.Context
-}
-
-func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) sql.Result {
+func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) int64 {
 	obj.BeforeSave() // 设置值
 	schema, values := orm.SchemaValues(obj)
 
@@ -24,16 +19,17 @@ func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) sql.Result {
 
 	ret := conn.Exec(insertSql(schema), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
-	return ret
+	return parseResult(ret)
 }
 
-func (conn *MysqlORM) Delete(obj orm.ApplyOrmStruct) sql.Result {
+func (conn *MysqlORM) Delete(obj interface{}) int64 {
 	schema := orm.Schema(obj)
 	val := schema.PrimaryValue(obj)
-	return conn.Exec(deleteSql(schema), val)
+	ret := conn.Exec(deleteSql(schema), val)
+	return parseResult(ret)
 }
 
-func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) sql.Result {
+func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
 	obj.BeforeSave()
 	schema, values := orm.SchemaValues(obj)
 
@@ -43,33 +39,23 @@ func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) sql.Result {
 	values[priIdx] = values[fLen-1]
 	values[fLen-1] = tVal
 
-	return conn.Exec(updateSql(schema), values...)
+	ret := conn.Exec(updateSql(schema), values...)
+	return parseResult(ret)
 }
 
 // 通过给定的结构体字段更新数据
-func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, fields ...string) sql.Result {
+func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, columns ...string) int64 {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 	schema := orm.Schema(obj)
 
 	obj.BeforeSave()
-	upSQL, tValues := updateSqlByFields(schema, &rVal, fields)
-	return conn.Exec(upSQL, tValues...)
+	upSQL, tValues := updateSqlByColumns(schema, &rVal, columns)
+	ret := conn.Exec(upSQL, tValues...)
+	return parseResult(ret)
 }
 
-//// 不推荐这种方式: 1. 可能参数是值传递， 2. 反射取字段名称，3. 更新值不是传入参数的值，有歧义
-//func (conn *MysqlORM) UpdateFields(obj orm.ApplyOrmStruct, fields ...interface{}) sql.Result {
-//	fLen := len(fields)
-//	names := make([]string, fLen)
-//	for i := 0; i < fLen; i++ {
-//		va := reflect.Indirect(reflect.ValueOf(fields[i]))
-//		names[i] = va.Type().Name()
-//	}
-//
-//	return conn.UpdateByNames(obj, names...)
-//}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int {
+func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int64 {
 	rVal := reflect.Indirect(reflect.ValueOf(dest))
 
 	schema := orm.SchemaOfType(rVal.Type())
@@ -99,11 +85,15 @@ func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int {
 	return 1
 }
 
-func (conn *MysqlORM) QueryWhere(dest interface{}, condition string, pms ...interface{}) {
+func (conn *MysqlORM) QueryWhere(dest interface{}, where string, pms ...interface{}) int64 {
+	return conn.QueryColumns(dest, "*", where, pms...)
+}
+
+func (conn *MysqlORM) QueryColumns(dest interface{}, fields string, where string, pms ...interface{}) int64 {
 	dSliceTyp, dItemType, isPtr := checkQueryType(dest)
 
 	schema := orm.SchemaOfType(dItemType)
-	sqlRows := conn.QueryRaw(selectSqlByCondition(schema, condition), pms...)
+	sqlRows := conn.QueryRaw(selectSqlByWhere(schema, fields, where), pms...)
 	defer sqlRows.Close()
 
 	dbColumns, _ := sqlRows.Columns()
@@ -139,23 +129,28 @@ func (conn *MysqlORM) QueryWhere(dest interface{}, condition string, pms ...inte
 	records := reflect.MakeSlice(dSliceTyp, 0, len(tpItems))
 	records = reflect.Append(records, tpItems...)
 	reflect.ValueOf(dest).Elem().Set(records)
+	return int64(len(tpItems))
 }
 
-//
-//func (conn *MysqlORM) QueryFields(obj orm.ApplyOrmStruct, fields string, condition string, values ...interface{}) {
-//	schema := orm.Schema(obj)
-//	rows := conn.QueryRaw(selectSqlByFields(schema, fields, condition), values)
-//	defer rows.Close()
-//
-//	//rVal := reflect.Indirect(reflect.ValueOf(obj))
-//	//rTpe := rVal.Type()
-//	//
-//	//newObj := reflect.New(rTpe)
-//}
+func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
+	dSliceTyp, dItemType, isPtr := checkQueryType(dest)
 
-//func (conn *MysqlORM) QueryDemo(typ reflect.Type) {
-//
-//}
+	logx.Info(dSliceTyp)
+	logx.Info(dItemType)
+	logx.Info(isPtr)
+
+	schema := orm.SchemaOfType(dItemType)
+	if pet.Select == "" {
+		pet.Select = selectSqlByPet(schema, pet)
+	}
+	sqlRows := conn.QueryRaw(pet.Select, pet.Prams...)
+	defer sqlRows.Close()
+
+	//dbColumns, _ := sqlRows.Columns()
+	//smColumns := schema.ColumnsKV()
+
+	return 0
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Utils
@@ -177,6 +172,12 @@ func checkQueryType(dest interface{}) (reflect.Type, reflect.Type, bool) {
 	}
 
 	return dSliceTyp, dItemType, isPtr
+}
+
+func parseResult(ret sql.Result) int64 {
+	ct, err := ret.RowsAffected()
+	errLog(err)
+	return ct
 }
 
 //func (conn *MysqlORM) QuerySql(sql string, args ...interface{}) {
