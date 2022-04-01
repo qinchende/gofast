@@ -128,6 +128,13 @@ func selectSqlByID(mss *orm.ModelSchema) string {
 	})
 }
 
+func selectSqlByOne(mss *orm.ModelSchema, where string) string {
+	if where == "" {
+		where = "1=1"
+	}
+	return fmt.Sprintf("SELECT * FROM %s WHERE %s limit 1;", mss.TableName(), where)
+}
+
 // 不带缓存
 func selectSqlByWhere(mss *orm.ModelSchema, fields string, where string) string {
 	if fields == "" {
@@ -151,6 +158,9 @@ func selectSqlByPet(mss *orm.ModelSchema, pet *SelectPet) string {
 	}
 	if pet.Limit <= 0 {
 		pet.Limit = 10000
+	}
+	if pet.Offset < 0 {
+		pet.Offset = 0
 	}
 	if pet.Where == "" {
 		pet.Where = "1=1"

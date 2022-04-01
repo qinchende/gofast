@@ -5,14 +5,14 @@ import (
 	"github.com/qinchende/gofast/logx"
 )
 
-func (conn *MysqlORM) QueryRaw(sql string, args ...interface{}) *sql.Rows {
+func (conn *MysqlORM) QuerySql(sql string, args ...interface{}) *sql.Rows {
 	logx.DebugPrint(sql)
 	rows, err := conn.Client.Query(sql, args...)
 	errPanic(err)
 	return rows
 }
 
-func (conn *MysqlORM) QueryRawContext(sql string, args ...interface{}) *sql.Rows {
+func (conn *MysqlORM) QuerySqlContext(sql string, args ...interface{}) *sql.Rows {
 	logx.DebugPrint(sql)
 	rows, err := conn.Client.QueryContext(conn.Ctx, sql, args...)
 	errPanic(err)

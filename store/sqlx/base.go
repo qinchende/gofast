@@ -14,7 +14,7 @@ type MysqlORM struct {
 }
 
 type SelectPet struct {
-	Select  string
+	Sql     string
 	Table   string
 	Columns string
 	Offset  int64
