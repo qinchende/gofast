@@ -127,6 +127,10 @@ func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
 	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
 
+func (conn *MysqlORM) QueryPetCC(dest interface{}, pet *SelectPetCC) int64 {
+	return 0
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析查询到的数据记录
 func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,

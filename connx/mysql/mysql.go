@@ -16,7 +16,7 @@ type (
 	}
 )
 
-func NewMysqlConn(cf *ConnConfig) *sqlx.MysqlORM {
+func OpenMysql(cf *ConnConfig) *sqlx.MysqlORM {
 	mysqlX := sqlx.MysqlORM{Ctx: context.Background()}
 
 	db, err := sql.Open("mysql", cf.ConnStr)
@@ -28,7 +28,7 @@ func NewMysqlConn(cf *ConnConfig) *sqlx.MysqlORM {
 	db.SetMaxOpenConns(cf.MaxOpen)
 	db.SetMaxIdleConns(cf.MaxIdle)
 
-	mysqlX.Client = db
+	//mysqlX.Client = db
 	mysqlX.Writer = db
 	mysqlX.Reader = db
 	return &mysqlX
