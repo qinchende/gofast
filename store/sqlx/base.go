@@ -7,21 +7,18 @@ import (
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type MysqlORM struct {
+	Ctx    context.Context
 	Reader *sql.DB // 只读连接（从库）
 	Writer *sql.DB // 只写连接（主库）
-	//Client *sql.DB // 读写皆可（主库）
-	Ctx context.Context
-
-	tx *sql.Tx // 读写皆可（主库）单独用于处理事务的连接
+	tx     *sql.Tx // 读写皆可（主库）单独用于处理事务的连接
 }
 
-const (
-	ConnWriter uint8 = iota // 默认0：从读
-	ConnReader              // 1：主写
-)
+//const (
+//	ConnWriter uint8 = iota // 默认0：从读
+//	ConnReader              // 1：主写
+//)
 
 type SelectPet struct {
-	TConn   uint8
 	Sql     string
 	Table   string
 	Columns string
@@ -37,13 +34,6 @@ const (
 )
 
 type SelectPetCC struct {
-	ConnType  uint8
 	CacheType uint8
-	Sql       string
-	Table     string
-	Columns   string
-	Offset    int64
-	Limit     int64
-	Where     string
-	Prams     []interface{}
+	SelectPet
 }
