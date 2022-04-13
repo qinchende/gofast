@@ -10,26 +10,40 @@ import (
 
 type (
 	ConnConfig struct {
-		ConnStr string `cnf:",NA"`
-		MaxOpen int    `cnf:",def=100,range=[1:1000]"`
-		MaxIdle int    `cnf:",def=100,NA"`
+		ConnStr  string `cnf:",NA"`
+		ConnStrR string `cnf:",NA"`
+		MaxOpen  int    `cnf:",def=100,range=[1:1000]"`
+		MaxIdle  int    `cnf:",def=100,NA"`
 	}
 )
 
 func OpenMysql(cf *ConnConfig) *sqlx.MysqlORM {
 	mysqlX := sqlx.MysqlORM{Ctx: context.Background()}
 
-	db, err := sql.Open("mysql", cf.ConnStr)
+	writer, err := sql.Open("mysql", cf.ConnStr)
 	if err != nil {
 		log.Fatalf("Conn %s err: %s", cf.ConnStr, err)
 	}
 	// See "Important settings" section.
-	db.SetConnMaxLifetime(time.Minute * 3)
-	db.SetMaxOpenConns(cf.MaxOpen)
-	db.SetMaxIdleConns(cf.MaxIdle)
+	writer.SetConnMaxLifetime(time.Minute * 3)
+	writer.SetMaxOpenConns(cf.MaxOpen)
+	writer.SetMaxIdleConns(cf.MaxIdle)
+	mysqlX.Writer = writer
 
-	//mysqlX.Client = db
-	mysqlX.Writer = db
-	mysqlX.Reader = db
+	// 如果配置文件配置了只读数据库，应用于读写分离
+	if cf.ConnStrR != "" {
+		reader, err := sql.Open("mysql", cf.ConnStrR)
+		if err != nil {
+			log.Fatalf("Conn %s err: %s", cf.ConnStrR, err)
+		}
+		// See "Important settings" section.
+		reader.SetConnMaxLifetime(time.Minute * 3)
+		reader.SetMaxOpenConns(cf.MaxOpen)
+		reader.SetMaxIdleConns(cf.MaxIdle)
+		mysqlX.Reader = reader
+	} else {
+		mysqlX.Reader = mysqlX.Writer
+	}
+
 	return &mysqlX
 }
