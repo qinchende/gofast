@@ -127,6 +127,18 @@ func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
 	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 带缓存版本
+func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
+	rVal := reflect.Indirect(reflect.ValueOf(dest))
+
+	sm := orm.SchemaOfType(rVal.Type())
+	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
+	defer sqlRows.Close()
+
+	return parseQueryRow(&rVal, sqlRows, sm)
+}
+
 func (conn *MysqlORM) QueryPetCC(dest interface{}, pet *SelectPetCC) int64 {
 	return 0
 }

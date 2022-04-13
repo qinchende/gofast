@@ -4,7 +4,12 @@ import (
 	"context"
 	msql "database/sql"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/timex"
+	"time"
 )
+
+// 执行超过500ms的语句需要优化分析，我们先打印出慢日志
+const slowThreshold = time.Millisecond * 500
 
 func (conn *MysqlORM) CloneWithCtx(ctx context.Context) *MysqlORM {
 	return &MysqlORM{Ctx: ctx, Writer: conn.Writer, Reader: conn.Reader}
@@ -13,15 +18,23 @@ func (conn *MysqlORM) CloneWithCtx(ctx context.Context) *MysqlORM {
 func (conn *MysqlORM) Exec(sql string, args ...interface{}) msql.Result {
 	return conn.ExecCtx(conn.Ctx, sql, args...)
 }
+
 func (conn *MysqlORM) ExecCtx(ctx context.Context, sql string, args ...interface{}) msql.Result {
 	logx.DebugPrint(sql)
 
 	var result msql.Result
 	var err error
+	startTime := timex.Now()
 	if conn.tx == nil {
 		result, err = conn.Writer.ExecContext(ctx, sql, args...)
 	} else {
 		result, err = conn.tx.ExecContext(ctx, sql, args...)
+	}
+	dur := timex.Since(startTime)
+	if dur > slowThreshold {
+		logx.Slowf("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, sql)
+		//} else {
+		//	logx.Infof("sql exec: %s", sql)
 	}
 	errPanic(err)
 	return result
@@ -36,16 +49,23 @@ func (conn *MysqlORM) QuerySqlCtx(ctx context.Context, sql string, args ...inter
 
 	var rows *msql.Rows
 	var err error
+	startTime := timex.Now()
 	if conn.tx == nil {
 		rows, err = conn.Reader.QueryContext(ctx, sql, args...)
 	} else {
 		rows, err = conn.tx.QueryContext(ctx, sql, args...)
 	}
+	dur := timex.Since(startTime)
+	if dur > slowThreshold {
+		logx.Slowf("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, sql)
+		//} else {
+		//	logx.Infof("sql query: %s", sql)
+	}
 	errPanic(err)
 	return rows
 }
 
-func (conn *MysqlORM) Trans() *MysqlORM {
+func (conn *MysqlORM) TransBegin() *MysqlORM {
 	return conn.TransCtx(conn.Ctx)
 }
 

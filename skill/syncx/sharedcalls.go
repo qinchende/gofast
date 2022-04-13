@@ -2,6 +2,8 @@ package syncx
 
 import "sync"
 
+// 请求相同资源的函数只调用一次，防止并发的时候将资源打爆。这一般在有缓存的场景使用。
+// 不是所有资源的请求都需要用这里的方法。一些比较消耗硬件资源的调用采用此并发模式。
 type (
 	// SharedCalls lets the concurrent calls with the same key to share the call result.
 	// For example, A called F, before it's done, B called F. Then B would not execute F,
@@ -11,7 +13,7 @@ type (
 	// B --------------------->calls F with key------>returns val
 	SharedCalls interface {
 		Do(key string, fn func() (interface{}, error)) (interface{}, error)
-		DoEx(key string, fn func() (interface{}, error)) (interface{}, bool, error)
+		DoExt(key string, fn func() (interface{}, error)) (interface{}, bool, error)
 	}
 
 	call struct {
@@ -33,23 +35,25 @@ func NewSharedCalls() SharedCalls {
 	}
 }
 
-func (g *sharedGroup) Do(key string, fn func() (interface{}, error)) (interface{}, error) {
+// 返回函数执行结果+错误提示
+func (g *sharedGroup) Do(key string, fn func() (interface{}, error)) (val interface{}, err error) {
 	c, done := g.createCall(key)
 	if done {
 		return c.val, c.err
 	}
 
-	g.makeCall(c, key, fn)
+	g.execCall(c, key, fn)
 	return c.val, c.err
 }
 
-func (g *sharedGroup) DoEx(key string, fn func() (interface{}, error)) (val interface{}, fresh bool, err error) {
+// 返回结果显示是否第一次执行，还是共享了其它请求的结果
+func (g *sharedGroup) DoExt(key string, fn func() (interface{}, error)) (val interface{}, fresh bool, err error) {
 	c, done := g.createCall(key)
 	if done {
 		return c.val, false, c.err
 	}
 
-	g.makeCall(c, key, fn)
+	g.execCall(c, key, fn)
 	return c.val, true, c.err
 }
 
@@ -69,7 +73,8 @@ func (g *sharedGroup) createCall(key string) (c *call, done bool) {
 	return c, false
 }
 
-func (g *sharedGroup) makeCall(c *call, key string, fn func() (interface{}, error)) {
+// 执行调用，并将结果返回记录在保持体内，方便后续访问共享
+func (g *sharedGroup) execCall(c *call, key string, fn func() (interface{}, error)) {
 	defer func() {
 		g.lock.Lock()
 		delete(g.calls, key)

@@ -3,14 +3,20 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"github.com/qinchende/gofast/connx/gfrds"
 )
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type MysqlORM struct {
-	Ctx    context.Context
-	Reader *sql.DB // 只读连接（从库）
-	Writer *sql.DB // 只写连接（主库）
-	tx     *sql.Tx // 读写皆可（主库）单独用于处理事务的连接
+	Ctx      context.Context
+	Reader   *sql.DB          // 只读连接（从库）
+	Writer   *sql.DB          // 只写连接（主库）
+	tx       *sql.Tx          // 读写皆可（主库）单独用于处理事务的连接
+	rdsNodes []*gfrds.GfRedis // redis集群用来做缓存的
+}
+
+func (conn *MysqlORM) SetRdsNodes(nodes []*gfrds.GfRedis) {
+	conn.rdsNodes = nodes
 }
 
 //const (

@@ -1,7 +1,7 @@
 package jwtx
 
 import (
-	"github.com/qinchende/gofast/connx/redis"
+	"github.com/qinchende/gofast/connx/gfrds"
 	"github.com/qinchende/gofast/fst"
 )
 
@@ -20,7 +20,7 @@ func (ss *SdxSession) Init() {
 	//	ss.TTLNew = 180 * time.Second // 默认三分钟
 	//}
 	if ss.Redis == nil {
-		ss.Redis = redis.NewGoRedis(&ss.RedisConnCnf)
+		ss.Redis = gfrds.NewGoRedis(&ss.RedisConnCnf)
 	}
 
 	// 指定 保存session 的处理函数
