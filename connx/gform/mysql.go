@@ -49,12 +49,12 @@ func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
 
 	// redis cache
 	rds := cf.RedisCluster
-	rdsNodes := make([]*gfrds.GfRedis, len(rds))
+	rdsNodes := make([]gfrds.GfRedis, len(rds))
 	for i := 0; i < len(rds); i++ {
 		rdsCnf := gfrds.ParseDsn(rds[i])
-		rdsNodes[i] = gfrds.NewGoRedis(rdsCnf)
+		rdsNodes[i] = *gfrds.NewGoRedis(rdsCnf)
 	}
-	mysqlOrm.SetRdsNodes(rdsNodes)
+	mysqlOrm.SetRdsNodes(&rdsNodes)
 
 	return &mysqlOrm
 }

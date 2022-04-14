@@ -12,7 +12,7 @@ import (
 const slowThreshold = time.Millisecond * 500
 
 func (conn *MysqlORM) CloneWithCtx(ctx context.Context) *MysqlORM {
-	return &MysqlORM{Ctx: ctx, Writer: conn.Writer, Reader: conn.Reader}
+	return &MysqlORM{Ctx: ctx, Writer: conn.Writer, Reader: conn.Reader, tx: conn.tx, rdsNodes: conn.rdsNodes}
 }
 
 func (conn *MysqlORM) Exec(sql string, args ...interface{}) msql.Result {
@@ -72,7 +72,7 @@ func (conn *MysqlORM) TransBegin() *MysqlORM {
 func (conn *MysqlORM) TransCtx(ctx context.Context) *MysqlORM {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
 	errPanic(err)
-	return &MysqlORM{Ctx: ctx, tx: tx}
+	return &MysqlORM{Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 }
 
 func (conn *MysqlORM) TransFunc(fn func(newConn *MysqlORM)) {
@@ -83,7 +83,7 @@ func (conn *MysqlORM) TransFuncCtx(ctx context.Context, fn func(newConn *MysqlOR
 	tx, err := conn.Writer.BeginTx(ctx, nil)
 	errPanic(err)
 
-	nConn := MysqlORM{Ctx: ctx, tx: tx}
+	nConn := MysqlORM{Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 	defer nConn.TransEnd()
 	fn(&nConn)
 }

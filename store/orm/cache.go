@@ -7,7 +7,7 @@ import (
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type ModelSchema struct {
-	tableName string // 数据库表名称
+	attrs ModelAttrs // 实体类型的相关控制属性
 
 	columns      []string        // column_name
 	fieldsKV     map[string]int8 // field_name index
@@ -22,12 +22,27 @@ type ModelSchema struct {
 	selectSQL string // select
 }
 
-func (ms *ModelSchema) Length() int8 {
-	return int8(len(ms.columns))
+// GoFast ORM Model need some attributes.
+type ModelAttrs struct {
+	TableName   string // 数据库表名称
+	CacheAll    bool   // 是否缓存所有记录
+	cacheKeyPre string
 }
 
+//func (ms *ModelSchema) ColumnsLen() int8 {
+//	return int8(len(ms.columns))
+//}
+
 func (ms *ModelSchema) TableName() string {
-	return ms.tableName
+	return ms.attrs.TableName
+}
+
+func (ms *ModelSchema) CacheAll() bool {
+	return ms.attrs.CacheAll
+}
+
+func (ms *ModelSchema) CachePreFix() string {
+	return ms.attrs.cacheKeyPre
 }
 
 func (ms *ModelSchema) FieldsKV() map[string]int8 {
