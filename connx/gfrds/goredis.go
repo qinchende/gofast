@@ -1,4 +1,4 @@
-package redis
+package gfrds
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 
 // go-redis
 type (
-	ConnConfig struct {
+	ConnCnf struct {
 		// single redis
 		Addr string `cnf:",NA"`
 
@@ -24,10 +24,14 @@ type (
 		DB       int    `cnf:",NA"`
 		PoolSize int    `cnf:",NA"`
 		MinIdle  int    `cnf:",NA"`
+
+		// 扩展
+		Weight uint16 `cnf:",NA"` // 权重
 	}
-	GoRedisX struct {
-		Cli *redis.Client
-		Ctx context.Context
+	GfRedis struct {
+		Cli    *redis.Client
+		Ctx    context.Context
+		Weight uint16
 	}
 )
 
@@ -37,8 +41,8 @@ type (
 // 第330行 func (c *baseClient) process(ctx context.Context, cmd Cmder)
 // 第288行 func (c *baseClient) withConn(
 // 第292行 cn, err := c.getConn(ctx)
-func NewGoRedis(cf *ConnConfig) *GoRedisX {
-	rds := GoRedisX{Ctx: context.Background()}
+func NewGoRedis(cf *ConnCnf) *GfRedis {
+	rds := GfRedis{Ctx: context.Background(), Weight: cf.Weight}
 
 	if cf.Addr != "" {
 		rds.Cli = redis.NewClient(&redis.Options{
@@ -76,8 +80,8 @@ func NewGoRedis(cf *ConnConfig) *GoRedisX {
 }
 
 //// 通过sentinel连接 redis
-//func NewGoRedisBySentinel(cf *ConnConfig) *GoRedisX {
-//	rds := GoRedisX{Ctx: context.Background()}
+//func NewGoRedisBySentinel(cf *ConnConfig) *GfRedis {
+//	rds := GfRedis{Ctx: context.Background()}
 //	rds.Cli = redis.NewFailoverClient(&redis.FailoverOptions{
 //		MasterName:       cf.MasterName,
 //		SentinelAddrs:    cf.SentinelAddr,

@@ -138,7 +138,7 @@ func TestAdaptiveShedderShouldDrop(t *testing.T) {
 		droppedRecently: syncx.NewAtomicBool(),
 	}
 	// cpu >=  800, inflight < maxPass
-	systemOverloadChecker = func(int64) bool {
+	systemOverloadChecker = func(float64) bool {
 		return true
 	}
 	shedder.avgFlying = 50
@@ -155,14 +155,14 @@ func TestAdaptiveShedderShouldDrop(t *testing.T) {
 	assert.True(t, shedder.shouldDrop())
 
 	// cpu < 800, inflight > maxPass
-	systemOverloadChecker = func(int64) bool {
+	systemOverloadChecker = func(float64) bool {
 		return false
 	}
 	shedder.avgFlying = 80
 	assert.False(t, shedder.shouldDrop())
 
 	// cpu >=  800, inflight < maxPass
-	systemOverloadChecker = func(int64) bool {
+	systemOverloadChecker = func(float64) bool {
 		return true
 	}
 	shedder.avgFlying = 80
@@ -223,11 +223,11 @@ func BenchmarkAdaptiveShedder_Allow(b *testing.B) {
 		}
 	}
 
-	systemOverloadChecker = func(int64) bool {
+	systemOverloadChecker = func(float64) bool {
 		return true
 	}
 	b.Run("high load", bench)
-	systemOverloadChecker = func(int64) bool {
+	systemOverloadChecker = func(float64) bool {
 		return false
 	}
 	b.Run("low load", bench)

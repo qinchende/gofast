@@ -1,24 +1,26 @@
-package mysql
+package gform
 
 import (
 	"context"
 	"database/sql"
+	"github.com/qinchende/gofast/connx/gfrds"
 	"github.com/qinchende/gofast/store/sqlx"
 	"log"
 	"time"
 )
 
 type (
-	ConnConfig struct {
-		ConnStr  string `cnf:",NA"`
-		ConnStrR string `cnf:",NA"`
-		MaxOpen  int    `cnf:",def=100,range=[1:1000]"`
-		MaxIdle  int    `cnf:",def=100,NA"`
+	ConnCnf struct {
+		ConnStr      string   `cnf:",NA"`
+		ConnStrR     string   `cnf:",NA"`
+		MaxOpen      int      `cnf:",def=100,range=[1:1000]"`
+		MaxIdle      int      `cnf:",def=100,NA"`
+		RedisCluster []string `cnf:",NA"`
 	}
 )
 
-func OpenMysql(cf *ConnConfig) *sqlx.MysqlORM {
-	mysqlX := sqlx.MysqlORM{Ctx: context.Background()}
+func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
+	mysqlOrm := sqlx.MysqlORM{Ctx: context.Background()}
 
 	writer, err := sql.Open("mysql", cf.ConnStr)
 	if err != nil {
@@ -28,7 +30,7 @@ func OpenMysql(cf *ConnConfig) *sqlx.MysqlORM {
 	writer.SetConnMaxLifetime(time.Minute * 3)
 	writer.SetMaxOpenConns(cf.MaxOpen)
 	writer.SetMaxIdleConns(cf.MaxIdle)
-	mysqlX.Writer = writer
+	mysqlOrm.Writer = writer
 
 	// 如果配置文件配置了只读数据库，应用于读写分离
 	if cf.ConnStrR != "" {
@@ -40,10 +42,19 @@ func OpenMysql(cf *ConnConfig) *sqlx.MysqlORM {
 		reader.SetConnMaxLifetime(time.Minute * 3)
 		reader.SetMaxOpenConns(cf.MaxOpen)
 		reader.SetMaxIdleConns(cf.MaxIdle)
-		mysqlX.Reader = reader
+		mysqlOrm.Reader = reader
 	} else {
-		mysqlX.Reader = mysqlX.Writer
+		mysqlOrm.Reader = mysqlOrm.Writer
 	}
 
-	return &mysqlX
+	// redis cache
+	rds := cf.RedisCluster
+	rdsNodes := make([]gfrds.GfRedis, len(rds))
+	for i := 0; i < len(rds); i++ {
+		rdsCnf := gfrds.ParseDsn(rds[i])
+		rdsNodes[i] = *gfrds.NewGoRedis(rdsCnf)
+	}
+	mysqlOrm.SetRdsNodes(&rdsNodes)
+
+	return &mysqlOrm
 }

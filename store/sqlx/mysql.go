@@ -18,14 +18,14 @@ func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) int64 {
 
 	ret := conn.Exec(insertSql(sm), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
-	return parseResult(ret)
+	return parseResult(ret, conn, sm)
 }
 
 func (conn *MysqlORM) Delete(obj interface{}) int64 {
 	sm := orm.Schema(obj)
 	val := sm.PrimaryValue(obj)
 	ret := conn.Exec(deleteSql(sm), val)
-	return parseResult(ret)
+	return parseResult(ret, conn, sm)
 }
 
 func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
@@ -39,7 +39,7 @@ func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
 	values[fLen-1] = tVal
 
 	ret := conn.Exec(updateSql(sm), values...)
-	return parseResult(ret)
+	return parseResult(ret, conn, sm)
 }
 
 // 通过给定的结构体字段更新数据
@@ -50,7 +50,7 @@ func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, columns ...string) i
 	obj.BeforeSave()
 	upSQL, tValues := updateSqlByColumns(sm, &rVal, columns)
 	ret := conn.Exec(upSQL, tValues...)
-	return parseResult(ret)
+	return parseResult(ret, conn, sm)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -125,6 +125,18 @@ func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
 	defer sqlRows.Close()
 
 	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 带缓存版本
+func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
+	rVal := reflect.Indirect(reflect.ValueOf(dest))
+
+	sm := orm.SchemaOfType(rVal.Type())
+	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
+	defer sqlRows.Close()
+
+	return parseQueryRow(&rVal, sqlRows, sm)
 }
 
 func (conn *MysqlORM) QueryPetCC(dest interface{}, pet *SelectPetCC) int64 {
@@ -238,8 +250,17 @@ func checkDestType(dest interface{}) (reflect.Type, reflect.Type, bool, bool) {
 	return dSliceTyp, dItemType, isPtr, isKV
 }
 
-func parseResult(ret sql.Result) int64 {
+func parseResult(ret sql.Result, conn *MysqlORM, sm *orm.ModelSchema) int64 {
 	ct, err := ret.RowsAffected()
 	errLog(err)
+
+	// 判断是否要删除缓存
+	if ct > 0 && sm.CacheAll() {
+		// 目前只支持第一个redis实例作缓存
+		if conn.rdsNodes != nil {
+			_, _ = (*conn.rdsNodes)[0].Del(sm.CachePreFix())
+		}
+	}
+
 	return ct
 }

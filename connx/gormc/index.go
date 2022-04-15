@@ -1,7 +1,7 @@
 package gormc
 
 import (
-	mysqlGF "github.com/qinchende/gofast/connx/mysql"
+	mysqlGF "github.com/qinchende/gofast/connx/gform"
 	mysqlGorm "gorm.io/driver/mysql"
 	"gorm.io/gorm"
 	"log"
@@ -11,7 +11,7 @@ type (
 	OrmX gorm.DB
 )
 
-func NewGormConn(cf *mysqlGF.ConnConfig) *gorm.DB {
+func NewGormConn(cf *mysqlGF.ConnCnf) *gorm.DB {
 	ormX, err := gorm.Open(mysqlGorm.New(mysqlGorm.Config{
 		DSN:                       cf.ConnStr,
 		DefaultStringSize:         256,   // string 类型字段的默认长度

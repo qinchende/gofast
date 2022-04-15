@@ -116,7 +116,7 @@ func TestExclusiveCallDoExDupSuppress(t *testing.T) {
 	for i := 0; i < n; i++ {
 		wg.Add(1)
 		go func() {
-			v, fresh, err := g.DoEx("key", fn)
+			v, fresh, err := g.DoExt("key", fn)
 			if err != nil {
 				t.Errorf("Do error: %v", err)
 			}

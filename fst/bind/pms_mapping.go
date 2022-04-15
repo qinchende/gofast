@@ -5,6 +5,7 @@
 package bind
 
 import (
+	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 )
 
@@ -90,7 +91,9 @@ func tryToSetValuePms(value reflect.Value, field reflect.StructField, setter set
 	tagValue, opts := head(tagValue, ",")
 
 	if tagValue == "" { // default value is FieldName
-		tagValue = field.Name
+		//tagValue = field.Name
+		// modify by cd.net on 20220414 取字段的小写
+		tagValue = stringx.Camel2Snake(field.Name)
 	}
 	if tagValue == "" { // when field is "emptyField" variable
 		return false, nil

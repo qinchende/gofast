@@ -21,7 +21,7 @@ func SchemaValues(obj interface{}) (*ModelSchema, []interface{}) {
 	mSchema := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
-	values := make([]interface{}, mSchema.Length())
+	values := make([]interface{}, len(mSchema.columns))
 	structValues(&values, &vIndex, obj)
 
 	return mSchema, values
@@ -100,19 +100,20 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 			}
 		}
 
-		// 获取 table name
-		tbName := ""
+		// 获取 Model的所有控制属性
 		rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
-		tbNameFunc := rTypVal.MethodByName("TableName")
-		if !tbNameFunc.IsZero() {
-			tbName = tbNameFunc.Call(nil)[0].Interface().(string)
+		mdAttrs := new(ModelAttrs)
+		attrsFunc := rTypVal.MethodByName("GfAttrs")
+		if !attrsFunc.IsZero() {
+			mdAttrs = attrsFunc.Call(nil)[0].Interface().(*ModelAttrs)
 		}
-		//if ok {
-		//	tbName = tbNameFunc.Func.Call(nil)[0].Interface().(string)
-		//}
-		if tbName == "" {
-			tbName = stringx.Camel2Snake(rTyp.Name())
+		if mdAttrs == nil {
+			mdAttrs = &ModelAttrs{}
 		}
+		if mdAttrs.TableName == "" {
+			mdAttrs.TableName = stringx.Camel2Snake(rTyp.Name())
+		}
+		mdAttrs.cacheKeyPre = "Gf#" + mdAttrs.TableName + "#id#"
 
 		// 收缩切片
 		fIndexesNew := make([][]int, len(fIndexes))
@@ -121,7 +122,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		copy(fDBNew, fDB)
 		// 构造ORM Model元数据
 		mSchema = &ModelSchema{
-			tableName:    tbName,
+			attrs:        *mdAttrs,
 			columns:      fDBNew,
 			fieldsKV:     make(map[string]int8, len(fStruct)),
 			columnsKV:    make(map[string]int8, len(fStruct)),
