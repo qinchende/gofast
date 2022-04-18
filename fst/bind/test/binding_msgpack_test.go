@@ -8,8 +8,8 @@ package test
 
 import (
 	"bytes"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/bind"
-	"github.com/qinchende/gofast/fst/cst"
 	"testing"
 
 	"github.com/stretchr/testify/assert"

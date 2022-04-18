@@ -26,7 +26,9 @@ type ModelSchema struct {
 type ModelAttrs struct {
 	TableName   string // 数据库表名称
 	CacheAll    bool   // 是否缓存所有记录
-	cacheKeyPre string
+	ExpireS     uint32 // 过期时间（秒）默认7天
+	hashValue   uint64 // 本结构体的哈希值
+	cacheKeyFmt string // 行记录缓存的Key前缀
 }
 
 //func (ms *ModelSchema) ColumnsLen() int8 {
@@ -42,7 +44,11 @@ func (ms *ModelSchema) CacheAll() bool {
 }
 
 func (ms *ModelSchema) CachePreFix() string {
-	return ms.attrs.cacheKeyPre
+	return ms.attrs.cacheKeyFmt
+}
+
+func (ms *ModelSchema) ExpireS() uint32 {
+	return ms.attrs.ExpireS
 }
 
 func (ms *ModelSchema) FieldsKV() map[string]int8 {

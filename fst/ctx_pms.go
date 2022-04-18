@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/fst/cst"
+	"github.com/qinchende/gofast/cst"
 	"strings"
 )
 
