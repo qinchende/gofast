@@ -113,7 +113,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if mdAttrs.TableName == "" {
 			mdAttrs.TableName = stringx.Camel2Snake(rTyp.Name())
 		}
-		mdAttrs.cacheKeyPre = "Gf#" + mdAttrs.TableName + "#id#"
+		mdAttrs.cacheKeyFmt = "Gf#Line#%s#" + mdAttrs.TableName + "#%v"
 
 		// 收缩切片
 		fIndexesNew := make([][]int, len(fIndexes))

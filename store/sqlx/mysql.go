@@ -2,9 +2,15 @@ package sqlx
 
 import (
 	"database/sql"
+	"fmt"
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
+	"time"
 )
 
 func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) int64 {
@@ -18,14 +24,16 @@ func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) int64 {
 
 	ret := conn.Exec(insertSql(sm), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
-	return parseResult(ret, conn, sm)
+	ct, err := ret.RowsAffected()
+	errLog(err)
+	return ct
 }
 
 func (conn *MysqlORM) Delete(obj interface{}) int64 {
 	sm := orm.Schema(obj)
 	val := sm.PrimaryValue(obj)
 	ret := conn.Exec(deleteSql(sm), val)
-	return parseResult(ret, conn, sm)
+	return parseResult(ret, val, conn, sm)
 }
 
 func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
@@ -39,7 +47,7 @@ func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
 	values[fLen-1] = tVal
 
 	ret := conn.Exec(updateSql(sm), values...)
-	return parseResult(ret, conn, sm)
+	return parseResult(ret, tVal, conn, sm)
 }
 
 // 通过给定的结构体字段更新数据
@@ -50,7 +58,23 @@ func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, columns ...string) i
 	obj.BeforeSave()
 	upSQL, tValues := updateSqlByColumns(sm, &rVal, columns)
 	ret := conn.Exec(upSQL, tValues...)
-	return parseResult(ret, conn, sm)
+	return parseResult(ret, tValues[len(tValues)-1], conn, sm)
+}
+
+func parseResult(ret sql.Result, keyVal interface{}, conn *MysqlORM, sm *orm.ModelSchema) int64 {
+	ct, err := ret.RowsAffected()
+	errLog(err)
+
+	// 判断是否要删除缓存
+	if ct > 0 && sm.CacheAll() {
+		// 目前只支持第一个redis实例作缓存
+		if conn.rdsNodes != nil {
+			key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DBName, keyVal)
+			_, _ = (*conn.rdsNodes)[0].Del(key)
+		}
+	}
+
+	return ct
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -62,6 +86,28 @@ func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int64 {
 	defer sqlRows.Close()
 
 	return parseQueryRow(&rVal, sqlRows, sm)
+}
+
+func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
+	rVal := reflect.Indirect(reflect.ValueOf(dest))
+	sm := orm.SchemaOfType(rVal.Type())
+
+	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DBName, id)
+	ccVal, err := (*conn.rdsNodes)[0].Get(key)
+	if err == nil && ccVal != "" {
+		kvs := new(cst.KV)
+		_ = jsonx.UnmarshalFromString(ccVal, kvs)
+		_ = mapx.BindKV(dest, *kvs)
+		return 1
+	} else {
+		sqlRows := conn.QuerySql(selectSqlByID(sm), id)
+		defer sqlRows.Close()
+		ct := parseQueryRow(&rVal, sqlRows, sm)
+		jsonVal, _ := jsonx.Marshal(dest)
+		str, err := (*conn.rdsNodes)[0].Set(key, jsonVal, time.Duration(sm.ExpireS())*time.Second)
+		logx.Info(str, err)
+		return ct
+	}
 }
 
 func (conn *MysqlORM) QueryRow(dest interface{}, where string, pms ...interface{}) int64 {
@@ -129,19 +175,10 @@ func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 带缓存版本
-func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
 
-	sm := orm.SchemaOfType(rVal.Type())
-	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
-	defer sqlRows.Close()
-
-	return parseQueryRow(&rVal, sqlRows, sm)
-}
-
-func (conn *MysqlORM) QueryPetCC(dest interface{}, pet *SelectPetCC) int64 {
-	return 0
-}
+//func (conn *MysqlORM) QueryPetCC(dest interface{}, pet *SelectPetCC) int64 {
+//	return 0
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析查询到的数据记录
@@ -248,19 +285,4 @@ func checkDestType(dest interface{}) (reflect.Type, reflect.Type, bool, bool) {
 	}
 
 	return dSliceTyp, dItemType, isPtr, isKV
-}
-
-func parseResult(ret sql.Result, conn *MysqlORM, sm *orm.ModelSchema) int64 {
-	ct, err := ret.RowsAffected()
-	errLog(err)
-
-	// 判断是否要删除缓存
-	if ct > 0 && sm.CacheAll() {
-		// 目前只支持第一个redis实例作缓存
-		if conn.rdsNodes != nil {
-			_, _ = (*conn.rdsNodes)[0].Del(sm.CachePreFix())
-		}
-	}
-
-	return ct
 }

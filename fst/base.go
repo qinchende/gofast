@@ -4,7 +4,7 @@ package fst
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/fst/cst"
+	"github.com/qinchende/gofast/cst"
 	"math"
 	"net/http"
 )

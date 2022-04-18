@@ -5,7 +5,7 @@
 package bind
 
 import (
-	"github.com/qinchende/gofast/fst/cst"
+	"github.com/qinchende/gofast/cst"
 	"net/http"
 )
 

@@ -1,20 +1,36 @@
-// Copyright 2014 Manu Martinez-Almeida.  All rights reserved.
-// Use of this source code is governed by a MIT style
-// license that can be found in the LICENSE file.
-
-package bind
+package mapx
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"reflect"
 )
 
-type pmsType map[string]interface{}
+func mapPms(dest interface{}, kvs cst.KV) error {
+	//return mapPmsByTag(ptr, pms, "pms")
 
-func mapPms(ptr interface{}, pms map[string]interface{}) error {
-	return mapPmsByTag(ptr, pms, "pms")
+	//sm := Schema(dest)
+	//cls := sm.columnsKV
+
+	return nil
 }
 
-func mapPmsByTag(ptr interface{}, pms map[string]interface{}, tag string) error {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+type setOptions struct {
+	isDefaultExists bool
+	defaultValue    string
+}
+
+// setter tries to set value on a walking by fields of a struct
+type setter interface {
+	TrySet(value reflect.Value, field reflect.StructField, key string, opt setOptions) (isSetted bool, err error)
+}
+
+var emptyField = reflect.StructField{}
+
+type pmsType map[string]interface{}
+
+func mapPmsByTag(ptr interface{}, pms cst.KV, tag string) error {
 	return mappingPmsByPtr(ptr, pmsType(pms), tag)
 }
 
@@ -87,7 +103,7 @@ func tryToSetValuePms(value reflect.Value, field reflect.StructField, setter set
 	var setOpt setOptions
 
 	tagValue = field.Tag.Get(tag)
-	tagValue, opts := head(tagValue, ",")
+	tagValue, opts := tagHead(tagValue, ",")
 
 	if tagValue == "" { // default value is FieldName
 		tagValue = field.Name
@@ -100,9 +116,9 @@ func tryToSetValuePms(value reflect.Value, field reflect.StructField, setter set
 
 	var opt string
 	for len(opts) > 0 {
-		opt, opts = head(opts, ",")
+		opt, opts = tagHead(opts, ",")
 
-		if k, v := head(opt, "="); k == "default" {
+		if k, v := tagHead(opt, "="); k == "default" {
 			setOpt.isDefaultExists = true
 			setOpt.defaultValue = v
 		}

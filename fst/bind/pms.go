@@ -4,6 +4,8 @@
 
 package bind
 
+import "github.com/qinchende/gofast/cst"
+
 type pmsBinding struct{}
 
 func (pmsBinding) Name() string {
@@ -11,11 +13,11 @@ func (pmsBinding) Name() string {
 }
 
 // add by sdx on 20210305
-func (pmsBinding) BindPms(values map[string]interface{}, obj interface{}) error {
-	if err := mapPms(obj, values); err != nil {
+func (pmsBinding) BindPms(dest interface{}, values cst.KV) error {
+	if err := mapPms(dest, values); err != nil {
 		return err
 	}
 
 	// TODO: before validate.
-	return validate(obj)
+	return validate(dest)
 }
