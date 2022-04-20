@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/fst/bind"
+	"github.com/qinchende/gofast/skill/mapx"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -11,32 +12,33 @@ import (
 
 // add by sdx on 20210305
 // 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
-func (c *Context) BindPms(obj interface{}) error {
+func (c *Context) BindPms(dst interface{}) error {
 	// add preBind events by sdx on 2021.03.18
 	// c.execPreBindHandlers()
-	return bind.Pms.BindPms(obj, c.Pms)
+	//return bind.Pms.BindPms(dst, c.Pms)
+	return mapx.BindKV(dst, c.Pms)
 }
 
-func (c *Context) BindJSON(obj interface{}) error {
-	return c.ShouldBindWith(obj, bind.JSON)
+func (c *Context) BindJSON(dst interface{}) error {
+	return c.ShouldBindWith(dst, bind.JSON)
 }
 
-func (c *Context) BindXML(obj interface{}) error {
-	return c.ShouldBindWith(obj, bind.XML)
+func (c *Context) BindXML(dst interface{}) error {
+	return c.ShouldBindWith(dst, bind.XML)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (c *Context) ShouldBindWith(obj interface{}, b bind.Binding) error {
+func (c *Context) ShouldBindWith(dst interface{}, b bind.Binding) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
-	return b.Bind(c.ReqRaw, obj)
+	return b.Bind(c.ReqRaw, dst)
 }
 
 // MustBindWith binds the passed struct pointer using the specified binding format.
 // It will abort the request with HTTP 400 if any error occurs.
 // See the binding package.
-func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
-	if err := c.ShouldBindWith(obj, b); err != nil {
+func (c *Context) MustBindWith(dst interface{}, b bind.Binding) error {
+	if err := c.ShouldBindWith(dst, b); err != nil {
 		//c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
 		return err
 	}
@@ -57,30 +59,30 @@ func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
 //// It parses the request's body as JSON if Content-Type == "application/json" using JSON or XML as a JSON input.
 //// It decodes the json payload into the struct specified as a pointer.
 //// It writes a 400 error and sets Content-Type header "text/plain" in the response if input is not valid.
-//func (c *Context) Bind(obj interface{}) error {
+//func (c *Context) Bind(dst interface{}) error {
 //	b := binding.Default(c.ReqRaw.Method, c.ContentType())
-//	return c.MustBindWith(obj, b)
+//	return c.MustBindWith(dst, b)
 //}
 
-//// BindQuery is a shortcut for c.MustBindWith(obj, binding.Query).
-//func (c *Context) BindQuery(obj interface{}) error {
-//	return c.MustBindWith(obj, binding.Query)
+//// BindQuery is a shortcut for c.MustBindWith(dst, binding.Query).
+//func (c *Context) BindQuery(dst interface{}) error {
+//	return c.MustBindWith(dst, binding.Query)
 //}
 //
-//// BindYAML is a shortcut for c.MustBindWith(obj, binding.YAML).
-//func (c *Context) BindYAML(obj interface{}) error {
-//	return c.MustBindWith(obj, binding.YAML)
+//// BindYAML is a shortcut for c.MustBindWith(dst, binding.YAML).
+//func (c *Context) BindYAML(dst interface{}) error {
+//	return c.MustBindWith(dst, binding.YAML)
 //}
 //
-//// BindHeader is a shortcut for c.MustBindWith(obj, binding.Header).
-//func (c *Context) BindHeader(obj interface{}) error {
-//	return c.MustBindWith(obj, binding.Header)
+//// BindHeader is a shortcut for c.MustBindWith(dst, binding.Header).
+//func (c *Context) BindHeader(dst interface{}) error {
+//	return c.MustBindWith(dst, binding.Header)
 //}
 //
 //// BindUri binds the passed struct pointer using binding.Uri.
 //// It will abort the request with HTTP 400 if any error occurs.
-//func (c *Context) BindUri(obj interface{}) error {
-//	if err := c.ShouldBindUri(obj); err != nil {
+//func (c *Context) BindUri(dst interface{}) error {
+//	if err := c.ShouldBindUri(dst); err != nil {
 //		c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
 //		return err
 //	}
@@ -95,43 +97,43 @@ func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
 //// It parses the request's body as JSON if Content-Type == "application/json" using JSON or XML as a JSON input.
 //// It decodes the json payload into the struct specified as a pointer.
 //// Like c.Bind() but this method does not set the response status code to 400 and abort if the json is not valid.
-//func (c *Context) ShouldBind(obj interface{}) error {
+//func (c *Context) ShouldBind(dst interface{}) error {
 //	b := binding.Default(c.ReqRaw.Method, c.ContentType())
-//	return c.ShouldBindWith(obj, b)
+//	return c.ShouldBindWith(dst, b)
 //}
 //
-//// ShouldBindJSON is a shortcut for c.ShouldBindWith(obj, binding.JSON).
-//func (c *Context) ShouldBindJSON(obj interface{}) error {
-//	return c.ShouldBindWith(obj, binding.JSON)
+//// ShouldBindJSON is a shortcut for c.ShouldBindWith(dst, binding.JSON).
+//func (c *Context) ShouldBindJSON(dst interface{}) error {
+//	return c.ShouldBindWith(dst, binding.JSON)
 //}
 //
-//// ShouldBindXML is a shortcut for c.ShouldBindWith(obj, binding.XML).
-//func (c *Context) ShouldBindXML(obj interface{}) error {
-//	return c.ShouldBindWith(obj, binding.XML)
+//// ShouldBindXML is a shortcut for c.ShouldBindWith(dst, binding.XML).
+//func (c *Context) ShouldBindXML(dst interface{}) error {
+//	return c.ShouldBindWith(dst, binding.XML)
 //}
 //
-//// ShouldBindQuery is a shortcut for c.ShouldBindWith(obj, binding.Query).
-//func (c *Context) ShouldBindQuery(obj interface{}) error {
-//	return c.ShouldBindWith(obj, binding.Query)
+//// ShouldBindQuery is a shortcut for c.ShouldBindWith(dst, binding.Query).
+//func (c *Context) ShouldBindQuery(dst interface{}) error {
+//	return c.ShouldBindWith(dst, binding.Query)
 //}
 //
-//// ShouldBindYAML is a shortcut for c.ShouldBindWith(obj, binding.YAML).
-//func (c *Context) ShouldBindYAML(obj interface{}) error {
-//	return c.ShouldBindWith(obj, binding.YAML)
+//// ShouldBindYAML is a shortcut for c.ShouldBindWith(dst, binding.YAML).
+//func (c *Context) ShouldBindYAML(dst interface{}) error {
+//	return c.ShouldBindWith(dst, binding.YAML)
 //}
 //
-//// ShouldBindHeader is a shortcut for c.ShouldBindWith(obj, binding.Header).
-//func (c *Context) ShouldBindHeader(obj interface{}) error {
-//	return c.ShouldBindWith(obj, binding.Header)
+//// ShouldBindHeader is a shortcut for c.ShouldBindWith(dst, binding.Header).
+//func (c *Context) ShouldBindHeader(dst interface{}) error {
+//	return c.ShouldBindWith(dst, binding.Header)
 //}
 //
 //// ShouldBindUri binds the passed struct pointer using the specified binding gftApp.
-//func (c *Context) ShouldBindUri(obj interface{}) error {
+//func (c *Context) ShouldBindUri(dst interface{}) error {
 //	m := make(map[string][]string)
 //	for _, v := range *c.match.params {
 //		m[v.Key] = []string{v.Value}
 //	}
-//	return binding.Uri.BindUri(m, obj)
+//	return binding.Uri.BindUri(m, dst)
 //}
 
 //// ShouldBindBodyWith is similar with ShouldBindWith, but it stores the request
@@ -139,7 +141,7 @@ func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
 ////
 //// NOTE: This method reads the body before binding. So you should use
 //// ShouldBindWith for better performance if you need to call only once.
-//func (c *Context) ShouldBindBodyWith(obj interface{}, bb binding.BindingBody) (err error) {
+//func (c *Context) ShouldBindBodyWith(dst interface{}, bb binding.BindingBody) (err error) {
 //	var body []byte
 //	if cb, ok := c.Get(BodyBytesKey); ok {
 //		if cbb, ok := cb.([]byte); ok {
@@ -153,7 +155,7 @@ func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
 //		}
 //		c.Set(BodyBytesKey, body)
 //	}
-//	return bb.BindBody(body, obj)
+//	return bb.BindBody(body, dst)
 //}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -296,120 +298,3 @@ func (c *Context) MustBindWith(obj interface{}, b bind.Binding) error {
 //	}
 //	return nil
 //}
-//
-//func setWithProperType(valueKind reflect.Kind, val string, structField reflect.Value) error {
-//	// But also call it here, in case we're dealing with an array of BindUnmarshalers
-//	if ok, err := unmarshalField(valueKind, val, structField); ok {
-//		return err
-//	}
-//
-//	switch valueKind {
-//	case reflect.Ptr:
-//		return setWithProperType(structField.Elem().Kind(), val, structField.Elem())
-//	case reflect.Int:
-//		return setIntField(val, 0, structField)
-//	case reflect.Int8:
-//		return setIntField(val, 8, structField)
-//	case reflect.Int16:
-//		return setIntField(val, 16, structField)
-//	case reflect.Int32:
-//		return setIntField(val, 32, structField)
-//	case reflect.Int64:
-//		return setIntField(val, 64, structField)
-//	case reflect.Uint:
-//		return setUintField(val, 0, structField)
-//	case reflect.Uint8:
-//		return setUintField(val, 8, structField)
-//	case reflect.Uint16:
-//		return setUintField(val, 16, structField)
-//	case reflect.Uint32:
-//		return setUintField(val, 32, structField)
-//	case reflect.Uint64:
-//		return setUintField(val, 64, structField)
-//	case reflect.Bool:
-//		return setBoolField(val, structField)
-//	case reflect.Float32:
-//		return setFloatField(val, 32, structField)
-//	case reflect.Float64:
-//		return setFloatField(val, 64, structField)
-//	case reflect.String:
-//		structField.SetString(val)
-//	default:
-//		return errors.New("unknown type")
-//	}
-//	return nil
-//}
-//
-//func unmarshalField(valueKind reflect.Kind, val string, field reflect.Value) (bool, error) {
-//	switch valueKind {
-//	case reflect.Ptr:
-//		return unmarshalFieldPtr(val, field)
-//	default:
-//		return unmarshalFieldNonPtr(val, field)
-//	}
-//}
-//
-//func unmarshalFieldNonPtr(value string, field reflect.Value) (bool, error) {
-//	fieldIValue := field.Addr().Interface()
-//	if unmarshaler, ok := fieldIValue.(BindUnmarshaler); ok {
-//		return true, unmarshaler.UnmarshalParam(value)
-//	}
-//	if unmarshaler, ok := fieldIValue.(encoding.TextUnmarshaler); ok {
-//		return true, unmarshaler.UnmarshalText([]byte(value))
-//	}
-//
-//	return false, nil
-//}
-//
-//func unmarshalFieldPtr(value string, field reflect.Value) (bool, error) {
-//	if field.IsNil() {
-//		// Initialize the pointer to a nil value
-//		field.Set(reflect.New(field.Type().Elem()))
-//	}
-//	return unmarshalFieldNonPtr(value, field.Elem())
-//}
-//
-//func setIntField(value string, bitSize int, field reflect.Value) error {
-//	if value == "" {
-//		value = "0"
-//	}
-//	intVal, err := strconv.ParseInt(value, 10, bitSize)
-//	if err == nil {
-//		field.SetInt(intVal)
-//	}
-//	return err
-//}
-//
-//func setUintField(value string, bitSize int, field reflect.Value) error {
-//	if value == "" {
-//		value = "0"
-//	}
-//	uintVal, err := strconv.ParseUint(value, 10, bitSize)
-//	if err == nil {
-//		field.SetUint(uintVal)
-//	}
-//	return err
-//}
-//
-//func setBoolField(value string, field reflect.Value) error {
-//	if value == "" {
-//		value = "false"
-//	}
-//	boolVal, err := strconv.ParseBool(value)
-//	if err == nil {
-//		field.SetBool(boolVal)
-//	}
-//	return err
-//}
-//
-//func setFloatField(value string, bitSize int, field reflect.Value) error {
-//	if value == "" {
-//		value = "0.0"
-//	}
-//	floatVal, err := strconv.ParseFloat(value, bitSize)
-//	if err == nil {
-//		field.SetFloat(floatVal)
-//	}
-//	return err
-//}
-//

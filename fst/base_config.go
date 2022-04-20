@@ -12,10 +12,10 @@ type AppConfig struct {
 	LogConfig logx.LogConfig
 	// FuncMap          	template.FuncMap
 	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
-	Name                   string `cnf:",NA,def=GoFastSite"`
+	Name                   string `cnf:",def=GoFastSite"`
 	Addr                   string `cnf:",def=0.0.0.0:8099"`
 	RunMode                string `cnf:",def=debug,enum=debug|test|product"` // 当前模式[debug|test|product]
-	SecureJsonPrefix       string `cnf:",NA,def=while(1);"`
+	SecureJsonPrefix       string `cnf:",def=while(1);"`
 	MaxMultipartMemory     int64  `cnf:",def=33554432"` // 最大上传文件的大小，默认32MB
 	SecondsBeforeShutdown  int64  `cnf:",def=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
 	RedirectTrailingSlash  bool   `cnf:",def=false"`    // 探测url后面加减'/'之后是否能匹配路由（这个时代默认不需要了）

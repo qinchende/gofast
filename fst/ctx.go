@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"math"
 	"net/http"
 	"net/url"
@@ -20,14 +21,14 @@ type Context struct {
 	ResWrap *ResponseWrap
 	ReqRaw  *http.Request // request
 
-	Params    *Params                // : 或 * 对应的参数
-	Pms       map[string]interface{} // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	match     matchResult            // 路由匹配结果，[Params] ? 一般用于确定相应资源
-	handlers  handlersNode           // 匹配到的执行链标记
-	RouteIdx  uint16                 // router的标识
-	execIdx   int8                   // 执行链的索引 不能大于 127 个
-	rendered  bool                   // 是否已经执行了Render
-	IsTimeout bool                   // 是否变成超时请求
+	Params    *Params      // : 或 * 对应的参数
+	Pms       cst.KV       // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	match     matchResult  // 路由匹配结果，[Params] ? 一般用于确定相应资源
+	handlers  handlersNode // 匹配到的执行链标记
+	RouteIdx  uint16       // router的标识
+	execIdx   int8         // 执行链的索引 不能大于 127 个
+	rendered  bool         // 是否已经执行了Render
+	IsTimeout bool         // 是否变成超时请求
 
 	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.

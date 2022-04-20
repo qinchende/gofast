@@ -9,14 +9,14 @@ func PmsParser(ctx *fst.Context) {
 	}
 }
 
-func BuildPmsOfJson(ctx *fst.Context) {
-	ctx.GenPmsByJSONBody()
-}
-
-func BuildPmsOfXml(ctx *fst.Context) {
-	ctx.GenPmsByXMLBody()
-}
-
-func BuildPmsOfForm(ctx *fst.Context) {
-	ctx.GenPmsByFormBody()
-}
+//func BuildPmsOfJson(ctx *fst.Context) {
+//	ctx.GenPmsByJSONBody()
+//}
+//
+//func BuildPmsOfXml(ctx *fst.Context) {
+//	ctx.GenPmsByXMLBody()
+//}
+//
+//func BuildPmsOfForm(ctx *fst.Context) {
+//	ctx.GenPmsByFormBody()
+//}
