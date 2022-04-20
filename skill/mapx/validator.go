@@ -7,12 +7,12 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const validConfigTag = "valid" // 指定模型中验证字段的tag标记
+
 type StructValidator interface {
 	ValidateStruct(interface{}) error
 	Engine() interface{}
 }
-
-const validConfigTag = "valid" // 指定模型中验证字段的tag标记
 
 type defaultValidator struct {
 	once     sync.Once

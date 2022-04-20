@@ -4,10 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"time"
@@ -88,26 +86,33 @@ func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int64 {
 	return parseQueryRow(&rVal, sqlRows, sm)
 }
 
+// TODO: 当前重点解决缓存的问题
 func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
 	rVal := reflect.Indirect(reflect.ValueOf(dest))
 	sm := orm.SchemaOfType(rVal.Type())
 
 	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DBName, id)
-	ccVal, err := (*conn.rdsNodes)[0].Get(key)
-	if err == nil && ccVal != "" {
-		kvs := new(cst.KV)
-		_ = jsonx.UnmarshalFromString(ccVal, kvs)
-		_ = mapx.BindKV(dest, *kvs)
-		return 1
-	} else {
-		sqlRows := conn.QuerySql(selectSqlByID(sm), id)
-		defer sqlRows.Close()
-		ct := parseQueryRow(&rVal, sqlRows, sm)
-		jsonVal, _ := jsonx.Marshal(dest)
-		str, err := (*conn.rdsNodes)[0].Set(key, jsonVal, time.Duration(sm.ExpireS())*time.Second)
-		logx.Info(str, err)
-		return ct
+	cValStr, err := (*conn.rdsNodes)[0].Get(key)
+	if err == nil && cValStr != "" {
+		//kvs := new(cst.KV)
+		//_ = jsonx.UnmarshalFromString(ccVal, kvs)
+		//_ = mapx.BindKV(dest, *kvs)
+		err = jsonx.UnmarshalFromString(cValStr, dest)
+		if err == nil {
+			return 1
+		}
 	}
+
+	// 执行SQL查询并设置缓存
+	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
+	defer sqlRows.Close()
+	ct := parseQueryRow(&rVal, sqlRows, sm)
+	jsonValBytes, er := jsonx.Marshal(dest)
+	if er == nil {
+		str, err := (*conn.rdsNodes)[0].Set(key, jsonValBytes, time.Duration(sm.ExpireS())*time.Second)
+		logx.Info(str, err)
+	}
+	return ct
 }
 
 func (conn *MysqlORM) QueryRow(dest interface{}, where string, pms ...interface{}) int64 {
