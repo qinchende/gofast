@@ -16,7 +16,7 @@ func (c *Context) BindPms(dst interface{}) error {
 	// add preBind events by sdx on 2021.03.18
 	// c.execPreBindHandlers()
 	//return bind.Pms.BindPms(dst, c.Pms)
-	return mapx.BindKV(dst, c.Pms)
+	return mapx.ApplyKVByTagWithDef(dst, c.Pms)
 }
 
 func (c *Context) BindJSON(dst interface{}) error {

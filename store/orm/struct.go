@@ -151,21 +151,18 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]str
 	for i := 0; i < rTyp.NumField(); i++ {
 		fi := rTyp.Field(i)
 
-		// 通过值类型来确定后面
-		fdType := fi.Type
-		if fdType.Kind() == reflect.Struct {
-			vaI := reflect.New(fdType).Interface()
-			if _, ok := vaI.(*time.Time); !ok {
-				newPIdx := make([]int, 0)
-				newPIdx = append(newPIdx, parentIdx...)
-				newPIdx = append(newPIdx, i)
+		// 结构体，需要递归提取其中的字段
+		fiType := fi.Type
+		if fiType.Kind() == reflect.Struct && fiType.String() != "time.Time" {
+			newPIdx := make([]int, 0)
+			newPIdx = append(newPIdx, parentIdx...)
+			newPIdx = append(newPIdx, i)
 
-				c, f, x := structFields(fdType, newPIdx, mFields)
-				fColumns = append(fColumns, c...)
-				fFields = append(fFields, f...)
-				fIndexes = append(fIndexes, x...)
-				continue
-			}
+			c, f, x := structFields(fiType, newPIdx, mFields)
+			fColumns = append(fColumns, c...)
+			fFields = append(fFields, f...)
+			fIndexes = append(fIndexes, x...)
+			continue
 		}
 
 		// 1. 查找tag，确定数据库列名称
