@@ -5,48 +5,49 @@ import (
 	"reflect"
 )
 
+//func applyKV(dest interface{}, kvs cst.KV, useName bool, useDef bool) error {
+//
+//}
+
 // 只用传入的值赋值对象
-func mapKVJust(dest interface{}, kvs cst.KV) error {
+func applyKV(dest interface{}, kvs cst.KV, useName bool, useDef bool) error {
 	if kvs == nil || len(kvs) == 0 {
 		return nil
 	}
 
 	sm := Schema(dest)
-	columns := sm.columnsKV
-	opts := sm.fieldsOpts
+	var fls []string
+	if useName {
+		fls = sm.fields
+	} else {
+		fls = sm.columns
+	}
+	flsOpts := sm.fieldsOpts
 
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
-	for k, v := range kvs {
-		idx, ok := columns[k]
+	dstVal := reflect.Indirect(reflect.ValueOf(dest))
+	for i := 0; i < len(fls); i++ {
+		opt := flsOpts[i]
+		fk := fls[i]
+		sv, ok := kvs[fk]
+		// 只要找到相应的Key，不管Value是啥，不能使用默认值，不能转换就抛异常，说明数据源错误
 		if ok {
-			fValue := sm.RefValueByIndex(&rVal, idx)
-			err := setBySdxApplyDefault(fValue, v, opts[idx])
-			errPanic(err)
+		} else if useDef && opt != nil && opt.DefExist {
+			sv = opt.Default
+		} else {
+			continue
 		}
+
+		fv := sm.RefValueByIndex(&dstVal, int8(i))
+		err := sdxSetValue(fv, sv, opt)
+		errPanic(err)
 	}
 	return nil
 }
 
-// 用传入的值赋值对象，没有的字段设置默认值
-func mapKVApplyDefault(dest interface{}, kvs cst.KV) error {
-	if kvs == nil || len(kvs) == 0 {
-		return nil
-	}
-
-	sm := Schema(dest)
-	columns := sm.columnsKV
-
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
-	for k, v := range kvs {
-		idx, ok := columns[k]
-		if ok {
-			fAddr := sm.AddrByIndex(&rVal, idx)
-			err := setValueSql(fAddr, v)
-			errPanic(err)
-		}
-	}
-	return nil
-}
+//// 用传入的值赋值对象，没有的字段设置默认值
+//func applyKVApplyDefault(dest interface{}, kvs cst.KV, useName bool, useDef bool) error {
+//	return applyKV(dest, kvs, useName, useDef)
+//}
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
