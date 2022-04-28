@@ -1,6 +1,7 @@
 package mapx
 
 import (
+	"fmt"
 	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
@@ -133,6 +134,10 @@ func structSchema(rTyp reflect.Type) *GfStruct {
 
 // 反射提取结构体的字段（支持嵌套递归）
 func structFields(rTyp reflect.Type, parentIdx []int) ([]string, []string, [][]int, []*fieldOptions) {
+	if rTyp.Kind() != reflect.Struct {
+		panic(fmt.Errorf("%T is not like struct", rTyp))
+	}
+
 	fColumns := make([]string, 0)
 	fFields := make([]string, 0)
 	fIndexes := make([][]int, 0)

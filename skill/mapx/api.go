@@ -1,22 +1,43 @@
 package mapx
 
-import "github.com/qinchende/gofast/cst"
+import (
+	"github.com/qinchende/gofast/cst"
+	"io"
+)
 
-// 不设置Default值
+// cst.KV
 func ApplyKVByName(dst interface{}, kvs cst.KV) error {
-	return applyKV(dst, kvs, true, false)
+	return applyKVToStruct(dst, kvs, true, false)
 }
 
 func ApplyKVByNameWithDef(dst interface{}, kvs cst.KV) error {
-	return applyKV(dst, kvs, true, true)
+	return applyKVToStruct(dst, kvs, true, true)
 }
 
 func ApplyKVByTag(dst interface{}, kvs cst.KV) error {
-	return applyKV(dst, kvs, false, false)
+	return applyKVToStruct(dst, kvs, false, false)
 }
 
 func ApplyKVByTagWithDef(dst interface{}, kvs cst.KV) error {
-	return applyKV(dst, kvs, false, true)
+	return applyKVToStruct(dst, kvs, false, true)
+}
+
+// JSON
+func ApplyJsonReader(dst interface{}, reader io.Reader) error {
+	return decodeJsonReader(dst, reader)
+}
+
+func ApplyJsonBytes(dst interface{}, content []byte) error {
+	return decodeJsonBytes(dst, content)
+}
+
+// Yaml
+func ApplyYamlReader(dst interface{}, reader io.Reader) error {
+	return decodeYamlReader(dst, reader)
+}
+
+func ApplyYamlBytes(dst interface{}, content []byte) error {
+	return decodeYamlBytes(dst, content)
 }
 
 //func BindKVDef(dst interface{}, kvs cst.KV) error {

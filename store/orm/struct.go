@@ -58,7 +58,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 	if mSchema == nil {
 		if rTyp.Kind() != reflect.Struct {
 			// 如果是 KV map 类型的。统一
-			if rTyp.String() == "fst.KV" {
+			if rTyp.Name() == "KV" {
 				mSchema = &ModelSchema{}
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
@@ -144,6 +144,10 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 
 // 反射提取结构体的字段（支持嵌套递归）
 func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]string, []string, [][]int) {
+	if rTyp.Kind() != reflect.Struct {
+		panic(fmt.Errorf("%T is not like struct", rTyp))
+	}
+
 	fColumns := make([]string, 0)
 	fFields := make([]string, 0)
 	fIndexes := make([][]int, 0)

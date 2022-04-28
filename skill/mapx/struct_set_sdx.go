@@ -1,6 +1,7 @@
 package mapx
 
 import (
+	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/skill/json"
 	"github.com/qinchende/gofast/skill/stringx"
@@ -9,68 +10,70 @@ import (
 	"time"
 )
 
-//type sdxSetValueFunc func(dst reflect.Value, src interface{}, opt *fieldOptions) error
-
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src interface{}, opt *fieldOptions) error {
-	switch src.(type) {
-	case string:
-		return setWithString(dst, src.(string))
-	case nil:
-		// 如果传入的src是nil怎么办
+func sdxSetValue(dst reflect.Value, src interface{}, opt *fieldOptions, useName bool, useDef bool) error {
+	if src == nil {
 		return nil
+	}
+
+	srcT := reflect.TypeOf(src)
+	switch srcT.Kind() {
+	case reflect.String:
+		return sdxSetWithString(dst, src.(string))
+	case reflect.Array, reflect.Slice:
+		return applyList(dst, src, useName, useDef)
+	case reflect.Map:
+		// 如果Map不是 cst.KV 类型，这里会抛异常
+		// TODO: 目前不支持这种情况
+		return applyKVToStruct(dst, src.(map[string]interface{}), useName, useDef)
 	}
 
 	// 实体对象字段类型
 	switch dst.Kind() {
 	case reflect.Bool:
-		bv, err := asBoolSdx(src)
+		bv, err := sdxAsBool(src)
 		if err == nil {
 			dst.SetBool(bv.(bool))
 		}
 		return err
 	case reflect.Float32, reflect.Float64:
-		fv, err := asFloat64Sdx(src)
+		fv, err := sdxAsFloat64(src)
 		if err == nil {
 			dst.SetFloat(fv.(float64))
 		}
 		return err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		iv, err := asInt64Sdx(src)
+		iv, err := sdxAsInt64(src)
 		if err == nil {
 			dst.SetInt(iv.(int64))
 		}
 		return err
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-		uiv, err := asUInt64Sdx(src)
+		uiv, err := sdxAsUInt64(src)
 		if err == nil {
 			dst.SetUint(uiv.(uint64))
 		}
 		return err
 	case reflect.Interface:
+		// 初始化零值
+		dst.Set(reflect.Zero(dst.Type()))
 		return nil
-	//case reflect.Slice:
-	//	sv := reflect.ValueOf(src)
-	//	switch sv.Kind() {
-	//	case reflect.Slice, reflect.Array:
-	//		return sv.Int(), nil
-	//	}
-	//	return setSlice(vs, dst, field)
-	//case reflect.Array:
-	//	return setStringArray(vs, dst, field)
-	//case reflect.Map:
+	case reflect.Slice, reflect.Array:
+		// 此时包装一下, 将单个Value包装成 slice
+		newSrc := []interface{}{src}
+		return applyList(dst, newSrc, useName, useDef)
+	case reflect.Map:
+		return errNotKVType
 	case reflect.Struct:
 		// 这个时候值可能是时间类型
 		if _, ok := dst.Interface().(time.Time); ok {
-			return setTimeDuration(dst, asStringSdx(src))
+			return sdxSetTimeDuration(dst, sdxAsString(src))
 		}
-	default:
-		return nil
 	}
 	return nil
 }
 
-func asStringSdx(src interface{}) string {
+func sdxAsString(src interface{}) string {
 	switch v := src.(type) {
 	case string:
 		return v
@@ -90,10 +93,11 @@ func asStringSdx(src interface{}) string {
 	case reflect.Bool:
 		return strconv.FormatBool(sv.Bool())
 	}
-	return fmt.Sprintf("%v", src)
+	//return fmt.Sprint("%v", src)
+	return fmt.Sprint(src)
 }
 
-func asInt64Sdx(src interface{}) (interface{}, error) {
+func sdxAsInt64(src interface{}) (interface{}, error) {
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -108,7 +112,7 @@ func asInt64Sdx(src interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("sdx: couldn't convert %v (%T) into type int64", src, src)
 }
 
-func asUInt64Sdx(src interface{}) (interface{}, error) {
+func sdxAsUInt64(src interface{}) (interface{}, error) {
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -123,7 +127,7 @@ func asUInt64Sdx(src interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("sdx: couldn't convert %v (%T) into type uint64", src, src)
 }
 
-func asFloat64Sdx(src interface{}) (interface{}, error) {
+func sdxAsFloat64(src interface{}) (interface{}, error) {
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -136,7 +140,7 @@ func asFloat64Sdx(src interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("sdx: couldn't convert %v (%T) into type float64", src, src)
 }
 
-func asBoolSdx(src interface{}) (interface{}, error) {
+func sdxAsBool(src interface{}) (interface{}, error) {
 	switch s := src.(type) {
 	case bool:
 		return s, nil
@@ -169,69 +173,69 @@ func asBoolSdx(src interface{}) (interface{}, error) {
 
 // utils
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func setWithString(dst reflect.Value, src string) error {
+func sdxSetWithString(dst reflect.Value, src string) error {
 	//if src == "" {
 	//	return nil
 	//}
 
 	switch dst.Kind() {
 	case reflect.Int:
-		return setInt(dst, src, 0)
+		return sdxSetInt(dst, src, 0)
 	case reflect.Int8:
-		return setInt(dst, src, 8)
+		return sdxSetInt(dst, src, 8)
 	case reflect.Int16:
-		return setInt(dst, src, 16)
+		return sdxSetInt(dst, src, 16)
 	case reflect.Int32:
-		return setInt(dst, src, 32)
+		return sdxSetInt(dst, src, 32)
 	case reflect.Int64:
 		switch dst.Interface().(type) {
 		case time.Duration:
-			return setTimeDuration(dst, src)
+			return sdxSetTimeDuration(dst, src)
 		}
-		return setInt(dst, src, 64)
+		return sdxSetInt(dst, src, 64)
 	case reflect.Uint:
-		return setUint(dst, src, 0)
+		return sdxSetUint(dst, src, 0)
 	case reflect.Uint8:
-		return setUint(dst, src, 8)
+		return sdxSetUint(dst, src, 8)
 	case reflect.Uint16:
-		return setUint(dst, src, 16)
+		return sdxSetUint(dst, src, 16)
 	case reflect.Uint32:
-		return setUint(dst, src, 32)
+		return sdxSetUint(dst, src, 32)
 	case reflect.Uint64:
-		return setUint(dst, src, 64)
+		return sdxSetUint(dst, src, 64)
 	case reflect.Bool:
-		return setBool(dst, src)
+		return sdxSetBool(dst, src)
 	case reflect.Float32:
-		return setFloat(dst, src, 32)
+		return sdxSetFloat(dst, src, 32)
 	case reflect.Float64:
-		return setFloat(dst, src, 64)
+		return sdxSetFloat(dst, src, 64)
 	case reflect.String:
 		dst.SetString(src)
 	case reflect.Slice:
 		vs := []string{src}
-		return setStringSlice(dst, vs)
+		return sdxSetStringSlice(dst, vs)
 	case reflect.Array:
 		vs := []string{src}
 		if len(vs) != dst.Len() {
 			return fmt.Errorf("%q is not valid value for %s", vs, dst.Type().String())
 		}
-		return setStringArray(dst, vs)
+		return sdxSetStringArray(dst, vs)
 	case reflect.Map:
 		return json.Unmarshal(stringx.StringToBytes(src), dst.Addr().Interface())
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
-			return setTimeDuration(dst, src)
+			return sdxSetTimeDuration(dst, src)
 		}
 		return json.Unmarshal(stringx.StringToBytes(src), dst.Addr().Interface())
 	default:
-		return nil
-		//return errors.New("unknown type")
+		//return nil
+		return errors.New("unknown type")
 	}
 	return nil
 }
 
-func setInt(dst reflect.Value, src string, bitSize int) error {
+func sdxSetInt(dst reflect.Value, src string, bitSize int) error {
 	intVal, err := strconv.ParseInt(src, 10, bitSize)
 	if err == nil {
 		dst.SetInt(intVal)
@@ -239,7 +243,7 @@ func setInt(dst reflect.Value, src string, bitSize int) error {
 	return err
 }
 
-func setUint(dst reflect.Value, src string, bitSize int) error {
+func sdxSetUint(dst reflect.Value, src string, bitSize int) error {
 	uintVal, err := strconv.ParseUint(src, 10, bitSize)
 	if err == nil {
 		dst.SetUint(uintVal)
@@ -247,7 +251,7 @@ func setUint(dst reflect.Value, src string, bitSize int) error {
 	return err
 }
 
-func setBool(dst reflect.Value, src string) error {
+func sdxSetBool(dst reflect.Value, src string) error {
 	boolVal, err := strconv.ParseBool(src)
 	if err == nil {
 		dst.SetBool(boolVal)
@@ -255,7 +259,7 @@ func setBool(dst reflect.Value, src string) error {
 	return err
 }
 
-func setFloat(dst reflect.Value, src string, bitSize int) error {
+func sdxSetFloat(dst reflect.Value, src string, bitSize int) error {
 	floatVal, err := strconv.ParseFloat(src, bitSize)
 	if err == nil {
 		dst.SetFloat(floatVal)
@@ -263,9 +267,9 @@ func setFloat(dst reflect.Value, src string, bitSize int) error {
 	return err
 }
 
-func setStringArray(dst reflect.Value, items []string) error {
+func sdxSetStringArray(dst reflect.Value, items []string) error {
 	for i, s := range items {
-		err := setWithString(dst.Index(i), s)
+		err := sdxSetWithString(dst.Index(i), s)
 		if err != nil {
 			return err
 		}
@@ -273,9 +277,9 @@ func setStringArray(dst reflect.Value, items []string) error {
 	return nil
 }
 
-func setStringSlice(dest reflect.Value, values []string) error {
+func sdxSetStringSlice(dest reflect.Value, values []string) error {
 	slice := reflect.MakeSlice(dest.Type(), len(values), len(values))
-	err := setStringArray(slice, values)
+	err := sdxSetStringArray(slice, values)
 	if err != nil {
 		return err
 	}
@@ -283,7 +287,7 @@ func setStringSlice(dest reflect.Value, values []string) error {
 	return nil
 }
 
-func setTimeDuration(dst reflect.Value, src string) error {
+func sdxSetTimeDuration(dst reflect.Value, src string) error {
 	d, err := time.ParseDuration(src)
 	if err != nil {
 		return err
@@ -292,7 +296,7 @@ func setTimeDuration(dst reflect.Value, src string) error {
 	return nil
 }
 
-//func setTime(dst reflect.Value, src string) error {
+//func sdxSetTime(dst reflect.Value, src string) error {
 //	//timeFormat := field.Tag.Get("time_format")
 //	//if timeFormat == "" {
 //	//	timeFormat = time.RFC3339
