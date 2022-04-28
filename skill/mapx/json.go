@@ -1,47 +1,26 @@
 package mapx
 
 import (
-	"github.com/qinchende/gofast/cst"
-	"reflect"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"io"
 )
 
-//func applyKV(dest interface{}, kvs cst.KV, useName bool, useDef bool) error {
-//
-//}
-
-// 只用传入的值赋值对象
-func applyKV(dest interface{}, kvs cst.KV, useName bool, useDef bool) error {
-	if kvs == nil || len(kvs) == 0 {
-		return nil
+func decodeJsonReader(dst interface{}, reader io.Reader) error {
+	var kv map[string]interface{}
+	if err := jsonx.UnmarshalFromReader(reader, &kv); err != nil {
+		return err
 	}
 
-	sm := Schema(dest)
-	var fls []string
-	if useName {
-		fls = sm.fields
-	} else {
-		fls = sm.columns
-	}
-	flsOpts := sm.fieldsOpts
+	return ApplyKVByNameWithDef(dst, kv)
+}
 
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-	for i := 0; i < len(fls); i++ {
-		opt := flsOpts[i]
-		fk := fls[i]
-		sv, ok := kvs[fk]
-		// 只要找到相应的Key，不管Value是啥，不能使用默认值，不能转换就抛异常，说明数据源错误
-		if ok {
-		} else if useDef && opt != nil && opt.DefExist {
-			sv = opt.Default
-		} else {
-			continue
-		}
-
-		fv := sm.RefValueByIndex(&dstVal, int8(i))
-		err := sdxSetValue(fv, sv, opt)
-		errPanic(err)
+func decodeJsonBytes(dst interface{}, content []byte) error {
+	var kv map[string]interface{}
+	if err := jsonx.Unmarshal(content, &kv); err != nil {
+		return err
 	}
-	return nil
+
+	return ApplyKVByNameWithDef(dst, kv)
 }
 
 //// 用传入的值赋值对象，没有的字段设置默认值

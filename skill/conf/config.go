@@ -19,6 +19,12 @@ var loaders = map[string]func([]byte, interface{}) error{
 	".yml":  LoadConfigFromYamlBytes,
 }
 
+func MustLoad(path string, v interface{}) {
+	if err := LoadConfig(path, v); err != nil {
+		log.Fatalf("error: config file %s, %s", path, err.Error())
+	}
+}
+
 func LoadConfig(file string, v interface{}) error {
 	if content, err := ioutil.ReadFile(file); err != nil {
 		return err
@@ -35,10 +41,4 @@ func LoadConfigFromJsonBytes(content []byte, v interface{}) error {
 
 func LoadConfigFromYamlBytes(content []byte, v interface{}) error {
 	return mapping.UnmarshalYamlBytes(content, v)
-}
-
-func MustLoad(path string, v interface{}) {
-	if err := LoadConfig(path, v); err != nil {
-		log.Fatalf("error: config file %s, %s", path, err.Error())
-	}
 }

@@ -195,6 +195,7 @@ func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,
 	dbClsLen := len(dbColumns)
 	valuesAddr := make([]interface{}, dbClsLen)
 	tpItems := make([]reflect.Value, 0, 25)
+	// 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
 	if isKV {
 		// TODO：可以通过 sqlRows.ColumnsType() 进一步确定字段的类型
 		clsType, _ := sqlRows.ColumnTypes()
@@ -285,7 +286,7 @@ func checkDestType(dest interface{}) (reflect.Type, reflect.Type, bool, bool) {
 	if dItemType.Kind() == reflect.Ptr {
 		isPtr = true
 		dItemType = dItemType.Elem()
-	} else if dItemType.String() == "fst.KV" {
+	} else if dItemType.Name() == "KV" {
 		isKV = true
 	}
 

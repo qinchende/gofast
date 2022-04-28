@@ -1,5 +1,12 @@
 package mapx
 
+import "errors"
+
+var (
+	errNotKVType    = errors.New("only map-like configs supported")
+	errNotArrayType = errors.New("only array-like configs supported")
+)
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func ifPanic(yn bool, text string) {
 	if yn {
@@ -11,4 +18,11 @@ func errPanic(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func Repr(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	return sdxAsString(v)
 }
