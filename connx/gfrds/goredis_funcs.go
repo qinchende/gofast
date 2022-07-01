@@ -13,7 +13,7 @@ func (rdx *GfRedis) Get(key string) (string, error) {
 	return rdx.Cli.Get(rdx.Ctx, key).Result()
 }
 
-func (rdx *GfRedis) Set(key string, value interface{}, seconds time.Duration) (string, error) {
+func (rdx *GfRedis) Set(key string, value any, seconds time.Duration) (string, error) {
 	return rdx.Cli.Set(rdx.Ctx, key, value, seconds).Result()
 }
 

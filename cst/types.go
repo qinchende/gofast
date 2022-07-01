@@ -1,5 +1,5 @@
 package cst
 
 type (
-	KV map[string]interface{}
+	KV map[string]any
 )

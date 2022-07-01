@@ -97,12 +97,12 @@ type (
 	LogOption func(options *logOptions)
 
 	Logger interface {
-		Error(...interface{})
-		Errorf(string, ...interface{})
-		Info(...interface{})
-		Infof(string, ...interface{})
-		Slow(...interface{})
-		Slowf(string, ...interface{})
+		Error(...any)
+		Errorf(string, ...any)
+		Info(...any)
+		Infof(string, ...any)
+		Slow(...any)
+		Slowf(string, ...any)
 		WithDuration(time.Duration) Logger
 	}
 )

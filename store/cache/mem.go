@@ -8,5 +8,5 @@ func init() {
 
 type MemItem struct {
 	expire uint64
-	Val    interface{}
+	Val    any
 }

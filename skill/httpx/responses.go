@@ -7,7 +7,7 @@ import (
 )
 
 var (
-	errorHandler func(error) (int, interface{})
+	errorHandler func(error) (int, any)
 	lock         sync.RWMutex
 )
 
@@ -34,17 +34,17 @@ func Ok(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusOK)
 }
 
-func OkJson(w http.ResponseWriter, v interface{}) {
+func OkJson(w http.ResponseWriter, v any) {
 	WriteJson(w, http.StatusOK, v)
 }
 
-func SetErrorHandler(handler func(error) (int, interface{})) {
+func SetErrorHandler(handler func(error) (int, any)) {
 	lock.Lock()
 	defer lock.Unlock()
 	errorHandler = handler
 }
 
-func WriteJson(w http.ResponseWriter, code int, v interface{}) {
+func WriteJson(w http.ResponseWriter, code int, v any) {
 	w.Header().Set(ContentType, ApplicationJson)
 	w.WriteHeader(code)
 

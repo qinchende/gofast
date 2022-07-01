@@ -12,13 +12,13 @@ type (
 	// A ------->calls F with key<------------------->returns val
 	// B --------------------->calls F with key------>returns val
 	SharedCalls interface {
-		Do(key string, fn func() (interface{}, error)) (interface{}, error)
-		DoExt(key string, fn func() (interface{}, error)) (interface{}, bool, error)
+		Do(key string, fn func() (any, error)) (any, error)
+		DoExt(key string, fn func() (any, error)) (any, bool, error)
 	}
 
 	call struct {
 		wg  sync.WaitGroup
-		val interface{}
+		val any
 		err error
 	}
 
@@ -36,7 +36,7 @@ func NewSharedCalls() SharedCalls {
 }
 
 // 返回函数执行结果+错误提示
-func (g *sharedGroup) Do(key string, fn func() (interface{}, error)) (val interface{}, err error) {
+func (g *sharedGroup) Do(key string, fn func() (any, error)) (val any, err error) {
 	c, done := g.createCall(key)
 	if done {
 		return c.val, c.err
@@ -47,7 +47,7 @@ func (g *sharedGroup) Do(key string, fn func() (interface{}, error)) (val interf
 }
 
 // 返回结果显示是否第一次执行，还是共享了其它请求的结果
-func (g *sharedGroup) DoExt(key string, fn func() (interface{}, error)) (val interface{}, fresh bool, err error) {
+func (g *sharedGroup) DoExt(key string, fn func() (any, error)) (val any, fresh bool, err error) {
 	c, done := g.createCall(key)
 	if done {
 		return c.val, false, c.err
@@ -74,7 +74,7 @@ func (g *sharedGroup) createCall(key string) (c *call, done bool) {
 }
 
 // 执行调用，并将结果返回记录在保持体内，方便后续访问共享
-func (g *sharedGroup) execCall(c *call, key string, fn func() (interface{}, error)) {
+func (g *sharedGroup) execCall(c *call, key string, fn func() (any, error)) {
 	defer func() {
 		g.lock.Lock()
 		delete(g.calls, key)

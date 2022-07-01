@@ -4,4 +4,4 @@ import "time"
 
 const defaultFlushInterval = time.Second
 
-type Execute func(tasks []interface{})
+type Execute func(tasks []any)

@@ -58,7 +58,7 @@ func (rc *reqContainer) resetSum() {
 // 添加统计项目
 // 如果这里返回true，意味着要立刻刷新当前所有统计数据，这个开关用户自定义输出日志
 // 一般这里都应该返回 false
-func (rc *reqContainer) AddItem(v interface{}) bool {
+func (rc *reqContainer) AddItem(v any) bool {
 	if item, ok := v.(ReqItem); ok {
 		rc.currReqs = append(rc.currReqs, item)
 	}
@@ -66,7 +66,7 @@ func (rc *reqContainer) AddItem(v interface{}) bool {
 }
 
 // 返回当前容器中的所有数据，同时重置容器
-func (rc *reqContainer) RemoveAll() interface{} {
+func (rc *reqContainer) RemoveAll() any {
 	ret := deliverItems{
 		reqs: rc.currReqs,
 	}
@@ -77,7 +77,7 @@ func (rc *reqContainer) RemoveAll() interface{} {
 }
 
 // 执行统计输出
-func (rc *reqContainer) Execute(items interface{}) {
+func (rc *reqContainer) Execute(items any) {
 	// 这里不需要断言判断类型转换的真假，因为结果是上面 RemoveAll 返回的
 	ret := items.(deliverItems)
 	reqs := ret.reqs

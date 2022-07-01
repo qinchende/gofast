@@ -26,7 +26,7 @@ func IsDebugging() bool {
 	return isDebug
 }
 
-func DebugPrint(format string, v ...interface{}) {
+func DebugPrint(format string, v ...any) {
 	if isDebug {
 		Info("[Debug] ", fmt.Sprintf(format, v...))
 	}

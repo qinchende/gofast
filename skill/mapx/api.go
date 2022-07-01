@@ -6,37 +6,37 @@ import (
 )
 
 // cst.KV
-func ApplyKVByName(dst interface{}, kvs cst.KV) error {
+func ApplyKVByName(dst any, kvs cst.KV) error {
 	return applyKVToStruct(dst, kvs, true, false)
 }
 
-func ApplyKVByNameWithDef(dst interface{}, kvs cst.KV) error {
+func ApplyKVByNameWithDef(dst any, kvs cst.KV) error {
 	return applyKVToStruct(dst, kvs, true, true)
 }
 
-func ApplyKVByTag(dst interface{}, kvs cst.KV) error {
+func ApplyKVByTag(dst any, kvs cst.KV) error {
 	return applyKVToStruct(dst, kvs, false, false)
 }
 
-func ApplyKVByTagWithDef(dst interface{}, kvs cst.KV) error {
+func ApplyKVByTagWithDef(dst any, kvs cst.KV) error {
 	return applyKVToStruct(dst, kvs, false, true)
 }
 
 // JSON
-func ApplyJsonReader(dst interface{}, reader io.Reader) error {
+func ApplyJsonReader(dst any, reader io.Reader) error {
 	return decodeJsonReader(dst, reader)
 }
 
-func ApplyJsonBytes(dst interface{}, content []byte) error {
+func ApplyJsonBytes(dst any, content []byte) error {
 	return decodeJsonBytes(dst, content)
 }
 
 // Yaml
-func ApplyYamlReader(dst interface{}, reader io.Reader) error {
+func ApplyYamlReader(dst any, reader io.Reader) error {
 	return decodeYamlReader(dst, reader)
 }
 
-func ApplyYamlBytes(dst interface{}, content []byte) error {
+func ApplyYamlBytes(dst any, content []byte) error {
 	return decodeYamlBytes(dst, content)
 }
 

@@ -36,7 +36,7 @@ func NewBulkExecutor(execute Execute, opts ...BulkOption) *BulkExecutor {
 	return executor
 }
 
-func (be *BulkExecutor) Add(task interface{}) error {
+func (be *BulkExecutor) Add(task any) error {
 	be.executor.Add(task)
 	return nil
 }
@@ -69,22 +69,22 @@ func newBulkOptions() bulkOptions {
 }
 
 type bulkContainer struct {
-	tasks    []interface{}
+	tasks    []any
 	execute  Execute
 	maxTasks int
 }
 
-func (bc *bulkContainer) AddItem(task interface{}) bool {
+func (bc *bulkContainer) AddItem(task any) bool {
 	bc.tasks = append(bc.tasks, task)
 	return len(bc.tasks) >= bc.maxTasks
 }
 
-func (bc *bulkContainer) Execute(tasks interface{}) {
-	vals := tasks.([]interface{})
+func (bc *bulkContainer) Execute(tasks any) {
+	vals := tasks.([]any)
 	bc.execute(vals)
 }
 
-func (bc *bulkContainer) RemoveAll() interface{} {
+func (bc *bulkContainer) RemoveAll() any {
 	tasks := bc.tasks
 	bc.tasks = nil
 	return tasks

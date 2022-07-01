@@ -10,7 +10,7 @@ import (
 )
 
 type (
-	KV         map[string]interface{}
+	KV         map[string]any
 	AppHandler func(gft *GoFast)
 	FitFunc    func(http.HandlerFunc) http.HandlerFunc
 	CtxHandler func(ctx *Context)

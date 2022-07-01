@@ -40,7 +40,7 @@ type SelectPet struct {
 	Offset  int64
 	Limit   int64
 	Where   string
-	Prams   []interface{}
+	Prams   []any
 }
 
 const (

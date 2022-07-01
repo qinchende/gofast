@@ -20,7 +20,7 @@ func errPanic(err error) {
 	}
 }
 
-func Repr(v interface{}) string {
+func Repr(v any) string {
 	if v == nil {
 		return ""
 	}

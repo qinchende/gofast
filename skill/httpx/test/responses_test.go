@@ -28,7 +28,7 @@ func TestError(t *testing.T) {
 	tests := []struct {
 		name         string
 		input        string
-		errorHandler func(error) (int, interface{})
+		errorHandler func(error) (int, any)
 		expectBody   string
 		expectCode   int
 	}{
@@ -41,7 +41,7 @@ func TestError(t *testing.T) {
 		{
 			name:  "customized error handler return string",
 			input: body,
-			errorHandler: func(err error) (int, interface{}) {
+			errorHandler: func(err error) (int, any) {
 				return http.StatusForbidden, err.Error()
 			},
 			expectBody: wrappedBody,
@@ -50,7 +50,7 @@ func TestError(t *testing.T) {
 		{
 			name:  "customized error handler return error",
 			input: body,
-			errorHandler: func(err error) (int, interface{}) {
+			errorHandler: func(err error) (int, any) {
 				return http.StatusForbidden, err
 			},
 			expectBody: body,

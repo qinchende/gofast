@@ -70,7 +70,7 @@ func updateSql(mss *orm.ModelSchema) string {
 }
 
 // 更新特定字段
-func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []string) (string, []interface{}) {
+func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []string) (string, []any) {
 	if len(columns) == 1 {
 		columns = strings.Split(columns[0], ",")
 	}
@@ -83,7 +83,7 @@ func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []stri
 	clsKV := ms.ColumnsKV()
 	cls := ms.Columns()
 	sBuf := strings.Builder{}
-	tValues := make([]interface{}, tgLen+2)
+	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
 		idx, ok := clsKV[columns[i]]

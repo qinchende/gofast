@@ -14,7 +14,7 @@ const drainWorkers = 8
 
 type (
 	// Execute defines the method to execute the task.
-	Execute func(key, value interface{})
+	Execute func(key, value any)
 
 	// A TimingWheel is a timing wheel object to schedule tasks.
 	TimingWheel struct {
@@ -27,14 +27,14 @@ type (
 		execute       Execute
 		setChannel    chan timingEntry
 		moveChannel   chan baseEntry
-		removeChannel chan interface{}
-		drainChannel  chan func(key, value interface{})
+		removeChannel chan any
+		drainChannel  chan func(key, value any)
 		stopChannel   chan lang.PlaceholderType
 	}
 
 	timingEntry struct {
 		baseEntry
-		value   interface{}
+		value   any
 		circle  int
 		diff    int
 		removed bool
@@ -42,7 +42,7 @@ type (
 
 	baseEntry struct {
 		delay time.Duration
-		key   interface{}
+		key   any
 	}
 
 	positionEntry struct {
@@ -51,8 +51,8 @@ type (
 	}
 
 	timingTask struct {
-		key   interface{}
-		value interface{}
+		key   any
+		value any
 	}
 )
 
@@ -77,8 +77,8 @@ func newTimingWheelWithClock(interval time.Duration, numSlots int, execute Execu
 		numSlots:      numSlots,
 		setChannel:    make(chan timingEntry),
 		moveChannel:   make(chan baseEntry),
-		removeChannel: make(chan interface{}),
-		drainChannel:  make(chan func(key, value interface{})),
+		removeChannel: make(chan any),
+		drainChannel:  make(chan func(key, value any)),
 		stopChannel:   make(chan lang.PlaceholderType),
 	}
 
@@ -89,12 +89,12 @@ func newTimingWheelWithClock(interval time.Duration, numSlots int, execute Execu
 }
 
 // Drain drains all items and executes them.
-func (tw *TimingWheel) Drain(fn func(key, value interface{})) {
+func (tw *TimingWheel) Drain(fn func(key, value any)) {
 	tw.drainChannel <- fn
 }
 
 // MoveTimer moves the task with the given key to the given delay.
-func (tw *TimingWheel) MoveTimer(key interface{}, delay time.Duration) {
+func (tw *TimingWheel) MoveTimer(key any, delay time.Duration) {
 	if delay <= 0 || key == nil {
 		return
 	}
@@ -106,7 +106,7 @@ func (tw *TimingWheel) MoveTimer(key interface{}, delay time.Duration) {
 }
 
 // RemoveTimer removes the task with the given key.
-func (tw *TimingWheel) RemoveTimer(key interface{}) {
+func (tw *TimingWheel) RemoveTimer(key any) {
 	if key == nil {
 		return
 	}
@@ -115,7 +115,7 @@ func (tw *TimingWheel) RemoveTimer(key interface{}) {
 }
 
 // SetTimer sets the task value with the given key to the delay.
-func (tw *TimingWheel) SetTimer(key, value interface{}, delay time.Duration) {
+func (tw *TimingWheel) SetTimer(key, value any, delay time.Duration) {
 	if delay <= 0 || key == nil {
 		return
 	}
@@ -134,7 +134,7 @@ func (tw *TimingWheel) Stop() {
 	close(tw.stopChannel)
 }
 
-func (tw *TimingWheel) drainAll(fn func(key, value interface{})) {
+func (tw *TimingWheel) drainAll(fn func(key, value any)) {
 	runner := threading.NewTaskRunner(drainWorkers)
 	for _, slot := range tw.slots {
 		for e := slot.Front(); e != nil; {
@@ -204,7 +204,7 @@ func (tw *TimingWheel) onTick() {
 	tw.scanAndRunTasks(l)
 }
 
-func (tw *TimingWheel) removeTask(key interface{}) {
+func (tw *TimingWheel) removeTask(key any) {
 	val, ok := tw.timers.Get(key)
 	if !ok {
 		return

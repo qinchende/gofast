@@ -27,7 +27,7 @@ func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) int64 {
 	return ct
 }
 
-func (conn *MysqlORM) Delete(obj interface{}) int64 {
+func (conn *MysqlORM) Delete(obj any) int64 {
 	sm := orm.Schema(obj)
 	val := sm.PrimaryValue(obj)
 	ret := conn.Exec(deleteSql(sm), val)
@@ -59,7 +59,7 @@ func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, columns ...string) i
 	return parseResult(ret, tValues[len(tValues)-1], conn, sm)
 }
 
-func parseResult(ret sql.Result, keyVal interface{}, conn *MysqlORM, sm *orm.ModelSchema) int64 {
+func parseResult(ret sql.Result, keyVal any, conn *MysqlORM, sm *orm.ModelSchema) int64 {
 	ct, err := ret.RowsAffected()
 	errLog(err)
 
@@ -76,7 +76,7 @@ func parseResult(ret sql.Result, keyVal interface{}, conn *MysqlORM, sm *orm.Mod
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int64 {
+func (conn *MysqlORM) QueryID(dest any, id any) int64 {
 	rVal := reflect.Indirect(reflect.ValueOf(dest))
 
 	sm := orm.SchemaOfType(rVal.Type())
@@ -87,7 +87,7 @@ func (conn *MysqlORM) QueryID(dest interface{}, id interface{}) int64 {
 }
 
 // TODO: 当前重点解决缓存的问题
-func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
+func (conn *MysqlORM) QueryIDCC(dest any, id any) int64 {
 	rVal := reflect.Indirect(reflect.ValueOf(dest))
 	sm := orm.SchemaOfType(rVal.Type())
 
@@ -115,7 +115,7 @@ func (conn *MysqlORM) QueryIDCC(dest interface{}, id interface{}) int64 {
 	return ct
 }
 
-func (conn *MysqlORM) QueryRow(dest interface{}, where string, pms ...interface{}) int64 {
+func (conn *MysqlORM) QueryRow(dest any, where string, pms ...any) int64 {
 	rVal := reflect.Indirect(reflect.ValueOf(dest))
 
 	sm := orm.SchemaOfType(rVal.Type())
@@ -132,7 +132,7 @@ func parseQueryRow(rVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) 
 
 	dbColumns, _ := sqlRows.Columns()
 	smColumns := sm.ColumnsKV()
-	fieldsAddr := make([]interface{}, len(dbColumns))
+	fieldsAddr := make([]any, len(dbColumns))
 
 	// 每一个db-column都应该有对应的变量接收值
 	for cIdx, column := range dbColumns {
@@ -141,7 +141,7 @@ func parseQueryRow(rVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) 
 			fieldsAddr[cIdx] = sm.AddrByIndex(rVal, idx)
 		} else {
 			// 这个值会被丢弃
-			fieldsAddr[cIdx] = new(interface{})
+			fieldsAddr[cIdx] = new(any)
 		}
 	}
 	err := sqlRows.Scan(fieldsAddr...)
@@ -150,11 +150,11 @@ func parseQueryRow(rVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) 
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *MysqlORM) QueryRows(dest interface{}, where string, pms ...interface{}) int64 {
+func (conn *MysqlORM) QueryRows(dest any, where string, pms ...any) int64 {
 	return conn.QueryRows2(dest, "*", where, pms...)
 }
 
-func (conn *MysqlORM) QueryRows2(dest interface{}, fields string, where string, pms ...interface{}) int64 {
+func (conn *MysqlORM) QueryRows2(dest any, fields string, where string, pms ...any) int64 {
 	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
 
 	sm := orm.SchemaOfType(dItemType)
@@ -165,7 +165,7 @@ func (conn *MysqlORM) QueryRows2(dest interface{}, fields string, where string, 
 }
 
 // 高级查询，可以自定义更多参数
-func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
+func (conn *MysqlORM) QueryPet(dest any, pet *SelectPet) int64 {
 	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
 
 	sm := orm.SchemaOfType(dItemType)
@@ -187,13 +187,13 @@ func (conn *MysqlORM) QueryPet(dest interface{}, pet *SelectPet) int64 {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析查询到的数据记录
-func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,
+func parseQueryRows(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema,
 	dSliceTyp reflect.Type, dItemType reflect.Type, isPtr bool, isKV bool) int64 {
 	dbColumns, _ := sqlRows.Columns()
 	smColumns := sm.ColumnsKV()
 
 	dbClsLen := len(dbColumns)
-	valuesAddr := make([]interface{}, dbClsLen)
+	valuesAddr := make([]any, dbClsLen)
 	tpItems := make([]reflect.Value, 0, 25)
 	// 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
 	if isKV {
@@ -204,7 +204,7 @@ func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,
 			if typ.String() == "sql.RawBytes" {
 				valuesAddr[i] = new(string)
 			} else {
-				valuesAddr[i] = new(interface{})
+				valuesAddr[i] = new(any)
 			}
 		}
 
@@ -212,7 +212,7 @@ func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,
 			err := sqlRows.Scan(valuesAddr...)
 			errPanic(err)
 
-			obj := make(map[string]interface{}, dbClsLen)
+			obj := make(map[string]any, dbClsLen)
 			for i := 0; i < dbClsLen; i++ {
 				obj[dbColumns[i]] = reflect.ValueOf(valuesAddr[i]).Elem().Interface()
 			}
@@ -226,7 +226,7 @@ func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,
 				dbClsIndex[i] = idx
 			} else {
 				dbClsIndex[i] = -1
-				valuesAddr[i] = new(interface{})
+				valuesAddr[i] = new(any)
 			}
 		}
 
@@ -269,7 +269,7 @@ func parseQueryRows(dest interface{}, sqlRows *sql.Rows, sm *orm.ModelSchema,
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Utils
-func checkDestType(dest interface{}) (reflect.Type, reflect.Type, bool, bool) {
+func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Ptr {
 		panic("dest must be pointer.")

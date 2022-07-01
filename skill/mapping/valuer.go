@@ -2,13 +2,13 @@ package mapping
 
 type (
 	Valuer interface {
-		Value(key string) (interface{}, bool)
+		Value(key string) (any, bool)
 	}
 
-	MapValuer map[string]interface{}
+	MapValuer map[string]any
 )
 
-func (mv MapValuer) Value(key string) (interface{}, bool) {
+func (mv MapValuer) Value(key string) (any, bool) {
 	v, ok := mv[key]
 	return v, ok
 }

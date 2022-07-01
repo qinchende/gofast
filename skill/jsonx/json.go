@@ -9,11 +9,11 @@ import (
 	"strings"
 )
 
-func Marshal(v interface{}) ([]byte, error) {
+func Marshal(v any) ([]byte, error) {
 	return json.Marshal(v)
 }
 
-func Unmarshal(data []byte, v interface{}) error {
+func Unmarshal(data []byte, v any) error {
 	decoder := json.NewDecoder(bytes.NewReader(data))
 	if err := unmarshalUseNumber(decoder, v); err != nil {
 		return formatError(stringx.BytesToString(data), err)
@@ -22,7 +22,7 @@ func Unmarshal(data []byte, v interface{}) error {
 	return nil
 }
 
-func UnmarshalFromString(str string, v interface{}) error {
+func UnmarshalFromString(str string, v any) error {
 	decoder := json.NewDecoder(strings.NewReader(str))
 	if err := unmarshalUseNumber(decoder, v); err != nil {
 		return formatError(str, err)
@@ -31,7 +31,7 @@ func UnmarshalFromString(str string, v interface{}) error {
 	return nil
 }
 
-func UnmarshalFromReader(reader io.Reader, v interface{}) error {
+func UnmarshalFromReader(reader io.Reader, v any) error {
 	var buf strings.Builder
 	teeReader := io.TeeReader(reader, &buf)
 	decoder := json.NewDecoder(teeReader)
@@ -43,7 +43,7 @@ func UnmarshalFromReader(reader io.Reader, v interface{}) error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func unmarshalUseNumber(decoder *json.Decoder, v interface{}) error {
+func unmarshalUseNumber(decoder *json.Decoder, v any) error {
 	decoder.UseNumber()
 	return decoder.Decode(v)
 }

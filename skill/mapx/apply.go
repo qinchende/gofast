@@ -7,7 +7,7 @@ import (
 )
 
 // 只用传入的值赋值对象
-func applyKVToStruct(dest interface{}, kvs cst.KV, useName bool, useDef bool) error {
+func applyKVToStruct(dest any, kvs cst.KV, useName bool, useDef bool) error {
 	if kvs == nil || len(kvs) == 0 {
 		return nil
 	}
@@ -46,7 +46,7 @@ func applyKVToStruct(dest interface{}, kvs cst.KV, useName bool, useDef bool) er
 }
 
 // src 只能是 array,slice 类型
-func applyList(dst interface{}, src interface{}, useName bool, useDef bool) error {
+func applyList(dst any, src any, useName bool, useDef bool) error {
 	srcV := reflect.Indirect(reflect.ValueOf(src))
 
 	switch srcV.Kind() {
@@ -65,7 +65,7 @@ func applyList(dst interface{}, src interface{}, useName bool, useDef bool) erro
 	return nil
 }
 
-func checkDestType(dest interface{}) (reflect.Type, reflect.Type, bool, bool) {
+func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Ptr {
 		panic("dest must be pointer.")

@@ -56,7 +56,7 @@ func applyUrlValue(pms cst.KV, values url.Values) {
 }
 
 // 如果没有匹配路由，需要一些初始化
-func (c *Context) GetPms(key string) (val interface{}, ok bool) {
+func (c *Context) GetPms(key string) (val any, ok bool) {
 	c.mu.RLock()
 	val, ok = c.Pms[key]
 	c.mu.RUnlock()

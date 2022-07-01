@@ -13,7 +13,7 @@ type ReqLogEntity struct {
 	ClientIP   string
 	StatusCode int
 	// isTerm     bool
-	Pms      map[string]interface{}
+	Pms      map[string]any
 	BodySize int
 	ResData  []byte
 	// Keys       map[string]interface{}

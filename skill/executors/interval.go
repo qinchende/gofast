@@ -20,16 +20,16 @@ type (
 	ItemContainer interface {
 		// AddItem adds the task into the container.
 		// Returns true if the container needs to be flushed after the addition.
-		AddItem(item interface{}) bool
+		AddItem(item any) bool
 		// Execute handles the collected items by the container when flushing.
-		Execute(items interface{})
+		Execute(items any)
 		// RemoveAll removes the contained items, and return them.
-		RemoveAll() interface{}
+		RemoveAll() any
 	}
 
 	// 管理周期执行的实体对象
 	IntervalExecutor struct {
-		commander   chan interface{}
+		commander   chan any
 		confirmChan chan lang.PlaceholderType
 		interval    time.Duration
 		container   ItemContainer
@@ -46,7 +46,7 @@ type (
 func NewIntervalExecutor(interval time.Duration, container ItemContainer) *IntervalExecutor {
 	executor := &IntervalExecutor{
 		// buffer 1 to let the caller go quickly
-		commander:   make(chan interface{}, 1),
+		commander:   make(chan any, 1),
 		confirmChan: make(chan struct{}),
 		interval:    interval,
 		container:   container,
@@ -61,7 +61,7 @@ func NewIntervalExecutor(interval time.Duration, container ItemContainer) *Inter
 	return executor
 }
 
-func (pe *IntervalExecutor) Add(item interface{}) {
+func (pe *IntervalExecutor) Add(item any) {
 	// 外界可以强制刷新日志，并将values传入可执行函数
 	if values, ok := pe.addAndCheck(item); ok {
 		pe.commander <- values
@@ -72,7 +72,7 @@ func (pe *IntervalExecutor) Add(item interface{}) {
 // 执行一次定时任务。
 func (pe *IntervalExecutor) Flush() bool {
 	pe.enterExecution()
-	return pe.executeTasks(func() interface{} {
+	return pe.executeTasks(func() any {
 		pe.lock.Lock()
 		defer pe.lock.Unlock()
 		return pe.container.RemoveAll()
@@ -93,7 +93,7 @@ func (pe *IntervalExecutor) Wait() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (pe *IntervalExecutor) addAndCheck(item interface{}) (interface{}, bool) {
+func (pe *IntervalExecutor) addAndCheck(item any) (any, bool) {
 	pe.lock.Lock()
 	defer func() {
 		if !pe.isRunning {
@@ -180,7 +180,7 @@ func (pe *IntervalExecutor) enterExecution() {
 	})
 }
 
-func (pe *IntervalExecutor) executeTasks(items interface{}) bool {
+func (pe *IntervalExecutor) executeTasks(items any) bool {
 	defer pe.doneExecution()
 	ok := pe.hasTasks(items)
 	if ok {
@@ -189,7 +189,7 @@ func (pe *IntervalExecutor) executeTasks(items interface{}) bool {
 	return ok
 }
 
-func (pe *IntervalExecutor) hasTasks(items interface{}) bool {
+func (pe *IntervalExecutor) hasTasks(items any) bool {
 	if items == nil {
 		return false
 	}

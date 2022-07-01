@@ -12,10 +12,10 @@ import (
 
 // Set is used to store a new key/value pair exclusively for this context.
 // It also lazy initializes  c.Keys if it was not used previously.
-func (c *Context) Set(key string, value interface{}) {
+func (c *Context) Set(key string, value any) {
 	c.mu.Lock()
 	if c.Keys == nil {
-		c.Keys = make(map[string]interface{})
+		c.Keys = make(map[string]any)
 	}
 
 	c.Keys[key] = value
@@ -24,7 +24,7 @@ func (c *Context) Set(key string, value interface{}) {
 
 // Get returns the value for the given key, ie: (value, true).
 // If the value does not exists it returns (nil, false)
-func (c *Context) Get(key string) (value interface{}, exists bool) {
+func (c *Context) Get(key string) (value any, exists bool) {
 	c.mu.RLock()
 	value, exists = c.Keys[key]
 	c.mu.RUnlock()
@@ -32,7 +32,7 @@ func (c *Context) Get(key string) (value interface{}, exists bool) {
 }
 
 // MustGet returns the value for the given key if it exists, otherwise it panics.
-func (c *Context) MustGet(key string) interface{} {
+func (c *Context) MustGet(key string) any {
 	if value, exists := c.Get(key); exists {
 		return value
 	}
@@ -104,9 +104,9 @@ func (c *Context) GetStringSlice(key string) (ss []string) {
 }
 
 // GetStringMap returns the value associated with the key as a map of interfaces.
-func (c *Context) GetStringMap(key string) (sm map[string]interface{}) {
+func (c *Context) GetStringMap(key string) (sm map[string]any) {
 	if val, ok := c.Get(key); ok && val != nil {
-		sm, _ = val.(map[string]interface{})
+		sm, _ = val.(map[string]any)
 	}
 	return
 }
@@ -152,7 +152,7 @@ func (c *Context) Err() error {
 // Value returns the value associated with this context for key, or nil
 // if no value is associated with key. Successive calls to Value with
 // the same key returns the same result.
-func (c *Context) Value(key interface{}) interface{} {
+func (c *Context) Value(key any) any {
 	if key == 0 {
 		return c.ReqRaw
 	}

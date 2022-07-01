@@ -24,7 +24,7 @@ type (
 		hashFunc HashFunc
 		replicas int
 		keys     []uint64
-		ring     map[uint64][]interface{}
+		ring     map[uint64][]any
 		nodes    map[string]lang.PlaceholderType
 		lock     sync.RWMutex
 	}
@@ -46,21 +46,21 @@ func NewCustomConsistentHash(replicas int, fn HashFunc) *ConsistentHash {
 	return &ConsistentHash{
 		hashFunc: fn,
 		replicas: replicas,
-		ring:     make(map[uint64][]interface{}),
+		ring:     make(map[uint64][]any),
 		nodes:    make(map[string]lang.PlaceholderType),
 	}
 }
 
 // Add adds the node with the number of h.replicas,
 // the later call will overwrite the replicas of the former calls.
-func (h *ConsistentHash) Add(node interface{}) {
+func (h *ConsistentHash) Add(node any) {
 	h.AddWithReplicas(node, h.replicas)
 }
 
 // AddWithReplicas adds the node with the number of replicas,
 // replicas will be truncated to h.replicas if it's larger than h.replicas,
 // the later call will overwrite the replicas of the former calls.
-func (h *ConsistentHash) AddWithReplicas(node interface{}, replicas int) {
+func (h *ConsistentHash) AddWithReplicas(node any, replicas int) {
 	h.Remove(node)
 
 	if replicas > h.replicas {
@@ -85,14 +85,14 @@ func (h *ConsistentHash) AddWithReplicas(node interface{}, replicas int) {
 
 // AddWithWeight adds the node with weight, the weight can be 1 to 100, indicates the percent,
 // the later call will overwrite the replicas of the former calls.
-func (h *ConsistentHash) AddWithWeight(node interface{}, weight int) {
+func (h *ConsistentHash) AddWithWeight(node any, weight int) {
 	// don't need to make sure weight not larger than TopWeight,
 	// because AddWithReplicas makes sure replicas cannot be larger than h.replicas
 	replicas := h.replicas * weight / TopWeight
 	h.AddWithReplicas(node, replicas)
 }
 
-func (h *ConsistentHash) Get(v interface{}) (interface{}, bool) {
+func (h *ConsistentHash) Get(v any) (any, bool) {
 	h.lock.RLock()
 	defer h.lock.RUnlock()
 
@@ -118,7 +118,7 @@ func (h *ConsistentHash) Get(v interface{}) (interface{}, bool) {
 	}
 }
 
-func (h *ConsistentHash) Remove(node interface{}) {
+func (h *ConsistentHash) Remove(node any) {
 	nodeRepr := repr(node)
 
 	h.lock.Lock()
@@ -171,10 +171,10 @@ func (h *ConsistentHash) removeNode(nodeRepr string) {
 	delete(h.nodes, nodeRepr)
 }
 
-func innerRepr(node interface{}) string {
+func innerRepr(node any) string {
 	return fmt.Sprintf("%d:%v", prime, node)
 }
 
-func repr(node interface{}) string {
+func repr(node any) string {
 	return mapping.Repr(node)
 }

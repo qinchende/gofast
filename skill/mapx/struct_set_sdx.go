@@ -11,7 +11,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src interface{}, opt *fieldOptions, useName bool, useDef bool) error {
+func sdxSetValue(dst reflect.Value, src any, opt *fieldOptions, useName bool, useDef bool) error {
 	if src == nil {
 		return nil
 	}
@@ -25,7 +25,7 @@ func sdxSetValue(dst reflect.Value, src interface{}, opt *fieldOptions, useName 
 	case reflect.Map:
 		// 如果Map不是 cst.KV 类型，这里会抛异常
 		// TODO: 目前不支持这种情况
-		return applyKVToStruct(dst, src.(map[string]interface{}), useName, useDef)
+		return applyKVToStruct(dst, src.(map[string]any), useName, useDef)
 	}
 
 	// 实体对象字段类型
@@ -60,7 +60,7 @@ func sdxSetValue(dst reflect.Value, src interface{}, opt *fieldOptions, useName 
 		return nil
 	case reflect.Slice, reflect.Array:
 		// 此时包装一下, 将单个Value包装成 slice
-		newSrc := []interface{}{src}
+		newSrc := []any{src}
 		return applyList(dst, newSrc, useName, useDef)
 	case reflect.Map:
 		return errNotKVType
@@ -73,7 +73,7 @@ func sdxSetValue(dst reflect.Value, src interface{}, opt *fieldOptions, useName 
 	return nil
 }
 
-func sdxAsString(src interface{}) string {
+func sdxAsString(src any) string {
 	switch v := src.(type) {
 	case string:
 		return v
@@ -97,7 +97,7 @@ func sdxAsString(src interface{}) string {
 	return fmt.Sprint(src)
 }
 
-func sdxAsInt64(src interface{}) (interface{}, error) {
+func sdxAsInt64(src any) (any, error) {
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -112,7 +112,7 @@ func sdxAsInt64(src interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("sdx: couldn't convert %v (%T) into type int64", src, src)
 }
 
-func sdxAsUInt64(src interface{}) (interface{}, error) {
+func sdxAsUInt64(src any) (any, error) {
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -127,7 +127,7 @@ func sdxAsUInt64(src interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("sdx: couldn't convert %v (%T) into type uint64", src, src)
 }
 
-func sdxAsFloat64(src interface{}) (interface{}, error) {
+func sdxAsFloat64(src any) (any, error) {
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
@@ -140,7 +140,7 @@ func sdxAsFloat64(src interface{}) (interface{}, error) {
 	return nil, fmt.Errorf("sdx: couldn't convert %v (%T) into type float64", src, src)
 }
 
-func sdxAsBool(src interface{}) (interface{}, error) {
+func sdxAsBool(src any) (any, error) {
 	switch s := src.(type) {
 	case bool:
 		return s, nil

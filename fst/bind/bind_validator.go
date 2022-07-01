@@ -19,7 +19,7 @@ type defaultValidator struct {
 var _ StructValidator = &defaultValidator{}
 
 // ValidateStruct receives any kind of type, but only performed struct or pointer to struct type.
-func (v *defaultValidator) ValidateStruct(obj interface{}) error {
+func (v *defaultValidator) ValidateStruct(obj any) error {
 	value := reflect.ValueOf(obj)
 	valueType := value.Kind()
 	if valueType == reflect.Ptr {
@@ -38,7 +38,7 @@ func (v *defaultValidator) ValidateStruct(obj interface{}) error {
 // Validator instance. This is useful if you want to register custom validations
 // or struct level validations. See validator GoDoc for more info -
 // https://godoc.org/gopkg.in/go-playground/validator.v8
-func (v *defaultValidator) Engine() interface{} {
+func (v *defaultValidator) Engine() any {
 	v.lazyInit()
 	return v.validate
 }

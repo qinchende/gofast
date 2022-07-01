@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/qinchende/gofast/skill/fs"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
