@@ -40,11 +40,11 @@ func cacheGetSchema(typ reflect.Type) *GfStruct {
 	return nil
 }
 
-func (ms *GfStruct) ValueByIndex(rVal *reflect.Value, index int8) interface{} {
+func (ms *GfStruct) ValueByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Interface()
 }
 
-func (ms *GfStruct) AddrByIndex(rVal *reflect.Value, index int8) interface{} {
+func (ms *GfStruct) AddrByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
 }
 
@@ -61,11 +61,11 @@ func (ms *GfStruct) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Val
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func SchemaNoCache(obj interface{}) *GfStruct {
+func SchemaNoCache(obj any) *GfStruct {
 	return structSchema(reflect.TypeOf(obj))
 }
 
-func Schema(obj interface{}) *GfStruct {
+func Schema(obj any) *GfStruct {
 	return fetchSchemaCache(reflect.TypeOf(obj))
 }
 

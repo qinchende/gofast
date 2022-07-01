@@ -86,80 +86,80 @@ func Disable() {
 //}
 
 // 直接打印所给的数据
-func Print(v ...interface{}) {
+func Print(v ...any) {
 	outputString(accessLog, fmt.Sprint(v...))
 }
 
 // 直接打印所给的数据
-func Printf(format string, v ...interface{}) {
+func Printf(format string, v ...any) {
 	outputString(accessLog, fmt.Sprintf(format, v...))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-func Error(v ...interface{}) {
+func Error(v ...any) {
 	ErrorCaller(1, v...)
 }
 
-func Errorf(format string, v ...interface{}) {
+func Errorf(format string, v ...any) {
 	ErrorCallerf(1, format, v...)
 }
 
-func ErrorCaller(callDepth int, v ...interface{}) {
+func ErrorCaller(callDepth int, v ...any) {
 	errorSync(fmt.Sprint(v...), callDepth+callerInnerDepth)
 }
 
-func ErrorCallerf(callDepth int, format string, v ...interface{}) {
+func ErrorCallerf(callDepth int, format string, v ...any) {
 	errorSync(fmt.Sprintf(format, v...), callDepth+callerInnerDepth)
 }
 
-func ErrorStack(v ...interface{}) {
+func ErrorStack(v ...any) {
 	// there is newline in stack string
 	stackSync(fmt.Sprint(v...))
 }
 
-func ErrorStackf(format string, v ...interface{}) {
+func ErrorStackf(format string, v ...any) {
 	// there is newline in stack string
 	stackSync(fmt.Sprintf(format, v...))
 }
 
-func Warn(v ...interface{}) {
+func Warn(v ...any) {
 	warnSync(fmt.Sprint(v...))
 }
 
-func Warnf(format string, v ...interface{}) {
+func Warnf(format string, v ...any) {
 	warnSync(fmt.Sprintf(format, v...))
 }
 
-func Info(v ...interface{}) {
+func Info(v ...any) {
 	infoSync(fmt.Sprint(v...))
 }
 
-func Infof(format string, v ...interface{}) {
+func Infof(format string, v ...any) {
 	infoSync(fmt.Sprintf(format, v...))
 }
 
-func Severe(v ...interface{}) {
+func Severe(v ...any) {
 	severeSync(fmt.Sprint(v...))
 }
 
-func Severef(format string, v ...interface{}) {
+func Severef(format string, v ...any) {
 	severeSync(fmt.Sprintf(format, v...))
 }
 
-func Slow(v ...interface{}) {
+func Slow(v ...any) {
 	slowSync(fmt.Sprint(v...))
 }
 
-func Slowf(format string, v ...interface{}) {
+func Slowf(format string, v ...any) {
 	slowSync(fmt.Sprintf(format, v...))
 }
 
-func Stat(v ...interface{}) {
+func Stat(v ...any) {
 	statSync(fmt.Sprint(v...))
 }
 
-func Statf(format string, v ...interface{}) {
+func Statf(format string, v ...any) {
 	statSync(fmt.Sprintf(format, v...))
 }
 
@@ -292,7 +292,7 @@ func output(lwt WriterCloser, level, msg string) {
 	}
 }
 
-func outputJson(lwt WriterCloser, info interface{}) {
+func outputJson(lwt WriterCloser, info any) {
 	if content, err := json.Marshal(info); err != nil {
 		log.Println(err.Error())
 	} else if atomic.LoadUint32(&initialized) == 0 || lwt == nil {

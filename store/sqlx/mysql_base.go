@@ -17,11 +17,11 @@ func (conn *MysqlORM) CloneWithCtx(ctx context.Context) *MysqlORM {
 	return &newConn
 }
 
-func (conn *MysqlORM) Exec(sql string, args ...interface{}) msql.Result {
+func (conn *MysqlORM) Exec(sql string, args ...any) msql.Result {
 	return conn.ExecCtx(conn.Ctx, sql, args...)
 }
 
-func (conn *MysqlORM) ExecCtx(ctx context.Context, sql string, args ...interface{}) msql.Result {
+func (conn *MysqlORM) ExecCtx(ctx context.Context, sql string, args ...any) msql.Result {
 	logx.DebugPrint(sql)
 
 	var result msql.Result
@@ -42,11 +42,11 @@ func (conn *MysqlORM) ExecCtx(ctx context.Context, sql string, args ...interface
 	return result
 }
 
-func (conn *MysqlORM) QuerySql(sql string, args ...interface{}) *msql.Rows {
+func (conn *MysqlORM) QuerySql(sql string, args ...any) *msql.Rows {
 	return conn.QuerySqlCtx(conn.Ctx, sql, args...)
 }
 
-func (conn *MysqlORM) QuerySqlCtx(ctx context.Context, sql string, args ...interface{}) *msql.Rows {
+func (conn *MysqlORM) QuerySqlCtx(ctx context.Context, sql string, args ...any) *msql.Rows {
 	logx.DebugPrint(sql)
 
 	var rows *msql.Rows

@@ -5,8 +5,8 @@ import (
 	"io"
 )
 
-func decodeJsonReader(dst interface{}, reader io.Reader) error {
-	var kv map[string]interface{}
+func decodeJsonReader(dst any, reader io.Reader) error {
+	var kv map[string]any
 	if err := jsonx.UnmarshalFromReader(reader, &kv); err != nil {
 		return err
 	}
@@ -14,8 +14,8 @@ func decodeJsonReader(dst interface{}, reader io.Reader) error {
 	return ApplyKVByNameWithDef(dst, kv)
 }
 
-func decodeJsonBytes(dst interface{}, content []byte) error {
-	var kv map[string]interface{}
+func decodeJsonBytes(dst any, content []byte) error {
+	var kv map[string]any
 	if err := jsonx.Unmarshal(content, &kv); err != nil {
 		return err
 	}

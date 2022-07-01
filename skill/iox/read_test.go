@@ -8,9 +8,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/qinchende/gofast/skill/fs"
 	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestReadText(t *testing.T) {

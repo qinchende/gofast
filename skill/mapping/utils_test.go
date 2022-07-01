@@ -137,7 +137,7 @@ func TestSetValueFormatErrors(t *testing.T) {
 		IntValue   int
 		UintValue  uint
 		FloatValue float32
-		MapValue   map[string]interface{}
+		MapValue   map[string]any
 	}
 
 	var bar Bar
@@ -190,7 +190,7 @@ func TestRepr(t *testing.T) {
 		u64 uint64  = 8
 	)
 	tests := []struct {
-		v      interface{}
+		v      any
 		expect string
 	}{
 		{

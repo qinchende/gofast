@@ -14,11 +14,11 @@ var errUnknownType = errors.New("unknown type")
 
 // 解析 Form 数据，对应两种不同的 tag
 // ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func mapUri(ptr interface{}, m map[string][]string) error {
+func mapUri(ptr any, m map[string][]string) error {
 	return mapFormByTag(ptr, m, "uri")
 }
 
-func mapForm(ptr interface{}, form map[string][]string) error {
+func mapForm(ptr any, form map[string][]string) error {
 	return mapFormByTag(ptr, form, "form")
 }
 
@@ -26,7 +26,7 @@ func mapForm(ptr interface{}, form map[string][]string) error {
 
 var emptyField = reflect.StructField{}
 
-func mapFormByTag(ptr interface{}, form map[string][]string, tag string) error {
+func mapFormByTag(ptr any, form map[string][]string, tag string) error {
 	return mappingByPtr(ptr, formSource(form), tag)
 }
 
@@ -44,7 +44,7 @@ func (form formSource) TrySet(value reflect.Value, field reflect.StructField, ta
 	return setByForm(value, field, form, tagValue, opt)
 }
 
-func mappingByPtr(ptr interface{}, setter setter, tag string) error {
+func mappingByPtr(ptr any, setter setter, tag string) error {
 	_, err := mapping(reflect.ValueOf(ptr), emptyField, setter, tag)
 	return err
 }

@@ -28,7 +28,7 @@ var (
 	cacheKeys           atomic.Value
 	cacheKeysLock       sync.Mutex
 	durationType        = reflect.TypeOf(time.Duration(0))
-	emptyMap            = map[string]interface{}{}
+	emptyMap            = map[string]any{}
 	emptyValue          = reflect.ValueOf(lang.Placeholder)
 )
 
@@ -62,20 +62,20 @@ func NewUnmarshaler(key string, opts ...UnmarshalOption) *Unmarshaler {
 	return &unmarshaler
 }
 
-func UnmarshalKey(m map[string]interface{}, v interface{}) error {
+func UnmarshalKey(m map[string]any, v any) error {
 	return keyUnmarshaler.Unmarshal(m, v)
 }
 
-func (u *Unmarshaler) Unmarshal(m map[string]interface{}, v interface{}) error {
+func (u *Unmarshaler) Unmarshal(m map[string]any, v any) error {
 	return u.UnmarshalValuer(MapValuer(m), v)
 }
 
-func (u *Unmarshaler) UnmarshalValuer(m Valuer, v interface{}) error {
+func (u *Unmarshaler) UnmarshalValuer(m Valuer, v any) error {
 	return u.unmarshalWithFullName(m, v, "")
 }
 
 // 解析字段
-func (u *Unmarshaler) unmarshalWithFullName(m Valuer, v interface{}, fullName string) error {
+func (u *Unmarshaler) unmarshalWithFullName(m Valuer, v any, fullName string) error {
 	rv := reflect.ValueOf(v)
 	if err := ValidatePtr(&rv); err != nil {
 		return err
@@ -191,7 +191,7 @@ func (u *Unmarshaler) processField(field reflect.StructField, value reflect.Valu
 }
 
 func (u *Unmarshaler) processFieldNotFromString(field reflect.StructField, value reflect.Value,
-	mapValue interface{}, opts *fieldOptionsWithContext, fullName string) error {
+	mapValue any, opts *fieldOptionsWithContext, fullName string) error {
 	fieldType := field.Type
 	derefedFieldType := Deref(fieldType)
 	typeKind := derefedFieldType.Kind()
@@ -210,7 +210,7 @@ func (u *Unmarshaler) processFieldNotFromString(field reflect.StructField, value
 }
 
 func (u *Unmarshaler) processFieldPrimitive(field reflect.StructField, value reflect.Value,
-	mapValue interface{}, opts *fieldOptionsWithContext, fullName string) error {
+	mapValue any, opts *fieldOptionsWithContext, fullName string) error {
 	fieldType := field.Type
 	typeKind := Deref(fieldType).Kind()
 	valueKind := reflect.TypeOf(mapValue).Kind()
@@ -282,8 +282,8 @@ func (u *Unmarshaler) processFieldPrimitiveWithJsonNumber(field reflect.StructFi
 }
 
 func (u *Unmarshaler) processFieldStruct(field reflect.StructField, value reflect.Value,
-	mapValue interface{}, fullName string) error {
-	convertedValue, ok := mapValue.(map[string]interface{})
+	mapValue any, fullName string) error {
+	convertedValue, ok := mapValue.(map[string]any)
 	if !ok {
 		valueKind := reflect.TypeOf(mapValue).Kind()
 		return fmt.Errorf("error: field: %s, expect map[string]interface{}, actual %v", fullName, valueKind)
@@ -327,7 +327,7 @@ func (u *Unmarshaler) processNamedField(field reflect.StructField, value reflect
 }
 
 func (u *Unmarshaler) processNamedFieldWithValue(field reflect.StructField, value reflect.Value,
-	mapValue interface{}, key string, opts *fieldOptionsWithContext, fullName string) error {
+	mapValue any, key string, opts *fieldOptionsWithContext, fullName string) error {
 	if mapValue == nil {
 		if opts.optional() {
 			return nil
@@ -404,7 +404,7 @@ func (u *Unmarshaler) processNamedFieldWithoutValue(field reflect.StructField, v
 	return nil
 }
 
-func (u *Unmarshaler) fillMap(field reflect.StructField, value reflect.Value, mapValue interface{}) error {
+func (u *Unmarshaler) fillMap(field reflect.StructField, value reflect.Value, mapValue any) error {
 	if !value.CanSet() {
 		return errValueNotSettable
 	}
@@ -420,7 +420,7 @@ func (u *Unmarshaler) fillMap(field reflect.StructField, value reflect.Value, ma
 	return nil
 }
 
-func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value, mapValue interface{}) error {
+func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value, mapValue any) error {
 	if !value.CanSet() {
 		return errValueNotSettable
 	}
@@ -443,7 +443,7 @@ func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value, map
 		switch dereffedBaseKind {
 		case reflect.Struct:
 			target := reflect.New(dereffedBaseType)
-			if err := u.Unmarshal(ithValue.(map[string]interface{}), target.Interface()); err != nil {
+			if err := u.Unmarshal(ithValue.(map[string]any), target.Interface()); err != nil {
 				return err
 			}
 
@@ -467,8 +467,8 @@ func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value, map
 }
 
 func (u *Unmarshaler) fillSliceFromString(fieldType reflect.Type, value reflect.Value,
-	mapValue interface{}, fullName string) error {
-	var slice []interface{}
+	mapValue any, fullName string) error {
+	var slice []any
 	if err := jsonx.UnmarshalFromString(mapValue.(string), &slice); err != nil {
 		return err
 	}
@@ -487,7 +487,7 @@ func (u *Unmarshaler) fillSliceFromString(fieldType reflect.Type, value reflect.
 	return nil
 }
 
-func (u *Unmarshaler) fillSliceValue(slice reflect.Value, index int, baseKind reflect.Kind, value interface{}) error {
+func (u *Unmarshaler) fillSliceValue(slice reflect.Value, index int, baseKind reflect.Kind, value any) error {
 	switch v := value.(type) {
 	case json.Number:
 		return setValue(baseKind, slice.Index(index), v.String())
@@ -503,7 +503,7 @@ func (u *Unmarshaler) fillSliceValue(slice reflect.Value, index int, baseKind re
 	}
 }
 
-func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue interface{}) (reflect.Value, error) {
+func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue any) (reflect.Value, error) {
 	mapType := reflect.MapOf(keyType, elemType)
 	valueType := reflect.TypeOf(mapValue)
 	if mapType == valueType {
@@ -529,7 +529,7 @@ func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue inter
 
 			targetValue.SetMapIndex(key, target.Elem())
 		case reflect.Struct:
-			keythMap, ok := keythData.(map[string]interface{})
+			keythMap, ok := keythData.(map[string]any)
 			if !ok {
 				return emptyValue, errTypeMismatch
 			}
@@ -545,7 +545,7 @@ func (u *Unmarshaler) generateMap(keyType, elemType reflect.Type, mapValue inter
 				targetValue.SetMapIndex(key, target.Elem())
 			}
 		case reflect.Map:
-			keythMap, ok := keythData.(map[string]interface{})
+			keythMap, ok := keythData.(map[string]any)
 			if !ok {
 				return emptyValue, errTypeMismatch
 			}
@@ -614,7 +614,7 @@ func fillDurationValue(fieldKind reflect.Kind, value reflect.Value, dur string) 
 	return nil
 }
 
-func fillPrimitive(fieldType reflect.Type, value reflect.Value, mapValue interface{},
+func fillPrimitive(fieldType reflect.Type, value reflect.Value, mapValue any,
 	opts *fieldOptionsWithContext, fullName string) error {
 	if !value.CanSet() {
 		return errValueNotSettable
@@ -643,7 +643,7 @@ func fillPrimitive(fieldType reflect.Type, value reflect.Value, mapValue interfa
 	}
 }
 
-func fillWithSameType(field reflect.StructField, value reflect.Value, mapValue interface{},
+func fillWithSameType(field reflect.StructField, value reflect.Value, mapValue any,
 	opts *fieldOptionsWithContext) error {
 	if !value.CanSet() {
 		return errValueNotSettable
@@ -666,18 +666,18 @@ func fillWithSameType(field reflect.StructField, value reflect.Value, mapValue i
 }
 
 // getValue gets the value for the specific key, the key can be in the format of parentKey.childKey
-func getValue(m Valuer, key string) (interface{}, bool) {
+func getValue(m Valuer, key string) (any, bool) {
 	keys := readKeys(key)
 	return getValueWithChainedKeys(m, keys)
 }
 
-func getValueWithChainedKeys(m Valuer, keys []string) (interface{}, bool) {
+func getValueWithChainedKeys(m Valuer, keys []string) (any, bool) {
 	if len(keys) == 1 {
 		v, ok := m.Value(keys[0])
 		return v, ok
 	} else if len(keys) > 1 {
 		if v, ok := m.Value(keys[0]); ok {
-			if nextm, ok := v.(map[string]interface{}); ok {
+			if nextm, ok := v.(map[string]any); ok {
 				return getValueWithChainedKeys(MapValuer(nextm), keys[1:])
 			}
 		}

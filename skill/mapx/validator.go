@@ -10,8 +10,8 @@ import (
 const validConfigTag = "valid" // 指定模型中验证字段的tag标记
 
 type StructValidator interface {
-	ValidateStruct(interface{}) error
-	Engine() interface{}
+	ValidateStruct(any) error
+	Engine() any
 }
 
 type defaultValidator struct {
@@ -27,7 +27,7 @@ func init() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Validate(obj interface{}) error {
+func Validate(obj any) error {
 	if validMaster == nil {
 		return nil
 	}
@@ -35,7 +35,7 @@ func Validate(obj interface{}) error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (v *defaultValidator) ValidateStruct(obj interface{}) error {
+func (v *defaultValidator) ValidateStruct(obj any) error {
 	value := reflect.ValueOf(obj)
 	valueType := value.Kind()
 	if valueType == reflect.Ptr {
@@ -50,7 +50,7 @@ func (v *defaultValidator) ValidateStruct(obj interface{}) error {
 	return nil
 }
 
-func (v *defaultValidator) Engine() interface{} {
+func (v *defaultValidator) Engine() any {
 	v.lazyInit()
 	return v.validate
 }

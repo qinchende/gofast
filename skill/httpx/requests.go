@@ -23,7 +23,7 @@ var (
 	pathUnmarshaler = mapping.NewUnmarshaler(pathKey, mapping.WithStringValues())
 )
 
-func Parse(r *http.Request, v interface{}) error {
+func Parse(r *http.Request, v any) error {
 	if err := ParsePath(r, v); err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func Parse(r *http.Request, v interface{}) error {
 }
 
 // Parses the form request.
-func ParseForm(r *http.Request, v interface{}) error {
+func ParseForm(r *http.Request, v any) error {
 	if err := r.ParseForm(); err != nil {
 		return err
 	}
@@ -47,7 +47,7 @@ func ParseForm(r *http.Request, v interface{}) error {
 		}
 	}
 
-	params := make(map[string]interface{}, len(r.Form))
+	params := make(map[string]any, len(r.Form))
 	for name := range r.Form {
 		formValue := r.Form.Get(name)
 		if len(formValue) > 0 {
@@ -80,7 +80,7 @@ func ParseHeader(headerValue string) map[string]string {
 }
 
 // Parses the post request which contains json in body.
-func ParseJsonBody(r *http.Request, v interface{}) error {
+func ParseJsonBody(r *http.Request, v any) error {
 	var reader io.Reader
 	if withJsonBody(r) {
 		reader = io.LimitReader(r.Body, maxBodyLen)
@@ -93,9 +93,9 @@ func ParseJsonBody(r *http.Request, v interface{}) error {
 
 // Parses the symbols reside in url path.
 // Like http://localhost/bag/:name
-func ParsePath(r *http.Request, v interface{}) error {
+func ParsePath(r *http.Request, v any) error {
 	vars := Vars(r)
-	m := make(map[string]interface{}, len(vars))
+	m := make(map[string]any, len(vars))
 	for k, v := range vars {
 		m[k] = v
 	}

@@ -46,7 +46,7 @@ func SdxSessBuilder(ctx *fst.Context) {
 
 	// 每个请求对应的SESSION对象都是新创建的，线程安全。
 	ctx.Sess = new(fst.CtxSession)
-	ctx.Sess.Values = make(map[string]interface{})
+	ctx.Sess.Values = make(map[string]any)
 	tok := ctx.Pms["tok"]
 	if tok == nil {
 		tok = ""
@@ -101,7 +101,7 @@ func newSdxToken(ctx *fst.Context) {
 	ctx.Sess.Sid = sid
 	ctx.Sess.Token = tok
 	if ctx.Sess.Values == nil {
-		ctx.Sess.Values = make(map[string]interface{})
+		ctx.Sess.Values = make(map[string]any)
 	}
 }
 

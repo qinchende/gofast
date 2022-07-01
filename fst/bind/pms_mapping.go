@@ -8,17 +8,17 @@ import (
 	"reflect"
 )
 
-type pmsType map[string]interface{}
+type pmsType map[string]any
 
-func mapPms(ptr interface{}, pms map[string]interface{}) error {
+func mapPms(ptr any, pms map[string]any) error {
 	return mapPmsByTag(ptr, pms, "pms")
 }
 
-func mapPmsByTag(ptr interface{}, pms map[string]interface{}, tag string) error {
+func mapPmsByTag(ptr any, pms map[string]any, tag string) error {
 	return mappingPmsByPtr(ptr, pmsType(pms), tag)
 }
 
-func mappingPmsByPtr(ptr interface{}, setter setter, tag string) error {
+func mappingPmsByPtr(ptr any, setter setter, tag string) error {
 	_, err := mappingPms(reflect.ValueOf(ptr), emptyField, setter, tag)
 	return err
 }

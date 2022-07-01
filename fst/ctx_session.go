@@ -7,8 +7,8 @@ import (
 )
 
 type sessionKeeper interface {
-	Get(string) interface{}
-	Set(string, interface{})
+	Get(string) any
+	Set(string, any)
 	Del(string)
 	Save()
 	Expire(int32)
@@ -39,14 +39,14 @@ var CtxSessionDestroyFun = func(ss *CtxSession) {}
 var CtxSessionCreateFun = func(ctx *Context) {}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ss *CtxSession) Get(key string) interface{} {
+func (ss *CtxSession) Get(key string) any {
 	if ss.Values == nil {
 		return nil
 	}
 	return ss.Values[key]
 }
 
-func (ss *CtxSession) Set(key string, val interface{}) {
+func (ss *CtxSession) Set(key string, val any) {
 	ss.Saved = false
 	ss.Values[key] = val
 }

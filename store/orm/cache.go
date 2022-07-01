@@ -99,16 +99,16 @@ func (ms *ModelSchema) DeleteSQL(fn func(*ModelSchema) string) string {
 	return ms.deleteSQL
 }
 
-func (ms *ModelSchema) PrimaryValue(obj interface{}) interface{} {
+func (ms *ModelSchema) PrimaryValue(obj any) any {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 	return rVal.FieldByIndex(ms.fieldsIndex[ms.primaryIndex]).Interface()
 }
 
-func (ms *ModelSchema) ValueByIndex(rVal *reflect.Value, index int8) interface{} {
+func (ms *ModelSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Interface()
 }
 
-func (ms *ModelSchema) AddrByIndex(rVal *reflect.Value, index int8) interface{} {
+func (ms *ModelSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
 }
 

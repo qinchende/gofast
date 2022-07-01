@@ -5,7 +5,7 @@ import (
 	"github.com/gomodule/redigo/redis"
 )
 
-func (rdx *RedigoX) Set(key string, data interface{}, time int) error {
+func (rdx *RedigoX) Set(key string, data any, time int) error {
 	conn := rdx.conn.Get()
 	defer conn.Close()
 

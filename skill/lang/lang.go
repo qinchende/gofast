@@ -8,10 +8,10 @@ import (
 var Placeholder PlaceholderType
 
 type (
-	GenericType     = interface{}
+	GenericType     = any
 	PlaceholderType = struct{}
 )
 
-func NameOfFunc(f interface{}) string {
+func NameOfFunc(f any) string {
 	return runtime.FuncForPC(reflect.ValueOf(f).Pointer()).Name()
 }

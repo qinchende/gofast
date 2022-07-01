@@ -47,7 +47,7 @@ type Context struct {
 	sameSite http.SameSite
 	// Keys is a key/value pair exclusively for the context of each request.
 	// 上下文传值
-	Keys map[string]interface{}
+	Keys map[string]any
 }
 
 /************************************/

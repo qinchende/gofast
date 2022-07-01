@@ -119,6 +119,7 @@ func (h KV) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	return e.EncodeToken(xml.EndElement{Name: start.Name})
 }
+
 //
 //func assert1(guard bool, text string) {
 //	if !guard {

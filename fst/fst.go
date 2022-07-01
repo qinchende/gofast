@@ -86,7 +86,7 @@ func CreateServer(cfg *AppConfig) *GoFast {
 
 // 初始化资源池
 func (gft *GoFast) initResourcePool() {
-	gft.ctxPool.New = func() interface{} {
+	gft.ctxPool.New = func() any {
 		c := &Context{gftApp: gft, ResWrap: &ResponseWrap{}}
 		// c.Pms = make(map[string]string)
 		// c.match.needRTS = gft.RedirectTrailingSlash

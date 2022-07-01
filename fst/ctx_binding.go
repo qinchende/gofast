@@ -12,23 +12,23 @@ import (
 
 // add by sdx on 20210305
 // 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
-func (c *Context) BindPms(dst interface{}) error {
+func (c *Context) BindPms(dst any) error {
 	// add preBind events by sdx on 2021.03.18
 	// c.execPreBindHandlers()
 	//return bind.Pms.BindPms(dst, c.Pms)
 	return mapx.ApplyKVByTagWithDef(dst, c.Pms)
 }
 
-func (c *Context) BindJSON(dst interface{}) error {
+func (c *Context) BindJSON(dst any) error {
 	return c.ShouldBindWith(dst, bind.JSON)
 }
 
-func (c *Context) BindXML(dst interface{}) error {
+func (c *Context) BindXML(dst any) error {
 	return c.ShouldBindWith(dst, bind.XML)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (c *Context) ShouldBindWith(dst interface{}, b bind.Binding) error {
+func (c *Context) ShouldBindWith(dst any, b bind.Binding) error {
 	// add preBind events by sdx on 2021.03.18
 	//c.execPreBindHandlers()
 	return b.Bind(c.ReqRaw, dst)
@@ -37,7 +37,7 @@ func (c *Context) ShouldBindWith(dst interface{}, b bind.Binding) error {
 // MustBindWith binds the passed struct pointer using the specified binding format.
 // It will abort the request with HTTP 400 if any error occurs.
 // See the binding package.
-func (c *Context) MustBindWith(dst interface{}, b bind.Binding) error {
+func (c *Context) MustBindWith(dst any, b bind.Binding) error {
 	if err := c.ShouldBindWith(dst, b); err != nil {
 		//c.AbortWithError(http.StatusBadRequest, err).SetType(ErrorTypeBind) // nolint: errcheck
 		return err

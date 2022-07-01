@@ -32,7 +32,7 @@ func (c *Context) FaiKV(obj KV) {
 	c.Fai(0, "", obj)
 }
 
-func (c *Context) Fai(code int32, msg string, obj interface{}) {
+func (c *Context) Fai(code int32, msg string, obj any) {
 	jsonData := NewRenderKV("fai", msg, code)
 	if obj != nil {
 		jsonData["data"] = obj
@@ -49,7 +49,7 @@ func (c *Context) SucKV(obj KV) {
 	c.Suc(0, "", obj)
 }
 
-func (c *Context) Suc(code int32, msg string, obj interface{}) {
+func (c *Context) Suc(code int32, msg string, obj any) {
 	jsonData := NewRenderKV("suc", msg, code)
 	if obj != nil {
 		jsonData["data"] = obj
@@ -188,12 +188,12 @@ func bodyAllowedForStatus(status int) bool {
 
 // JSON serializes the given struct as JSON into the response body.
 // It also sets the Content-Type as "application/json".
-func (c *Context) JSON(code int, obj interface{}) {
+func (c *Context) JSON(code int, obj any) {
 	c.Render(code, render.JSON{Data: obj})
 }
 
 // String writes the given string into the response body.
-func (c *Context) String(code int, format string, values ...interface{}) {
+func (c *Context) String(code int, format string, values ...any) {
 	c.Render(code, render.String{Format: format, Data: values})
 }
 

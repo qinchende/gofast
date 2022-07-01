@@ -5,8 +5,8 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/qinchende/gofast/skill/mathx"
+	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -42,7 +42,7 @@ func TestConsistentHash(t *testing.T) {
 		keys[key.(string)]++
 	}
 
-	mi := make(map[interface{}]int, len(keys))
+	mi := make(map[any]int, len(keys))
 	for k, v := range keys {
 		mi[k] = v
 	}

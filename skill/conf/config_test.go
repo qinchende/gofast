@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/qinchende/gofast/skill/fs"
 	"github.com/qinchende/gofast/skill/hash"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadConfig_notExists(t *testing.T) {

@@ -18,7 +18,7 @@ var errNilPtr = errors.New("destination pointer is nil") // embedded in descript
 //	Compose(form byte, negative bool, coefficient []byte, exponent int32) error
 //}
 
-func setValueSql(dest, src interface{}) error {
+func setValueSql(dest, src any) error {
 	switch s := src.(type) {
 	case string:
 		switch d := dest.(type) {
@@ -43,7 +43,7 @@ func setValueSql(dest, src interface{}) error {
 			}
 			*d = string(s)
 			return nil
-		case *interface{}:
+		case *any:
 			if d == nil {
 				return errNilPtr
 			}
@@ -78,7 +78,7 @@ func setValueSql(dest, src interface{}) error {
 	//	}
 	case nil:
 		switch d := dest.(type) {
-		case *interface{}:
+		case *any:
 			if d == nil {
 				return errNilPtr
 			}
@@ -118,7 +118,7 @@ func setValueSql(dest, src interface{}) error {
 			*d = bv.(bool)
 		}
 		return err
-	case *interface{}:
+	case *any:
 		*d = src
 		return nil
 	}
@@ -233,7 +233,7 @@ func cloneBytes(b []byte) []byte {
 	return c
 }
 
-func asString(src interface{}) string {
+func asString(src any) string {
 	switch v := src.(type) {
 	case string:
 		return v
@@ -275,7 +275,7 @@ func asBytes(buf []byte, rv reflect.Value) (b []byte, ok bool) {
 	return
 }
 
-func asBool(src interface{}) (interface{}, error) {
+func asBool(src any) (any, error) {
 	switch s := src.(type) {
 	case bool:
 		return s, nil

@@ -36,7 +36,7 @@ func NewChunkExecutor(execute Execute, opts ...ChunkOption) *ChunkExecutor {
 	return executor
 }
 
-func (ce *ChunkExecutor) Add(task interface{}, size int) error {
+func (ce *ChunkExecutor) Add(task any, size int) error {
 	ce.executor.Add(chunk{
 		val:  task,
 		size: size,
@@ -72,25 +72,25 @@ func newChunkOptions() chunkOptions {
 }
 
 type chunkContainer struct {
-	tasks        []interface{}
+	tasks        []any
 	execute      Execute
 	size         int
 	maxChunkSize int
 }
 
-func (bc *chunkContainer) AddItem(task interface{}) bool {
+func (bc *chunkContainer) AddItem(task any) bool {
 	ck := task.(chunk)
 	bc.tasks = append(bc.tasks, ck.val)
 	bc.size += ck.size
 	return bc.size >= bc.maxChunkSize
 }
 
-func (bc *chunkContainer) Execute(tasks interface{}) {
-	vals := tasks.([]interface{})
+func (bc *chunkContainer) Execute(tasks any) {
+	vals := tasks.([]any)
 	bc.execute(vals)
 }
 
-func (bc *chunkContainer) RemoveAll() interface{} {
+func (bc *chunkContainer) RemoveAll() any {
 	tasks := bc.tasks
 	bc.tasks = nil
 	bc.size = 0
@@ -98,6 +98,6 @@ func (bc *chunkContainer) RemoveAll() interface{} {
 }
 
 type chunk struct {
-	val  interface{}
+	val  any
 	size int
 }

@@ -10,16 +10,16 @@ const jsonTagKey = "cnf"
 
 var jsonUnmarshaler = NewUnmarshaler(jsonTagKey)
 
-func UnmarshalJsonBytes(content []byte, v interface{}) error {
+func UnmarshalJsonBytes(content []byte, v any) error {
 	return unmarshalJsonBytes(content, v, jsonUnmarshaler)
 }
 
-func UnmarshalJsonReader(reader io.Reader, v interface{}) error {
+func UnmarshalJsonReader(reader io.Reader, v any) error {
 	return unmarshalJsonReader(reader, v, jsonUnmarshaler)
 }
 
-func unmarshalJsonBytes(content []byte, v interface{}, unmarshaler *Unmarshaler) error {
-	var m map[string]interface{}
+func unmarshalJsonBytes(content []byte, v any, unmarshaler *Unmarshaler) error {
+	var m map[string]any
 	if err := jsonx.Unmarshal(content, &m); err != nil {
 		return err
 	}
@@ -27,8 +27,8 @@ func unmarshalJsonBytes(content []byte, v interface{}, unmarshaler *Unmarshaler)
 	return unmarshaler.Unmarshal(m, v)
 }
 
-func unmarshalJsonReader(reader io.Reader, v interface{}, unmarshaler *Unmarshaler) error {
-	var m map[string]interface{}
+func unmarshalJsonReader(reader io.Reader, v any, unmarshaler *Unmarshaler) error {
+	var m map[string]any
 	if err := jsonx.UnmarshalFromReader(reader, &m); err != nil {
 		return err
 	}

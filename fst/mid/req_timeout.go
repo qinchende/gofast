@@ -39,7 +39,7 @@ func Timeout(disable bool) fst.CtxHandler {
 		ctxTimeout, cancelCtx := context.WithTimeout(c.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
 		defer cancelCtx()
 
-		panicChan := make(chan interface{}, 1)
+		panicChan := make(chan any, 1)
 		finishChan := make(chan struct{})
 
 		// 启动的协程 没有办法杀死，唯一的办法只能用通道通知他，让协程自己退出

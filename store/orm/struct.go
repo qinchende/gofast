@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func Schema(obj interface{}) *ModelSchema {
+func Schema(obj any) *ModelSchema {
 	return fetchSchema(reflect.TypeOf(obj))
 }
 
@@ -17,11 +17,11 @@ func SchemaOfType(rTyp reflect.Type) *ModelSchema {
 }
 
 // 结构体中属性的数据库字段名称合集
-func SchemaValues(obj interface{}) (*ModelSchema, []interface{}) {
+func SchemaValues(obj any) (*ModelSchema, []any) {
 	mSchema := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
-	values := make([]interface{}, len(mSchema.columns))
+	values := make([]any, len(mSchema.columns))
 	structValues(&values, &vIndex, obj)
 
 	return mSchema, values
@@ -29,7 +29,7 @@ func SchemaValues(obj interface{}) (*ModelSchema, []interface{}) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 反射提取结构体的值（支持嵌套递归）
-func structValues(values *[]interface{}, nextIndex *int8, obj interface{}) {
+func structValues(values *[]any, nextIndex *int8, obj any) {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 
 	for i := 0; i < rVal.NumField(); i++ {

@@ -3,8 +3,8 @@ package collection
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestSafeMap(t *testing.T) {

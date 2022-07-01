@@ -13,7 +13,7 @@ func (pmsBinding) Name() string {
 }
 
 // add by sdx on 20210305
-func (pmsBinding) BindPms(dest interface{}, values cst.KV) error {
+func (pmsBinding) BindPms(dest any, values cst.KV) error {
 	if err := mapPms(dest, values); err != nil {
 		return err
 	}
