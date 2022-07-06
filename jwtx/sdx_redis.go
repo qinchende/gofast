@@ -2,7 +2,7 @@ package jwtx
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/json"
+	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/stringx"
 	"time"
 )
@@ -14,7 +14,7 @@ func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
 	if str == "" || err != nil {
 		str = `{}`
 	}
-	err = json.Unmarshal(stringx.StringToBytes(str), &ctx.Sess.Values)
+	err = jsonx.Unmarshal(&ctx.Sess.Values, stringx.StringToBytes(str))
 	if err != nil {
 		ctx.Fai(110, "获取SESSION失败，请重新访问系统。", fst.KV{})
 	}
@@ -22,7 +22,7 @@ func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
 
 // 保存到 redis
 func saveSessionToRedis(sdx *fst.CtxSession) (string, error) {
-	str, _ := json.Marshal(sdx.Values)
+	str, _ := jsonx.Marshal(sdx.Values)
 	ttl := SdxSS.TTL
 	if sdx.TokenIsNew && sdx.Values[SdxSS.AuthField] == nil {
 		ttl = SdxSS.TTLNew

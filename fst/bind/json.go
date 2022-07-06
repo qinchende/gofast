@@ -6,7 +6,7 @@ package bind
 
 import (
 	"bytes"
-	"github.com/qinchende/gofast/skill/json"
+	"github.com/qinchende/gofast/skill/jsonx"
 	"io"
 	"net/http"
 )
@@ -46,7 +46,7 @@ func (jsonBinding) BindBody(body []byte, obj any) error {
 }
 
 func decodeJSON(r io.Reader, obj any) error {
-	decoder := json.NewDecoder(r)
+	decoder := jsonx.NewDecoder(r)
 	if EnableDecoderUseNumber {
 		decoder.UseNumber()
 	}

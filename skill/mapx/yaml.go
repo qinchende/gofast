@@ -9,18 +9,18 @@ import (
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func decodeYamlReader(dst any, reader io.Reader) error {
+func DecodeYamlReader(dst any, reader io.Reader) error {
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
 	}
 
-	return decodeYamlBytes(dst, content)
+	return DecodeYamlBytes(dst, content)
 }
 
-func decodeYamlBytes(dst any, content []byte) error {
+func DecodeYamlBytes(dst any, content []byte) error {
 	var o any
-	if err := decodeYaml(&o, content); err != nil {
+	if err := DecodeYaml(&o, content); err != nil {
 		return err
 	}
 
@@ -32,7 +32,7 @@ func decodeYamlBytes(dst any, content []byte) error {
 }
 
 // yamlUnmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.
-func decodeYaml(out any, in []byte) error {
+func DecodeYaml(out any, in []byte) error {
 	var res any
 	if err := yaml.Unmarshal(in, &res); err != nil {
 		return err

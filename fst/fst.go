@@ -20,10 +20,10 @@ import (
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
-	*AppConfig              // 引用配置
-	srv        *http.Server // WebServer
-	appEvents               // 应用级事件
-	readyOnce  sync.Once    // WebServer初始化只能执行一次
+	*GfConfig              // 引用配置
+	srv       *http.Server // WebServer
+	appEvents              // 应用级事件
+	readyOnce sync.Once    // WebServer初始化只能执行一次
 
 	// 根路由组相关属性
 	*HomeRouter                  // 根路由组（Root Group）
@@ -62,7 +62,7 @@ type HomeRouter struct {
 // 记住：使用之前一定要先调用 ReadyToListen方法。
 func Default() *GoFast {
 	logx.DebugPrintWarningDefault()
-	app := CreateServer(&AppConfig{
+	app := CreateServer(&GfConfig{
 		RunMode: ProductMode,
 	})
 	return app
@@ -70,13 +70,13 @@ func Default() *GoFast {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 第一步：初始化一个 WebServer , 配置各种参数
-func CreateServer(cfg *AppConfig) *GoFast {
+func CreateServer(cfg *GfConfig) *GoFast {
 	// 初始化当前环境变量
 	app := new(GoFast)
 	if cfg == nil {
-		app.AppConfig = &AppConfig{}
+		app.GfConfig = &GfConfig{}
 	} else {
-		app.AppConfig = cfg
+		app.GfConfig = cfg
 	}
 	app.initServerConfig()
 	app.initResourcePool()

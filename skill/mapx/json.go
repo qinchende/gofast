@@ -5,18 +5,18 @@ import (
 	"io"
 )
 
-func decodeJsonReader(dst any, reader io.Reader) error {
+func DecodeJsonReader(dst any, reader io.Reader) error {
 	var kv map[string]any
-	if err := jsonx.UnmarshalFromReader(reader, &kv); err != nil {
+	if err := jsonx.UnmarshalFromReader(&kv, reader); err != nil {
 		return err
 	}
 
 	return ApplyKVByNameWithDef(dst, kv)
 }
 
-func decodeJsonBytes(dst any, content []byte) error {
+func DecodeJsonBytes(dst any, content []byte) error {
 	var kv map[string]any
-	if err := jsonx.Unmarshal(content, &kv); err != nil {
+	if err := jsonx.Unmarshal(&kv, content); err != nil {
 		return err
 	}
 
