@@ -104,7 +104,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
 		mdAttrs := new(ModelAttrs)
 		attrsFunc := rTypVal.MethodByName("GfAttrs")
-		if !attrsFunc.IsZero() {
+		if attrsFunc.IsValid() {
 			mdAttrs = attrsFunc.Call(nil)[0].Interface().(*ModelAttrs)
 		}
 		if mdAttrs == nil {

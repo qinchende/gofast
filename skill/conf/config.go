@@ -2,12 +2,11 @@ package conf
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/mapx"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
-
-	"github.com/qinchende/gofast/skill/mapping"
 )
 
 // 系统目前支持两种格式的配置文件：
@@ -19,6 +18,7 @@ var loaders = map[string]func([]byte, any) error{
 	".yml":  LoadConfigFromYamlBytes,
 }
 
+// 必须加载配置，否则应用无法启动，直接退出
 func MustLoad(path string, v any) {
 	if err := LoadConfig(path, v); err != nil {
 		log.Fatalf("error: config file %s, %s", path, err.Error())
@@ -35,10 +35,19 @@ func LoadConfig(file string, v any) error {
 	}
 }
 
+//
+//func LoadConfigFromJsonBytes(content []byte, v any) error {
+//	return mapping.UnmarshalJsonBytes(content, v)
+//}
+//
+//func LoadConfigFromYamlBytes(content []byte, v any) error {
+//	return mapping.UnmarshalYamlBytes(content, v)
+//}
+
 func LoadConfigFromJsonBytes(content []byte, v any) error {
-	return mapping.UnmarshalJsonBytes(content, v)
+	return mapx.DecodeJsonBytes(v, content)
 }
 
 func LoadConfigFromYamlBytes(content []byte, v any) error {
-	return mapping.UnmarshalYamlBytes(content, v)
+	return mapx.DecodeYamlBytes(v, content)
 }

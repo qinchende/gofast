@@ -24,20 +24,20 @@ func ApplyKVByTagWithDef(dst any, kvs cst.KV) error {
 
 // JSON
 func ApplyJsonReader(dst any, reader io.Reader) error {
-	return decodeJsonReader(dst, reader)
+	return DecodeJsonReader(dst, reader)
 }
 
 func ApplyJsonBytes(dst any, content []byte) error {
-	return decodeJsonBytes(dst, content)
+	return DecodeJsonBytes(dst, content)
 }
 
 // Yaml
 func ApplyYamlReader(dst any, reader io.Reader) error {
-	return decodeYamlReader(dst, reader)
+	return DecodeYamlReader(dst, reader)
 }
 
 func ApplyYamlBytes(dst any, content []byte) error {
-	return decodeYamlBytes(dst, content)
+	return DecodeYamlBytes(dst, content)
 }
 
 //func BindKVDef(dst interface{}, kvs cst.KV) error {

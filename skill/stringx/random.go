@@ -43,20 +43,20 @@ func (ls *lockedSource) Seed(seed int64) {
 }
 
 func Rand() string {
-	return Randn(defaultRandLen)
+	return RandX(defaultRandLen)
 }
 
 func RandId() string {
 	b := make([]byte, idLen)
 	_, err := crand.Read(b)
 	if err != nil {
-		return Randn(idLen)
+		return RandX(idLen)
 	}
 
 	return fmt.Sprintf("%x%x%x%x", b[0:2], b[2:4], b[4:6], b[6:8])
 }
 
-func Randn(n int) string {
+func RandX(n int) string {
 	b := make([]byte, n)
 	// A src.Int63() generates 63 random bits, enough for letterIdxMax characters!
 	for i, cache, remain := n-1, src.Int63(), letterIdxMax; i >= 0; {

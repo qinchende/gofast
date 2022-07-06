@@ -1,12 +1,12 @@
 package bind
 
 import (
+	"github.com/qinchende/gofast/skill/jsonx"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/qinchende/gofast/skill/json"
 	"github.com/qinchende/gofast/skill/stringx"
 )
 
@@ -49,9 +49,9 @@ func setWithProperType(val string, value reflect.Value, field reflect.StructFiel
 		case time.Time:
 			return setTimeField(val, field, value)
 		}
-		return json.Unmarshal(stringx.StringToBytes(val), value.Addr().Interface())
+		return jsonx.Unmarshal(value.Addr().Interface(), stringx.StringToBytes(val))
 	case reflect.Map:
-		return json.Unmarshal(stringx.StringToBytes(val), value.Addr().Interface())
+		return jsonx.Unmarshal(value.Addr().Interface(), stringx.StringToBytes(val))
 	default:
 		return errUnknownType
 	}

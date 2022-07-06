@@ -75,7 +75,7 @@ func Timeout(disable bool) fst.CtxHandler {
 			c.IsTimeout = true
 			// 超时退出
 			// 如果还没有render，强制返回服务器出错的状态，而不是超时。
-			if _, err := c.ResWrap.SendHijack(http.StatusServiceUnavailable, midTimeoutBody); err != nil {
+			if _, err := c.ResWrap.SendHijack(http.StatusGatewayTimeout, midTimeoutBody); err != nil {
 				logx.Errorf("ReqTimeout-Render-Err: %v\n", err)
 			}
 			//log.Printf("Timeout %d\n", rt.Timeout)

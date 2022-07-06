@@ -20,7 +20,7 @@ func UnmarshalJsonReader(reader io.Reader, v any) error {
 
 func unmarshalJsonBytes(content []byte, v any, unmarshaler *Unmarshaler) error {
 	var m map[string]any
-	if err := jsonx.Unmarshal(content, &m); err != nil {
+	if err := jsonx.Unmarshal(&m, content); err != nil {
 		return err
 	}
 
@@ -29,7 +29,7 @@ func unmarshalJsonBytes(content []byte, v any, unmarshaler *Unmarshaler) error {
 
 func unmarshalJsonReader(reader io.Reader, v any, unmarshaler *Unmarshaler) error {
 	var m map[string]any
-	if err := jsonx.UnmarshalFromReader(reader, &m); err != nil {
+	if err := jsonx.UnmarshalFromReader(&m, reader); err != nil {
 		return err
 	}
 

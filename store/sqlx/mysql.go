@@ -97,7 +97,7 @@ func (conn *MysqlORM) QueryIDCC(dest any, id any) int64 {
 		//kvs := new(cst.KV)
 		//_ = jsonx.UnmarshalFromString(ccVal, kvs)
 		//_ = mapx.BindKV(dest, *kvs)
-		err = jsonx.UnmarshalFromString(cValStr, dest)
+		err = jsonx.UnmarshalFromString(dest, cValStr)
 		if err == nil {
 			return 1
 		}

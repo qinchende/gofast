@@ -95,7 +95,7 @@ func structSchema(rTyp reflect.Type) *GfStruct {
 	rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
 	mdAttrs := new(orm.ModelAttrs)
 	attrsFunc := rTypVal.MethodByName("GfAttrs")
-	if !attrsFunc.IsZero() {
+	if attrsFunc.IsValid() {
 		mdAttrs = attrsFunc.Call(nil)[0].Interface().(*orm.ModelAttrs)
 	}
 	if mdAttrs == nil {

@@ -3,7 +3,7 @@ package mapx
 import (
 	"errors"
 	"fmt"
-	"github.com/qinchende/gofast/skill/json"
+	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strconv"
@@ -221,13 +221,13 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 		}
 		return sdxSetStringArray(dst, vs)
 	case reflect.Map:
-		return json.Unmarshal(stringx.StringToBytes(src), dst.Addr().Interface())
+		return jsonx.Unmarshal(dst.Addr().Interface(), stringx.StringToBytes(src))
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
 			return sdxSetTimeDuration(dst, src)
 		}
-		return json.Unmarshal(stringx.StringToBytes(src), dst.Addr().Interface())
+		return jsonx.Unmarshal(dst.Addr().Interface(), stringx.StringToBytes(src))
 	default:
 		//return nil
 		return errors.New("unknown type")

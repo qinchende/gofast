@@ -469,7 +469,7 @@ func (u *Unmarshaler) fillSlice(fieldType reflect.Type, value reflect.Value, map
 func (u *Unmarshaler) fillSliceFromString(fieldType reflect.Type, value reflect.Value,
 	mapValue any, fullName string) error {
 	var slice []any
-	if err := jsonx.UnmarshalFromString(mapValue.(string), &slice); err != nil {
+	if err := jsonx.UnmarshalFromString(&slice, mapValue.(string)); err != nil {
 		return err
 	}
 
