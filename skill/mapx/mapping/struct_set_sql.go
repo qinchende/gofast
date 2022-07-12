@@ -1,4 +1,4 @@
-package mapx
+package mapping
 
 import (
 	"errors"

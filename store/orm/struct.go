@@ -63,7 +63,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
 			}
-			panic(fmt.Errorf("dest type must be structs; but got %T", rTyp))
+			panic(fmt.Errorf("target type must be structs; but got %T", rTyp))
 		}
 
 		// primary, updated
@@ -155,9 +155,11 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]str
 	for i := 0; i < rTyp.NumField(); i++ {
 		fi := rTyp.Field(i)
 
-		// 结构体，需要递归提取其中的字段
+		// NOTE: 结构体，需要递归提取其中的字段
+		// 这里有个疑问，应该是匿名结构体才需要开箱取其中的字段
 		fiType := fi.Type
-		if fiType.Kind() == reflect.Struct && fiType.String() != "time.Time" {
+		// if fiType.Kind() == reflect.Struct && fiType.String() != "time.Time" {
+		if fi.Anonymous && fiType.Kind() == reflect.Struct && fiType.String() != "time.Time" {
 			newPIdx := make([]int, 0)
 			newPIdx = append(newPIdx, parentIdx...)
 			newPIdx = append(newPIdx, i)

@@ -2,6 +2,7 @@ package mapx
 
 import (
 	"encoding/json"
+	"errors"
 	"io"
 	"io/ioutil"
 
@@ -9,25 +10,25 @@ import (
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func DecodeYamlReader(dst any, reader io.Reader) error {
+func DecodeYamlReader(dst any, reader io.Reader, opts *ApplyOptions) error {
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
 	}
 
-	return DecodeYamlBytes(dst, content)
+	return DecodeYamlBytes(dst, content, opts)
 }
 
-func DecodeYamlBytes(dst any, content []byte) error {
+func DecodeYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
 	var o any
 	if err := DecodeYaml(&o, content); err != nil {
 		return err
 	}
 
-	if m, ok := o.(map[string]any); ok {
-		return ApplyKVByNameWithDef(dst, m)
+	if kv, ok := o.(map[string]any); ok {
+		return ApplyKV(dst, kv, opts)
 	} else {
-		return errNotKVType
+		return errors.New("only map-like configs supported")
 	}
 }
 
@@ -46,13 +47,13 @@ func DecodeYaml(out any, in []byte) error {
 func cleanupInterfaceMap(in map[any]any) map[string]any {
 	res := make(map[string]any)
 	for k, v := range in {
-		res[Repr(k)] = cleanupMapValue(v)
+		res[ToString(k)] = cleanupMapValue(v)
 	}
 	return res
 }
 
 func cleanupInterfaceNumber(in any) json.Number {
-	return json.Number(Repr(in))
+	return json.Number(ToString(in))
 }
 
 func cleanupInterfaceSlice(in []any) []any {
@@ -74,6 +75,6 @@ func cleanupMapValue(v any) any {
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, float64:
 		return cleanupInterfaceNumber(v)
 	default:
-		return Repr(v)
+		return ToString(v)
 	}
 }

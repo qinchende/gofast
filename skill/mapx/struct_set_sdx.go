@@ -11,7 +11,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src any, opt *fieldOptions, useName bool, useDef bool) error {
+func sdxSetValue(dst reflect.Value, src any, opts *ApplyOptions) error {
 	if src == nil {
 		return nil
 	}
@@ -19,13 +19,13 @@ func sdxSetValue(dst reflect.Value, src any, opt *fieldOptions, useName bool, us
 	srcT := reflect.TypeOf(src)
 	switch srcT.Kind() {
 	case reflect.String:
-		return sdxSetWithString(dst, src.(string))
+		if s, ok := src.(string); ok {
+			return sdxSetWithString(dst, s)
+		} else {
+			return sdxSetWithString(dst, fmt.Sprint(src))
+		}
 	case reflect.Array, reflect.Slice:
-		return applyList(dst, src, useName, useDef)
-	case reflect.Map:
-		// 如果Map不是 cst.KV 类型，这里会抛异常
-		// TODO: 目前不支持这种情况
-		return applyKVToStruct(dst, src.(map[string]any), useName, useDef)
+		return applyList(dst.Addr().Interface(), src, opts)
 	}
 
 	// 实体对象字段类型
@@ -59,11 +59,11 @@ func sdxSetValue(dst reflect.Value, src any, opt *fieldOptions, useName bool, us
 		dst.Set(reflect.Zero(dst.Type()))
 		return nil
 	case reflect.Slice, reflect.Array:
-		// 此时包装一下, 将单个Value包装成 slice
-		newSrc := []any{src}
-		return applyList(dst, newSrc, useName, useDef)
+		// TODO: 此时src肯定不是list，但有可能是未解析的字符串
+		//newSrc := []any{src}
+		return applyList(dst, src, opts)
 	case reflect.Map:
-		return errNotKVType
+		return errors.New("only map-like configs supported")
 	case reflect.Struct:
 		// 这个时候值可能是时间类型
 		if _, ok := dst.Interface().(time.Time); ok {
@@ -174,10 +174,6 @@ func sdxAsBool(src any) (any, error) {
 // utils
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func sdxSetWithString(dst reflect.Value, src string) error {
-	//if src == "" {
-	//	return nil
-	//}
-
 	switch dst.Kind() {
 	case reflect.Int:
 		return sdxSetInt(dst, src, 0)
@@ -229,7 +225,6 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 		}
 		return jsonx.Unmarshal(dst.Addr().Interface(), stringx.StringToBytes(src))
 	default:
-		//return nil
 		return errors.New("unknown type")
 	}
 	return nil
@@ -268,9 +263,8 @@ func sdxSetFloat(dst reflect.Value, src string, bitSize int) error {
 }
 
 func sdxSetStringArray(dst reflect.Value, items []string) error {
-	for i, s := range items {
-		err := sdxSetWithString(dst.Index(i), s)
-		if err != nil {
+	for i, item := range items {
+		if err := sdxSetWithString(dst.Index(i), item); err != nil {
 			return err
 		}
 	}
@@ -279,8 +273,7 @@ func sdxSetStringArray(dst reflect.Value, items []string) error {
 
 func sdxSetStringSlice(dest reflect.Value, values []string) error {
 	slice := reflect.MakeSlice(dest.Type(), len(values), len(values))
-	err := sdxSetStringArray(slice, values)
-	if err != nil {
+	if err := sdxSetStringArray(slice, values); err != nil {
 		return err
 	}
 	dest.Set(slice)

@@ -1,26 +1,18 @@
 package httpx
 
 import (
+	"github.com/qinchende/gofast/skill/mapx"
 	"io"
 	"net/http"
 	"strings"
-
-	"github.com/qinchende/gofast/skill/mapping"
 )
 
 const (
-	formKey           = "form"
-	pathKey           = "path"
 	emptyJson         = "{}"
 	maxMemory         = 32 << 20 // 32MB
 	maxBodyLen        = 8 << 20  // 8MB
 	separator         = ";"
 	tokensInAttribute = 2
-)
-
-var (
-	formUnmarshaler = mapping.NewUnmarshaler(formKey, mapping.WithStringValues())
-	pathUnmarshaler = mapping.NewUnmarshaler(pathKey, mapping.WithStringValues())
 )
 
 func Parse(r *http.Request, v any) error {
@@ -55,7 +47,7 @@ func ParseForm(r *http.Request, v any) error {
 		}
 	}
 
-	return formUnmarshaler.Unmarshal(params, v)
+	return mapx.ApplyKV(v, params, mapx.DefOptions(nil))
 }
 
 func ParseHeader(headerValue string) map[string]string {
@@ -88,19 +80,19 @@ func ParseJsonBody(r *http.Request, v any) error {
 		reader = strings.NewReader(emptyJson)
 	}
 
-	return mapping.UnmarshalJsonReader(reader, v)
+	return mapx.DecodeJsonReader(v, reader, mapx.DefOptions(nil))
 }
 
 // Parses the symbols reside in url path.
 // Like http://localhost/bag/:name
 func ParsePath(r *http.Request, v any) error {
 	vars := Vars(r)
-	m := make(map[string]any, len(vars))
+	kv := make(map[string]any, len(vars))
 	for k, v := range vars {
-		m[k] = v
+		kv[k] = v
 	}
 
-	return pathUnmarshaler.Unmarshal(m, v)
+	return mapx.ApplyKV(v, kv, mapx.DefOptions(nil))
 }
 
 func withJsonBody(r *http.Request) bool {
