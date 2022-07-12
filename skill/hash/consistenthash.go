@@ -2,12 +2,12 @@ package hash
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/mapx"
 	"sort"
 	"strconv"
 	"sync"
 
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/mapping"
 )
 
 const (
@@ -176,5 +176,5 @@ func innerRepr(node any) string {
 }
 
 func repr(node any) string {
-	return mapping.Repr(node)
+	return mapx.ToString(node)
 }
