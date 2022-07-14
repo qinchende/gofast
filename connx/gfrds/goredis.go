@@ -11,22 +11,22 @@ import (
 type (
 	ConnCnf struct {
 		// single redis
-		Addr string `cnf:",NA"`
+		Addr string `v:""`
 
 		// sentinel
-		SentinelAddr []string `cnf:",NA"`
-		MasterName   string   `cnf:",NA"`
-		SentinelPass string   `cnf:",NA"`
-		SlaveOnly    bool     `cnf:",NA"`
+		SentinelAddr []string `v:""`
+		MasterName   string   `v:""`
+		SentinelPass string   `v:""`
+		SlaveOnly    bool     `v:""`
 
 		// common
-		Pass     string `cnf:",NA"`
-		DB       int    `cnf:",NA"`
-		PoolSize int    `cnf:",NA"`
-		MinIdle  int    `cnf:",NA"`
+		Pass     string `v:""`
+		DB       int    `v:""`
+		PoolSize int    `v:""`
+		MinIdle  int    `v:""`
 
 		// 扩展
-		Weight uint16 `cnf:",NA"` // 权重
+		Weight uint16 `v:""` // 权重
 	}
 	GfRedis struct {
 		Cli    *redis.Client

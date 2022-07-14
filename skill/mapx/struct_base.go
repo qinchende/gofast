@@ -2,6 +2,7 @@ package mapx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/mapx/valid"
 	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
@@ -9,20 +10,20 @@ import (
 )
 
 const (
-	columnNameTag  = "pms" // 字段名称，对应的tag
+	//	columnNameTag  = "pms" // 字段名称，对应的tag
 	columnNameTag2 = "dbf" // 字段名称，次优先级
-	columnOptTag   = "opt" // 字段附加选项
+	//	columnOptTag   = "opt" // 字段附加选项
 )
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type GfStruct struct {
-	attrs       orm.ModelAttrs  // 实体类型的相关控制属性
-	columns     []string        // 安顺序存放的tag列名
-	columnsKV   map[string]int8 // pms_name index
-	fields      []string        // 安顺序存放的字段名
-	fieldsKV    map[string]int8 // field_name index
-	fieldsIndex [][]int         // reflect fields index
-	fieldsOpts  []*fieldOptions // 字段的属性
+	attrs       orm.ModelAttrs     // 实体类型的相关控制属性
+	columns     []string           // 安顺序存放的tag列名
+	columnsKV   map[string]int8    // pms_name index
+	fields      []string           // 安顺序存放的字段名
+	fieldsKV    map[string]int8    // field_name index
+	fieldsIndex [][]int            // reflect fields index
+	fieldsOpts  []*valid.FieldOpts // 字段的属性
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -61,35 +62,35 @@ func (ms *GfStruct) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Val
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func SchemaNoCache(obj any) *GfStruct {
-	return structSchema(reflect.TypeOf(obj))
+func SchemaNoCache(obj any, opts *ApplyOptions) *GfStruct {
+	return structSchema(reflect.TypeOf(obj), opts)
 }
 
-func Schema(obj any) *GfStruct {
-	return fetchSchemaCache(reflect.TypeOf(obj))
+func Schema(obj any, opts *ApplyOptions) *GfStruct {
+	return fetchSchemaCache(reflect.TypeOf(obj), opts)
 }
 
-func SchemaOfType(rTyp reflect.Type) *GfStruct {
-	return fetchSchemaCache(rTyp)
+func SchemaOfType(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
+	return fetchSchemaCache(rTyp, opts)
 }
 
 // 提取结构体变量的Schema元数据
-func fetchSchemaCache(rTyp reflect.Type) *GfStruct {
+func fetchSchemaCache(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 	for rTyp.Kind() == reflect.Ptr {
 		rTyp = rTyp.Elem()
 	}
 	// 看类型，缓存有就直接用，否则计算一次并缓存
 	mSchema := cacheGetSchema(rTyp)
 	if mSchema == nil {
-		mSchema = structSchema(rTyp)
+		mSchema = structSchema(rTyp, opts)
 		cacheSetSchema(rTyp, mSchema)
 	}
 	return mSchema
 }
 
-func structSchema(rTyp reflect.Type) *GfStruct {
+func structSchema(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 	rootIdx := make([]int, 0)
-	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx)
+	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx, opts)
 
 	// 获取 Model的所有控制属性
 	rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
@@ -110,7 +111,7 @@ func structSchema(rTyp reflect.Type) *GfStruct {
 	copy(fFieldsNew, fFields)
 	fIndexesNew := make([][]int, len(fIndexes))
 	copy(fIndexesNew, fIndexes)
-	fOptionsNew := make([]*fieldOptions, len(fOptions))
+	fOptionsNew := make([]*valid.FieldOpts, len(fOptions))
 	copy(fOptionsNew, fOptions)
 	// 构造ORM Model元数据
 	mSchema := GfStruct{
@@ -133,7 +134,7 @@ func structSchema(rTyp reflect.Type) *GfStruct {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(rTyp reflect.Type, parentIdx []int) ([]string, []string, [][]int, []*fieldOptions) {
+func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]string, []string, [][]int, []*valid.FieldOpts) {
 	if rTyp.Kind() != reflect.Struct {
 		panic(fmt.Errorf("%T is not like struct", rTyp))
 	}
@@ -141,7 +142,7 @@ func structFields(rTyp reflect.Type, parentIdx []int) ([]string, []string, [][]i
 	fColumns := make([]string, 0)
 	fFields := make([]string, 0)
 	fIndexes := make([][]int, 0)
-	fOptions := make([]*fieldOptions, 0)
+	fOptions := make([]*valid.FieldOpts, 0)
 
 	for i := 0; i < rTyp.NumField(); i++ {
 		fi := rTyp.Field(i)
@@ -153,7 +154,7 @@ func structFields(rTyp reflect.Type, parentIdx []int) ([]string, []string, [][]i
 			newPIdx = append(newPIdx, parentIdx...)
 			newPIdx = append(newPIdx, i)
 
-			c, f, x, z := structFields(fiType, newPIdx)
+			c, f, x, z := structFields(fiType, newPIdx, opts)
 			fColumns = append(fColumns, c...)
 			fFields = append(fFields, f...)
 			fIndexes = append(fIndexes, x...)
@@ -162,7 +163,7 @@ func structFields(rTyp reflect.Type, parentIdx []int) ([]string, []string, [][]i
 		}
 
 		// 1. 查找tag，确定列名称
-		col := fi.Tag.Get(columnNameTag)
+		col := fi.Tag.Get(opts.FieldTag)
 		if col == "" {
 			col = fi.Tag.Get(columnNameTag2)
 		}
@@ -181,8 +182,8 @@ func structFields(rTyp reflect.Type, parentIdx []int) ([]string, []string, [][]i
 		fIndexes = append(fIndexes, cIdx)
 
 		// 4. options
-		optStr := fi.Tag.Get(columnOptTag)
-		fOpt, err := doParseKeyAndOptions(&fi, optStr)
+		optStr := fi.Tag.Get(opts.ValidTag)
+		fOpt, err := valid.ParseOptions(&fi, optStr)
 		errPanic(err)
 		fOptions = append(fOptions, fOpt)
 	}

@@ -23,7 +23,7 @@ func DefOptions(opt *ApplyOptions) *ApplyOptions {
 		opt.FieldTag = "pms"
 	}
 	if opt.ValidTag == "" {
-		opt.ValidTag = "valid"
+		opt.ValidTag = "v"
 	}
 	return opt
 }
@@ -32,7 +32,7 @@ func DefOptions(opt *ApplyOptions) *ApplyOptions {
 func DataOptions() *ApplyOptions {
 	return &ApplyOptions{
 		FieldTag:    "pms",
-		ValidTag:    "valid",
+		ValidTag:    "v",
 		CacheSchema: true,
 		FieldDirect: false,
 		NotSnake:    false,
@@ -45,7 +45,7 @@ func DataOptions() *ApplyOptions {
 func ConfigOptions() *ApplyOptions {
 	return &ApplyOptions{
 		FieldTag:    "pms",
-		ValidTag:    "valid",
+		ValidTag:    "v",
 		CacheSchema: false,
 		FieldDirect: true,
 		NotSnake:    false,
@@ -56,13 +56,7 @@ func ConfigOptions() *ApplyOptions {
 
 // cst.KV
 func ApplyKV(dst any, kvs cst.KV, opts *ApplyOptions) error {
-	if err := applyKVToStruct(dst, kvs, opts); err != nil {
-		return err
-	}
-	if opts.NotValid == false {
-		return Validate(dst)
-	}
-	return nil
+	return applyKVToStruct(dst, kvs, opts)
 }
 
 // JSON
