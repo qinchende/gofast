@@ -11,7 +11,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src any, opts *ApplyOptions) error {
+func sdxSetValue(dst reflect.Value, src any) error {
 	if src == nil {
 		return nil
 	}
@@ -25,11 +25,14 @@ func sdxSetValue(dst reflect.Value, src any, opts *ApplyOptions) error {
 			return sdxSetWithString(dst, fmt.Sprint(src))
 		}
 	case reflect.Array, reflect.Slice:
-		return applyList(dst.Addr().Interface(), src, opts)
+		return applyList(dst.Addr().Interface(), src)
 	}
 
 	// 实体对象字段类型
 	switch dst.Kind() {
+	case reflect.String:
+		dst.SetString(sdxAsString(src))
+		return nil
 	case reflect.Bool:
 		bv, err := sdxAsBool(src)
 		if err == nil {
@@ -61,8 +64,9 @@ func sdxSetValue(dst reflect.Value, src any, opts *ApplyOptions) error {
 	case reflect.Slice, reflect.Array:
 		// TODO: 此时src肯定不是list，但有可能是未解析的字符串
 		//newSrc := []any{src}
-		return applyList(dst, src, opts)
+		return applyList(dst, src)
 	case reflect.Map:
+		// TODO: 需要一种新的解析函数
 		return errors.New("only map-like configs supported")
 	case reflect.Struct:
 		// 这个时候值可能是时间类型

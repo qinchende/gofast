@@ -5,17 +5,17 @@ package logx
 var currConfig *LogConfig
 
 type LogConfig struct {
-	ServiceName        string `cnf:",NA"`
-	Mode               string `cnf:",def=console,enum=console|file|volume"`
-	Level              string `cnf:",def=info,enum=info|error|severe"` // 记录日志的级别
-	Path               string `cnf:",def=logs"`                        // 日志文件路径
-	FilePrefix         string `cnf:",NA"`                              // 日志文件名统一前缀
-	FileNumber         int8   `cnf:",def=0,range=[0:3]"`               // 日志文件数量
-	Compress           bool   `cnf:",NA"`
-	KeepDays           int    `cnf:",NA"`
-	StackArchiveMillis int    `cnf:",def=100"`
-	StyleName          string `cnf:",def=sdx,enum=json|json-mini|sdx|sdx-mini"`
-	style              int8   `inner:",NA"` // 日志模板样式
+	ServiceName        string `v:""`
+	Mode               string `v:"def=console,enum=console|file|volume"`
+	Level              string `v:"def=info,enum=info|error|severe"` // 记录日志的级别
+	Path               string `v:"def=logs"`                        // 日志文件路径
+	FilePrefix         string `v:""`                                // 日志文件名统一前缀
+	FileNumber         int8   `v:"def=0,range=[0:3]"`               // 日志文件数量
+	Compress           bool   `v:""`
+	KeepDays           int    `v:""`
+	StackArchiveMillis int    `v:"def=100"`
+	StyleName          string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`
+	style              int8   // 日志模板样式
 }
 
 const (

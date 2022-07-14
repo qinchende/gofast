@@ -5,11 +5,12 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/mapx/valid"
 	"reflect"
 )
 
 // 只用传入的值赋值对象
-func applyKVToStruct(dest any, kvs cst.KV, opts *ApplyOptions) error {
+func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 	if kvs == nil || len(kvs) == 0 {
 		return nil
 	}
@@ -19,23 +20,31 @@ func applyKVToStruct(dest any, kvs cst.KV, opts *ApplyOptions) error {
 		return fmt.Errorf("%T is not like struct", dest)
 	}
 
-	sm := SchemaOfType(dstVal.Type())
+	sm := SchemaOfType(dstVal.Type(), applyOpts)
 	var fls []string
-	if opts.FieldDirect {
+	if applyOpts.FieldDirect {
 		fls = sm.fields
 	} else {
 		fls = sm.columns
 	}
 	flsOpts := sm.fieldsOpts
 
+	var err error
 	for i := 0; i < len(fls); i++ {
 		opt := flsOpts[i]
-		fk := fls[i]
-		sv, ok := kvs[fk]
-		// 只要找到相应的Key，不管Value是啥，不能使用默认值，不能转换就抛异常，说明数据源错误
+		fName := fls[i]
+		sv, ok := kvs[fName]
+
 		if ok {
-		} else if opts.NotDefValue != true && opt != nil && opt.DefExist {
-			sv = opt.Default
+		} else if opt != nil {
+			if opt.Required {
+				return fmt.Errorf("field %s requied", fName)
+			} else if applyOpts.NotDefValue != true {
+				sv = opt.DefValue
+				if sv == "" {
+					continue
+				}
+			}
 		} else {
 			continue
 		}
@@ -46,21 +55,28 @@ func applyKVToStruct(dest any, kvs cst.KV, opts *ApplyOptions) error {
 		fvType := fv.Type()
 		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
 			// 如果sv 无法转换成 cst.KV 类型，将要抛出异常
-			err := applyKVToStruct(fv.Addr().Interface(), sv.(map[string]any), opts)
-			if err != nil {
+			if err = applyKVToStruct(fv.Addr().Interface(), sv.(map[string]any), applyOpts); err != nil {
 				return err
 			}
 			continue
 		}
 
-		err := sdxSetValue(fv, sv, opts)
-		errPanic(err)
+		if err = sdxSetValue(fv, sv); err != nil {
+			return err
+		}
+
+		// 是否需要验证字段数据的合法性
+		if !applyOpts.NotValid && opt != nil {
+			if err = valid.ValidateField(fv, opt); err != nil {
+				return err
+			}
+		}
 	}
 	return nil
 }
 
 // src 只能是 array,slice 类型
-func applyList(dst any, src any, opts *ApplyOptions) error {
+func applyList(dst any, src any) error {
 	dstV := reflect.Indirect(reflect.ValueOf(dst))
 	srcV := reflect.Indirect(reflect.ValueOf(src))
 
@@ -87,7 +103,7 @@ func applyList(dst any, src any, opts *ApplyOptions) error {
 			dstV.Set(dstNew)
 		}
 		for i := 0; i < srcV.Len(); i++ {
-			if err := sdxSetValue(dstV.Index(i), srcV.Index(i).Interface(), opts); err != nil {
+			if err := sdxSetValue(dstV.Index(i), srcV.Index(i).Interface()); err != nil {
 				return err
 			}
 		}

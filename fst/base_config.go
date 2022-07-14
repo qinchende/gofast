@@ -12,30 +12,30 @@ type GfConfig struct {
 	LogConfig logx.LogConfig
 	// FuncMap          	template.FuncMap
 	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
-	Name                   string `cnf:",def=GoFastSite"`
-	Addr                   string `cnf:",def=0.0.0.0:8099"`
-	RunMode                string `cnf:",def=debug,enum=debug|test|product"` // 当前模式[debug|test|product]
-	SecureJsonPrefix       string `cnf:",def=while(1);"`
-	MaxMultipartMemory     int64  `cnf:",def=33554432"` // 最大上传文件的大小，默认32MB
-	SecondsBeforeShutdown  int64  `cnf:",def=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
-	RedirectTrailingSlash  bool   `cnf:",def=false"`    // 探测url后面加减'/'之后是否能匹配路由（这个时代默认不需要了）
-	HandleMethodNotAllowed bool   `cnf:",def=false"`
-	DisableDefNotAllowed   bool   `cnf:",def=false"`
-	DisableDefNoRoute      bool   `cnf:",def=false"`
-	ForwardedByClientIP    bool   `cnf:",def=true"`
-	RemoveExtraSlash       bool   `cnf:",def=false"`                       // 规范请求的URL
-	UseRawPath             bool   `cnf:",def=false"`                       // 默认取原始的Path，不需要自动转义
-	UnescapePathValues     bool   `cnf:",def=true"`                        // 默认把URL中的参数值做转义
-	PrintRouteTrees        bool   `cnf:",def=false"`                       // 是否打印出当前路由数
-	FitDisableTimeout      bool   `cnf:",def=false"`                       // 是否支持超时自动返回
-	NeedSysCheck           bool   `cnf:",def=true"`                        // 是否启动CPU使用情况的定时检查工作
-	NeedSysPrint           bool   `cnf:",def=true"`                        // 定时打印系统检查日志
-	FitReqTimeout          int64  `cnf:",def=3000"`                        // 每次请求的超时时间（单位：毫秒）
-	FitMaxContentLength    int64  `cnf:",def=0"`                           // 最大请求字节数，32MB（def=33554432）
-	FitMaxConnections      int32  `cnf:",def=1000000,range=[0:100000000]"` // 最大请求处理数，默认100万个请求同时进入
-	FitJwtSecret           string `cnf:",omitempty"`                       // JWT认证的秘钥
-	FitLogType             string `cnf:",def=json,enum=json|sdx"`
-	modeType               int8   `cnf:",omitempty"` // 内部记录状态
+	Name                   string `v:"def=GoFastSite"`
+	Addr                   string `v:"def=0.0.0.0:8099"`
+	RunMode                string `v:"def=debug,enum=debug|test|product"` // 当前模式[debug|test|product]
+	SecureJsonPrefix       string `v:"def=while(1);"`
+	MaxMultipartMemory     int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
+	SecondsBeforeShutdown  int64  `v:"def=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
+	RedirectTrailingSlash  bool   `v:"def=false"`    // 探测url后面加减'/'之后是否能匹配路由（这个时代默认不需要了）
+	HandleMethodNotAllowed bool   `v:"def=false"`
+	DisableDefNotAllowed   bool   `v:"def=false"`
+	DisableDefNoRoute      bool   `v:"def=false"`
+	ForwardedByClientIP    bool   `v:"def=true"`
+	RemoveExtraSlash       bool   `v:"def=false"`                       // 规范请求的URL
+	UseRawPath             bool   `v:"def=false"`                       // 默认取原始的Path，不需要自动转义
+	UnescapePathValues     bool   `v:"def=true"`                        // 默认把URL中的参数值做转义
+	PrintRouteTrees        bool   `v:"def=false"`                       // 是否打印出当前路由数
+	FitDisableTimeout      bool   `v:"def=false"`                       // 是否支持超时自动返回
+	NeedSysCheck           bool   `v:"def=true"`                        // 是否启动CPU使用情况的定时检查工作
+	NeedSysPrint           bool   `v:"def=true"`                        // 定时打印系统检查日志
+	FitReqTimeout          int64  `v:"def=3000"`                        // 每次请求的超时时间（单位：毫秒）
+	FitMaxContentLength    int64  `v:"def=0"`                           // 最大请求字节数，32MB（def=33554432）
+	FitMaxConnections      int32  `v:"def=1000000,range=[0:100000000]"` // 最大请求处理数，默认100万个请求同时进入
+	FitJwtSecret           string `v:""`                                // JWT认证的秘钥
+	FitLogType             string `v:"def=json,enum=json|sdx"`          // 日志类型
+	modeType               int8   `v:""`                                // 内部记录状态
 	//HTMLRender             render.HTMLRender `cnf:",NA"`
 	//EnableRouteMonitor bool `cnf:",def=true"` // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
 }

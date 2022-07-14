@@ -13,11 +13,11 @@ import (
 
 type (
 	ConnCnf struct {
-		ConnStr      string   `cnf:",NA"`
-		ConnStrR     string   `cnf:",NA"`
-		MaxOpen      int      `cnf:",def=100,range=[1:1000]"`
-		MaxIdle      int      `cnf:",def=100,NA"`
-		RedisCluster []string `cnf:",NA"`
+		ConnStr      string   `v:"required"`
+		ConnStrR     string   `v:"required=false"`
+		MaxOpen      int      `v:"def=100,range=[1:1000]"`
+		MaxIdle      int      `v:"def=100"`
+		RedisCluster []string `v:"required=false,len=[10:300]"`
 	}
 )
 
