@@ -7,7 +7,7 @@ const (
 	attrRange    = "range"
 	attrLength   = "len"
 	attrRegex    = "regex"
-	attrMatch    = "match" // email,mobile,ipv4,ipv6,id_card,url,file,base64,time,datetime
+	attrMatch    = "match" // email,mobile,ipv4,ipv4:port,ipv6,id_card,url,file,base64,time,datetime
 
 	// 常用关键字
 	itemSeparator = "|"

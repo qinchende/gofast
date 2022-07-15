@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"fmt"
 	_ "github.com/go-sql-driver/mysql"
-	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
@@ -50,11 +49,11 @@ func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
 
 // 通过给定的结构体字段更新数据
 func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, columns ...string) int64 {
-	rVal := reflect.Indirect(reflect.ValueOf(obj))
+	dstVal := reflect.Indirect(reflect.ValueOf(obj))
 	sm := orm.Schema(obj)
 
 	obj.BeforeSave()
-	upSQL, tValues := updateSqlByColumns(sm, &rVal, columns)
+	upSQL, tValues := updateSqlByColumns(sm, &dstVal, columns)
 	ret := conn.Exec(upSQL, tValues...)
 	return parseResult(ret, tValues[len(tValues)-1], conn, sm)
 }
@@ -77,28 +76,24 @@ func parseResult(ret sql.Result, keyVal any, conn *MysqlORM, sm *orm.ModelSchema
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (conn *MysqlORM) QueryID(dest any, id any) int64 {
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
+	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
-	sm := orm.SchemaOfType(rVal.Type())
+	sm := orm.SchemaOfType(dstVal.Type())
 	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
 	defer sqlRows.Close()
 
-	return parseQueryRow(&rVal, sqlRows, sm)
+	return parseQueryRow(&dstVal, sqlRows, sm)
 }
 
 // TODO: 当前重点解决缓存的问题
 func (conn *MysqlORM) QueryIDCC(dest any, id any) int64 {
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
-	sm := orm.SchemaOfType(rVal.Type())
+	dstVal := reflect.Indirect(reflect.ValueOf(dest))
+	sm := orm.SchemaOfType(dstVal.Type())
 
 	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DBName, id)
 	cValStr, err := (*conn.rdsNodes)[0].Get(key)
 	if err == nil && cValStr != "" {
-		//kvs := new(cst.KV)
-		//_ = jsonx.UnmarshalFromString(ccVal, kvs)
-		//_ = mapx.BindKV(dest, *kvs)
-		err = jsonx.UnmarshalFromString(dest, cValStr)
-		if err == nil {
+		if err = jsonx.UnmarshalFromString(dest, cValStr); err == nil {
 			return 1
 		}
 	}
@@ -106,26 +101,27 @@ func (conn *MysqlORM) QueryIDCC(dest any, id any) int64 {
 	// 执行SQL查询并设置缓存
 	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
 	defer sqlRows.Close()
-	ct := parseQueryRow(&rVal, sqlRows, sm)
-	jsonValBytes, er := jsonx.Marshal(dest)
-	if er == nil {
-		str, err := (*conn.rdsNodes)[0].Set(key, jsonValBytes, time.Duration(sm.ExpireS())*time.Second)
-		logx.Info(str, err)
+	ct := parseQueryRow(&dstVal, sqlRows, sm)
+	if ct > 0 {
+		if jsonValBytes, err := jsonx.Marshal(dest); err == nil {
+			_, _ = (*conn.rdsNodes)[0].Set(key, jsonValBytes, time.Duration(sm.ExpireS())*time.Second)
+			//logx.Info(str, err)
+		}
 	}
 	return ct
 }
 
 func (conn *MysqlORM) QueryRow(dest any, where string, pms ...any) int64 {
-	rVal := reflect.Indirect(reflect.ValueOf(dest))
+	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
-	sm := orm.SchemaOfType(rVal.Type())
+	sm := orm.SchemaOfType(dstVal.Type())
 	sqlRows := conn.QuerySql(selectSqlByOne(sm, where), pms...)
 	defer sqlRows.Close()
 
-	return parseQueryRow(&rVal, sqlRows, sm)
+	return parseQueryRow(&dstVal, sqlRows, sm)
 }
 
-func parseQueryRow(rVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
+func parseQueryRow(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 	if !sqlRows.Next() {
 		return 0
 	}
@@ -138,7 +134,7 @@ func parseQueryRow(rVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) 
 	for cIdx, column := range dbColumns {
 		idx, ok := smColumns[column]
 		if ok {
-			fieldsAddr[cIdx] = sm.AddrByIndex(rVal, idx)
+			fieldsAddr[cIdx] = sm.AddrByIndex(dstVal, idx)
 		} else {
 			// 这个值会被丢弃
 			fieldsAddr[cIdx] = new(any)

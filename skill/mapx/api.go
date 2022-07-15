@@ -5,6 +5,12 @@ import (
 	"io"
 )
 
+const (
+	fieldNameTag  = "pms" // 字段名称，对应的tag
+	fieldNameTag2 = "dbf" // 字段名称，次优先级
+	fieldValidTag = "v"   // 验证字段
+)
+
 type ApplyOptions struct {
 	FieldTag    string // 解析字段名对应的Tag标签
 	ValidTag    string // 验证合法性对应的Tag标签
@@ -20,10 +26,10 @@ func DefOptions(opt *ApplyOptions) *ApplyOptions {
 		opt = &ApplyOptions{}
 	}
 	if opt.FieldTag == "" {
-		opt.FieldTag = "pms"
+		opt.FieldTag = fieldNameTag
 	}
 	if opt.ValidTag == "" {
-		opt.ValidTag = "v"
+		opt.ValidTag = fieldValidTag
 	}
 	return opt
 }
@@ -31,8 +37,8 @@ func DefOptions(opt *ApplyOptions) *ApplyOptions {
 // 应用在大量解析数据记录的场景
 func DataOptions() *ApplyOptions {
 	return &ApplyOptions{
-		FieldTag:    "pms",
-		ValidTag:    "v",
+		FieldTag:    fieldNameTag,
+		ValidTag:    fieldValidTag,
 		CacheSchema: true,
 		FieldDirect: false,
 		NotSnake:    false,
@@ -44,8 +50,8 @@ func DataOptions() *ApplyOptions {
 // 应用在解析配置文件的场景
 func ConfigOptions() *ApplyOptions {
 	return &ApplyOptions{
-		FieldTag:    "pms",
-		ValidTag:    "v",
+		FieldTag:    fieldNameTag,
+		ValidTag:    fieldValidTag,
 		CacheSchema: false,
 		FieldDirect: true,
 		NotSnake:    false,

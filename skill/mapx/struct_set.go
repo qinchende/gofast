@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/mapx/valid"
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strconv"
@@ -11,7 +12,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src any) error {
+func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions) error {
 	if src == nil {
 		return nil
 	}
@@ -25,7 +26,7 @@ func sdxSetValue(dst reflect.Value, src any) error {
 			return sdxSetWithString(dst, fmt.Sprint(src))
 		}
 	case reflect.Array, reflect.Slice:
-		return applyList(dst.Addr().Interface(), src)
+		return applyList(dst.Addr().Interface(), src, fOpt, applyOpts)
 	}
 
 	// 实体对象字段类型
@@ -64,7 +65,7 @@ func sdxSetValue(dst reflect.Value, src any) error {
 	case reflect.Slice, reflect.Array:
 		// TODO: 此时src肯定不是list，但有可能是未解析的字符串
 		//newSrc := []any{src}
-		return applyList(dst, src)
+		return applyList(dst, src, fOpt, applyOpts)
 	case reflect.Map:
 		// TODO: 需要一种新的解析函数
 		return errors.New("only map-like configs supported")
