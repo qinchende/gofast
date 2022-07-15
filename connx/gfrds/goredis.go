@@ -11,16 +11,16 @@ import (
 type (
 	ConnCnf struct {
 		// single redis
-		Addr string `v:""`
+		Addr string `v:"match=ipv4:port"`
 
 		// sentinel
-		SentinelAddr []string `v:""`
+		SentinelAddr []string `v:"match=ipv4:port"`
 		MasterName   string   `v:""`
 		SentinelPass string   `v:""`
 		SlaveOnly    bool     `v:""`
 
 		// common
-		Pass     string `v:""`
+		Pass     string `v:"required"`
 		DB       int    `v:""`
 		PoolSize int    `v:""`
 		MinIdle  int    `v:""`

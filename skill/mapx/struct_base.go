@@ -9,12 +9,6 @@ import (
 	"sync"
 )
 
-const (
-	//	columnNameTag  = "pms" // 字段名称，对应的tag
-	columnNameTag2 = "dbf" // 字段名称，次优先级
-	//	columnOptTag   = "opt" // 字段附加选项
-)
-
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type GfStruct struct {
 	attrs       orm.ModelAttrs     // 实体类型的相关控制属性
@@ -165,7 +159,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]str
 		// 1. 查找tag，确定列名称
 		col := fi.Tag.Get(opts.FieldTag)
 		if col == "" {
-			col = fi.Tag.Get(columnNameTag2)
+			col = fi.Tag.Get(fieldNameTag2)
 		}
 		if col == "" {
 			col = stringx.Camel2Snake(fi.Name)

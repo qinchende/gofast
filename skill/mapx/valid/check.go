@@ -13,8 +13,12 @@ var (
 )
 
 var regexMap = map[string]*regexp.Regexp{
-	"email":  regexp.MustCompile(emailRegexString),
-	"mobile": regexp.MustCompile(chinaMobile),
+	"email":     regexp.MustCompile(emailRegexString),
+	"mobile":    regexp.MustCompile(chinaMobileRegexString),
+	"ipv4":      regexp.MustCompile(ipv4RegexString),
+	"ipv4:port": regexp.MustCompile(ipv4PortRegexString),
+	"base64":    regexp.MustCompile(base64RegexString),
+	"base64URL": regexp.MustCompile(base64URLRegexString),
 }
 
 func ValidateField(fValue reflect.Value, fOpts *FieldOpts) error {
@@ -35,25 +39,27 @@ func ValidateField(fValue reflect.Value, fOpts *FieldOpts) error {
 		}
 		// 检查是否符合枚举
 		if fOpts.Enum != nil && !stringx.Contains(fOpts.Enum, str) {
-			return fmt.Errorf(`value "%s" for field "%s" is not "%v"`, str, fValue.Type().String(), fOpts.Enum)
+			return fmt.Errorf(`value "%s" not in "%v"`, str, fOpts.Enum)
 		}
 		// 否则常见的正则表达式
 		if fOpts.Match != "" {
 			reg := regexMap[fOpts.Match]
 			if reg != nil {
 				if reg.MatchString(str) == false {
-					return fmt.Errorf(`value "%s" for field "%s" not like "%s"`, str, fValue.Type().String(), fOpts.Match)
+					return fmt.Errorf(`value "%s" not like "%s"`, str, fOpts.Match)
 				}
 			} else {
 				switch {
-				case str == "email":
-				case str == "phone":
-				case str == "ipv4":
+				//case str == "email":
+				//case str == "mobile":
+				//case str == "ipv4":
+				//case str == "ipv4:port":
+				//case str == "base64":
+				//case str == "base64URL":
 				case str == "ipv6":
 				case str == "id_card":
 				case str == "url":
 				case str == "file":
-				case str == "base64":
 				case str == "time":
 				case str == "datetime":
 				}
@@ -62,7 +68,7 @@ func ValidateField(fValue reflect.Value, fOpts *FieldOpts) error {
 		// 自定义正则表达式
 		if fOpts.Regex != "" {
 			if regexp.MustCompile(fOpts.Regex).MatchString(str) == false {
-				return fmt.Errorf(`value "%s" for field "%s" not like "%s"`, str, fValue.Type().String(), fOpts.Regex)
+				return fmt.Errorf(`value "%s" can't match "%s"`, str, fOpts.Regex)
 			}
 		}
 	default:

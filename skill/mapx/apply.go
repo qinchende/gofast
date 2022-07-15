@@ -31,16 +31,16 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 
 	var err error
 	for i := 0; i < len(fls); i++ {
-		opt := flsOpts[i]
+		fOpt := flsOpts[i]
 		fName := fls[i]
 		sv, ok := kvs[fName]
 
 		if ok {
-		} else if opt != nil {
-			if opt.Required {
+		} else if fOpt != nil {
+			if fOpt.Required {
 				return fmt.Errorf("field %s requied", fName)
 			} else if applyOpts.NotDefValue != true {
-				sv = opt.DefValue
+				sv = fOpt.DefValue
 				if sv == "" {
 					continue
 				}
@@ -61,13 +61,13 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 			continue
 		}
 
-		if err = sdxSetValue(fv, sv); err != nil {
+		if err = sdxSetValue(fv, sv, fOpt, applyOpts); err != nil {
 			return err
 		}
 
 		// 是否需要验证字段数据的合法性
-		if !applyOpts.NotValid && opt != nil {
-			if err = valid.ValidateField(fv, opt); err != nil {
+		if !applyOpts.NotValid && fOpt != nil {
+			if err = valid.ValidateField(fv, fOpt); err != nil {
 				return err
 			}
 		}
@@ -76,14 +76,15 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 }
 
 // src 只能是 array,slice 类型
-func applyList(dst any, src any) error {
+func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions) error {
 	dstV := reflect.Indirect(reflect.ValueOf(dst))
 	srcV := reflect.Indirect(reflect.ValueOf(src))
 
+	var err error
 	if srcV.Kind() == reflect.String {
 		var srcNew []any
 		// TODO：这种情况下只支持JSON解析，YAML是不支持的
-		if err := jsonx.UnmarshalFromString(&srcNew, src.(string)); err != nil {
+		if err = jsonx.UnmarshalFromString(&srcNew, src.(string)); err != nil {
 			return err
 		}
 		src = srcNew
@@ -103,12 +104,25 @@ func applyList(dst any, src any) error {
 			dstV.Set(dstNew)
 		}
 		for i := 0; i < srcV.Len(); i++ {
-			if err := sdxSetValue(dstV.Index(i), srcV.Index(i).Interface()); err != nil {
+			fv := dstV.Index(i)
+			if err = sdxSetValue(fv, srcV.Index(i).Interface(), fOpt, applyOpts); err != nil {
 				return err
+			}
+			// 是否需要验证字段数据的合法性
+			if !applyOpts.NotValid && fOpt != nil {
+				if err = valid.ValidateField(fv, fOpt); err != nil {
+					return err
+				}
 			}
 		}
 	default:
 		return errors.New("only array-like value supported")
 	}
+
+	// 数组不能为空
+	if !applyOpts.NotValid && fOpt != nil && fOpt.Required && dstV.Len() == 0 {
+		return fmt.Errorf("list field %s requied", dstType.String())
+	}
+
 	return nil
 }

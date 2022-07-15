@@ -13,7 +13,7 @@ type GfConfig struct {
 	// FuncMap          	template.FuncMap
 	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
 	Name                   string `v:"def=GoFastSite"`
-	Addr                   string `v:"def=0.0.0.0:8099"`
+	Addr                   string `v:"def=0.0.0.0:8099,match=ipv4:port"`
 	RunMode                string `v:"def=debug,enum=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix       string `v:"def=while(1);"`
 	MaxMultipartMemory     int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
