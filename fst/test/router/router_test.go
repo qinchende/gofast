@@ -458,7 +458,7 @@ func TestRouterNotFound(t *testing.T) {
 	// Test custom not found handler
 	var notFound bool
 	router.NoRoute(func(c *fst.Context) {
-		c.AbortWithStatus(http.StatusNotFound)
+		//c.AbortAndRender(http.StatusNotFound)
 		notFound = true
 	})
 	router.BuildRouters()
@@ -557,7 +557,7 @@ func TestRouteRawPathNoUnescape(t *testing.T) {
 	router := fst.Default()
 	router.UseRawPath = true
 	router.UnescapePathValues = false
-	router.DisableDefNoRoute = true
+	//router.DisableDefNoRoute = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
 		name := c.Params.ByName("name")
@@ -578,7 +578,7 @@ func TestRouteRawPathNoUnescape(t *testing.T) {
 func TestRouteServeErrorWithWriteHeader(t *testing.T) {
 	router := fst.Default()
 	router.Before(func(c *fst.Context) {
-		c.Status(421)
+		//c.Status(421)
 	})
 	router.BuildRouters()
 

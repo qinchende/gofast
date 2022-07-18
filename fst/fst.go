@@ -42,8 +42,6 @@ type HomeRouter struct {
 
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
-	//routerItem404 *RouteItem
-	//routerItem405 *RouteItem
 	miniNode404 *radixMiniNode
 	miniNode405 *radixMiniNode
 

@@ -19,9 +19,9 @@ type GfConfig struct {
 	MaxMultipartMemory     int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
 	SecondsBeforeShutdown  int64  `v:"def=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
 	RedirectTrailingSlash  bool   `v:"def=false"`    // 探测url后面加减'/'之后是否能匹配路由（这个时代默认不需要了）
-	HandleMethodNotAllowed bool   `v:"def=false"`
-	DisableDefNotAllowed   bool   `v:"def=false"`
-	DisableDefNoRoute      bool   `v:"def=false"`
+	HandleMethodNotAllowed bool   `v:"def=false"`    // 不用Method下绑定的相同handler，是否可以通用
+	DefNotAllowedHandler   bool   `v:"def=true"`     // 是否采用默认的NotAllowed处理函数
+	DefNoRouteHandler      bool   `v:"def=true"`     // 是否采用默认的NoRoute匹配函数
 	ForwardedByClientIP    bool   `v:"def=true"`
 	RemoveExtraSlash       bool   `v:"def=false"`                       // 规范请求的URL
 	UseRawPath             bool   `v:"def=false"`                       // 默认取原始的Path，不需要自动转义

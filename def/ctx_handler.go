@@ -1,4 +1,4 @@
-package fstx
+package def
 
 import (
 	"github.com/qinchende/gofast/fst"

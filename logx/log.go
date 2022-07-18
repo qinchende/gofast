@@ -19,7 +19,7 @@ func MustSetup(c LogConfig) {
 	if err != nil {
 		msg := formatWithCaller(err.Error(), 3)
 		log.Println(msg)
-		output(severeLog, levelFatal, msg)
+		output(severeLog, levelFatal, msg, false)
 		os.Exit(1)
 	}
 }
