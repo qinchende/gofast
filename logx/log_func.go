@@ -1,8 +1,9 @@
 package logx
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"runtime"
@@ -13,7 +14,7 @@ import (
 )
 
 func Alert(v string) {
-	output(errorLog, levelAlert, v)
+	output(errorLog, levelAlert, v, false)
 }
 
 func Close() error {
@@ -132,11 +133,15 @@ func Warnf(format string, v ...any) {
 }
 
 func Info(v ...any) {
-	infoSync(fmt.Sprint(v...))
+	infoSync(fmt.Sprint(v...), false)
+}
+
+func InfoSkipLine(v ...any) {
+	infoSync(fmt.Sprint(v...), true)
 }
 
 func Infof(format string, v ...any) {
-	infoSync(fmt.Sprintf(format, v...))
+	infoSync(fmt.Sprintf(format, v...), false)
 }
 
 func Severe(v ...any) {
@@ -212,40 +217,40 @@ func getTimestampMini() string {
 	return timex.Time().Format(timeFormatMini)
 }
 
-func infoSync(msg string) {
+func infoSync(msg string, newLine bool) {
 	if shouldLog(InfoLevel) {
-		output(accessLog, levelInfo, msg)
+		output(accessLog, levelInfo, msg, newLine)
 	}
 }
 
 func warnSync(msg string) {
 	if shouldLog(InfoLevel) {
-		output(warnLog, levelWarn, msg)
+		output(warnLog, levelWarn, msg, false)
 	}
 }
 
 func severeSync(msg string) {
 	if shouldLog(SevereLevel) {
-		output(severeLog, levelSevere, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
+		output(severeLog, levelSevere, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), false)
 	}
 }
 
 func slowSync(msg string) {
 	if shouldLog(ErrorLevel) {
-		output(slowLog, levelSlow, msg)
+		output(slowLog, levelSlow, msg, false)
 	}
 }
 
 func stackSync(msg string) {
 	if shouldLog(ErrorLevel) {
 		//output(stackLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
-		output(errorLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
+		output(errorLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), false)
 	}
 }
 
 func statSync(msg string) {
 	if shouldLog(InfoLevel) {
-		output(statLog, levelStat, msg)
+		output(statLog, levelStat, msg, false)
 	}
 }
 
@@ -260,12 +265,12 @@ func statSync(msg string) {
 
 func outputError(lwt WriterCloser, msg string, callDepth int) {
 	content := formatWithCaller(msg, callDepth)
-	output(lwt, levelError, content)
+	output(lwt, levelError, content, false)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要落脚到这个方法
-func output(lwt WriterCloser, level, msg string) {
+func output(lwt WriterCloser, level, msg string, newLine bool) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
 	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
 	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
@@ -274,31 +279,29 @@ func output(lwt WriterCloser, level, msg string) {
 	// TODO: 打印日志，套用不同的日志模板
 	switch currConfig.style {
 	case StyleSdx:
-		outputString(lwt, fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg))
-
+		msg = fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg)
 	case StyleSdxMini:
-		outputString(lwt, msg)
-
 	case StyleJsonMini:
-		outputJson(lwt, msg)
-
 	default:
 		info := logEntry{
 			Timestamp: getTimestamp(),
 			Level:     level,
 			Content:   msg,
 		}
-		outputJson(lwt, info)
+		msg = structToString(info)
 	}
+
+	if newLine {
+		msg = "\n" + msg
+	}
+	outputString(lwt, msg)
 }
 
-func outputJson(lwt WriterCloser, info any) {
-	if content, err := json.Marshal(info); err != nil {
-		log.Println(err.Error())
-	} else if atomic.LoadUint32(&initialized) == 0 || lwt == nil {
-		log.Println(string(content))
+func structToString(info any) string {
+	if content, err := jsonx.Marshal(info); err != nil {
+		return err.Error()
 	} else {
-		_, _ = lwt.Write(append(content, '\n'))
+		return stringx.BytesToString(content)
 	}
 }
 

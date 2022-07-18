@@ -4,26 +4,15 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/stringx"
 	"net/http"
 	"path"
 )
 
 // 系统默认错误处理函数，可以设置 code 和 message.
-func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
+func defMessageHandler(resStatus int, defaultMessage []byte) CtxHandler {
 	return func(c *Context) {
-		c.ResWrap.WriteHeader(code)
-		//if c.ResWrap.WriteStarted() {
-		//	return
-		//}
-		if c.ResWrap.Status() == code {
-			c.ResWrap.Header()["Content-Type"] = mimePlain
-			_, err := c.ResWrap.Write(defaultMessage)
-			if err != nil {
-				logx.DebugPrint("Cannot write message to writer during serve error: %v", err)
-			}
-			return
-		}
-		//c.ResWrap.WriteHeaderNow()
+		c.String(resStatus, stringx.BytesToString(defaultMessage))
 	}
 }
 
@@ -31,20 +20,12 @@ func defErrorHandler(code int, defaultMessage []byte) CtxHandler {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
-	//if gft.routerItem404 == nil {
-	if gft.DisableDefNoRoute {
-		gft.NoRoute()
-	} else {
-		gft.NoRoute(defErrorHandler(http.StatusNotFound, default404Body))
+	if gft.DefNoRouteHandler && len(gft.allRouters[1].eHds) == 0 {
+		gft.NoRoute(defMessageHandler(http.StatusNotFound, default404Body))
 	}
-	//}
-	//if gft.routerItem405 == nil {
-	if gft.DisableDefNotAllowed {
-		gft.NoMethod()
-	} else {
-		gft.NoMethod(defErrorHandler(http.StatusMethodNotAllowed, default405Body))
+	if gft.DefNotAllowedHandler && len(gft.allRouters[2].eHds) == 0 {
+		gft.NoMethod(defMessageHandler(http.StatusMethodNotAllowed, default405Body))
 	}
-	//}
 }
 
 // 每次设置都会替换掉以前设置好的方法
