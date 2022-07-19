@@ -8,14 +8,6 @@ import (
 	"net/http"
 )
 
-func NewRenderKV(status, msg string, code int32) KV {
-	return KV{
-		"status": status,
-		"code":   code,
-		"msg":    msg,
-	}
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
 // JSON是GoFast默认的返回格式，一等公民。所以默认函数命名没有给出JSON字样
@@ -28,16 +20,12 @@ func (c *Context) FaiMsg(msg string) {
 	c.Fai(0, msg, nil)
 }
 
-func (c *Context) FaiKV(obj KV) {
-	c.Fai(0, "", obj)
+func (c *Context) FaiKV(data KV) {
+	c.Fai(0, "", data)
 }
 
-func (c *Context) Fai(code int32, msg string, obj any) {
-	jsonData := NewRenderKV("fai", msg, code)
-	if obj != nil {
-		jsonData["data"] = obj
-	}
-	c.kvSucFai("fai", jsonData)
+func (c *Context) Fai(code int32, msg string, data any) {
+	c.kvSucFai("fai", code, msg, data)
 }
 
 // +++++
@@ -45,29 +33,25 @@ func (c *Context) SucMsg(msg string) {
 	c.Suc(0, msg, nil)
 }
 
-func (c *Context) SucKV(obj KV) {
-	c.Suc(0, "", obj)
+func (c *Context) SucKV(data KV) {
+	c.Suc(0, "", data)
 }
 
-func (c *Context) Suc(code int32, msg string, obj any) {
-	jsonData := NewRenderKV("suc", msg, code)
-	if obj != nil {
-		jsonData["data"] = obj
-	}
-	c.kvSucFai("suc", jsonData)
+func (c *Context) Suc(code int32, msg string, data any) {
+	c.kvSucFai("suc", code, msg, data)
 }
 
-func (c *Context) kvSucFai(status string, jsonData KV) {
-	if jsonData == nil {
-		jsonData = make(KV)
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
+	jsonData := KV{
+		"status": status,
+		"code":   code,
+		"msg":    msg,
 	}
-	jsonData["status"] = status
-	if jsonData["msg"] == nil {
-		jsonData["msg"] = ""
+	if data != nil {
+		jsonData["data"] = data
 	}
-	if jsonData["code"] == nil {
-		jsonData["code"] = 0
-	}
+
 	if c.Sess != nil && c.Sess.TokenIsNew {
 		jsonData["tok"] = c.Sess.Token
 	}
@@ -78,9 +62,9 @@ func (c *Context) kvSucFai(status string, jsonData KV) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Abort系列函数都将终止当前 handlers 的执行
 // 自定义返回结果和状态
-func (c *Context) AbortAndRender(status int, msg string) {
+func (c *Context) AbortAndRender(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
-	c.JSON(status, msg)
+	c.JSON(resStatus, msg)
 }
 
 func (c *Context) AbortHandlers() {
@@ -88,9 +72,26 @@ func (c *Context) AbortHandlers() {
 }
 
 // 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortAndHijack(status int, msg string) {
+func (c *Context) AbortAndHijack(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
-	_, _ = c.ResWrap.SendHijack(status, msg)
+	_, _ = c.ResWrap.SendHijack(resStatus, msg)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// JSON serializes the given struct as JSON into the response body.
+// It also sets the Content-Type as "application/json".
+func (c *Context) JSON(resStatus int, obj any) {
+	c.Render(resStatus, render.JSON{Data: obj})
+}
+
+// String writes the given string into the response body.
+func (c *Context) String(resStatus int, format string, values ...any) {
+	c.Render(resStatus, render.String{Format: format, Data: values})
+}
+
+// File writes the specified file into the body stream in a efficient way.
+func (c *Context) File(filepath string) {
+	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -100,7 +101,7 @@ func (c *Context) AbortAndHijack(status int, msg string) {
 func (c *Context) Render(resStatus int, r render.Render) {
 	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 	if c.rendered {
-		logx.Warn("Double render, this render func canceled.")
+		logx.Warn("Double render, the call canceled.")
 		return
 	}
 	// Render之前加入对应的 render 数据
@@ -140,10 +141,7 @@ func (c *Context) Render(resStatus int, r render.Render) {
 	//c.aborted = true
 }
 
-/************************************/
-/******** RESPONSE RENDERING ********/
-/************************************/
-
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // bodyAllowedForStatus is a copy of http.bodyAllowedForStatus non-exported function.
 func bodyAllowedForStatus(status int) bool {
 	switch {
@@ -155,20 +153,4 @@ func bodyAllowedForStatus(status int) bool {
 		return false
 	}
 	return true
-}
-
-// JSON serializes the given struct as JSON into the response body.
-// It also sets the Content-Type as "application/json".
-func (c *Context) JSON(resStatus int, obj any) {
-	c.Render(resStatus, render.JSON{Data: obj})
-}
-
-// String writes the given string into the response body.
-func (c *Context) String(resStatus int, format string, values ...any) {
-	c.Render(resStatus, render.String{Format: format, Data: values})
-}
-
-// File writes the specified file into the body stream in a efficient way.
-func (c *Context) File(filepath string) {
-	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
 }

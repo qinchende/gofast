@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"reflect"
 	"strings"
@@ -106,7 +107,7 @@ func (msg *Error) SetMeta(data any) *Error {
 
 // JSON creates a properly formatted JSON
 func (msg *Error) JSON() any {
-	hash := KV{}
+	hash := cst.KV{}
 	if msg.Meta != nil {
 		value := reflect.ValueOf(msg.Meta)
 		switch value.Kind() {

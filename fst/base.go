@@ -4,7 +4,6 @@ package fst
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/cst"
 	"math"
 	"net/http"
 )
@@ -31,8 +30,8 @@ const (
 )
 
 var (
-	spf            = fmt.Sprintf
-	mimePlain      = []string{cst.MIMEPlain}
+	spf = fmt.Sprintf
+	//mimePlain      = []string{cst.MIMEPlain}
 	default404Body = []byte("404 (page not found)")
 	default405Body = []byte("405 (method not allowed)")
 )

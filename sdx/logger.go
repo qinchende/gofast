@@ -1,4 +1,4 @@
-package def
+package sdx
 
 import (
 	"github.com/qinchende/gofast/logx"

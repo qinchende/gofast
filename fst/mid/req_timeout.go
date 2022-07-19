@@ -28,9 +28,9 @@ func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
 // TODO：注意下面的注释
 // NOTE：这个只是简易的方案，存在不严谨的情况。比如返回结果render了一部分，结果G被Cancel掉了。上面的标准库处理了这个问题。
 // 方式一却自定义了 response write 加入了 输出缓存，返回结果全部好了之后才会一次性 render 给客户端。
-func Timeout(disable bool) fst.CtxHandler {
+func Timeout(useTimeout bool) fst.CtxHandler {
 	// Debug模式不设置超时
-	if disable {
+	if useTimeout == false {
 		return nil
 	}
 
