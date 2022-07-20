@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"errors"
 	"fmt"
 	"math"
 	"net/http"
@@ -35,3 +36,19 @@ var (
 	default404Body = []byte("404 (page not found)")
 	default405Body = []byte("405 (method not allowed)")
 )
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 主动抛异常
+func IfPanic(yn bool, text string) {
+	if yn {
+		panic(GFPanic(errors.New(text)))
+	}
+}
+
+func RaisePanic(errMsg string) {
+	panic(GFPanic(errors.New(errMsg)))
+}
+
+func RaisePanicErr(err error) {
+	panic(GFPanic(err))
+}

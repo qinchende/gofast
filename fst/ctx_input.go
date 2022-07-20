@@ -153,7 +153,7 @@ func (c *Context) PostFormArray(key string) []string {
 func (c *Context) ParseForm() {
 	if c.formCache == nil {
 		//c.formCache = make(url.Values)
-		if err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
+		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
 				logx.DebugPrint("error on parse multipart form array: %v", err)
 			}
@@ -203,7 +203,7 @@ func (c *Context) get(m map[string][]string, key string) (map[string]string, boo
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 	if c.ReqRaw.MultipartForm == nil {
-		if err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory); err != nil {
+		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory); err != nil {
 			return nil, err
 		}
 	}
@@ -217,7 +217,7 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 
 // MultipartForm is the parsed multipart form, including file uploads.
 func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.ReqRaw.ParseMultipartForm(c.gftApp.MaxMultipartMemory)
+	err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory)
 	return c.ReqRaw.MultipartForm, err
 }
 
@@ -243,7 +243,7 @@ func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
-	if c.gftApp.ForwardedByClientIP {
+	if c.myApp.ForwardedByClientIP {
 		clientIP := c.requestHeader("X-Forwarded-For")
 		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
 		if clientIP == "" {

@@ -4,6 +4,7 @@ package fst
 
 import (
 	"bytes"
+	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
 	"net/http"
 	"sync"
@@ -48,14 +49,14 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 	defer w.mu.Unlock()
 
 	if w.committed {
-		logx.Warnf("Response status %d committed, the status %d is useless.", w.status, newStatus)
+		logx.WarnF("Response status %d committed, the status %d is useless.", w.status, newStatus)
 		return
 	}
 
 	if w.status <= defaultStatus {
 		w.status = newStatus
 	} else {
-		logx.Warnf("Response status already %d, can't change to %d.", w.status, newStatus)
+		logx.WarnF("Response status already %d, can't change to %d.", w.status, newStatus)
 	}
 }
 
@@ -123,12 +124,12 @@ func (w *ResponseWrap) Send() (n int, err error) {
 
 // 这个主要用于严重错误的时候，特殊状态的返回
 // 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
-func (w *ResponseWrap) SendHijack(resStatus int, body string) (n int, err error) {
+func (w *ResponseWrap) SendHijack(resStatus int, r render.Render) (n int) {
 	w.mu.Lock()
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
 		w.mu.Unlock()
-		return 0, nil
+		return 0
 	}
 	w.committed = true
 	w.mu.Unlock()
@@ -136,11 +137,19 @@ func (w *ResponseWrap) SendHijack(resStatus int, body string) (n int, err error)
 	// 打劫成功，强制改写返回结果
 	w.status = resStatus
 	w.dataBuf.Reset()
-	if n, err = w.dataBuf.WriteString(body); err != nil {
-		return
+
+	var err error
+	// 返回结果先写入缓存
+	if err = r.Write(w); err != nil {
+		// TODO: 这个时候真的是芭比Q了
+		logx.ErrorStackF("SendHijack Write error: %s", err)
+		return 0
 	}
 
 	w.ResponseWriter.WriteHeader(w.status)
 	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
+	if err != nil {
+		logx.ErrorStackF("SendHijack ResponseWriter error: %s", err)
+	}
 	return
 }

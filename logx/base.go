@@ -42,6 +42,7 @@ const (
 	severeFilename = "severe.log"
 	slowFilename   = "slow.log"
 	statFilename   = "stat.log"
+	stackFilename  = "stack.log"
 
 	consoleMode = "console"
 	volumeMode  = "volume"
@@ -73,7 +74,7 @@ var (
 	severeLog WriterCloser
 	slowLog   WriterCloser
 	statLog   WriterCloser
-	//stackLog  io.Writer
+	stackLog  WriterCloser
 
 	once        sync.Once
 	initialized uint32
@@ -98,9 +99,9 @@ type (
 
 	Logger interface {
 		Error(...any)
-		Errorf(string, ...any)
+		ErrorF(string, ...any)
 		Info(...any)
-		Infof(string, ...any)
+		InfoF(string, ...any)
 		Slow(...any)
 		Slowf(string, ...any)
 		WithDuration(time.Duration) Logger

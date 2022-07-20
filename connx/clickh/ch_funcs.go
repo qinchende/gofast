@@ -1,6 +1,8 @@
 package clickh
 
-import "database/sql"
+import (
+	"database/sql"
+)
 
 func errPanic(err error) {
 	if err != nil {

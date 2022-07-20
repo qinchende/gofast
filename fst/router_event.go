@@ -5,7 +5,6 @@ package fst
 // Note：该设计给将来预留了足够的扩展空间
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
-	// EHandler   = "onHandler"
 	EPreBind   = "onPreBind" // 这个事件暂时不用，没有发现有大的必要
 	EBefore    = "onBefore"
 	EAfter     = "onAfter"
@@ -17,8 +16,6 @@ const (
 // 所有注册的 Context handlers 都要通过此函数来注册
 // 包括 RouterGroup 和 RouteItem
 func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []CtxHandler) (*routeEvents, uint16) {
-	// 是空的就啥也不做
-	// ifPanic(len(hds) <= 0, "there must be at least one handler")
 	if len(hds) == 0 || hds[0] == nil {
 		return re, 0
 	}
@@ -36,8 +33,6 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 		re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, hds)...)
 	case EBefore:
 		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(fstMem, hds)...)
-	//case EHandler:
-	//	re.eHds = append(re.eHds, addCtxHandlers(hds)...)
 	case EAfter:
 		re.eAfterHds = append(re.eAfterHds, addCtxHandlers(fstMem, hds)...)
 	case EPreSend:
@@ -55,17 +50,11 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 // RouterGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gp *RouterGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouterGroup {
-	_, ct := gp.regCtxHandler(gp.gftApp.fstMem, eType, hds)
+	_, ct := gp.regCtxHandler(gp.myApp.fstMem, eType, hds)
 	// 记录分组中一共加入的 处理 函数个数
 	gp.selfHdsLen += ct
 	return gp
 }
-
-//// TODO: 需要注册拦截器处理链
-//func (gp *RouterGroup) Use(f func()) *RouterGroup {
-//	//return gp.regGroupCtxHandler(EBefore, before)
-//	return nil
-//}
 
 func (gp *RouterGroup) Before(hds ...CtxHandler) *RouterGroup {
 	return gp.regGroupCtxHandler(EBefore, hds)
@@ -90,7 +79,7 @@ func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
 // RouteItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouteItem) regItemCtxHandler(eType string, hds []CtxHandler) *RouteItem {
-	ri.regCtxHandler(ri.group.gftApp.fstMem, eType, hds)
+	ri.regCtxHandler(ri.group.myApp.fstMem, eType, hds)
 	return ri
 }
 

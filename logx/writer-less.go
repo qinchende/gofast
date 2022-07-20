@@ -53,7 +53,7 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		le.lastTime.Set(now)
 		discarded := atomic.SwapUint32(&le.discarded, 0)
 		if discarded > 0 {
-			Errorf("Discarded %d error messages", discarded)
+			ErrorF("Discarded %d error messages", discarded)
 		}
 		execute()
 	}

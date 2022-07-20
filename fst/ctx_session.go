@@ -54,7 +54,7 @@ func (ss *CtxSession) Set(key string, val any) {
 func (ss *CtxSession) SetKV(kvs KV) {
 	ss.Saved = false
 	//if ss.Values == nil {
-	//	logx.Infof("%#v", ss)
+	//	logx.InfoF("%#v", ss)
 	//	return
 	//}
 	for k, v := range kvs {

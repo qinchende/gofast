@@ -68,12 +68,12 @@ func (s *sheddingStat) run() {
 			continue
 		}
 		cpu := sysx.CpuSmoothUsage
-		logx.Statf("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
+		logx.StatF("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
 
 		//if st.drop == 0 {
 		//	logx.Statf("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
 		//} else {
-		//	logx.Errorf("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
+		//	logx.ErrorF("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
 		//}
 	}
 }

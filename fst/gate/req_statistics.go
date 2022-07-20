@@ -121,7 +121,7 @@ func (rc *reqContainer) logPrint() {
 			aveTime = float32(route.sumTime/time.Millisecond) / float32(route.accepts)
 		}
 
-		logx.Statf("%s | suc: %d, drop: %d, qps: %.1f/s ave: %.1fms, max: %.1fms",
+		logx.StatF("%s | suc: %d, drop: %d, qps: %.1f/s ave: %.1fms, max: %.1fms",
 			rc.getPath(uint16(idx)), route.accepts, route.drops, qps, aveTime, float32(route.maxLoss/time.Millisecond))
 	}
 }

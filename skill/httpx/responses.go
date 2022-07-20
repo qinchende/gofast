@@ -54,9 +54,9 @@ func WriteJson(w http.ResponseWriter, code int, v any) {
 		// http.ErrHandlerTimeout has been handled by http.TimeoutHandler,
 		// so it's ignored here.
 		if err != http.ErrHandlerTimeout {
-			//logx.Errorf("write response failed, error: %s", err)
+			//logx.ErrorF("write response failed, error: %s", err)
 		}
 	} else if n < len(bs) {
-		//logx.Errorf("actual bytes: %d, written bytes: %d", len(bs), n)
+		//logx.ErrorF("actual bytes: %d, written bytes: %d", len(bs), n)
 	}
 }

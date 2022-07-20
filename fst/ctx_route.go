@@ -17,7 +17,7 @@ func (gft *GoFast) RouteLength() uint16 {
 
 func (c *Context) FullPath() string {
 	if c.match.ptrNode != nil {
-		return c.gftApp.allRouters[c.match.ptrNode.routerIdx].fullPath
+		return c.myApp.allRouters[c.match.ptrNode.routerIdx].fullPath
 	} else {
 		return ""
 	}
@@ -25,10 +25,10 @@ func (c *Context) FullPath() string {
 
 // 获取当前路由节点
 func (c *Context) CurrRoute() *RouteItem {
-	if c.RouteIdx <= 0 || c.RouteIdx >= uint16(len(c.gftApp.allRouters)) {
+	if c.RouteIdx <= 0 || c.RouteIdx >= uint16(len(c.myApp.allRouters)) {
 		return nil
 	}
-	return c.gftApp.allRouters[c.RouteIdx]
+	return c.myApp.allRouters[c.RouteIdx]
 }
 
 func (ri *RouteItem) FullPath() string {

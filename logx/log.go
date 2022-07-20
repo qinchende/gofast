@@ -66,6 +66,7 @@ func setupWithConsole(c *LogConfig) {
 		errorLog = newLogWriter(log.New(os.Stderr, "", flags))
 		severeLog = newLogWriter(log.New(os.Stderr, "", flags))
 		slowLog = newLogWriter(log.New(os.Stderr, "", flags))
+		stackLog = newLogWriter(log.New(os.Stderr, "", flags))
 		//stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)
 	})
 }
@@ -104,6 +105,7 @@ func setupWithFiles(c *LogConfig) error {
 		severeFilePath := path.Join(c.Path, prefix+severeFilename)
 		slowFilePath := path.Join(c.Path, prefix+slowFilename)
 		statFilePath := path.Join(c.Path, prefix+statFilename)
+		stackFilePath := path.Join(c.Path, prefix+stackFilename)
 
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
 		if accessLog, err = createOutput(accessFilePath); err != nil {
@@ -115,7 +117,7 @@ func setupWithFiles(c *LogConfig) error {
 			severeLog = accessLog
 			slowLog = accessLog
 			statLog = accessLog
-			//stackLog = infoLog
+			stackLog = accessLog
 		} else if c.FileNumber == fileTwo {
 			if errorLog, err = createOutput(errorFilePath); err != nil {
 				return
@@ -124,7 +126,7 @@ func setupWithFiles(c *LogConfig) error {
 			severeLog = errorLog
 			slowLog = errorLog
 			statLog = errorLog
-			//stackLog = errorLog
+			stackLog = errorLog
 		} else if c.FileNumber == fileThree {
 			if errorLog, err = createOutput(errorFilePath); err != nil {
 				return
@@ -135,7 +137,7 @@ func setupWithFiles(c *LogConfig) error {
 			warnLog = errorLog
 			severeLog = errorLog
 			slowLog = errorLog
-			//stackLog = errorLog
+			stackLog = errorLog
 		} else {
 			if warnLog, err = createOutput(warnFilePath); err != nil {
 				return
@@ -150,6 +152,9 @@ func setupWithFiles(c *LogConfig) error {
 				return
 			}
 			if statLog, err = createOutput(statFilePath); err != nil {
+				return
+			}
+			if stackLog, err = createOutput(stackFilePath); err != nil {
 				return
 			}
 			//stackLog = NewLessWriter(errorLog, options.logStackArchiveMills)

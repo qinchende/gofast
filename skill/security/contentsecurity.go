@@ -121,7 +121,7 @@ func VerifySignature(r *http.Request, securityHeader *ContentSecurityHeader, tol
 
 	passed := securityHeader.Signature == actualSignature
 	if !passed {
-		logx.Infof("signature different, expect: %s, actual: %s",
+		logx.InfoF("signature different, expect: %s, actual: %s",
 			securityHeader.Signature, actualSignature)
 	}
 

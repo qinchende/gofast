@@ -85,7 +85,7 @@ func (x *ecbDecrypter) CryptBlocks(dst, src []byte) {
 func EcbDecrypt(key, src []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		logx.Errorf("Decrypt key error: % x", key)
+		logx.ErrorF("Decrypt key error: % x", key)
 		return nil, err
 	}
 
@@ -121,7 +121,7 @@ func EcbDecryptBase64(key, src string) (string, error) {
 func EcbEncrypt(key, src []byte) ([]byte, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
-		logx.Errorf("Encrypt key error: % x", key)
+		logx.ErrorF("Encrypt key error: % x", key)
 		return nil, err
 	}
 

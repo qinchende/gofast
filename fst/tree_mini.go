@@ -154,7 +154,7 @@ func addCtxHandlers(fstMem *fstMemSpace, hds []CtxHandler) (idxes []uint16) {
 		idxes[i] = fstMem.allCtxHdsLen + i
 	}
 	fstMem.allCtxHdsLen += hLen
-	ifPanic(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
+	IfPanic(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
 	return
 }
 
@@ -248,7 +248,7 @@ func allocateMemSpace(gft *GoFast) {
 // 返回所有节点新增加处理函数个数的和
 func gpCombineHandlers(gp *RouterGroup) uint16 {
 	// 所有分组个数
-	gp.gftApp.fstMem.routeGroupNum++
+	gp.myApp.fstMem.routeGroupNum++
 	if gp.children == nil {
 		return gp.parentHdsLen
 	}
@@ -296,7 +296,7 @@ func gpRebuildHandlers(gp *RouterGroup) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 为每个最后一级的分组，将 routeEvent 变成内存占用更小的 handlersNode
 func (gp *RouterGroup) rebuildHandlers() {
-	fstMem := gp.gftApp.fstMem
+	fstMem := gp.myApp.fstMem
 	setNewNode(fstMem, &gp.combEvents)
 
 	gp.hdsIdx = int16(fstMem.hdsNodesLen)
@@ -305,7 +305,7 @@ func (gp *RouterGroup) rebuildHandlers() {
 
 // 为每个路由节点，将 routeEvent 变成内存占用更小的 handlersNode
 func (ri *RouteItem) rebuildHandlers() (idx int16) {
-	fstMem := ri.group.gftApp.fstMem
+	fstMem := ri.group.myApp.fstMem
 	setNewNode(fstMem, &ri.routeEvents)
 	idx = int16(fstMem.hdsNodesLen)
 	fstMem.hdsNodesLen++

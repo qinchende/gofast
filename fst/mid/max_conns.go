@@ -22,12 +22,12 @@ func FitMaxConnections(limit int32) fst.FitFunc {
 			if latch.TryBorrow() {
 				defer func() {
 					if err := latch.Return(); err != nil {
-						logx.Errorf("Error: MaxConnections return err, info -> %s", err)
+						logx.ErrorF("Error: MaxConnections return err, info -> %s", err)
 					}
 				}()
 				next(w, r)
 			} else {
-				logx.Errorf("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
+				logx.ErrorF("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
 				// 返回客户端服务器错误
 				w.WriteHeader(http.StatusServiceUnavailable)
 			}

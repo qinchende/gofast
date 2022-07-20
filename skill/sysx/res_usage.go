@@ -49,7 +49,7 @@ func StartSysCheck(print bool) {
 	//
 	//decimalPlace2(totalPercent)
 	//decimalPlace2(perPercents)
-	//logx.Infof("CPU-Usage -> total: %v, per: %v", totalPercent, perPercents)
+	//logx.InfoF("CPU-Usage -> total: %v, per: %v", totalPercent, perPercents)
 	//// ==++ NED
 
 	go func() {
@@ -89,7 +89,7 @@ func printUsage(cpuAvaUsage float64) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	logx.Statf("CPU: [%.2f, %.2f], Mem: [%.1fMB, %.1fMB, %.1fMB], Gor: %d, GC: %d",
+	logx.StatF("CPU: [%.2f, %.2f], Mem: [%.1fMB, %.1fMB, %.1fMB], Gor: %d, GC: %d",
 		CpuSmoothUsage, cpuAvaUsage, bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys), runtime.NumGoroutine(), m.NumGC)
 }
 

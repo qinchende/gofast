@@ -51,7 +51,7 @@ func (c *Context) MustBindWith(dst any, b bind.Binding) error {
 ///******* binding and validate *******/
 ///************************************/
 //
-//// Bind checks the Content-Type to select a binding gftApp automatically,
+//// Bind checks the Content-Type to select a binding myApp automatically,
 //// Depending the "Content-Type" header different bindings are used:
 ////     "application/json" --> JSON binding
 ////     "application/xml"  --> XML binding
@@ -89,7 +89,7 @@ func (c *Context) MustBindWith(dst any, b bind.Binding) error {
 //	return nil
 //}
 
-//// ShouldBind checks the Content-Type to select a binding gftApp automatically,
+//// ShouldBind checks the Content-Type to select a binding myApp automatically,
 //// Depending the "Content-Type" header different bindings are used:
 ////     "application/json" --> JSON binding
 ////     "application/xml"  --> XML binding
@@ -127,7 +127,7 @@ func (c *Context) MustBindWith(dst any, b bind.Binding) error {
 //	return c.ShouldBindWith(dst, binding.Header)
 //}
 //
-//// ShouldBindUri binds the passed struct pointer using the specified binding gftApp.
+//// ShouldBindUri binds the passed struct pointer using the specified binding myApp.
 //func (c *Context) ShouldBindUri(dst interface{}) error {
 //	m := make(map[string][]string)
 //	for _, v := range *c.match.params {

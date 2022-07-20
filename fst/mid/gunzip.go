@@ -14,7 +14,7 @@ func Gunzip(c *fst.Context) {
 	if strings.Contains(c.ReqRaw.Header.Get(httpx.ContentEncoding), "gzip") {
 		reader, err := gzip.NewReader(c.ReqRaw.Body)
 		if err != nil {
-			c.AbortAndRender(http.StatusBadRequest, "Can't unzip body!!!")
+			c.AbortJson(http.StatusBadRequest, "Can't unzip body!!!")
 			return
 		}
 		c.ReqRaw.Body = reader

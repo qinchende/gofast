@@ -14,11 +14,11 @@ import (
 // It also lazy initializes  c.Keys if it was not used previously.
 func (c *Context) Set(key string, value any) {
 	c.mu.Lock()
-	if c.Keys == nil {
-		c.Keys = make(map[string]any)
+	if c.Pms == nil {
+		c.Pms = make(map[string]any)
 	}
 
-	c.Keys[key] = value
+	c.Pms[key] = value
 	c.mu.Unlock()
 }
 
@@ -26,7 +26,7 @@ func (c *Context) Set(key string, value any) {
 // If the value does not exists it returns (nil, false)
 func (c *Context) Get(key string) (value any, exists bool) {
 	c.mu.RLock()
-	value, exists = c.Keys[key]
+	value, exists = c.Pms[key]
 	c.mu.RUnlock()
 	return
 }
@@ -36,7 +36,8 @@ func (c *Context) MustGet(key string) any {
 	if value, exists := c.Get(key); exists {
 		return value
 	}
-	panic("Key \"" + key + "\" does not exist")
+	RaisePanic("Key \"" + key + "\" does not exist")
+	return nil
 }
 
 // GetString returns the value associated with the key as a string.
