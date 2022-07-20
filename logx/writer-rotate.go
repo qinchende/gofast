@@ -94,7 +94,7 @@ func (r *DailyRotateRule) OutdatedFiles() []string {
 
 	files, err := filepath.Glob(pattern)
 	if err != nil {
-		Errorf("failed to delete outdated log files, error: %s", err)
+		ErrorF("failed to delete outdated log files, error: %s", err)
 		return nil
 	}
 
@@ -223,7 +223,7 @@ func (l *RotateLogger) maybeDeleteOutdatedFiles() {
 	files := l.rule.OutdatedFiles()
 	for _, file := range files {
 		if err := os.Remove(file); err != nil {
-			Errorf("failed to remove outdated file: %s", file)
+			ErrorF("failed to remove outdated file: %s", file)
 		}
 	}
 }
@@ -296,11 +296,11 @@ func (l *RotateLogger) write(v []byte) {
 
 func compressLogFile(file string) {
 	start := timex.Now()
-	Infof("compressing log file: %s", file)
+	InfoF("compressing log file: %s", file)
 	if err := gzipFile(file); err != nil {
-		Errorf("compress error: %s", err)
+		ErrorF("compress error: %s", err)
 	} else {
-		Infof("compressed log file: %s, took %s", file, timex.Since(start))
+		InfoF("compressed log file: %s, took %s", file, timex.Since(start))
 	}
 }
 

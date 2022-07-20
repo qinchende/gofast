@@ -12,6 +12,11 @@ import (
 // GoFast JSON render
 // JSON是GoFast默认的返回格式，一等公民。所以默认函数命名没有给出JSON字样
 
+const (
+	statusSuc string = "suc"
+	statusFai string = "fai"
+)
+
 func (c *Context) FaiErr(err error) {
 	c.Fai(0, err.Error(), nil)
 }
@@ -25,7 +30,7 @@ func (c *Context) FaiKV(data KV) {
 }
 
 func (c *Context) Fai(code int32, msg string, data any) {
-	c.kvSucFai("fai", code, msg, data)
+	c.kvSucFai(statusFai, code, msg, data)
 }
 
 // +++++
@@ -38,7 +43,7 @@ func (c *Context) SucKV(data KV) {
 }
 
 func (c *Context) Suc(code int32, msg string, data any) {
-	c.kvSucFai("suc", code, msg, data)
+	c.kvSucFai(statusSuc, code, msg, data)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -56,31 +61,37 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 		jsonData["tok"] = c.Sess.Token
 	}
 
-	c.JSON(http.StatusOK, jsonData)
+	c.Json(http.StatusOK, jsonData)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Abort系列函数都将终止当前 handlers 的执行
-// 自定义返回结果和状态
-func (c *Context) AbortAndRender(resStatus int, msg string) {
-	c.execIdx = maxRouteHandlers
-	c.JSON(resStatus, msg)
-}
 
 func (c *Context) AbortHandlers() {
 	c.execIdx = maxRouteHandlers
 }
 
-// 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortAndHijack(resStatus int, msg string) {
+// 自定义返回结果和状态
+func (c *Context) AbortJson(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
-	_, _ = c.ResWrap.SendHijack(resStatus, msg)
+	jsonData := KV{
+		"status": statusFai,
+		"code":   -1,
+		"msg":    msg,
+	}
+	_ = c.ResWrap.SendHijack(resStatus, render.JSON{Data: jsonData})
+}
+
+// 强行终止处理，返回指定结果，不执行Render
+func (c *Context) AbortString(resStatus int, msg string) {
+	c.execIdx = maxRouteHandlers
+	_ = c.ResWrap.SendHijack(resStatus, render.String{Format: msg})
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // JSON serializes the given struct as JSON into the response body.
 // It also sets the Content-Type as "application/json".
-func (c *Context) JSON(resStatus int, obj any) {
+func (c *Context) Json(resStatus int, obj any) {
 	c.Render(resStatus, render.JSON{Data: obj})
 }
 
@@ -138,7 +149,6 @@ func (c *Context) Render(resStatus int, r render.Render) {
 	// 到这里其实也意味着调用链到这里就中断了。不需要再执行其它处理函数。
 	// 调用链是：[before(s)->handler(s)->after(s)]其中任何地方执行了Render，后面的函数都将不再调用。
 	// 但是 preSend 和 afterSend 函数将继续执行。
-	//c.aborted = true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

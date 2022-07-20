@@ -15,10 +15,10 @@ func TestExclusiveCallDo(t *testing.T) {
 		return "bar", nil
 	})
 	if got, want := fmt.Sprintf("%v (%T)", v, v), "bar (string)"; got != want {
-		t.Errorf("Do = %v; want %v", got, want)
+		t.ErrorF("Do = %v; want %v", got, want)
 	}
 	if err != nil {
-		t.Errorf("Do error = %v", err)
+		t.ErrorF("Do error = %v", err)
 	}
 }
 
@@ -29,10 +29,10 @@ func TestExclusiveCallDoErr(t *testing.T) {
 		return nil, someErr
 	})
 	if err != someErr {
-		t.Errorf("Do error = %v; want someErr", err)
+		t.ErrorF("Do error = %v; want someErr", err)
 	}
 	if v != nil {
-		t.Errorf("unexpected non-nil value %#v", v)
+		t.ErrorF("unexpected non-nil value %#v", v)
 	}
 }
 
@@ -52,10 +52,10 @@ func TestExclusiveCallDoDupSuppress(t *testing.T) {
 		go func() {
 			v, err := g.Do("key", fn)
 			if err != nil {
-				t.Errorf("Do error: %v", err)
+				t.ErrorF("Do error: %v", err)
 			}
 			if v.(string) != "bar" {
-				t.Errorf("got %q; want %q", v, "bar")
+				t.ErrorF("got %q; want %q", v, "bar")
 			}
 			wg.Done()
 		}()
@@ -64,7 +64,7 @@ func TestExclusiveCallDoDupSuppress(t *testing.T) {
 	c <- "bar"
 	wg.Wait()
 	if got := atomic.LoadInt32(&calls); got != 1 {
-		t.Errorf("number of calls = %d; want 1", got)
+		t.ErrorF("number of calls = %d; want 1", got)
 	}
 }
 
@@ -85,7 +85,7 @@ func TestExclusiveCallDoDiffDupSuppress(t *testing.T) {
 				return nil, nil
 			})
 			if err != nil {
-				t.Errorf("Do error: %v", err)
+				t.ErrorF("Do error: %v", err)
 			}
 			wg.Done()
 		}(key)
@@ -97,7 +97,7 @@ func TestExclusiveCallDoDiffDupSuppress(t *testing.T) {
 
 	if got := atomic.LoadInt32(&calls); got != 5 {
 		// five letters
-		t.Errorf("number of calls = %d; want 5", got)
+		t.ErrorF("number of calls = %d; want 5", got)
 	}
 }
 
@@ -118,13 +118,13 @@ func TestExclusiveCallDoExDupSuppress(t *testing.T) {
 		go func() {
 			v, fresh, err := g.DoExt("key", fn)
 			if err != nil {
-				t.Errorf("Do error: %v", err)
+				t.ErrorF("Do error: %v", err)
 			}
 			if fresh {
 				atomic.AddInt32(&freshes, 1)
 			}
 			if v.(string) != "bar" {
-				t.Errorf("got %q; want %q", v, "bar")
+				t.ErrorF("got %q; want %q", v, "bar")
 			}
 			wg.Done()
 		}()
@@ -133,9 +133,9 @@ func TestExclusiveCallDoExDupSuppress(t *testing.T) {
 	c <- "bar"
 	wg.Wait()
 	if got := atomic.LoadInt32(&calls); got != 1 {
-		t.Errorf("number of calls = %d; want 1", got)
+		t.ErrorF("number of calls = %d; want 1", got)
 	}
 	if got := atomic.LoadInt32(&freshes); got != 1 {
-		t.Errorf("freshes = %d; want 1", got)
+		t.ErrorF("freshes = %d; want 1", got)
 	}
 }

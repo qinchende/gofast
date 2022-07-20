@@ -14,40 +14,27 @@ import (
 // Context is the most important part of GoFast. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
-	EnterTime time.Duration // 请求起始时间
-	gftApp    *GoFast       // 用于上下文
+	myApp *GoFast // 用于上下文
+
 	Errors    errMessages   // []*Error
+	EnterTime time.Duration // 请求起始时间
+	ResWrap   *ResponseWrap
+	ReqRaw    *http.Request // request
+	Sess      *CtxSession   // Session数据，数据存储部分可以自定义
+	Params    *Params       // : 或 * 对应的参数
+	Pms       cst.KV        // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	//PmsCarry  cst.KV        // 后台上下文传递的数据
 
-	ResWrap *ResponseWrap
-	ReqRaw  *http.Request // request
+	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
+	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
+	mu         sync.RWMutex // This mutex protect Keys map
 
-	Params    *Params      // : 或 * 对应的参数
-	Pms       cst.KV       // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	match     matchResult  // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	handlers  handlersNode // 匹配到的执行链标记
-	RouteIdx  uint16       // router的标识
+	match     matchResult  // 路由匹配结果，[Params] ? 一般用于确定相应资源
 	execIdx   int8         // 执行链的索引 不能大于 127 个
 	rendered  bool         // 是否已经执行了Render
-	IsTimeout bool         // 是否变成超时请求
-
-	queryCache url.Values // param query result from c.ReqRaw.URL.Query()
-	formCache  url.Values // the parsed form data from POST, PATCH, or PUT body parameters.
-
-	// Session数据，数据存储部分可以自定义
-	Sess *CtxSession
-
-	// This mutex protect Keys map
-	mu sync.RWMutex
-
-	// -----------------------------Context对象占用内存越少越好，以下待定
-	// Accepted defines a list of manually accepted formats for content negotiation.
-	Accepted []string
-	// SameSite allows a server to define a cookie attribute making it impossible for
-	// the browser to send this cookie along with cross-site requests.
-	sameSite http.SameSite
-	// Keys is a key/value pair exclusively for the context of each request.
-	// 上下文传值
-	Keys map[string]any
+	IsTimeout bool         // 请求是否超时了
+	RouteIdx  uint16       // router的唯一标识ID，方便区分不同的router
 }
 
 /************************************/
@@ -55,9 +42,16 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Keys = nil
+	c.Errors = nil
+	//c.EnterTime = timex.Now()
+	//c.ResWrap = nil
+	//c.ReqRaw = nil
 	c.Sess = nil
-	c.Accepted = nil
+	c.Params = c.match.params
+	c.Pms = nil
+	//c.PmsCarry = nil
+	c.RouteIdx = 0
+	c.IsTimeout = false
 
 	// add by sdx 2021.01.06
 	c.match.ptrNode = nil
@@ -66,39 +60,11 @@ func (c *Context) reset() {
 	}
 	*c.match.params = (*c.match.params)[0:0]
 	c.match.rts = false
-	c.match.allowRTS = c.gftApp.RedirectTrailingSlash
-	c.Params = c.match.params
+	c.match.allowRTS = c.myApp.RedirectTrailingSlash
+	//c.handlers = nil
 	c.execIdx = math.MaxInt8
-	c.RouteIdx = 0
-
-	c.Pms = nil
+	c.rendered = false
 	c.queryCache = nil
 	c.formCache = nil
-	//c.aborted = false
-	c.rendered = false
-	c.IsTimeout = false
+	//c.mu = nil
 }
-
-//// 如果在当前请求上下文中需要新建goroutine，那么新的 goroutine 中必须要用 copy 后的 Context
-//// Copy returns a copy of the current context that can be safely used outside the request's scope.
-//// This has to be used when the context has to be passed to a goroutine.
-//func (c *Context) Copy() *Context {
-//	cp := Context{
-//		GFResponse: c.GFResponse,
-//		ReqRaw:     c.ReqRaw,
-//		match:   c.match,
-//		Pms:        c.Pms,
-//		Sess:       c.Sess,
-//		aborted:    c.aborted,
-//	}
-//	cp.ResWrap.ResponseWriter = nil
-//
-//	cp.Keys = map[string]interface{}{}
-//	for k, v := range c.Keys {
-//		cp.Keys[k] = v
-//	}
-//	paramCopy := make([]Param, len(cp.Params))
-//	copy(paramCopy, cp.Params)
-//	cp.Params = paramCopy
-//	return &cp
-//}

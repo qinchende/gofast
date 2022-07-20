@@ -19,7 +19,7 @@ type routeEvents struct {
 type RouterGroup struct {
 	routeEvents              // 直接作用于本节点的事件可能为空
 	combEvents   routeEvents // 合并父节点的分组事件，routeEvents可能为空，但是combEvents几乎不会为空
-	gftApp       *GoFast
+	myApp        *GoFast
 	prefix       string
 	children     []*RouterGroup
 	hdsIdx       int16  // 记录当前分组 对应新事件数组中的起始位置索引
@@ -39,6 +39,8 @@ type RouteItem struct {
 // 这里抽象出N种事件类型，应该够用了，这样每个路由节点占用3*N字节空间，64位机器1字长是8字节
 // RouterGroup 和 RouteItem 都用这一组数据结构记录事件处理函数
 type handlersNode struct {
+	hdsIdxChain []uint16 // 执行链的索引数组
+
 	validIdx     uint16
 	beforeIdx    uint16
 	hdsIdx       uint16
@@ -52,8 +54,6 @@ type handlersNode struct {
 	hdsLen       uint8
 	preSendLen   uint8
 	afterSendLen uint8
-
-	hdsIdxChain []uint16 // 执行链的索引数组
 }
 
 //// ++++++++++++++++++++++++++++++++++++++++++++++

@@ -34,9 +34,9 @@ func (conn *MysqlORM) ExecCtx(ctx context.Context, sql string, args ...any) msql
 	}
 	dur := timex.Since(startTime)
 	if dur > slowThreshold {
-		logx.Slowf("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, sql)
+		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, sql)
 		//} else {
-		//	logx.Infof("sql exec: %s", sql)
+		//	logx.InfoF("sql exec: %s", sql)
 	}
 	errPanic(err)
 	return result
@@ -59,9 +59,9 @@ func (conn *MysqlORM) QuerySqlCtx(ctx context.Context, sql string, args ...any) 
 	}
 	dur := timex.Since(startTime)
 	if dur > slowThreshold {
-		logx.Slowf("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, sql)
+		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, sql)
 		//} else {
-		//	logx.Infof("sql query: %s", sql)
+		//	logx.InfoF("sql query: %s", sql)
 	}
 	errPanic(err)
 	return rows
@@ -107,6 +107,6 @@ func (conn *MysqlORM) TransEnd() {
 		err = conn.Commit()
 	}
 	if err != nil {
-		logx.Errorf("Terrible mistake. trans end error: %s", err)
+		logx.ErrorF("Terrible mistake. trans end error: %s", err)
 	}
 }

@@ -18,7 +18,7 @@ func FitMaxContentLength(limit int64) fst.FitFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// request body length
 			if r.ContentLength > limit {
-				logx.Errorf("Request body limit is %d, but got %d, rejected with code %d", limit,
+				logx.ErrorF("Request body limit is %d, but got %d, rejected with code %d", limit,
 					r.ContentLength, http.StatusRequestEntityTooLarge)
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 			} else {
@@ -37,6 +37,6 @@ func MaxContentLength(c *fst.Context) {
 
 	// request body length
 	if c.ReqRaw.ContentLength > rt.MaxLen {
-		c.AbortAndRender(http.StatusRequestEntityTooLarge, fmt.Sprintf("Request body large then %d", rt.MaxLen))
+		c.AbortJson(http.StatusRequestEntityTooLarge, fmt.Sprintf("Request body large then %d", rt.MaxLen))
 	}
 }

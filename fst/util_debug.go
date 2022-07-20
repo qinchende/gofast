@@ -13,7 +13,7 @@ func debugPrintRoute(ri *RouteItem) {
 
 	nuHandlers := len(ri.eHds)
 	lastHdsIdx := ri.eHds[nuHandlers-1]
-	fun := ri.group.gftApp.fstMem.allCtxHandlers[lastHdsIdx]
+	fun := ri.group.myApp.fstMem.allCtxHandlers[lastHdsIdx]
 
 	logx.DebugPrint("%-6s %-25s --> %s (%d hds)\n", ri.method, ri.fullPath, lang.NameOfFunc(fun), nuHandlers)
 }

@@ -23,7 +23,7 @@ func (gft *GoFast) buildAllRouters() {
 
 	// 设置 treeAll
 	lenTreeOthers := len(gft.treeOthers)
-	ifPanic(lenTreeOthers > 7, "More than seven methods.")
+	IfPanic(lenTreeOthers > 7, "More than seven methods.")
 	gft.treeAll = gft.treeOthers[:lenTreeOthers:9]
 	gft.treeAll = append(gft.treeAll, gft.treeGet)
 	gft.treeAll = append(gft.treeAll, gft.treePost)

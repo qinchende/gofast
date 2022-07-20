@@ -13,7 +13,7 @@ func (gft *GoFast) UseGlobal(inject injectFunc) *GoFast {
 func (gft *GoFast) UseGlobalFit(hds FitFunc) *GoFast {
 	if hds != nil {
 		gft.fitHandlers = append(gft.fitHandlers, hds)
-		ifPanic(uint8(len(gft.fitHandlers)) >= maxFits, "Fit handlers more the 255 error.")
+		IfPanic(uint8(len(gft.fitHandlers)) >= maxFits, "Fit handlers more the 255 error.")
 	}
 	return gft
 }

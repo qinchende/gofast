@@ -28,8 +28,8 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 			kp.CounterAddDrop(c.RouteIdx)
 			kp.SheddingStat.Drop()
 
-			logx.Errorf("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
-			c.AbortAndHijack(http.StatusServiceUnavailable, "LoadShedding!!!")
+			logx.ErrorF("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
+			c.AbortString(http.StatusServiceUnavailable, "LoadShedding!!!")
 			return
 		}
 
@@ -85,7 +85,7 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 //			if err != nil {
 //				metrics.AddDrop()
 //				sheddingStat.IncrementDrop()
-//				logx.Errorf("[http] dropped, %s - %s - %s",
+//				logx.ErrorF("[http] dropped, %s - %s - %s",
 //					r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
 //				w.WriteHeader(http.StatusServiceUnavailable)
 //				return

@@ -3,28 +3,11 @@
 package fst
 
 import (
-	"errors"
 	"net/http"
 	"os"
 	"path"
 	"strings"
 )
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 主动抛异常
-func ifPanic(yn bool, text string) {
-	if yn {
-		RaisePanic(text)
-	}
-}
-
-func RaisePanic(errMsg string) {
-	panic(GFPanic(errors.New(errMsg)))
-}
-
-func RaisePanicErr(err error) {
-	panic(GFPanic(err))
-}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type onlyFilesFS struct {

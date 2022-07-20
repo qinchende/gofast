@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
@@ -88,7 +89,7 @@ func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []stri
 	for i := 0; i < tgLen; i++ {
 		idx, ok := clsKV[columns[i]]
 		if !ok {
-			panic(fmt.Errorf("field %s not exist", columns[i]))
+			fst.RaisePanicErr(fmt.Errorf("field %s not exist", columns[i]))
 		}
 
 		// 更新字符串

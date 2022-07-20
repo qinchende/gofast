@@ -295,7 +295,7 @@ func (cs *cacheStat) statLoop() {
 			continue
 		}
 		percent := 100 * float32(hit) / float32(total)
-		logx.Statf("cache(%s) - qpm: %d, hit_ratio: %.1f%%, elements: %d, hit: %d, miss: %d",
+		logx.StatF("cache(%s) - qpm: %d, hit_ratio: %.1f%%, elements: %d, hit: %d, miss: %d",
 			cs.name, total, percent, cs.sizeCallback(), hit, miss)
 	}
 }

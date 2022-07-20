@@ -14,7 +14,7 @@ func (gft *GoFast) reg404Handler(hds []CtxHandler) {
 	if hds == nil {
 		return
 	}
-	ifPanic(len(gft.allRouters[1].eHds) > 0, "重复，你可能已经设置了NoRoute处理函数")
+	IfPanic(len(gft.allRouters[1].eHds) > 0, "重复，你可能已经设置了NoRoute处理函数")
 	if hds != nil {
 		gft.allRouters[1].eHds = addCtxHandlers(gft.fstMem, hds)
 	}
@@ -25,7 +25,7 @@ func (gft *GoFast) reg405Handler(hds []CtxHandler) {
 	if hds == nil {
 		return
 	}
-	ifPanic(len(gft.allRouters[2].eHds) > 0, "重复，你可能已经设置了NoMethod处理函数")
+	IfPanic(len(gft.allRouters[2].eHds) > 0, "重复，你可能已经设置了NoMethod处理函数")
 	if hds != nil {
 		gft.allRouters[2].eHds = addCtxHandlers(gft.fstMem, hds)
 	}
@@ -34,12 +34,12 @@ func (gft *GoFast) reg405Handler(hds []CtxHandler) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 router handlers 都要通过此函数来注册
 func (gp *RouterGroup) register(httpMethod, relPath string, hds []CtxHandler) *RouteItem {
-	ifPanic(len(hds) <= 0, "there must be at least one handler")
+	IfPanic(len(hds) <= 0, "there must be at least one handler")
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
-	ifPanic(absPath[0] != '/', "Path must begin with '/'")
-	ifPanic(len(absPath) > math.MaxUint8, "The path is more than 255 chars")
-	ifPanic(len(httpMethod) == 0, "HTTP method can not be empty")
+	IfPanic(absPath[0] != '/', "Path must begin with '/'")
+	IfPanic(len(absPath) > math.MaxUint8, "The path is more than 255 chars")
+	IfPanic(len(httpMethod) == 0, "HTTP method can not be empty")
 
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouteItem{
@@ -48,12 +48,12 @@ func (gp *RouterGroup) register(httpMethod, relPath string, hds []CtxHandler) *R
 		group:     gp,
 		routerIdx: 0,
 	}
-	gftApp := gp.gftApp
-	ri.eHds = addCtxHandlers(gftApp.fstMem, hds)
+	myApp := gp.myApp
+	ri.eHds = addCtxHandlers(myApp.fstMem, hds)
 	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再构造路由前缀树
-	ri.routerIdx = uint16(len(gftApp.allRouters))
-	gftApp.allRouters = append(gftApp.allRouters, ri)
-	ifPanic(len(gftApp.allRouters) > math.MaxInt16, "Too many routers more than MaxInt16.")
+	ri.routerIdx = uint16(len(myApp.allRouters))
+	myApp.allRouters = append(myApp.allRouters, ri)
+	IfPanic(len(myApp.allRouters) > math.MaxInt16, "Too many routers more than MaxInt16.")
 	return ri
 }
 

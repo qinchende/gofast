@@ -92,7 +92,7 @@ func Print(v ...any) {
 }
 
 // 直接打印所给的数据
-func Printf(format string, v ...any) {
+func PrintF(format string, v ...any) {
 	outputString(accessLog, fmt.Sprintf(format, v...))
 }
 
@@ -102,15 +102,15 @@ func Error(v ...any) {
 	ErrorCaller(1, v...)
 }
 
-func Errorf(format string, v ...any) {
-	ErrorCallerf(1, format, v...)
+func ErrorF(format string, v ...any) {
+	ErrorCallerF(1, format, v...)
 }
 
 func ErrorCaller(callDepth int, v ...any) {
 	errorSync(fmt.Sprint(v...), callDepth+callerInnerDepth)
 }
 
-func ErrorCallerf(callDepth int, format string, v ...any) {
+func ErrorCallerF(callDepth int, format string, v ...any) {
 	errorSync(fmt.Sprintf(format, v...), callDepth+callerInnerDepth)
 }
 
@@ -119,7 +119,7 @@ func ErrorStack(v ...any) {
 	stackSync(fmt.Sprint(v...))
 }
 
-func ErrorStackf(format string, v ...any) {
+func ErrorStackF(format string, v ...any) {
 	// there is newline in stack string
 	stackSync(fmt.Sprintf(format, v...))
 }
@@ -128,7 +128,7 @@ func Warn(v ...any) {
 	warnSync(fmt.Sprint(v...))
 }
 
-func Warnf(format string, v ...any) {
+func WarnF(format string, v ...any) {
 	warnSync(fmt.Sprintf(format, v...))
 }
 
@@ -140,7 +140,7 @@ func InfoSkipLine(v ...any) {
 	infoSync(fmt.Sprint(v...), true)
 }
 
-func Infof(format string, v ...any) {
+func InfoF(format string, v ...any) {
 	infoSync(fmt.Sprintf(format, v...), false)
 }
 
@@ -148,7 +148,7 @@ func Severe(v ...any) {
 	severeSync(fmt.Sprint(v...))
 }
 
-func Severef(format string, v ...any) {
+func SevereF(format string, v ...any) {
 	severeSync(fmt.Sprintf(format, v...))
 }
 
@@ -156,7 +156,7 @@ func Slow(v ...any) {
 	slowSync(fmt.Sprint(v...))
 }
 
-func Slowf(format string, v ...any) {
+func SlowF(format string, v ...any) {
 	slowSync(fmt.Sprintf(format, v...))
 }
 
@@ -164,7 +164,7 @@ func Stat(v ...any) {
 	statSync(fmt.Sprint(v...))
 }
 
-func Statf(format string, v ...any) {
+func StatF(format string, v ...any) {
 	statSync(fmt.Sprintf(format, v...))
 }
 
@@ -243,8 +243,7 @@ func slowSync(msg string) {
 
 func stackSync(msg string) {
 	if shouldLog(ErrorLevel) {
-		//output(stackLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
-		output(errorLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), false)
+		output(stackLog, levelError, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), false)
 	}
 }
 

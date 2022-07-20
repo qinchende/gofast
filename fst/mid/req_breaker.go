@@ -25,8 +25,8 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		if err != nil {
 			kp.CounterAddDrop(c.RouteIdx)
 
-			logx.Errorf("[http] break, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
-			c.AbortAndHijack(http.StatusServiceUnavailable, "Break!!!")
+			logx.ErrorF("[http] break, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
+			c.AbortString(http.StatusServiceUnavailable, "Break!!!")
 			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
 			return
 		}
@@ -57,7 +57,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 //			promise, err := brk.Allow()
 //			if err != nil && metrics != nil {
 //				metrics.AddDrop()
-//				logx.Errorf("[http] dropped, %s - %s - %s",
+//				logx.ErrorF("[http] dropped, %s - %s - %s",
 //					r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
 //				w.WriteHeader(http.StatusServiceUnavailable)
 //				return

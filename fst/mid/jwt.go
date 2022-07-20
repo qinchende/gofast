@@ -104,7 +104,7 @@ func JwtAuthHandler(secret string) fst.CtxHandler {
 func detailAuthLog(r *http.Request, reason string) {
 	// discard dump error, only for debug purpose
 	details, _ := httputil.DumpRequest(r, true)
-	logx.Errorf("authorize failed: %s\n=> %+v", reason, string(details))
+	logx.ErrorF("authorize failed: %s\n=> %+v", reason, string(details))
 }
 
 //func unauthorized(w *fst.GFResponse, r *http.Request, err error) {

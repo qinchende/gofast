@@ -6,7 +6,7 @@ package fst
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers() {
 	c.RouteIdx = c.match.ptrNode.routerIdx
-	c.handlers = c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+	c.handlers = c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
 	c.execIdx = -1
 	c.Next()
 }
@@ -15,7 +15,7 @@ func (c *Context) execHandlers() {
 func (c *Context) Next() {
 	c.execIdx++
 	for c.execIdx < int8(len(c.handlers.hdsIdxChain)) {
-		c.gftApp.fstMem.tidyHandlers[c.handlers.hdsIdxChain[c.execIdx]](c)
+		c.myApp.fstMem.tidyHandlers[c.handlers.hdsIdxChain[c.execIdx]](c)
 		// 可能被设置成了 abort ，这样后面的 handlers 不用再调用了
 		if c.execIdx == maxRouteHandlers {
 			break
@@ -30,15 +30,15 @@ func (c *Context) execPreSendHandlers() {
 	if c.match.ptrNode == nil {
 		return
 	}
-	it := c.handlers // c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-	gp := c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsGroupIdx]
+	it := c.handlers // c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+	gp := c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsGroupIdx]
 
 	// 5.preSend
 	for it.preSendLen > 0 {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.tidyHandlers[it.preSendIdx](c)
+		c.myApp.fstMem.tidyHandlers[it.preSendIdx](c)
 		it.preSendLen--
 		it.preSendIdx++
 	}
@@ -46,7 +46,7 @@ func (c *Context) execPreSendHandlers() {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.tidyHandlers[gp.preSendIdx](c)
+		c.myApp.fstMem.tidyHandlers[gp.preSendIdx](c)
 		gp.preSendLen--
 		gp.preSendIdx++
 	}
@@ -58,15 +58,15 @@ func (c *Context) execAfterSendHandlers() {
 	if c.match.ptrNode == nil {
 		return
 	}
-	it := c.handlers // c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-	gp := c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsGroupIdx]
+	it := c.handlers // c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+	gp := c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsGroupIdx]
 
 	// 6.afterSend
 	for it.afterSendLen > 0 {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.tidyHandlers[it.afterSendIdx](c)
+		c.myApp.fstMem.tidyHandlers[it.afterSendIdx](c)
 		it.afterSendLen--
 		it.afterSendIdx++
 	}
@@ -74,7 +74,7 @@ func (c *Context) execAfterSendHandlers() {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.gftApp.fstMem.tidyHandlers[gp.afterSendIdx](c)
+		c.myApp.fstMem.tidyHandlers[gp.afterSendIdx](c)
 		gp.afterSendLen--
 		gp.afterSendIdx++
 	}
@@ -96,13 +96,13 @@ func (c *Context) execAfterSendHandlers() {
 //// 这种实现其实不现实，不同类型的事件是在框架封装过程中分开执行的(比如 before-render | after-render 是无法和 handler 串联
 //// 到一起的，它们只是 handler 中 render 的前后执行函数。)
 //func (c *Context) execHandlersMini(ptrMini *radixMiniNode) {
-//	it := c.gftApp.fstMem.hdsNodesPlan2[ptrMini.hdsItemIdx]
+//	it := c.myApp.fstMem.hdsNodesPlan2[ptrMini.hdsItemIdx]
 //
 //	for it.hdsLen > 0 {
 //		if c.aborted {
 //			goto over
 //		}
-//		c.gftApp.fstMem.hdsList[it.startIdx](c)
+//		c.myApp.fstMem.hdsList[it.startIdx](c)
 //		it.hdsLen--
 //		it.startIdx++
 //	}
@@ -112,19 +112,19 @@ func (c *Context) execAfterSendHandlers() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //func (c *Context) execHandlers() {
-//	c.handlers = c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+//	c.handlers = c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
 //	c.execIdx = 0
 //	c.Next()
 //
-//	//it := c.gftApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-//	//gp := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsGroupIdx]
+//	//it := c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+//	//gp := c.myApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsGroupIdx]
 //
 //	//// 2.before
 //	//for gp.beforeLen > 0 {
 //	//	if c.aborted {
 //	//		goto over
 //	//	}
-//	//	c.gftApp.fstMem.hdsList[gp.beforeIdx](c)
+//	//	c.myApp.fstMem.hdsList[gp.beforeIdx](c)
 //	//	gp.beforeLen--
 //	//	gp.beforeIdx++
 //	//}
@@ -132,7 +132,7 @@ func (c *Context) execAfterSendHandlers() {
 //	//	if c.aborted {
 //	//		goto over
 //	//	}
-//	//	c.gftApp.fstMem.hdsList[it.beforeIdx](c)
+//	//	c.myApp.fstMem.hdsList[it.beforeIdx](c)
 //	//	it.beforeLen--
 //	//	it.beforeIdx++
 //	//}
@@ -142,7 +142,7 @@ func (c *Context) execAfterSendHandlers() {
 //	//	if c.aborted {
 //	//		goto over
 //	//	}
-//	//	c.gftApp.fstMem.tidyHandlers[it.hdsIdx](c)
+//	//	c.myApp.fstMem.tidyHandlers[it.hdsIdx](c)
 //	//	it.hdsLen--
 //	//	it.hdsIdx++
 //	//}
@@ -152,7 +152,7 @@ func (c *Context) execAfterSendHandlers() {
 //	//	if c.aborted {
 //	//		goto over
 //	//	}
-//	//	c.gftApp.fstMem.hdsList[it.afterIdx](c)
+//	//	c.myApp.fstMem.hdsList[it.afterIdx](c)
 //	//	it.afterLen--
 //	//	it.afterIdx++
 //	//}
@@ -160,7 +160,7 @@ func (c *Context) execAfterSendHandlers() {
 //	//	if c.aborted {
 //	//		goto over
 //	//	}
-//	//	c.gftApp.fstMem.hdsList[gp.afterIdx](c)
+//	//	c.myApp.fstMem.hdsList[gp.afterIdx](c)
 //	//	gp.afterLen--
 //	//	gp.afterIdx++
 //	//}
@@ -170,14 +170,14 @@ func (c *Context) execAfterSendHandlers() {
 
 //// 可以指定任何路由节点中的 handlers 来执行
 //func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
-//	it := c.gftApp.fstMem.hdsNodes[ptrMini.hdsItemIdx]
+//	it := c.myApp.fstMem.hdsNodes[ptrMini.hdsItemIdx]
 //
 //	// 3.handler
 //	for it.hdsLen > 0 {
 //		if c.aborted {
 //			return
 //		}
-//		c.gftApp.fstMem.tidyHandlers[it.hdsIdx](c)
+//		c.myApp.fstMem.tidyHandlers[it.hdsIdx](c)
 //		it.hdsLen--
 //		it.hdsIdx++
 //	}
@@ -187,15 +187,15 @@ func (c *Context) execAfterSendHandlers() {
 //	if c.match.ptrNode == nil {
 //		return
 //	}
-//	it := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsItemIdx]
-//	gp := c.gftApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsIdx]
+//	it := c.myApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsItemIdx]
+//	gp := c.myApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsIdx]
 //
 //	// 1.valid
 //	for gp.validLen > 0 {
 //		if c.aborted {
 //			goto over
 //		}
-//		c.gftApp.fstMem.hdsList[gp.validIdx](c)
+//		c.myApp.fstMem.hdsList[gp.validIdx](c)
 //		gp.validLen--
 //		gp.validIdx++
 //	}
@@ -203,7 +203,7 @@ func (c *Context) execAfterSendHandlers() {
 //		if c.aborted {
 //			goto over
 //		}
-//		c.gftApp.fstMem.hdsList[it.validIdx](c)
+//		c.myApp.fstMem.hdsList[it.validIdx](c)
 //		it.validLen--
 //		it.validIdx++
 //	}

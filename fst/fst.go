@@ -85,7 +85,7 @@ func CreateServer(cfg *GfConfig) *GoFast {
 // 初始化资源池
 func (gft *GoFast) initResourcePool() {
 	gft.ctxPool.New = func() any {
-		c := &Context{gftApp: gft, ResWrap: &ResponseWrap{}}
+		c := &Context{myApp: gft, ResWrap: &ResponseWrap{}}
 		// c.Pms = make(map[string]string)
 		// c.match.needRTS = gft.RedirectTrailingSlash
 		return c
@@ -101,7 +101,7 @@ func (gft *GoFast) initHomeRouter() {
 
 	gft.hdsIdx = -1
 	gft.prefix = "/"
-	gft.gftApp = gft
+	gft.myApp = gft
 
 	gft.allRouters = make([]*RouteItem, 0)
 	// 默认为空的节点
