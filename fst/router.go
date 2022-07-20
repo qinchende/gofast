@@ -68,7 +68,7 @@ type handlersNode struct {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 路由节点支持自定义扩展。可以自定义配置项，和配置项集合。
 type RouteConfigs interface {
-	Reordering(uint16)
+	Reordering(*GoFast, uint16)
 }
 
 type RouteConfig interface {

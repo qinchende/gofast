@@ -1,6 +1,13 @@
-package def
+package sdx
 
-import "github.com/qinchende/gofast/fst"
+import (
+	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/fst/mid"
+)
+
+func JwtAuthHandler(secret string) fst.CtxHandler {
+	return mid.JwtAuthHandler(secret)
+}
 
 func PmsParser(ctx *fst.Context) {
 	err := ctx.ParseRequestData()

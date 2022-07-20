@@ -6,9 +6,9 @@ import (
 	"context"
 	"errors"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/qinchende/gofast/def/jwtx"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/sdx/jwtx"
 	"net/http"
 	"net/http/httputil"
 )

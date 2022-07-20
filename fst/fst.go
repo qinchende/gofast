@@ -207,7 +207,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 如果需要查找非本Method中的路由匹配，就尝试去找。
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
-	if gft.HandleMethodNotAllowed {
+	if gft.CheckOtherMethodRoute {
 		for _, tree := range gft.treeAll {
 			if tree.method == c.ReqRaw.Method || tree.miniRoot == nil {
 				continue

@@ -123,7 +123,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 
 // 这个主要用于严重错误的时候，特殊状态的返回
 // 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
-func (w *ResponseWrap) SendHijack(status int, body string) (n int, err error) {
+func (w *ResponseWrap) SendHijack(resStatus int, body string) (n int, err error) {
 	w.mu.Lock()
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
@@ -134,7 +134,7 @@ func (w *ResponseWrap) SendHijack(status int, body string) (n int, err error) {
 	w.mu.Unlock()
 
 	// 打劫成功，强制改写返回结果
-	w.status = status
+	w.status = resStatus
 	w.dataBuf.Reset()
 	if n, err = w.dataBuf.WriteString(body); err != nil {
 		return
