@@ -5,6 +5,8 @@ package fst
 import (
 	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/stringx"
 	"net/http"
 )
 
@@ -74,18 +76,18 @@ func (c *Context) AbortHandlers() {
 // 自定义返回结果和状态
 func (c *Context) AbortJson(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
-	jsonData := KV{
+	bytes, _ := jsonx.Marshal(KV{
 		"status": statusFai,
 		"code":   -1,
 		"msg":    msg,
-	}
-	_ = c.ResWrap.SendHijack(resStatus, render.JSON{Data: jsonData})
+	})
+	_ = c.ResWrap.SendHijack(resStatus, bytes)
 }
 
 // 强行终止处理，返回指定结果，不执行Render
 func (c *Context) AbortString(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
-	_ = c.ResWrap.SendHijack(resStatus, render.String{Format: msg})
+	_ = c.ResWrap.SendHijack(resStatus, stringx.StringToBytes(msg))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

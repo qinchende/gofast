@@ -8,14 +8,19 @@ import (
 	"sync/atomic"
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func MustSetup(c LogConfig) {
-	currConfig = &c
+var currConfig *LogConfig
+
+func Style() int8 {
+	return currConfig.style
+}
+
+func MustSetup(c *LogConfig) {
+	currConfig = c
 
 	// 必须准备好日志环境，否则启动失败自动退出
 	err := setup(currConfig)
 	//DefaultWriter = infoLog
-	DefErrorWriter = errorLog
+	//DefErrorWriter = errorLog
 	if err != nil {
 		msg := formatWithCaller(err.Error(), 3)
 		log.Println(msg)
@@ -23,6 +28,30 @@ func MustSetup(c LogConfig) {
 		os.Exit(1)
 	}
 }
+
+func WithArchiveMillis(millis int) LogOption {
+	return func(opts *logOptions) {
+		opts.logStackArchiveMills = millis
+	}
+}
+
+func WithKeepDays(days int) LogOption {
+	return func(opts *logOptions) {
+		opts.keepDays = days
+	}
+}
+
+func WithGzip() LogOption {
+	return func(opts *logOptions) {
+		opts.gzipEnabled = true
+	}
+}
+
+func SetLevel(level uint32) {
+	atomic.StoreUint32(&logLevel, level)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // SetUp sets up the logx. If already set up, just return nil.
 // we allow SetUp to be called multiple times, because for example
@@ -192,31 +221,8 @@ func setupLogLevel(c *LogConfig) {
 	}
 }
 
-func SetLevel(level uint32) {
-	atomic.StoreUint32(&logLevel, level)
-}
-
 func shouldLog(level uint32) bool {
 	return atomic.LoadUint32(&logLevel) <= level
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func WithArchiveMillis(millis int) LogOption {
-	return func(opts *logOptions) {
-		opts.logStackArchiveMills = millis
-	}
-}
-
-func WithKeepDays(days int) LogOption {
-	return func(opts *logOptions) {
-		opts.keepDays = days
-	}
-}
-
-func WithGzip() LogOption {
-	return func(opts *logOptions) {
-		opts.gzipEnabled = true
-	}
 }
 
 func handleOptions(opts []LogOption) {

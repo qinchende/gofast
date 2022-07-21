@@ -1,6 +1,7 @@
 package logx
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"net/http"
 	"time"
 )
@@ -12,12 +13,10 @@ type ReqLogEntity struct {
 	Latency    time.Duration
 	ClientIP   string
 	StatusCode int
-	// isTerm     bool
-	Pms      map[string]any
-	BodySize int
-	ResData  []byte
-	// Keys       map[string]interface{}
-	ErrorMsg string
+	Pms        cst.KV
+	BodySize   int
+	ResData    []byte
+	ErrorMsg   string
 }
 
 // 打印请求日志，可以指定不同的输出样式

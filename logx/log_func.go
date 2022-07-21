@@ -115,12 +115,10 @@ func ErrorCallerF(callDepth int, format string, v ...any) {
 }
 
 func ErrorStack(v ...any) {
-	// there is newline in stack string
 	stackSync(fmt.Sprint(v...))
 }
 
 func ErrorStackF(format string, v ...any) {
-	// there is newline in stack string
 	stackSync(fmt.Sprintf(format, v...))
 }
 

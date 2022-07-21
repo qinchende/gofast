@@ -5,6 +5,7 @@ package fst
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"math"
 	"net/http"
 )
@@ -14,7 +15,6 @@ type (
 	AppHandler func(gft *GoFast)
 	FitFunc    func(http.HandlerFunc) http.HandlerFunc
 	CtxHandler func(ctx *Context)
-	GFPanic    error
 
 	// 抽取出一些常用函数原型
 	injectFunc func(*GoFast) *GoFast
@@ -41,14 +41,14 @@ var (
 // 主动抛异常
 func IfPanic(yn bool, text string) {
 	if yn {
-		panic(GFPanic(errors.New(text)))
+		panic(cst.GFPanic(errors.New(text)))
 	}
 }
 
 func RaisePanic(errMsg string) {
-	panic(GFPanic(errors.New(errMsg)))
+	panic(cst.GFPanic(errors.New(errMsg)))
 }
 
 func RaisePanicErr(err error) {
-	panic(GFPanic(err))
+	panic(cst.GFPanic(err))
 }

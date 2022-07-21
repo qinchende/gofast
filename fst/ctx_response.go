@@ -4,7 +4,6 @@ package fst
 
 import (
 	"bytes"
-	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
 	"net/http"
 	"sync"
@@ -22,11 +21,11 @@ const (
 // 实现接口 ResponseWriter
 type ResponseWrap struct {
 	http.ResponseWriter
-	mu sync.Mutex
 
-	committed bool
+	mu        sync.Mutex
 	status    int
 	dataBuf   *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
+	committed bool
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -124,7 +123,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 
 // 这个主要用于严重错误的时候，特殊状态的返回
 // 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
-func (w *ResponseWrap) SendHijack(resStatus int, r render.Render) (n int) {
+func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	w.mu.Lock()
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
@@ -137,17 +136,10 @@ func (w *ResponseWrap) SendHijack(resStatus int, r render.Render) (n int) {
 	// 打劫成功，强制改写返回结果
 	w.status = resStatus
 	w.dataBuf.Reset()
-
-	var err error
-	// 返回结果先写入缓存
-	if err = r.Write(w); err != nil {
-		// TODO: 这个时候真的是芭比Q了
-		logx.ErrorStackF("SendHijack Write error: %s", err)
-		return 0
-	}
+	_, _ = w.dataBuf.Write(data)
 
 	w.ResponseWriter.WriteHeader(w.status)
-	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
+	n, err := w.ResponseWriter.Write(w.dataBuf.Bytes())
 	if err != nil {
 		logx.ErrorStackF("SendHijack ResponseWriter error: %s", err)
 	}
