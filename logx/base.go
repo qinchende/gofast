@@ -4,32 +4,53 @@ package logx
 
 import (
 	"errors"
-	"io"
-	"os"
 	"sync"
 	"time"
 )
 
-const (
-	green   = "\033[97;42m"
-	white   = "\033[90;47m"
-	yellow  = "\033[90;43m"
-	red     = "\033[97;41m"
-	blue    = "\033[97;44m"
-	magenta = "\033[97;45m"
-	cyan    = "\033[97;46m"
-	Reset   = "\033[0m"
-)
-
-var (
-	//DefWriter      io.Writer = os.Stdout
-	DefErrorWriter io.Writer = os.Stderr
-)
+//const (
+//	green   = "\033[97;42m"
+//	white   = "\033[90;47m"
+//	yellow  = "\033[90;43m"
+//	red     = "\033[97;41m"
+//	blue    = "\033[97;44m"
+//	magenta = "\033[97;45m"
+//	cyan    = "\033[97;46m"
+//	Reset   = "\033[0m"
+//)
+//
+//var (
+////DefWriter      io.Writer = os.Stdout
+////DefErrorWriter io.Writer = os.Stderr
+//)
 
 const (
 	InfoLevel   = iota // InfoLevel logs everything
 	ErrorLevel         // ErrorLevel includes errors, slows, stacks
 	SevereLevel        // SevereLevel only log severe messages
+)
+
+const (
+	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
+	fileOne               // 1：全部放在一个日志文件access中
+	fileTwo               // 2：只分access和error两个文件
+	fileThree             // 3：只分access和error和stat三个文件
+)
+
+// 日志样式类型
+const (
+	StyleJson int8 = iota
+	StyleJsonMini
+	StyleSdx
+	StyleSdxMini
+)
+
+// 日志样式名称
+const (
+	styleJsonStr     = "json"
+	styleJsonMiniStr = "json-mini"
+	styleSdxStr      = "sdx"
+	styleSdxMiniStr  = "sdx-mini"
 )
 
 const (
@@ -82,6 +103,20 @@ var (
 )
 
 type (
+	LogConfig struct {
+		ServiceName        string `v:""`
+		Mode               string `v:"def=console,enum=console|file|volume"`
+		Level              string `v:"def=info,enum=info|error|severe"` // 记录日志的级别
+		Path               string `v:"def=logs"`                        // 日志文件路径
+		FilePrefix         string `v:""`                                // 日志文件名统一前缀
+		FileNumber         int8   `v:"def=0,range=[0:3]"`               // 日志文件数量
+		Compress           bool   `v:""`
+		KeepDays           int    `v:""`
+		StackArchiveMillis int    `v:"def=100"`
+		StyleName          string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`
+		style              int8   // 日志模板样式
+	}
+
 	logEntry struct {
 		Timestamp string `json:"@timestamp"`
 		Level     string `json:"lv"`

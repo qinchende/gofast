@@ -68,7 +68,7 @@ func (c *Context) CollectError(err error) *Error {
 
 func (c *Context) Error(err error) *Error {
 	if err == nil {
-		panic("err is nil")
+		RaisePanic("err is nil")
 	}
 
 	parsedError, ok := err.(*Error)

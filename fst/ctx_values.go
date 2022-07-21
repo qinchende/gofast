@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"time"
 )
 
@@ -15,9 +16,8 @@ import (
 func (c *Context) Set(key string, value any) {
 	c.mu.Lock()
 	if c.Pms == nil {
-		c.Pms = make(map[string]any)
+		c.Pms = make(cst.KV)
 	}
-
 	c.Pms[key] = value
 	c.mu.Unlock()
 }
@@ -36,7 +36,7 @@ func (c *Context) MustGet(key string) any {
 	if value, exists := c.Get(key); exists {
 		return value
 	}
-	RaisePanic("Key \"" + key + "\" does not exist")
+	RaisePanic("Key " + key + " does not exist")
 	return nil
 }
 
