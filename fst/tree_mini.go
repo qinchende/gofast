@@ -184,9 +184,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	// 1. 将分组事件 转换到 新版全局数组中
 	gpRebuildHandlers(&gft.RouterGroup)
 	// 2. 重建路由树 （这里面将节点事件 转换到 新版全局数组中）
-	rebuildMethodTree(fstMem, gft.treeGet)
-	rebuildMethodTree(fstMem, gft.treePost)
-	for _, mTree := range gft.treeOthers {
+	for _, mTree := range gft.routeTrees {
 		rebuildMethodTree(fstMem, mTree)
 	}
 	// 3. 重建特殊节点，比如 NoRoute | NoMethod
@@ -202,9 +200,7 @@ func (gft *GoFast) buildMiniRoutes() {
 
 		fstMem.treeCharT = nil
 
-		gft.treeGet.root = nil
-		gft.treePost.root = nil
-		for _, mTree := range gft.treeOthers {
+		for _, mTree := range gft.routeTrees {
 			mTree.root = nil
 		}
 	}
@@ -214,13 +210,8 @@ func (gft *GoFast) buildMiniRoutes() {
 func allocateMemSpace(gft *GoFast) {
 	fstMem := gft.fstMem
 
-	totalNodes := gft.treeGet.nodeCt
-	nodeStrLen := gft.treeGet.nodeStrLen
-
-	totalNodes += gft.treePost.nodeCt
-	nodeStrLen += gft.treePost.nodeStrLen
-
-	for _, mTree := range gft.treeOthers {
+	var totalNodes, nodeStrLen uint16
+	for _, mTree := range gft.routeTrees {
 		totalNodes += mTree.nodeCt
 		nodeStrLen += mTree.nodeStrLen
 	}

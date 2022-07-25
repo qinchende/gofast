@@ -10,9 +10,8 @@ func JwtAuthHandler(secret string) fst.CtxHandler {
 }
 
 func PmsParser(ctx *fst.Context) {
-	err := ctx.ParseRequestData()
-	if err != nil {
-		ctx.FaiMsg("PmsParser err: " + err.Error())
+	if err := ctx.ParseRequestData(); err != nil {
+		ctx.AbortFaiMsg("PmsParser err: " + err.Error())
 	}
 }
 

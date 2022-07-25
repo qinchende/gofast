@@ -128,6 +128,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
 		w.mu.Unlock()
+		logx.Warn(errAlreadyRendered, "Can't Hijack.")
 		return 0
 	}
 	w.committed = true

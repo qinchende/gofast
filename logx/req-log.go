@@ -21,7 +21,7 @@ type ReqLogEntity struct {
 
 // 打印请求日志，可以指定不同的输出样式
 func WriteReqLog(p *ReqLogEntity) {
-	switch currConfig.style {
+	switch myConfig.styleType {
 	case StyleSdx:
 		Print(genSdxReqLogString(p))
 	case StyleSdxMini:

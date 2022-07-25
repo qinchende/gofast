@@ -274,7 +274,7 @@ func output(lwt WriterCloser, level, msg string, newLine bool) {
 	//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
 
 	// TODO: 打印日志，套用不同的日志模板
-	switch currConfig.style {
+	switch myConfig.styleType {
 	case StyleSdx:
 		msg = fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", msg)
 	case StyleSdxMini:

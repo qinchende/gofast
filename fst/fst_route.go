@@ -6,27 +6,15 @@ import "net/http"
 
 // 一次性构建Mini内存版的所有路由项
 func (gft *GoFast) buildAllRouters() {
-	gft.treeGet = &methodTree{method: http.MethodGet}
-	gft.treePost = &methodTree{method: http.MethodPost}
-	gft.treeOthers = make(methodTrees, 0, 9)
-
-	// RouteItem Config Init
+	gft.routeTrees = make(methodTrees, 0, 9)
+	gft.routeTrees = append(gft.routeTrees, &methodTree{method: http.MethodGet})
+	gft.routeTrees = append(gft.routeTrees, &methodTree{method: http.MethodPost})
 
 	// TODO：启动server之前，注册的路由只是做了记录在allRouters变量中，这里开始一次性构造路由前缀树
-	// 前面三个路由项是系统默认的特殊路由，不参与具体的路由树构造
+	// Note: 前面三个路由项是系统默认的特殊路由，不参与具体的路由树构造
 	for i := 3; i < len(gft.allRouters); i++ {
 		gft.regRouterItem(gft.allRouters[i])
 	}
-	//for _, it := range gft.allRouters {
-	//	gft.regRouterItem(it)
-	//}
-
-	// 设置 treeAll
-	lenTreeOthers := len(gft.treeOthers)
-	IfPanic(lenTreeOthers > 7, "More than seven methods.")
-	gft.treeAll = gft.treeOthers[:lenTreeOthers:9]
-	gft.treeAll = append(gft.treeAll, gft.treeGet)
-	gft.treeAll = append(gft.treeAll, gft.treePost)
 
 	// 打印底层构造的路由树
 	if gft.PrintRouteTrees {
@@ -46,7 +34,7 @@ func (gft *GoFast) regRouterItem(ri *RouteItem) {
 	mTree := gft.getMethodTree(ri.method)
 	if mTree == nil {
 		mTree = &methodTree{method: ri.method, root: nil}
-		gft.treeOthers = append(gft.treeOthers, mTree)
+		gft.routeTrees = append(gft.routeTrees, mTree)
 	}
 	mTree.regRoute(ri.fullPath, ri)
 }
@@ -55,31 +43,31 @@ func (gft *GoFast) regRouterItem(ri *RouteItem) {
 func (gft *GoFast) getMethodMiniRoot(method string) (tRoot *radixMiniNode) {
 	switch method[0] {
 	case 'G':
-		tRoot = gft.treeGet.miniRoot
+		tRoot = gft.routeTrees[0].miniRoot
 	case 'P':
 		if method[1] == 'O' {
-			tRoot = gft.treePost.miniRoot
+			tRoot = gft.routeTrees[1].miniRoot
 		} else {
-			tRoot = gft.treeOthers.getTreeMiniRoot(method)
+			tRoot = gft.routeTrees.getTreeMiniRoot(method)
 		}
 	default:
-		tRoot = gft.treeOthers.getTreeMiniRoot(method)
+		tRoot = gft.routeTrees.getTreeMiniRoot(method)
 	}
 	return
 }
 
 func (gft *GoFast) getMethodTree(method string) (tree *methodTree) {
 	switch method[0] {
+	case 'G':
+		tree = gft.routeTrees[0]
 	case 'P':
 		if method[1] == 'O' {
-			tree = gft.treePost
+			tree = gft.routeTrees[1]
 		} else {
-			tree = gft.treeOthers.getTree(method)
+			tree = gft.routeTrees.getTree(method)
 		}
-	case 'G':
-		tree = gft.treeGet
 	default:
-		tree = gft.treeOthers.getTree(method)
+		tree = gft.routeTrees.getTree(method)
 	}
 	return
 }
