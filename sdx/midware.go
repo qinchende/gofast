@@ -21,7 +21,7 @@ func DefGlobalFits(app *fst.GoFast) *fst.GoFast {
 // 带上下文 gofast.fst.Context 的执行链
 func DefGlobalHandlers(app *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
-	reqKeeper := gate.CreateReqKeeper(app.AppName(), app.FullPath)
+	reqKeeper := gate.CreateReqKeeper(app.ProjectName(), app.FullPath)
 	// 因为Routes的数量只能在加载完所有路由之后才知道
 	// 所以这里选择延时构造所有Breakers
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {

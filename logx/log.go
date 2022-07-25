@@ -8,17 +8,17 @@ import (
 	"sync/atomic"
 )
 
-var currConfig *LogConfig
+var myConfig *LogConfig
 
 func Style() int8 {
-	return currConfig.style
+	return myConfig.styleType
 }
 
 func MustSetup(c *LogConfig) {
-	currConfig = c
+	myConfig = c
 
 	// 必须准备好日志环境，否则启动失败自动退出
-	err := setup(currConfig)
+	err := setup(myConfig)
 	//DefaultWriter = infoLog
 	//DefErrorWriter = errorLog
 	if err != nil {
@@ -60,16 +60,16 @@ func SetLevel(level uint32) {
 func setup(c *LogConfig) error {
 	switch c.StyleName {
 	case styleSdxStr:
-		c.style = StyleSdx
+		c.styleType = StyleSdx
 	case styleSdxMiniStr:
-		c.style = StyleSdxMini
+		c.styleType = StyleSdxMini
 	case styleJsonMiniStr:
-		c.style = StyleJsonMini
+		c.styleType = StyleJsonMini
 	default:
-		c.style = StyleJson
+		c.styleType = StyleJson
 	}
 
-	switch c.Mode {
+	switch c.PrintMedium {
 	case consoleMode:
 		setupWithConsole(c)
 		return nil
@@ -102,7 +102,7 @@ func setupWithConsole(c *LogConfig) {
 
 // 文件日志模式下的初始化工作
 func setupWithFiles(c *LogConfig) error {
-	if len(c.Path) == 0 {
+	if len(c.FilePath) == 0 {
 		return ErrLogPathNotSet
 	}
 
@@ -128,13 +128,13 @@ func setupWithFiles(c *LogConfig) error {
 			prefix += "."
 		}
 
-		accessFilePath := path.Join(c.Path, prefix+accessFilename)
-		errorFilePath := path.Join(c.Path, prefix+errorFilename)
-		warnFilePath := path.Join(c.Path, prefix+warnFilename)
-		severeFilePath := path.Join(c.Path, prefix+severeFilename)
-		slowFilePath := path.Join(c.Path, prefix+slowFilename)
-		statFilePath := path.Join(c.Path, prefix+statFilename)
-		stackFilePath := path.Join(c.Path, prefix+stackFilename)
+		accessFilePath := path.Join(c.FilePath, prefix+accessFilename)
+		errorFilePath := path.Join(c.FilePath, prefix+errorFilename)
+		warnFilePath := path.Join(c.FilePath, prefix+warnFilename)
+		severeFilePath := path.Join(c.FilePath, prefix+severeFilename)
+		slowFilePath := path.Join(c.FilePath, prefix+slowFilename)
+		statFilePath := path.Join(c.FilePath, prefix+statFilename)
+		stackFilePath := path.Join(c.FilePath, prefix+stackFilename)
 
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
 		if accessLog, err = createOutput(accessFilePath); err != nil {
@@ -194,10 +194,10 @@ func setupWithFiles(c *LogConfig) error {
 
 // 日志存储
 func setupWithVolume(c *LogConfig) error {
-	if len(c.ServiceName) == 0 {
+	if len(c.AppName) == 0 {
 		return ErrLogServiceNameNotSet
 	}
-	c.Path = path.Join(c.Path, c.ServiceName, host.Hostname())
+	c.FilePath = path.Join(c.FilePath, c.AppName, host.Hostname())
 	return setupWithFiles(c)
 }
 
@@ -211,7 +211,7 @@ func createOutput(path string) (WriterCloser, error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func setupLogLevel(c *LogConfig) {
-	switch c.Level {
+	switch c.LogLevel {
 	case levelInfo:
 		SetLevel(InfoLevel)
 	case levelError:

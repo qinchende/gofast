@@ -74,7 +74,7 @@ func (c *Context) AbortHandlers() {
 }
 
 // 自定义返回结果和状态
-func (c *Context) AbortJson(resStatus int, msg string) {
+func (c *Context) AbortFai(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
 	bytes, _ := jsonx.Marshal(KV{
 		"status": statusFai,
@@ -82,6 +82,10 @@ func (c *Context) AbortJson(resStatus int, msg string) {
 		"msg":    msg,
 	})
 	_ = c.ResWrap.SendHijack(resStatus, bytes)
+}
+
+func (c *Context) AbortFaiMsg(msg string) {
+	c.AbortFai(http.StatusOK, msg)
 }
 
 // 强行终止处理，返回指定结果，不执行Render

@@ -34,23 +34,17 @@ type GoFast struct {
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
-	// NOTE：
-	// RouterGroup: 每个server有自己的根分组，以及整颗分组树。
-	// allRouters: 记录所有真实的路由节点
-	RouterGroup              // HomeRouter 本身就是一个路由分组
-	allRouters  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
+	RouterGroup // HomeRouter 本身就是一个路由分组
 
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
 	miniNode404 *radixMiniNode
 	miniNode405 *radixMiniNode
+	allRouters  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
 	// 绝大部分应用Get和Post路由居多，我们能尽快匹配就不需要无用的Method比较选择的过程
-	treeGet    *methodTree
-	treePost   *methodTree
-	treeOthers methodTrees
-	treeAll    methodTrees
+	routeTrees methodTrees
 
 	// 主要以数组结构的形式，存储了 Routes & Handlers
 	fstMem *fstMemSpace
@@ -208,7 +202,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
 	if gft.CheckOtherMethodRoute {
-		for _, tree := range gft.treeAll {
+		for _, tree := range gft.routeTrees {
 			if tree.method == c.ReqRaw.Method || tree.miniRoot == nil {
 				continue
 			}
@@ -256,8 +250,8 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 
 	defer logx.DebugPrintError(err)
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
-	if addr == nil && gft.Addr != "" {
-		addr = []string{gft.Addr}
+	if addr == nil && gft.ListenAddr != "" {
+		addr = []string{gft.ListenAddr}
 	}
 	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
 

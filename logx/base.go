@@ -104,17 +104,17 @@ var (
 
 type (
 	LogConfig struct {
-		ServiceName        string `v:""`
-		Mode               string `v:"def=console,enum=console|file|volume"`
-		Level              string `v:"def=info,enum=info|error|severe"` // 记录日志的级别
-		Path               string `v:"def=logs"`                        // 日志文件路径
-		FilePrefix         string `v:""`                                // 日志文件名统一前缀
+		AppName            string `v:""`
+		PrintMedium        string `v:"def=console,enum=console|file|volume"`
+		LogLevel           string `v:"def=info,enum=info|error|severe"` // 记录日志的级别
+		FilePath           string `v:"def=_logs_"`                      // 日志文件路径
+		FilePrefix         string `v:""`                                // 日志文件名统一前缀(默认是AppName)
 		FileNumber         int8   `v:"def=0,range=[0:3]"`               // 日志文件数量
-		Compress           bool   `v:""`
-		KeepDays           int    `v:""`
+		Compress           bool   `v:"def=false"`
+		KeepDays           int    `v:"def=0"`
 		StackArchiveMillis int    `v:"def=100"`
-		StyleName          string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`
-		style              int8   // 日志模板样式
+		StyleName          string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"` // 日志样式
+		styleType          int8   `v:""`                                         // 日志样式类型
 	}
 
 	logEntry struct {

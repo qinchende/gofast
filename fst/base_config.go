@@ -9,11 +9,9 @@ import (
 
 // GoFast WEB框架的配置参数
 type GfConfig struct {
-	LogConfig logx.LogConfig
-	// FuncMap          	template.FuncMap
-	// RedirectFixedPath    bool // 此项特性无多大必要，不兼容Gin
-	Name                  string `v:"def=GoFastSite"`
-	Addr                  string `v:"def=0.0.0.0:8099,match=ipv4:port"`
+	LogConfig             logx.LogConfig
+	AppName               string `v:"required"`
+	ListenAddr            string `v:"def=0.0.0.0:8099,match=ipv4:port"`
 	RunMode               string `v:"def=debug,enum=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix      string `v:"def=while(1);"`
 	MaxMultipartMemory    int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
@@ -94,17 +92,17 @@ func (gft *GoFast) IsDebugging() bool {
 	return gft.modeType == modeDebug
 }
 
-func (gft *GoFast) AppName() (name string) {
-	name = gft.Name
+func (gft *GoFast) ProjectName() (name string) {
+	name = gft.AppName
 	if len(name) <= 0 {
-		name = gft.Addr
+		name = gft.ListenAddr
 	}
 	return
 }
 
-// 日志文件的目标系统
-const (
-	LogTypeConsole    = "console"
-	LogTypeELK        = "elk"
-	LogTypePrometheus = "prometheus"
-)
+//// 日志文件的目标系统
+//const (
+//	LogTypeConsole    = "console"
+//	LogTypeELK        = "elk"
+//	LogTypePrometheus = "prometheus"
+//)
