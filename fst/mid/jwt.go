@@ -121,5 +121,5 @@ func detailAuthLog(r *http.Request, reason string) {
 
 func unauthorizedPanic(r *http.Request, err error) {
 	detailAuthLog(r, err.Error())
-	fst.RaisePanicErr(err)
+	fst.GFPanicErr(err)
 }

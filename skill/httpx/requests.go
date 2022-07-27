@@ -47,7 +47,7 @@ func ParseForm(r *http.Request, v any) error {
 		}
 	}
 
-	return mapx.ApplyKV(v, params, mapx.DefOptions(nil))
+	return mapx.ApplyKVOfData(v, params)
 }
 
 func ParseHeader(headerValue string) map[string]string {
@@ -80,7 +80,7 @@ func ParseJsonBody(r *http.Request, v any) error {
 		reader = strings.NewReader(emptyJson)
 	}
 
-	return mapx.DecodeJsonReader(v, reader, mapx.DefOptions(nil))
+	return mapx.DecodeJsonReaderOfData(v, reader)
 }
 
 // Parses the symbols reside in url path.
@@ -92,7 +92,7 @@ func ParsePath(r *http.Request, v any) error {
 		kv[k] = v
 	}
 
-	return mapx.ApplyKV(v, kv, mapx.DefOptions(nil))
+	return mapx.ApplyKVOfData(v, kv)
 }
 
 func withJsonBody(r *http.Request) bool {

@@ -39,16 +39,16 @@ var (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主动抛异常
-func IfPanic(yn bool, text string) {
+func GFPanicIf(yn bool, msg string) {
 	if yn {
-		panic(cst.GFPanic(errors.New(text)))
+		panic(cst.GFError(errors.New(msg)))
 	}
 }
 
-func RaisePanic(errMsg string) {
-	panic(cst.GFPanic(errors.New(errMsg)))
+func GFPanic(msg string) {
+	panic(cst.GFError(errors.New(msg)))
 }
 
-func RaisePanicErr(err error) {
-	panic(cst.GFPanic(err))
+func GFPanicErr(err error) {
+	panic(cst.GFError(err))
 }

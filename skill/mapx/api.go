@@ -2,7 +2,6 @@ package mapx
 
 import (
 	"github.com/qinchende/gofast/cst"
-	"io"
 )
 
 const (
@@ -21,22 +20,9 @@ type ApplyOptions struct {
 	NotValid    bool   // 默认解析后就验证
 }
 
-func DefOptions(opt *ApplyOptions) *ApplyOptions {
-	if opt == nil {
-		opt = &ApplyOptions{}
-	}
-	if opt.FieldTag == "" {
-		opt.FieldTag = fieldNameTag
-	}
-	if opt.ValidTag == "" {
-		opt.ValidTag = fieldValidTag
-	}
-	return opt
-}
-
-// 应用在大量解析数据记录的场景
-func DataOptions() *ApplyOptions {
-	return &ApplyOptions{
+var (
+	// 应用在大量解析数据记录的场景
+	dataOptions = &ApplyOptions{
 		FieldTag:    fieldNameTag,
 		ValidTag:    fieldValidTag,
 		CacheSchema: true,
@@ -45,11 +31,9 @@ func DataOptions() *ApplyOptions {
 		NotDefValue: false,
 		NotValid:    true,
 	}
-}
 
-// 应用在解析配置文件的场景
-func ConfigOptions() *ApplyOptions {
-	return &ApplyOptions{
+	// 应用在解析配置文件的场景
+	configOptions = &ApplyOptions{
 		FieldTag:    fieldNameTag,
 		ValidTag:    fieldValidTag,
 		CacheSchema: false,
@@ -58,27 +42,35 @@ func ConfigOptions() *ApplyOptions {
 		NotDefValue: false,
 		NotValid:    false,
 	}
-}
+)
 
 // cst.KV
 func ApplyKV(dst any, kvs cst.KV, opts *ApplyOptions) error {
 	return applyKVToStruct(dst, kvs, opts)
 }
 
-// JSON
-func ApplyJsonReader(dst any, reader io.Reader, opts *ApplyOptions) error {
-	return DecodeJsonReader(dst, reader, opts)
+func ApplyKVOfConfig(dst any, kvs cst.KV) error {
+	return applyKVToStruct(dst, kvs, configOptions)
 }
 
-func ApplyJsonBytes(dst any, content []byte, opts *ApplyOptions) error {
-	return DecodeJsonBytes(dst, content, opts)
+func ApplyKVOfData(dst any, kvs cst.KV) error {
+	return applyKVToStruct(dst, kvs, dataOptions)
 }
 
-// Yaml
-func ApplyYamlReader(dst any, reader io.Reader, opts *ApplyOptions) error {
-	return DecodeYamlReader(dst, reader, opts)
-}
-
-func ApplyYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
-	return DecodeYamlBytes(dst, content, opts)
-}
+//// JSON
+//func ApplyJsonReader(dst any, reader io.Reader, opts *ApplyOptions) error {
+//	return DecodeJsonReader(dst, reader, opts)
+//}
+//
+//func ApplyJsonBytes(dst any, content []byte, opts *ApplyOptions) error {
+//	return DecodeJsonBytes(dst, content, opts)
+//}
+//
+//// Yaml
+//func ApplyYamlReader(dst any, reader io.Reader, opts *ApplyOptions) error {
+//	return DecodeYamlReader(dst, reader, opts)
+//}
+//
+//func ApplyYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
+//	return DecodeYamlBytes(dst, content, opts)
+//}

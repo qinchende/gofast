@@ -32,6 +32,10 @@ func DecodeYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
 	}
 }
 
+func DecodeYamlBytesOfConfig(dst any, content []byte) error {
+	return DecodeYamlBytes(dst, content, configOptions)
+}
+
 // yamlUnmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.
 func DecodeYaml(out any, in []byte) error {
 	var res any
@@ -47,13 +51,13 @@ func DecodeYaml(out any, in []byte) error {
 func cleanupInterfaceMap(in map[any]any) map[string]any {
 	res := make(map[string]any)
 	for k, v := range in {
-		res[ToString(k)] = cleanupMapValue(v)
+		res[sdxAsString(k)] = cleanupMapValue(v)
 	}
 	return res
 }
 
 func cleanupInterfaceNumber(in any) json.Number {
-	return json.Number(ToString(in))
+	return json.Number(sdxAsString(in))
 }
 
 func cleanupInterfaceSlice(in []any) []any {
@@ -75,6 +79,6 @@ func cleanupMapValue(v any) any {
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, float64:
 		return cleanupInterfaceNumber(v)
 	default:
-		return ToString(v)
+		return sdxAsString(v)
 	}
 }

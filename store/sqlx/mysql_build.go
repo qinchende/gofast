@@ -89,7 +89,7 @@ func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []stri
 	for i := 0; i < tgLen; i++ {
 		idx, ok := clsKV[columns[i]]
 		if !ok {
-			fst.RaisePanicErr(fmt.Errorf("field %s not exist", columns[i]))
+			fst.GFPanicErr(fmt.Errorf("field %s not exist", columns[i]))
 		}
 
 		// 更新字符串

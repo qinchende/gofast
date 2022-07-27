@@ -4,9 +4,17 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/mapx"
 	"net/url"
 	"strings"
 )
+
+// add by sdx on 20210305
+// 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
+func (c *Context) BindPms(dst any) error {
+	return mapx.ApplyKVOfData(dst, c.Pms)
+}
 
 /************************************/
 /*********** Context Pms ************/
@@ -22,18 +30,17 @@ func (c *Context) ParseRequestData() error {
 	ctType := c.ReqRaw.Header.Get(cst.HeaderContentType)
 	switch {
 	case strings.HasPrefix(ctType, cst.MIMEAppJson):
-		if err := c.BindJSON(&c.Pms); err != nil {
+		if err := jsonx.UnmarshalFromReader(&c.Pms, c.ReqRaw.Body); err != nil {
 			return err
 		}
-	case strings.HasPrefix(ctType, cst.MIMEAppXml), strings.HasPrefix(ctType, cst.MIMEXml):
-		if err := c.BindXML(&c.Pms); err != nil {
-			return err
-		}
+	//case strings.HasPrefix(ctType, cst.MIMEAppXml), strings.HasPrefix(ctType, cst.MIMEXml):
+	//	if err := c.BindXML(&c.Pms); err != nil {
+	//		return err
+	//	}
 	case strings.HasPrefix(ctType, cst.MIMEPostForm), strings.HasPrefix(ctType, cst.MIMEMultiPostForm):
 		c.ParseForm()
 		urlParsed = true
 		applyUrlValue(c.Pms, c.ReqRaw.Form)
-	default:
 	}
 
 	if !urlParsed {

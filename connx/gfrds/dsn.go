@@ -2,7 +2,7 @@ package gfrds
 
 import (
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/fst/bind"
+	"github.com/qinchende/gofast/skill/mapx"
 	"strings"
 )
 
@@ -16,6 +16,6 @@ func ParseDsn(connStr string) *ConnCnf {
 		kvs[item[:idx]] = item[idx+1:]
 	}
 
-	_ = bind.Pms.BindPms(rdsCnf, kvs)
+	_ = mapx.ApplyKVOfConfig(rdsCnf, kvs)
 	return rdsCnf
 }

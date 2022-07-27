@@ -178,7 +178,9 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]str
 		// 4. options
 		optStr := fi.Tag.Get(opts.ValidTag)
 		fOpt, err := valid.ParseOptions(&fi, optStr)
-		errPanic(err)
+		if err != nil {
+			panic(err) // 这里针对某个struct取结构，直接抛系统异常
+		}
 		fOptions = append(fOptions, fOpt)
 	}
 	return fColumns, fFields, fIndexes, fOptions

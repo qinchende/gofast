@@ -1,4 +1,4 @@
-package jwtx
+package sdx
 
 import (
 	"crypto/hmac"

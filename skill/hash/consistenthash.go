@@ -2,7 +2,7 @@ package hash
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/skill/mapx"
+	"github.com/qinchende/gofast/skill/stringx"
 	"sort"
 	"strconv"
 	"sync"
@@ -176,5 +176,5 @@ func innerRepr(node any) string {
 }
 
 func repr(node any) string {
-	return mapx.ToString(node)
+	return stringx.ToString(node)
 }

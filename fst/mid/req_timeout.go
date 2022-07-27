@@ -73,7 +73,7 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 			return
 		case <-ctxTimeout.Done():
 			c.IsTimeout = true
-			c.AbortString(http.StatusGatewayTimeout, midTimeoutBody)
+			c.AbortDirect(http.StatusGatewayTimeout, midTimeoutBody)
 			return
 		}
 	}

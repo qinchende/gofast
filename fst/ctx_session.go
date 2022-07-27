@@ -72,7 +72,7 @@ func (ss *CtxSession) Save() {
 
 	// TODO: 如果保存失败怎么办？目前是抛异常，本次请求直接返回错误。
 	if err != nil {
-		RaisePanic("Save session error.")
+		GFPanic("Save session error.")
 	} else {
 		ss.Saved = true
 	}
@@ -86,7 +86,7 @@ func (ss *CtxSession) Del(key string) {
 func (ss *CtxSession) Expire(ttl int32) {
 	yn, err := CtxSessionExpireFun(ss, ttl)
 	if yn == false || err != nil {
-		RaisePanic("Session expire error.")
+		GFPanic("Session expire error.")
 	}
 }
 

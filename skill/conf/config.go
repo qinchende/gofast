@@ -36,9 +36,9 @@ func LoadConfig(file string, dst any) error {
 }
 
 func LoadConfigFromJsonBytes(dst any, content []byte) error {
-	return mapx.DecodeJsonBytes(dst, content, mapx.ConfigOptions())
+	return mapx.DecodeJsonBytesOfConfig(dst, content)
 }
 
 func LoadConfigFromYamlBytes(dst any, content []byte) error {
-	return mapx.DecodeYamlBytes(dst, content, mapx.ConfigOptions())
+	return mapx.DecodeYamlBytesOfConfig(dst, content)
 }

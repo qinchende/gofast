@@ -23,7 +23,7 @@ func (c *Context) FaiErr(err error) {
 	c.Fai(0, err.Error(), nil)
 }
 
-func (c *Context) FaiMsg(msg string) {
+func (c *Context) FaiStr(msg string) {
 	c.Fai(0, msg, nil)
 }
 
@@ -36,7 +36,7 @@ func (c *Context) Fai(code int32, msg string, data any) {
 }
 
 // +++++
-func (c *Context) SucMsg(msg string) {
+func (c *Context) SucStr(msg string) {
 	c.Suc(0, msg, nil)
 }
 
@@ -74,24 +74,24 @@ func (c *Context) AbortHandlers() {
 }
 
 // 自定义返回结果和状态
-func (c *Context) AbortFai(resStatus int, msg string) {
-	c.execIdx = maxRouteHandlers
+func (c *Context) AbortFaiStr(msg string) {
 	bytes, _ := jsonx.Marshal(KV{
 		"status": statusFai,
 		"code":   -1,
 		"msg":    msg,
 	})
-	_ = c.ResWrap.SendHijack(resStatus, bytes)
-}
-
-func (c *Context) AbortFaiMsg(msg string) {
-	c.AbortFai(http.StatusOK, msg)
+	c.AbortDirectBytes(http.StatusOK, bytes)
 }
 
 // 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortString(resStatus int, msg string) {
+func (c *Context) AbortDirect(resStatus int, msg string) {
 	c.execIdx = maxRouteHandlers
 	_ = c.ResWrap.SendHijack(resStatus, stringx.StringToBytes(msg))
+}
+
+func (c *Context) AbortDirectBytes(resStatus int, bytes []byte) {
+	c.execIdx = maxRouteHandlers
+	_ = c.ResWrap.SendHijack(resStatus, bytes)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
