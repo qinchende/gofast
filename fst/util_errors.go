@@ -53,7 +53,7 @@ var _ error = &Error{}
 // Error will panic if err is nil.
 func (c *Context) CollectError(err error) *Error {
 	if err == nil {
-		RaisePanic("err is nil")
+		GFPanic("err is nil")
 	}
 	parsedError, ok := err.(*Error)
 	if !ok {
@@ -68,7 +68,7 @@ func (c *Context) CollectError(err error) *Error {
 
 func (c *Context) Error(err error) *Error {
 	if err == nil {
-		RaisePanic("err is nil")
+		GFPanic("err is nil")
 	}
 
 	parsedError, ok := err.(*Error)

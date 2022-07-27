@@ -29,7 +29,7 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 			kp.SheddingStat.Drop()
 
 			logx.ErrorF("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
-			c.AbortString(http.StatusServiceUnavailable, "LoadShedding!!!")
+			c.AbortDirect(http.StatusServiceUnavailable, "LoadShedding!!!")
 			return
 		}
 

@@ -36,7 +36,7 @@ func (c *Context) MustGet(key string) any {
 	if value, exists := c.Get(key); exists {
 		return value
 	}
-	RaisePanic("Key " + key + " does not exist")
+	GFPanic("Key " + key + " does not exist")
 	return nil
 }
 

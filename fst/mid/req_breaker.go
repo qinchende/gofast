@@ -26,7 +26,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 			kp.CounterAddDrop(c.RouteIdx)
 
 			logx.ErrorF("[http] break, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
-			c.AbortString(http.StatusServiceUnavailable, "Break!!!")
+			c.AbortDirect(http.StatusServiceUnavailable, "Break!!!")
 			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
 			return
 		}

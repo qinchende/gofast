@@ -154,7 +154,7 @@ func addCtxHandlers(fstMem *fstMemSpace, hds []CtxHandler) (idxes []uint16) {
 		idxes[i] = fstMem.allCtxHdsLen + i
 	}
 	fstMem.allCtxHdsLen += hLen
-	IfPanic(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
+	GFPanicIf(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
 	return
 }
 

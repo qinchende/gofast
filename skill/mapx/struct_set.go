@@ -79,6 +79,10 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 }
 
 func sdxAsString(src any) string {
+	if src == nil {
+		return ""
+	}
+
 	switch v := src.(type) {
 	case string:
 		return v

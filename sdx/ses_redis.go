@@ -1,4 +1,4 @@
-package jwtx
+package sdx
 
 import (
 	"github.com/qinchende/gofast/fst"
@@ -9,7 +9,7 @@ import (
 
 // 从 redis 中获取 当前 请求上下文的 session data.
 // TODO: 有可能 session 是空的
-func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
+func (ss *Session) loadSessionFromRedis(ctx *fst.Context) {
 	str, err := ss.Redis.Get(sdxSessKeyPrefix + ctx.Sess.Sid)
 	if str == "" || err != nil {
 		str = `{}`
@@ -23,22 +23,22 @@ func (ss *SdxSession) loadSessionFromRedis(ctx *fst.Context) {
 // 保存到 redis
 func saveSessionToRedis(sdx *fst.CtxSession) (string, error) {
 	str, _ := jsonx.Marshal(sdx.Values)
-	ttl := SdxSS.TTL
-	if sdx.TokenIsNew && sdx.Values[SdxSS.AuthField] == nil {
-		ttl = SdxSS.TTLNew
+	ttl := MySS.TTL
+	if sdx.TokenIsNew && sdx.Values[MySS.AuthField] == nil {
+		ttl = MySS.TTLNew
 	}
-	return SdxSS.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, time.Duration(ttl)*time.Second)
+	return MySS.Redis.Set(sdxSessKeyPrefix+sdx.Sid, str, time.Duration(ttl)*time.Second)
 }
 
 // 设置Session过期时间
 func setSessionExpire(sdx *fst.CtxSession, ttl int32) (bool, error) {
 	if ttl <= 0 {
-		ttl = SdxSS.TTL
+		ttl = MySS.TTL
 	}
-	return SdxSS.Redis.Expire(sdxSessKeyPrefix+sdx.Sid, time.Duration(ttl)*time.Second)
+	return MySS.Redis.Expire(sdxSessKeyPrefix+sdx.Sid, time.Duration(ttl)*time.Second)
 }
 
 // TODO: 这里的函数很多都没有考虑发生错误的情况
 func destroySession(sdx *fst.CtxSession) {
-	_, _ = SdxSS.Redis.Del(sdxSessKeyPrefix + sdx.Sid)
+	_, _ = MySS.Redis.Del(sdxSessKeyPrefix + sdx.Sid)
 }

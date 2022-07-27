@@ -16,13 +16,13 @@ func Recovery(c *fst.Context) {
 	defer func() {
 		if result := recover(); result != nil {
 			// TODO: 这里要分两种异常，一种是常规的错误异常，一种是非预测性的系统异常
-			if err, ok := result.(cst.GFPanic); ok {
-				c.AbortFai(http.StatusOK, fmt.Sprint("GfPanic: ", err))
+			if err, ok := result.(cst.GFError); ok {
+				c.AbortFaiStr(fmt.Sprint("GFError: ", err))
 			} else {
 				logx.ErrorStack(c.ReqRaw)
 				logx.ErrorStackF("%s", debug.Stack())
 
-				c.AbortFai(http.StatusInternalServerError, fmt.Sprint("panic: ", result))
+				c.AbortDirect(http.StatusInternalServerError, fmt.Sprint("panic: ", result))
 			}
 		}
 	}()
