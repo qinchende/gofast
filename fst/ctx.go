@@ -20,7 +20,7 @@ type Context struct {
 	EnterTime time.Duration // 请求起始时间
 	ResWrap   *ResponseWrap
 	ReqRaw    *http.Request // request
-	Sess      *CtxSession   // Session数据，数据存储部分可以自定义
+	Sess      SessionKeeper // Session数据，数据存储部分可以自定义
 	Params    *Params       // : 或 * 对应的参数
 	Pms       cst.KV        // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	//PmsCarry  cst.KV        // 后台上下文传递的数据

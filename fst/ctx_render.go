@@ -48,7 +48,6 @@ func (c *Context) Suc(code int32, msg string, data any) {
 	c.kvSucFai(statusSuc, code, msg, data)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 	jsonData := KV{
 		"status": status,
@@ -59,8 +58,8 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 		jsonData["data"] = data
 	}
 
-	if c.Sess != nil && c.Sess.TokenIsNew {
-		jsonData["tok"] = c.Sess.Token
+	if c.Sess != nil && c.Sess.SidIsNew() {
+		jsonData["tok"] = c.Sess.Sid()
 	}
 
 	c.Json(http.StatusOK, jsonData)
