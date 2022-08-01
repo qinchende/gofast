@@ -10,41 +10,41 @@ import (
 )
 
 // tok=t:NFRRcE81WDFQSEZJQUptZkpJ.v9EN6bWz8KU6sKRrcEId1OKUKqYx0hed2zSpCQImvc
-func fetchSid(tok string) (string, string) {
+func fetchGuid(tok string) (string, string) {
 	start := strings.Index(tok, sdxTokenPrefix)
 	dot := strings.Index(tok, ".")
 	// 格式明显不对，直接返回空
 	if start != 0 || dot <= 0 {
-		// return "", "", errors.New("Can't parse sid. ")
+		// return "", "", errors.New("Can't parse guid. ")
 		return "", ""
 	}
-	sid := tok[2:dot]
-	if len(sid) <= 18 {
-		// return "", "", errors.New("Sid length error. ")
+	guid := tok[2:dot]
+	if len(guid) <= 18 {
+		// return "", "", errors.New("guid length error. ")
 		return "", ""
 	}
 	sHmac := tok[(dot + 1):]
-	return sid, sHmac
+	return guid, sHmac
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++==
-// 闪电侠SID：为24位的字符串
+// 闪电侠Guid：为24位的字符串
 func genToken(secret string) (string, string) {
-	sid := genSid(24)
-	tok := sdxTokenPrefix + genSign(sid, secret)
-	return sid, tok
+	guid := genGuid(24)
+	tok := sdxTokenPrefix + genSign(guid, secret)
+	return guid, tok
 }
 
-// 按照指定长度length, 自动生成随机的Sid字符串，
-func genSid(length int) string {
+// 按照指定长度length, 自动生成随机的Guid字符串，
+func genGuid(length int) string {
 	src := lang.GetRandomBytes(length)
-	sid := base64.StdEncoding.EncodeToString(src)
-	sid = cleanString(sid)
+	guid := base64.StdEncoding.EncodeToString(src)
+	guid = cleanString(guid)
 
-	if length > len(sid) {
-		length = len(sid)
+	if length > len(guid) {
+		length = len(guid)
 	}
-	return sid[:length]
+	return guid[:length]
 }
 
 func genSign(val, secret string) string {
@@ -64,4 +64,10 @@ func cleanString(src string) string {
 	regExp := regexp.MustCompile("[+=]*")
 	//regExp := regexp.MustCompile("[+=/]*")
 	return regExp.ReplaceAllString(src, "")
+}
+
+// 利用当前 guid 和 c 中包含的 request_ip | 计算出hmac值，然后和token中携带的 hmac值比较，来得出合法性
+func checkToken(guid, sHmac, secret string) bool {
+	signSHA256 := genSignSHA256([]byte(guid), []byte(secret))
+	return sHmac == cleanString(signSHA256)
 }
