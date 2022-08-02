@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	sdxTokenPrefix   = "t:"
-	sdxSessKeyPrefix = "tls:"
+	sdxTokenPrefix   = "t:"   // token 字符串的 前缀
+	sdxSessKeyPrefix = "tls:" // session 的前缀
 )
 
 type RedisSessCnf struct {

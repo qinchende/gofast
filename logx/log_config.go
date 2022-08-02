@@ -8,20 +8,10 @@ import (
 	"sync/atomic"
 )
 
-var myConfig *LogConfig
-
-func Style() int8 {
-	return myConfig.styleType
-}
-
-func MustSetup(c *LogConfig) {
-	myConfig = c
-
-	// 必须准备好日志环境，否则启动失败自动退出
-	err := setup(myConfig)
-	//DefaultWriter = infoLog
-	//DefErrorWriter = errorLog
-	if err != nil {
+// 必须准备好日志环境，否则启动失败自动退出
+func MustSetup(cnf *LogConfig) {
+	myConfig = cnf
+	if err := setup(myConfig); err != nil {
 		msg := formatWithCaller(err.Error(), 3)
 		log.Println(msg)
 		output(severeLog, levelFatal, msg, false)
@@ -29,27 +19,27 @@ func MustSetup(c *LogConfig) {
 	}
 }
 
-func WithArchiveMillis(millis int) LogOption {
-	return func(opts *logOptions) {
-		opts.logStackArchiveMills = millis
-	}
-}
+//func WithArchiveMillis(millis int) LogOption {
+//	return func(opts *logOptions) {
+//		opts.logStackArchiveMills = millis
+//	}
+//}
+//
+//func WithKeepDays(days int) LogOption {
+//	return func(opts *logOptions) {
+//		opts.keepDays = days
+//	}
+//}
+//
+//func WithGzip() LogOption {
+//	return func(opts *logOptions) {
+//		opts.gzipEnabled = true
+//	}
+//}
 
-func WithKeepDays(days int) LogOption {
-	return func(opts *logOptions) {
-		opts.keepDays = days
-	}
-}
-
-func WithGzip() LogOption {
-	return func(opts *logOptions) {
-		opts.gzipEnabled = true
-	}
-}
-
-func SetLevel(level uint32) {
-	atomic.StoreUint32(&logLevel, level)
-}
+//func SetLevel(level uint32) {
+//	atomic.StoreUint32(&logLevel, level)
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -85,7 +75,7 @@ func setupWithConsole(c *LogConfig) {
 	once.Do(func() {
 		atomic.StoreUint32(&initialized, 1)
 		writeConsole = true
-		setupLogLevel(c)
+		//setupLogLevel(c)
 
 		// 一般输出
 		accessLog = newLogWriter(log.New(os.Stdout, "", flags))
@@ -106,22 +96,22 @@ func setupWithFiles(c *LogConfig) error {
 		return ErrLogPathNotSet
 	}
 
-	var opts []LogOption
+	//var opts []LogOption
 	var err error
 
-	// 添加 config 参数处理函数
-	opts = append(opts, WithArchiveMillis(c.StackArchiveMillis))
-	if c.Compress {
-		opts = append(opts, WithGzip())
-	}
-	if c.KeepDays > 0 {
-		opts = append(opts, WithKeepDays(c.KeepDays))
-	}
+	//// 添加 config 参数处理函数
+	//opts = append(opts, WithArchiveMillis(c.StackArchiveMillis))
+	//if c.Compress {
+	//	opts = append(opts, WithGzip())
+	//}
+	//if c.KeepDays > 0 {
+	//	opts = append(opts, WithKeepDays(c.KeepDays))
+	//}
 
 	once.Do(func() {
 		atomic.StoreUint32(&initialized, 1)
-		handleOptions(opts)
-		setupLogLevel(c)
+		//handleOptions(opts)
+		//setupLogLevel(c)
 
 		prefix := c.FilePrefix
 		if len(c.FilePrefix) > 0 {
@@ -192,7 +182,7 @@ func setupWithFiles(c *LogConfig) error {
 	return err
 }
 
-// 日志存储
+// 分卷存储文件
 func setupWithVolume(c *LogConfig) error {
 	if len(c.AppName) == 0 {
 		return ErrLogServiceNameNotSet
@@ -205,28 +195,28 @@ func createOutput(path string) (WriterCloser, error) {
 	if len(path) == 0 {
 		return nil, ErrLogPathNotSet
 	}
-	rr := DefaultRotateRule(path, backupFileDelimiter, options.keepDays, options.gzipEnabled)
-	return NewRotateLogger(path, rr, options.gzipEnabled)
+	rr := DefaultRotateRule(path, backupFileDelimiter, myConfig.FileKeepDays, myConfig.FileGzip)
+	return NewRotateLogger(path, rr, myConfig.FileGzip)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func setupLogLevel(c *LogConfig) {
-	switch c.LogLevel {
-	case levelInfo:
-		SetLevel(InfoLevel)
-	case levelError:
-		SetLevel(ErrorLevel)
-	case levelSevere:
-		SetLevel(SevereLevel)
-	}
-}
+//func setupLogLevel(c *LogConfig) {
+//	switch c.LogLevel {
+//	case levelInfo:
+//		SetLevel(InfoLevel)
+//	case levelError:
+//		SetLevel(ErrorLevel)
+//	case levelSevere:
+//		SetLevel(SevereLevel)
+//	}
+//}
 
 func shouldLog(level uint32) bool {
 	return atomic.LoadUint32(&logLevel) <= level
 }
 
-func handleOptions(opts []LogOption) {
-	for _, opt := range opts {
-		opt(&options)
-	}
-}
+//func handleOptions(opts []LogOption) {
+//	for _, opt := range opts {
+//		opt(&options)
+//	}
+//}

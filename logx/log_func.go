@@ -6,6 +6,7 @@ import (
 	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 	"log"
+	"os"
 	"runtime"
 	"runtime/debug"
 	"strconv"
@@ -104,6 +105,16 @@ func Error(v ...any) {
 
 func ErrorF(format string, v ...any) {
 	ErrorCallerF(1, format, v...)
+}
+
+func Fatal(v ...any) {
+	ErrorCaller(1, v...)
+	os.Exit(1)
+}
+
+func FatalF(format string, v ...any) {
+	ErrorCallerF(1, format, v...)
+	os.Exit(1)
 }
 
 func ErrorCaller(callDepth int, v ...any) {
@@ -252,13 +263,13 @@ func statSync(msg string) {
 }
 
 // 向对应的文件（描述符）写入日志记录
-//func logBytes(buf []byte) {
-//	_, _ = fmt.Fprint(DefaultWriter, buf)
-//}
-//
-//func logString(text string) {
-//	infoSync(text)
-//}
+func logBytes(buf []byte) {
+	_, _ = fmt.Fprint(accessLog, buf)
+}
+
+func logString(text string) {
+	infoSync(text, false)
+}
 
 func outputError(lwt WriterCloser, msg string, callDepth int) {
 	content := formatWithCaller(msg, callDepth)

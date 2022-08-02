@@ -10,7 +10,7 @@ import (
 	"sync"
 )
 
-const gftSupportMinGoVer = 14
+const gftSupportMinGoVer = 18
 
 var isDebug = false
 var _once sync.Once
@@ -49,7 +49,7 @@ func GetMinVer(v string) (uint64, error) {
 
 func DebugPrintWarningDefault() {
 	if v, e := GetMinVer(runtime.Version()); e == nil && v <= gftSupportMinGoVer {
-		DebugPrint("[WARN] Now GoFast requires Go 1.14 or later and Go 1.16 will be required soon.\n")
+		DebugPrint("[WARN] Now GoFast requires Go 1.18 or later and Go 1.20 will be required soon.\n")
 	}
 	DebugPrint("[WARN] Creating an Engine instance with the Logger and Recovery middleware already attached.\n")
 }
