@@ -35,6 +35,12 @@ type (
 	}
 )
 
+type RedisDBListCnf struct {
+	R61501 ConnCnf
+	R61505 ConnCnf
+	R61508 ConnCnf
+}
+
 // 直接连接redis
 // go-redis 底层自带连接池功能，不需要你再管理了。
 // 看看 go-redis/redis.go 中的代码：
