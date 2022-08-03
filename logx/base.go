@@ -3,15 +3,16 @@
 package logx
 
 import (
-	"errors"
 	"sync"
 	"time"
 )
 
 const (
-	InfoLevel   = iota // InfoLevel logs everything
-	ErrorLevel         // ErrorLevel includes errors, slows, stacks
-	SevereLevel        // SevereLevel only log severe messages
+	LogLevelDebug int8 = iota // LogLevelDebug logs [everything]
+	LogLevelInfo              // LogLevelInfo logs [info, warn, error, stack]
+	LogLevelWarn              // LogLevelError includes [warn, error, stack]
+	LogLevelError             // LogLevelError includes [error, stack]
+	LogLevelStack             // LogLevelError includes [stack]
 )
 
 const (
@@ -36,70 +37,59 @@ const (
 	styleSdxStr      = "sdx"
 	styleSdxMiniStr  = "sdx-mini"
 
-	timeFormat     = "2006-01-02T15:04:05.000Z07"
-	timeFormatMini = "01-02 15:04:05"
+	printMediumConsole = "console"
+	printMediumFile    = "file"
+	printMediumVolume  = "volume"
 
-	accessFilename = "access.log"
-	errorFilename  = "error.log"
-	warnFilename   = "warn.log"
-	severeFilename = "severe.log"
-	slowFilename   = "slow.log"
-	statFilename   = "stat.log"
-	stackFilename  = "stack.log"
-
-	consoleMode = "console"
-	volumeMode  = "volume"
-
-	levelAlert  = "alert"
-	levelInfo   = "info"
-	levelError  = "error"
-	levelWarn   = "warn"
-	levelSevere = "severe"
-	levelFatal  = "fatal"
-	levelSlow   = "slow"
-	levelStat   = "stat"
+	// 多钟不同的log分类
+	typeDebug = "debug"
+	typeInfo  = "info"
+	typeWarn  = "warn"
+	typeError = "error"
+	typeStack = "stack"
+	// 几种统计日志
+	typeStat = "stat"
+	typeSlow = "slow"
 
 	callerInnerDepth = 5
 	flags            = 0x0
 )
 
 var (
-	ErrLogPathNotSet        = errors.New("log path must be set")
-	ErrLogNotInitialized    = errors.New("log not initialized")
-	ErrLogServiceNameNotSet = errors.New("log service name must be set")
+	debugLog WriterCloser
+	infoLog  WriterCloser
+	warnLog  WriterCloser
+	errorLog WriterCloser
+	stackLog WriterCloser
+	slowLog  WriterCloser
+	statLog  WriterCloser
 
 	writeConsole bool
-	logLevel     uint32
-	// 6个不同等级的日志输出
-	accessLog WriterCloser
-	errorLog  WriterCloser
-	warnLog   WriterCloser
-	severeLog WriterCloser
-	slowLog   WriterCloser
-	statLog   WriterCloser
-	stackLog  WriterCloser
-
-	once        sync.Once
-	initialized uint32
+	once         sync.Once
+	initialized  uint32
 	//options     logOptions
 
-	myConfig *LogConfig
+	myCnf *LogConfig
 )
 
 type (
 	LogConfig struct {
 		AppName     string `v:""`
 		PrintMedium string `v:"def=console,enum=console|file|volume"`
-		LogLevel    string `v:"def=info,enum=info|error|severe"`          // 记录日志的级别
-		FilePath    string `v:"def=_logs_"`                               // 日志文件路径
-		FilePrefix  string `v:""`                                         // 日志文件名统一前缀(默认是AppName)
-		FileNumber  int8   `v:"def=0,range=[0:3]"`                        // 日志文件数量
-		StyleName   string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"` // 日志样式
-		styleType   int8   `v:""`                                         // 日志样式类型
+		LogLevel    string `v:"def=info,enum=debug|info|warn|error|stack"` // 记录日志的级别
+		LogStyle    string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`  // 日志样式
+		LogStats    bool   `v:"def=true"`                                  // 是否打印统计信息
+
+		FilePath   string `v:"def=_logs_"`        // 日志文件路径
+		FilePrefix string `v:""`                  // 日志文件名统一前缀(默认是AppName)
+		FileNumber int8   `v:"def=0,range=[0:3]"` // 日志文件数量
 
 		FileKeepDays           int  `v:"def=0"`     // 日志文件保留天数
 		FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
 		FileGzip               bool `v:"def=false"` // 是否Gzip压缩日志文件
+
+		logLevel int8 // 日志级别
+		logStyle int8 // 日志样式类型
 	}
 
 	logEntry struct {
@@ -145,5 +135,5 @@ type (
 //)
 
 func Style() int8 {
-	return myConfig.styleType
+	return myCnf.logStyle
 }

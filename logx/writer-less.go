@@ -13,12 +13,13 @@ type lessWriter struct {
 	writer io.Writer
 }
 
-func NewLessWriter(writer io.Writer, milliseconds int) *lessWriter {
-	return &lessWriter{
-		limitedExecutor: newLimitedExecutor(milliseconds),
-		writer:          writer,
-	}
-}
+//
+//func NewLessWriter(writer io.Writer, milliseconds int) *lessWriter {
+//	return &lessWriter{
+//		limitedExecutor: newLimitedExecutor(milliseconds),
+//		writer:          writer,
+//	}
+//}
 
 func (w *lessWriter) Write(p []byte) (n int, err error) {
 	w.logOrDiscard(func() {
