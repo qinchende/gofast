@@ -3,9 +3,7 @@ module github.com/qinchende/gofast
 go 1.18
 
 require (
-	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/gin-gonic/gin v1.7.1
-	github.com/go-playground/validator/v10 v10.4.1
 	github.com/go-redis/redis/v8 v8.5.0
 	github.com/go-sql-driver/mysql v1.6.0
 	github.com/golang/protobuf v1.4.3
@@ -34,6 +32,7 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-playground/locales v0.13.0 // indirect
 	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/go-playground/validator/v10 v10.4.1 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
 	github.com/jinzhu/inflection v1.0.0 // indirect
