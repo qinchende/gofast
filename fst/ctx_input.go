@@ -155,7 +155,7 @@ func (c *Context) ParseForm() {
 		//c.formCache = make(url.Values)
 		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
-				logx.DebugPrint("error on parse multipart form array: %v", err)
+				logx.DebugF("error on parse multipart form array: %v", err)
 			}
 		}
 		c.formCache = c.ReqRaw.PostForm

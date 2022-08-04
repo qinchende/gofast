@@ -65,7 +65,7 @@ func redirectRequest(c *Context) {
 	if req.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect
 	}
-	logx.DebugPrint("redirecting request %d: %s --> %s", code, rPath, rURL)
+	logx.DebugF("redirecting request %d: %s --> %s", code, rPath, rURL)
 	http.Redirect(c.ResWrap, req, rURL, code)
 	//c.ResWrap.WriteHeaderNow()
 }

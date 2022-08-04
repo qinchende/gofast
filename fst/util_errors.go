@@ -212,7 +212,7 @@ func (a errMessages) String(logType int8) string {
 		return ""
 	}
 	var buffer strings.Builder
-	if logType == logx.StyleSdx {
+	if logType == logx.LogStyleSdx {
 		buffer.WriteString("\n  E: ")
 	}
 	for i, msg := range a {

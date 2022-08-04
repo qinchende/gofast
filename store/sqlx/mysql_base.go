@@ -22,7 +22,7 @@ func (conn *MysqlORM) Exec(sql string, args ...any) msql.Result {
 }
 
 func (conn *MysqlORM) ExecCtx(ctx context.Context, sql string, args ...any) msql.Result {
-	logx.DebugPrint(sql)
+	logx.Debug(sql)
 
 	var result msql.Result
 	var err error
@@ -47,7 +47,7 @@ func (conn *MysqlORM) QuerySql(sql string, args ...any) *msql.Rows {
 }
 
 func (conn *MysqlORM) QuerySqlCtx(ctx context.Context, sql string, args ...any) *msql.Rows {
-	logx.DebugPrint(sql)
+	logx.Debug(sql)
 
 	var rows *msql.Rows
 	var err error

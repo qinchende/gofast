@@ -9,7 +9,7 @@ type SessionKeeper interface {
 	Del(string)
 	Save()
 	Expire(int32)
-	SidIsNew() bool
-	Sid() string
-	Destroy() // 销毁当前Session
+	SidIsNew() bool // SessionID is new?
+	Sid() string    // SessionID
+	Destroy()       // 销毁当前Session
 }

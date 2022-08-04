@@ -10,17 +10,16 @@ import (
 )
 
 // tok=t:NFRRcE81WDFQSEZJQUptZkpJ.v9EN6bWz8KU6sKRrcEId1OKUKqYx0hed2zSpCQImvc
-func fetchGuid(tok string) (string, string) {
+// 解析不到，都将返回空字符串
+func parseToken(tok string) (string, string) {
 	start := strings.Index(tok, sdxTokenPrefix)
 	dot := strings.Index(tok, ".")
 	// 格式明显不对，直接返回空
 	if start != 0 || dot <= 0 {
-		// return "", "", errors.New("Can't parse guid. ")
 		return "", ""
 	}
 	guid := tok[2:dot]
 	if len(guid) <= 18 {
-		// return "", "", errors.New("guid length error. ")
 		return "", ""
 	}
 	sHmac := tok[(dot + 1):]

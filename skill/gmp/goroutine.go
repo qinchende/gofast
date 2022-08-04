@@ -12,7 +12,7 @@ func GoSafe(fn func()) {
 func RunSafe(fn func()) {
 	defer func() {
 		if p := recover(); p != nil {
-			logx.ErrorStack(p)
+			logx.Stack(p)
 		}
 	}()
 

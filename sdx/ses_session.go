@@ -27,12 +27,12 @@ func SessBuilder(c *fst.Context) {
 
 	// 没有tok，赋予当前请求新的token，同时走后面的逻辑
 	if len(ss.Token) < 50 {
-		ss.rebuildToken(c.ClientIP())
+		ss.rebuildToken(c)
 		return
 	}
 
 	// 有 tok ，解析出 [guid、hmac]，实际上 token = [guid].[hmac]
-	reqGuid, reqHmac := fetchGuid(ss.Token)
+	reqGuid, reqHmac := parseToken(ss.Token)
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确，需要分配新的Token。
 	// 2. 过期，用当前Token重建Session记录。
@@ -46,7 +46,7 @@ func SessBuilder(c *fst.Context) {
 
 	// 如果没有Guid，就新生成一个
 	if ss.Guid == "" {
-		ss.rebuildToken(c.ClientIP())
+		ss.rebuildToken(c)
 	} else {
 		ss.Values = make(map[string]any)
 		ss.loadSessionFromRedis(c) // 通过Guid 到 redis 中获取当前 session
@@ -72,13 +72,13 @@ func NewSession(c *fst.Context) {
 	ss := new(CtxSession)
 	c.Sess = ss
 
-	ss.rebuildToken(c.ClientIP())
+	ss.rebuildToken(c)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 新生成一个SDX Session对象，生成新的tok
-func (ss *CtxSession) rebuildToken(clientIP string) {
-	guid, tok := genToken(MySessDB.Secret + clientIP)
+func (ss *CtxSession) rebuildToken(c *fst.Context) {
+	guid, tok := genToken(MySessDB.Secret + c.ClientIP())
 	ss.Values = make(map[string]any)
 	ss.Guid = guid
 	ss.Token = tok

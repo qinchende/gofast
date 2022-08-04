@@ -142,7 +142,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	w.ResponseWriter.WriteHeader(w.status)
 	n, err := w.ResponseWriter.Write(w.dataBuf.Bytes())
 	if err != nil {
-		logx.ErrorStackF("SendHijack ResponseWriter error: %s", err)
+		logx.StackF("SendHijack ResponseWriter error: %s", err)
 	}
 	return
 }

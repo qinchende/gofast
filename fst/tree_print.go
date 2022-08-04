@@ -17,7 +17,7 @@ func (gft *GoFast) printRouteTrees() {
 	}
 	strTree.WriteString("++++++++++++++++++++++++++++++\n")
 	// 打印到控制台
-	debugPrintRouteTree(strTree)
+	debugPrintRouteTree(gft, strTree)
 }
 
 func printTree(tree *methodTree, strTree *strings.Builder) {
