@@ -10,6 +10,10 @@ import (
 	"net/http"
 )
 
+func init() {
+	checkRuntimeVer()
+}
+
 type (
 	KV         map[string]any
 	AppHandler func(gft *GoFast)
@@ -21,6 +25,7 @@ type (
 )
 
 const (
+	gftSupportMinGoVer float64 = 1.18 // 支持的最小GO版本是 1.18 and later
 	//BodyBytesKey     = "_qinchende/gofast/bodybyteskey" // 记录POST提交时 body 的字节流，方便后期复用
 	maxFits          uint8  = math.MaxUint8  // 最多多少个全局拦截器
 	maxRouteHandlers int8   = math.MaxInt8   // 单路由最多中间件函数数量

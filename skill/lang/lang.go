@@ -8,7 +8,6 @@ import (
 var Placeholder PlaceholderType
 
 type (
-	GenericType     = any
 	PlaceholderType = struct{}
 )
 

@@ -22,14 +22,14 @@ type ReqLogEntity struct {
 // 打印请求日志，可以指定不同的输出样式
 func WriteReqLog(p *ReqLogEntity) {
 	switch myCnf.logStyle {
-	case StyleSdx:
-		Print(genSdxReqLogString(p))
-	case StyleSdxMini:
-		Print(genSdxReqLogString(p))
-	case StyleJson:
-		Print(genSdxReqLogString(p))
-	case StyleJsonMini:
-		Print(genSdxReqLogString(p))
+	case LogStyleSdx:
+		InfoDirect(genSdxReqLogString(p))
+	case LogStyleSdxMini:
+		InfoDirect(genSdxReqLogString(p))
+	case LogStyleJson:
+		InfoDirect(genSdxReqLogString(p))
+	case LogStyleJsonMini:
+		InfoDirect(genSdxReqLogString(p))
 	default:
 	}
 }

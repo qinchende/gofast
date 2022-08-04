@@ -12,7 +12,7 @@ type GfConfig struct {
 	LogConfig             logx.LogConfig
 	AppName               string `v:"required"`
 	ListenAddr            string `v:"def=0.0.0.0:8099,match=ipv4:port"`
-	RunMode               string `v:"def=debug,enum=debug|test|product"` // 当前模式[debug|test|product]
+	RunningMode           string `v:"def=product,enum=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix      string `v:"def=while(1);"`
 	MaxMultipartMemory    int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
 	SecondsBeforeShutdown int64  `v:"def=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
@@ -33,7 +33,8 @@ type GfConfig struct {
 	FitMaxConnections     int32  `v:"def=1000000,range=[0:100000000]"` // 最大同时请求数，默认100万同时进入，传0不限制
 	FitJwtSecret          string `v:""`                                // JWT认证的秘钥
 	FitLogType            string `v:"def=json,enum=json|sdx"`          // 日志类型
-	modeType              int8   `v:""`                                // 内部记录状态
+
+	modeType int8 `v:""` // 内部记录状态
 	//HTMLRender             render.HTMLRender `cnf:",NA"`
 	//EnableRouteMonitor bool `cnf:",def=true"` // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
 }
@@ -50,7 +51,7 @@ func (gft *GoFast) initServerConfig() {
 	if gft.NeedSysCheck {
 		sysx.StartSysCheck(gft.NeedSysPrint)
 	}
-	gft.SetMode(gft.RunMode)
+	gft.SetMode(gft.RunningMode)
 }
 
 // ++++++++++++++++++++++++++++++++++++++++++++++++
@@ -67,25 +68,20 @@ const (
 	ProductMode = "product"
 )
 
-//func IsDebugMode() bool {
-//	return appCfg.modeType == modeDebug
-//}
-
 func (gft *GoFast) SetMode(mode string) {
 	switch mode {
 	case DebugMode, "":
-		gft.RunMode = DebugMode
+		gft.RunningMode = DebugMode
 		gft.modeType = modeDebug
 	case ProductMode:
-		gft.RunMode = ProductMode
+		gft.RunningMode = ProductMode
 		gft.modeType = modeProduct
 	case TestMode:
-		gft.RunMode = TestMode
+		gft.RunningMode = TestMode
 		gft.modeType = modeTest
 	default:
 		panic("GoFast mode unknown: " + mode)
 	}
-	logx.SetDebugStatus(gft.modeType == modeDebug)
 }
 
 func (gft *GoFast) IsDebugging() bool {
@@ -99,10 +95,3 @@ func (gft *GoFast) ProjectName() (name string) {
 	}
 	return
 }
-
-//// 日志文件的目标系统
-//const (
-//	LogTypeConsole    = "console"
-//	LogTypeELK        = "elk"
-//	LogTypePrometheus = "prometheus"
-//)

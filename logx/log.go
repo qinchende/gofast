@@ -6,12 +6,20 @@ import (
 	"log"
 	"os"
 	"path"
-	"sync/atomic"
+	"sync"
 )
 
 var (
-	ErrLogNotInitialized    = errors.New("log not initialized")
-	ErrLogServiceNameNotSet = errors.New("log service name must be set")
+	debugLog WriterCloser
+	infoLog  WriterCloser
+	warnLog  WriterCloser
+	errorLog WriterCloser
+	stackLog WriterCloser
+	slowLog  WriterCloser
+	statLog  WriterCloser
+
+	initOnce sync.Once
+	myCnf    *LogConfig
 )
 
 // 必须准备好日志环境，否则启动失败自动退出
@@ -19,12 +27,14 @@ func MustSetup(cnf *LogConfig) {
 	myCnf = cnf
 	if len(myCnf.FilePrefix) > 0 {
 		myCnf.FilePrefix += "."
+	} else if len(myCnf.AppName) > 0 {
+		myCnf.FilePrefix = myCnf.AppName + "."
 	}
 
 	if err := setup(myCnf); err != nil {
 		stackInfo := formatWithCaller(err.Error(), 3)
 		log.Println(stackInfo)
-		output(stackLog, typeStack, stackInfo, false)
+		output(stackLog, typeStack, stackInfo)
 		os.Exit(1)
 	}
 }
@@ -41,68 +51,54 @@ func setup(c *LogConfig) error {
 		c.logLevel = LogLevelError
 	case "stack":
 		c.logLevel = LogLevelStack
+	default:
+		return errors.New("item LogLevel not match")
 	}
 
 	switch c.LogStyle {
 	case styleSdxStr:
-		c.logStyle = StyleSdx
+		c.logStyle = LogStyleSdx
 	case styleSdxMiniStr:
-		c.logStyle = StyleSdxMini
+		c.logStyle = LogStyleSdxMini
 	case styleJsonMiniStr:
-		c.logStyle = StyleJsonMini
+		c.logStyle = LogStyleJsonMini
+	case styleJsonStr:
+		c.logStyle = LogStyleJson
 	default:
-		c.logStyle = StyleJson
+		return errors.New("item LogStyle not match")
 	}
 
-	switch c.PrintMedium {
-	case printMediumFile:
+	switch c.LogMedium {
+	case logMediumConsole:
+		return setupWithConsole(c)
+	case logMediumFile:
 		return setupWithFiles(c)
-	case printMediumVolume:
+	case logMediumVolume:
 		return setupWithVolume(c)
 	default:
-		return setupWithConsole(c)
+		return errors.New("item LogMedium not match")
 	}
 }
 
-// 控制台日志模式
 func setupWithConsole(c *LogConfig) error {
-	once.Do(func() {
-		atomic.StoreUint32(&initialized, 1)
-		writeConsole = true
-		//setupLogLevel(c)
-
-		// 一般输出
-		infoLog = newLogWriter(log.New(os.Stdout, "", flags))
+	initOnce.Do(func() {
+		infoLog = newLogWriter(log.New(os.Stdout, "", 0))
 		debugLog = infoLog
 		statLog = infoLog
 		slowLog = infoLog
-		// 错误输出
-		warnLog = newLogWriter(log.New(os.Stderr, "", flags))
+		warnLog = newLogWriter(log.New(os.Stderr, "", 0))
 		errorLog = warnLog
 		stackLog = warnLog
 	})
 	return nil
 }
 
-// 分卷存储文件
-func setupWithVolume(c *LogConfig) error {
-	if len(c.AppName) == 0 {
-		return ErrLogServiceNameNotSet
-	}
-	c.FilePath = path.Join(c.FilePath, c.AppName, host.Hostname())
-	return setupWithFiles(c)
-}
-
 // 文件日志模式下的初始化工作
 func setupWithFiles(c *LogConfig) error {
-	if len(c.FilePath) == 0 {
-		return errors.New("log path must be set")
+	if len(c.FileFolder) == 0 {
+		return errors.New("log file folder must be set")
 	}
-	var err error
-
-	once.Do(func() {
-		atomic.StoreUint32(&initialized, 1)
-
+	initOnce.Do(func() {
 		debugFilePath := logFilePath(typeDebug)
 		infoFilePath := logFilePath(typeInfo)
 		warnFilePath := logFilePath(typeWarn)
@@ -112,48 +108,59 @@ func setupWithFiles(c *LogConfig) error {
 		slowFilePath := logFilePath(typeSlow)
 
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		infoLog = createOutput(infoFilePath)
-		if c.FileNumber == fileOne {
+		infoLog = createFileWriter(infoFilePath)
+		if c.FileNumber == fileOne { // all in info file
 			debugLog = infoLog
 			warnLog = infoLog
 			errorLog = infoLog
 			stackLog = infoLog
 			statLog = infoLog
 			slowLog = infoLog
-		} else if c.FileNumber == fileTwo {
-			errorLog = createOutput(errorFilePath)
-			warnLog = errorLog
-			slowLog = errorLog
-			statLog = errorLog
-			stackLog = errorLog
-		} else if c.FileNumber == fileThree {
-			errorLog = createOutput(errorFilePath)
-			statLog = createOutput(statFilePath)
-			warnLog = errorLog
-			stackLog = errorLog
+		} else if c.FileNumber == fileTwo { // split info and stat files
+			debugLog = infoLog
+			warnLog = infoLog
+			errorLog = infoLog
+			stackLog = infoLog
+			statLog = createFileWriter(statFilePath)
 			slowLog = statLog
+		} else if c.FileNumber == fileThree { // split info error stat files
+			debugLog = infoLog
+			errorLog = createFileWriter(errorFilePath)
+			warnLog = errorLog
+			stackLog = errorLog
+			statLog = createFileWriter(statFilePath)
 			slowLog = statLog
-		} else {
-			debugLog = createOutput(debugFilePath)
-			warnLog = createOutput(warnFilePath)
-			errorLog = createOutput(errorFilePath)
-			stackLog = createOutput(stackFilePath)
-			statLog = createOutput(statFilePath)
-			slowLog = createOutput(slowFilePath)
+		} else if c.FileNumber == fileAll { // split every files
+			debugLog = createFileWriter(debugFilePath)
+			warnLog = createFileWriter(warnFilePath)
+			errorLog = createFileWriter(errorFilePath)
+			stackLog = createFileWriter(stackFilePath)
+			statLog = createFileWriter(statFilePath)
+			slowLog = createFileWriter(slowFilePath)
 		}
 	})
-	return err
+
+	return nil
 }
 
 func logFilePath(logType string) string {
-	return path.Join(myCnf.FilePath, myCnf.FilePrefix+logType+".log")
+	return path.Join(myCnf.FileFolder, myCnf.FilePrefix+logType+".log")
 }
 
-func createOutput(path string) WriterCloser {
-	rr := DefaultRotateRule(path, backupFileDelimiter, myCnf.FileKeepDays, myCnf.FileGzip)
+func createFileWriter(path string) WriterCloser {
+	rr := DefDailyRotateRule(path, backupFileDelimiter, myCnf.FileKeepDays, myCnf.FileGzip)
 	wr, err := NewRotateLogger(path, rr, myCnf.FileGzip)
 	if err != nil {
 		panic(err)
 	}
 	return wr
+}
+
+// 分卷存储文件
+func setupWithVolume(c *LogConfig) error {
+	if len(c.AppName) == 0 {
+		return errors.New("log config item [AppName] must be set")
+	}
+	c.FileFolder = path.Join(c.FileFolder, c.AppName, host.Hostname())
+	return setupWithFiles(c)
 }

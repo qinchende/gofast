@@ -15,7 +15,7 @@ var myApp *fst.GoFast
 
 func initGoFastServer() {
 	// 新建Server
-	myApp = fst.CreateServer(&fst.AppConfig{
+	myApp = fst.CreateServer(&fst.GfConfig{
 		RunMode: fst.ProductMode,
 	})
 

@@ -9,7 +9,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync/atomic"
 )
 
 var (
@@ -17,6 +16,18 @@ var (
 	timeFormatMini = "01-02 15:04:05"
 )
 
+type logEntry struct {
+	Timestamp string `json:"@timestamp"`
+	Level     string `json:"lv"`
+	Duration  string `json:"duration,omitempty"`
+	Content   string `json:"ct"`
+}
+
+func LogStyleType() int8 {
+	return myCnf.logStyle
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func getTimestamp() string {
 	return timex.Time().Format(timeFormat)
 }
@@ -56,19 +67,18 @@ func getCaller(callDepth int) *strings.Builder {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要到这个方法进行输出
-func output(w WriterCloser, level, str string, newLine bool) {
+func output(w WriterCloser, level, str string) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
 	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
 	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
 	//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
 
-	// TODO: 打印日志，套用不同的日志模板
 	switch myCnf.logStyle {
-	case StyleSdx:
+	case LogStyleSdx:
 		str = fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", str)
-	case StyleSdxMini:
-	case StyleJsonMini:
-	case StyleJson:
+	case LogStyleSdxMini:
+	case LogStyleJsonMini:
+	case LogStyleJson:
 		info := logEntry{
 			Timestamp: getTimestamp(),
 			Level:     level,
@@ -80,15 +90,11 @@ func output(w WriterCloser, level, str string, newLine bool) {
 			str = stringx.BytesToString(content)
 		}
 	}
-
-	if newLine {
-		str = "\n" + str
-	}
-	outputString(w, str)
+	outputDirect(w, str)
 }
 
-func outputString(w WriterCloser, str string) {
-	if atomic.LoadUint32(&initialized) == 0 || w == nil {
+func outputDirect(w WriterCloser, str string) {
+	if w == nil {
 		log.Println(str)
 	} else {
 		_ = w.Writeln(str)

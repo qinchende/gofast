@@ -2,11 +2,7 @@
 // Use of this source code is governed by a MIT license
 package logx
 
-import (
-	"sync"
-	"time"
-)
-
+// 日志级别的设定，自动显示对应级别的日志
 const (
 	LogLevelDebug int8 = iota // LogLevelDebug logs [everything]
 	LogLevelInfo              // LogLevelInfo logs [info, warn, error, stack]
@@ -16,18 +12,18 @@ const (
 )
 
 const (
-	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
-	fileOne               // 1：全部放在一个日志文件access中
-	fileTwo               // 2：只分access和error两个文件
-	fileThree             // 3：只分access和error和stat三个文件
+	// 日志样式类型
+	LogStyleJson int8 = iota
+	LogStyleJsonMini
+	LogStyleSdx
+	LogStyleSdxMini
 )
 
 const (
-	// 日志样式类型
-	StyleJson int8 = iota
-	StyleJsonMini
-	StyleSdx
-	StyleSdxMini
+	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
+	fileOne               // 1：全部放在一个日志文件info中
+	fileTwo               // 2：只分info和stat两个文件
+	fileThree             // 3：只分info和error和stat三个文件
 )
 
 const (
@@ -37,9 +33,9 @@ const (
 	styleSdxStr      = "sdx"
 	styleSdxMiniStr  = "sdx-mini"
 
-	printMediumConsole = "console"
-	printMediumFile    = "file"
-	printMediumVolume  = "volume"
+	logMediumConsole = "console"
+	logMediumFile    = "file"
+	logMediumVolume  = "volume"
 
 	// 多钟不同的log分类
 	typeDebug = "debug"
@@ -51,72 +47,34 @@ const (
 	typeStat = "stat"
 	typeSlow = "slow"
 
-	callerInnerDepth = 5
-	flags            = 0x0
+	callerInnerDepth = 3
 )
 
-var (
-	debugLog WriterCloser
-	infoLog  WriterCloser
-	warnLog  WriterCloser
-	errorLog WriterCloser
-	stackLog WriterCloser
-	slowLog  WriterCloser
-	statLog  WriterCloser
+type LogConfig struct {
+	AppName   string `v:""`
+	LogMedium string `v:"def=console,enum=console|file|volume"`
+	LogLevel  string `v:"def=info,enum=debug|info|warn|error|stack"` // 记录日志的级别
+	LogStyle  string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`  // 日志样式
+	LogStats  bool   `v:"def=true"`                                  // 是否打印统计信息
 
-	writeConsole bool
-	once         sync.Once
-	initialized  uint32
-	//options     logOptions
+	FileFolder string `v:""`                  // 日志文件夹路径
+	FilePrefix string `v:""`                  // 日志文件名统一前缀(默认是AppName)
+	FileNumber int8   `v:"def=2,range=[0:3]"` // 日志文件数量
 
-	myCnf *LogConfig
-)
+	FileKeepDays int  `v:"def=7"`     // 日志文件保留天数
+	FileGzip     bool `v:"def=false"` // 是否Gzip压缩日志文件
+	//FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
 
-type (
-	LogConfig struct {
-		AppName     string `v:""`
-		PrintMedium string `v:"def=console,enum=console|file|volume"`
-		LogLevel    string `v:"def=info,enum=debug|info|warn|error|stack"` // 记录日志的级别
-		LogStyle    string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`  // 日志样式
-		LogStats    bool   `v:"def=true"`                                  // 是否打印统计信息
+	logLevel int8 // 日志级别
+	logStyle int8 // 日志样式类型
+}
 
-		FilePath   string `v:"def=_logs_"`        // 日志文件路径
-		FilePrefix string `v:""`                  // 日志文件名统一前缀(默认是AppName)
-		FileNumber int8   `v:"def=0,range=[0:3]"` // 日志文件数量
-
-		FileKeepDays           int  `v:"def=0"`     // 日志文件保留天数
-		FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
-		FileGzip               bool `v:"def=false"` // 是否Gzip压缩日志文件
-
-		logLevel int8 // 日志级别
-		logStyle int8 // 日志样式类型
-	}
-
-	logEntry struct {
-		Timestamp string `json:"@timestamp"`
-		Level     string `json:"lv"`
-		Duration  string `json:"duration,omitempty"`
-		Content   string `json:"ct"`
-	}
-
-	//logOptions struct {
-	//	gzipEnabled          bool
-	//	logStackArchiveMills int
-	//	keepDays             int
-	//}
-	//
-	//LogOption func(options *logOptions)
-
-	Logger interface {
-		Error(...any)
-		ErrorF(string, ...any)
-		Info(...any)
-		InfoF(string, ...any)
-		Slow(...any)
-		Slowf(string, ...any)
-		WithDuration(time.Duration) Logger
-	}
-)
+//// 日志文件的目标系统
+//const (
+//	LogTypeConsole    = "console"
+//	LogTypeELK        = "elk"
+//	LogTypePrometheus = "prometheus"
+//)
 
 //const (
 //	green   = "\033[97;42m"
@@ -134,6 +92,23 @@ type (
 ////DefErrorWriter io.Writer = os.Stderr
 //)
 
-func Style() int8 {
-	return myCnf.logStyle
-}
+//logOptions struct {
+//	gzipEnabled          bool
+//	logStackArchiveMills int
+//	keepDays             int
+//}
+//
+//LogOption func(options *logOptions)
+
+//Logger interface {
+//	Error(...any)
+//	ErrorF(string, ...any)
+//	Info(...any)
+//	InfoF(string, ...any)
+//	Slow(...any)
+//	Slowf(string, ...any)
+//	WithDuration(time.Duration) Logger
+//}
+
+//writeConsole bool
+//initialized  uint32 // 是否已经完成初始化
