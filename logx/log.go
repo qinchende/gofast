@@ -32,9 +32,9 @@ func MustSetup(cnf *LogConfig) {
 	}
 
 	if err := setup(myCnf); err != nil {
-		stackInfo := formatWithCaller(err.Error(), 3)
-		log.Println(stackInfo)
-		output(stackLog, typeStack, stackInfo)
+		info := formatWithCaller(err.Error(), 3)
+		log.Println(info)
+		output(stackLog, info, levelStack, true)
 		os.Exit(1)
 	}
 }
@@ -80,6 +80,7 @@ func setup(c *LogConfig) error {
 	}
 }
 
+// 第一种：打印在console
 func setupWithConsole(c *LogConfig) error {
 	initOnce.Do(func() {
 		infoLog = newLogWriter(log.New(os.Stdout, "", 0))
@@ -93,22 +94,27 @@ func setupWithConsole(c *LogConfig) error {
 	return nil
 }
 
-// 文件日志模式下的初始化工作
+// 第二种：文件日志模式下的初始化工作
 func setupWithFiles(c *LogConfig) error {
 	if len(c.FileFolder) == 0 {
 		return errors.New("log file folder must be set")
 	}
 	initOnce.Do(func() {
-		debugFilePath := logFilePath(typeDebug)
-		infoFilePath := logFilePath(typeInfo)
-		warnFilePath := logFilePath(typeWarn)
-		errorFilePath := logFilePath(typeError)
-		stackFilePath := logFilePath(typeStack)
-		statFilePath := logFilePath(typeStat)
-		slowFilePath := logFilePath(typeSlow)
+		debugFilePath := logFilePath(levelDebug)
+		infoFilePath := logFilePath(levelInfo)
+		warnFilePath := logFilePath(levelWarn)
+		errorFilePath := logFilePath(levelError)
+		stackFilePath := logFilePath(levelStack)
+		statFilePath := logFilePath(levelStat)
+		slowFilePath := logFilePath(levelSlow)
 
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
 		infoLog = createFileWriter(infoFilePath)
+		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
+		*os.Stdout = *infoLog.(*RotateLogger).fp
+		*os.Stderr = *os.Stdout
+		//log.SetOutput(infoLog) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
+
 		if c.FileNumber == fileOne { // all in info file
 			debugLog = infoLog
 			warnLog = infoLog
@@ -156,7 +162,7 @@ func createFileWriter(path string) WriterCloser {
 	return wr
 }
 
-// 分卷存储文件
+// 第三种：分卷存储文件（其实也是写文件，但是更严格的分层文件夹。）
 func setupWithVolume(c *LogConfig) error {
 	if len(c.AppName) == 0 {
 		return errors.New("log config item [AppName] must be set")

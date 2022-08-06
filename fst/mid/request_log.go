@@ -24,7 +24,7 @@ func Logger(c *fst.Context) {
 	p.BodySize = len(p.ResData)
 
 	// TODO: 内部错误信息一般不返回给调用者，而是打印日志
-	p.ErrorMsg = c.Errors.String(logx.LogStyleType())
+	p.ErrorMsg = c.Errors.ToString(logx.LogStyleType())
 
 	// Stop timer
 	p.TimeStamp = timex.Now()

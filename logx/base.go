@@ -38,14 +38,14 @@ const (
 	logMediumVolume  = "volume"
 
 	// 多钟不同的log分类
-	typeDebug = "debug"
-	typeInfo  = "info"
-	typeWarn  = "warn"
-	typeError = "error"
-	typeStack = "stack"
+	levelDebug = "debug"
+	levelInfo  = "info"
+	levelWarn  = "warn"
+	levelError = "error"
+	levelStack = "stack"
 	// 几种统计日志
-	typeStat = "stat"
-	typeSlow = "slow"
+	levelStat = "stat"
+	levelSlow = "slow"
 
 	callerInnerDepth = 3
 )
@@ -59,11 +59,11 @@ type LogConfig struct {
 
 	FileFolder string `v:""`                  // 日志文件夹路径
 	FilePrefix string `v:""`                  // 日志文件名统一前缀(默认是AppName)
-	FileNumber int8   `v:"def=2,range=[0:3]"` // 日志文件数量
+	FileNumber int8   `v:"def=2,range=[0:3]"` // 日志文件数量，默认只拆分成 info and stat (日志 + 统计)
 
 	FileKeepDays int  `v:"def=7"`     // 日志文件保留天数
 	FileGzip     bool `v:"def=false"` // 是否Gzip压缩日志文件
-	//FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
+	// FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
 
 	logLevel int8 // 日志级别
 	logStyle int8 // 日志样式类型

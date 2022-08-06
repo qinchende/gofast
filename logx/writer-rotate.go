@@ -30,9 +30,9 @@ const (
 type (
 	RotateRule interface {
 		BackupFileName() string
-		MarkRotated()
 		OutdatedFiles() []string
-		ShallRotate() bool
+		MarkRotated()
+		NeedRotate() bool
 	}
 
 	RotateLogger struct {
@@ -52,22 +52,22 @@ type (
 	}
 
 	DailyRotateRule struct {
-		rotatedTime string
-		filename    string
-		delimiter   string
-		days        int
-		gzip        bool
+		yearDay   int
+		filename  string
+		delimiter string
+		days      int
+		gzip      bool
 	}
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func DefDailyRotateRule(filename, delimiter string, days int, gzip bool) RotateRule {
 	return &DailyRotateRule{
-		rotatedTime: time.Now().Format(dateFormat),
-		filename:    filename,
-		delimiter:   delimiter,
-		days:        days,
-		gzip:        gzip,
+		yearDay:   time.Now().YearDay(),
+		filename:  filename,
+		delimiter: delimiter,
+		days:      days,
+		gzip:      gzip,
 	}
 }
 
@@ -76,7 +76,7 @@ func (r *DailyRotateRule) BackupFileName() string {
 }
 
 func (r *DailyRotateRule) MarkRotated() {
-	r.rotatedTime = time.Now().Format(dateFormat)
+	r.yearDay = time.Now().YearDay()
 }
 
 func (r *DailyRotateRule) OutdatedFiles() []string {
@@ -115,8 +115,8 @@ func (r *DailyRotateRule) OutdatedFiles() []string {
 	return outDates
 }
 
-func (r *DailyRotateRule) ShallRotate() bool {
-	return len(r.rotatedTime) > 0 && time.Now().Format(dateFormat) != r.rotatedTime
+func (r *DailyRotateRule) NeedRotate() bool {
+	return time.Now().YearDay() != r.yearDay
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -271,8 +271,8 @@ func (rl *RotateLogger) startWorker() {
 		defer rl.waitGroup.Done()
 		for {
 			select {
-			case event := <-rl.channel:
-				rl.write(event)
+			case bytes := <-rl.channel:
+				rl.writeExec(bytes)
 			case <-rl.done:
 				return
 			}
@@ -281,8 +281,8 @@ func (rl *RotateLogger) startWorker() {
 }
 
 // 检查标记，做好日志的拆分，自动判断 gzip 标记并压缩
-func (rl *RotateLogger) write(v []byte) {
-	if rl.rule.ShallRotate() {
+func (rl *RotateLogger) writeExec(data []byte) {
+	if rl.rule.NeedRotate() {
 		if err := rl.rotate(); err != nil {
 			log.Println(err)
 		} else {
@@ -290,7 +290,7 @@ func (rl *RotateLogger) write(v []byte) {
 		}
 	}
 	if rl.fp != nil {
-		_, _ = rl.fp.Write(v)
+		_, _ = rl.fp.Write(data)
 	}
 }
 
