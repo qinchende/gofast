@@ -67,30 +67,32 @@ func getCaller(callDepth int) *strings.Builder {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要到这个方法进行输出
-func output(w WriterCloser, level, str string) {
+func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
 	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
 	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
 	//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
 
-	switch myCnf.logStyle {
-	case LogStyleSdx:
-		str = fmt.Sprint("[", getTimestampMini(), "][", level, "]: ", str)
-	case LogStyleSdxMini:
-	case LogStyleJsonMini:
-	case LogStyleJson:
-		info := logEntry{
-			Timestamp: getTimestamp(),
-			Level:     level,
-			Content:   str,
-		}
-		if content, err := jsonx.Marshal(info); err != nil {
-			str = err.Error()
-		} else {
-			str = stringx.BytesToString(content)
+	if useStyle == true {
+		switch myCnf.logStyle {
+		case LogStyleSdx:
+			info = fmt.Sprint("[", getTimestampMini(), "][", logLevel, "]: ", info)
+		case LogStyleSdxMini:
+		case LogStyleJsonMini:
+		case LogStyleJson:
+			logWrap := logEntry{
+				Timestamp: getTimestamp(),
+				Level:     logLevel,
+				Content:   info,
+			}
+			if content, err := jsonx.Marshal(logWrap); err != nil {
+				info = err.Error()
+			} else {
+				info = stringx.BytesToString(content)
+			}
 		}
 	}
-	outputDirect(w, str)
+	outputDirect(w, info)
 }
 
 func outputDirect(w WriterCloser, str string) {

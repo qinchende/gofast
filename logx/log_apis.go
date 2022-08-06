@@ -7,140 +7,123 @@ import (
 )
 
 func Debug(v ...any) {
-	debugSync(fmt.Sprint(v...))
-}
-
-func DebugDirect(v ...any) {
-	debugSyncDirect(fmt.Sprint(v...))
+	debugSync(fmt.Sprint(v...), true)
 }
 
 func DebugF(format string, v ...any) {
-	debugSync(fmt.Sprintf(format, v...))
+	debugSync(fmt.Sprintf(format, v...), true)
+}
+
+func DebugDirect(v ...any) {
+	debugSync(fmt.Sprint(v...), false)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 直接打印所给的数据
-func InfoDirect(v ...any) {
-	infoSyncDirect(fmt.Sprint(v...))
-}
-
-func InfoDirectF(format string, v ...any) {
-	infoSyncDirect(fmt.Sprintf(format, v...))
-}
-
 func Info(v ...any) {
-	infoSync(fmt.Sprint(v...))
+	infoSync(fmt.Sprint(v...), true)
 }
 
 func InfoF(format string, v ...any) {
-	infoSync(fmt.Sprintf(format, v...))
+	infoSync(fmt.Sprintf(format, v...), true)
+}
+
+// 直接打印所给的数据
+func InfoDirect(v ...any) {
+	infoSync(fmt.Sprint(v...), false)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Warn(v ...any) {
-	warnSync(fmt.Sprint(v...))
+	warnSync(fmt.Sprint(v...), true)
 }
 
 func WarnF(format string, v ...any) {
-	warnSync(fmt.Sprintf(format, v...))
+	warnSync(fmt.Sprintf(format, v...), true)
 }
 
 func Error(v ...any) {
-	errorSync(fmt.Sprint(v...), callerInnerDepth)
+	errorSync(fmt.Sprint(v...), callerInnerDepth, true)
 }
 
 func ErrorF(format string, v ...any) {
-	errorSync(fmt.Sprintf(format, v...), callerInnerDepth)
+	errorSync(fmt.Sprintf(format, v...), callerInnerDepth, true)
 }
 
 func ErrorFatal(v ...any) {
-	errorSync(fmt.Sprint(v...), callerInnerDepth)
+	errorSync(fmt.Sprint(v...), callerInnerDepth, true)
 	os.Exit(1)
 }
 
 func ErrorFatalF(format string, v ...any) {
-	errorSync(fmt.Sprintf(format, v...), callerInnerDepth)
+	errorSync(fmt.Sprintf(format, v...), callerInnerDepth, true)
 	os.Exit(1)
 }
 
 func Stack(v ...any) {
-	stackSync(fmt.Sprint(v...))
+	stackSync(fmt.Sprint(v...), true)
 }
 
 func StackF(format string, v ...any) {
-	stackSync(fmt.Sprintf(format, v...))
+	stackSync(fmt.Sprintf(format, v...), true)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stat(v ...any) {
-	statSync(fmt.Sprint(v...))
+	statSync(fmt.Sprint(v...), true)
 }
 
 func StatF(format string, v ...any) {
-	statSync(fmt.Sprintf(format, v...))
+	statSync(fmt.Sprintf(format, v...), true)
 }
 
 func Slow(v ...any) {
-	slowSync(fmt.Sprint(v...))
+	slowSync(fmt.Sprint(v...), true)
 }
 
 func SlowF(format string, v ...any) {
-	slowSync(fmt.Sprintf(format, v...))
+	slowSync(fmt.Sprintf(format, v...), true)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // inner call apis
-func debugSync(msg string) {
+func debugSync(msg string, useStyle bool) {
 	if myCnf.logLevel <= LogLevelDebug {
-		output(debugLog, typeDebug, msg)
+		output(debugLog, msg, levelDebug, useStyle)
 	}
 }
 
-func debugSyncDirect(msg string) {
-	if myCnf.logLevel <= LogLevelDebug {
-		outputDirect(debugLog, msg)
-	}
-}
-
-func infoSync(msg string) {
+func infoSync(msg string, useStyle bool) {
 	if myCnf.logLevel <= LogLevelInfo {
-		output(infoLog, typeInfo, msg)
+		output(infoLog, msg, levelInfo, useStyle)
 	}
 }
 
-func infoSyncDirect(msg string) {
-	if myCnf.logLevel <= LogLevelInfo {
-		outputDirect(infoLog, msg)
-	}
-}
-
-func warnSync(msg string) {
+func warnSync(msg string, useStyle bool) {
 	if myCnf.logLevel <= LogLevelWarn {
-		output(warnLog, typeWarn, msg)
+		output(warnLog, msg, levelWarn, useStyle)
 	}
 }
 
-func errorSync(msg string, callDepth int) {
+func errorSync(msg string, callDepth int, useStyle bool) {
 	if myCnf.logLevel <= LogLevelError {
-		content := formatWithCaller(msg, callDepth)
-		output(errorLog, typeError, content)
+		output(errorLog, formatWithCaller(msg, callDepth), levelError, useStyle)
 	}
 }
 
-func stackSync(msg string) {
+func stackSync(msg string, useStyle bool) {
 	if myCnf.logLevel <= LogLevelStack {
-		output(stackLog, typeStack, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())))
+		output(stackLog, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), levelStack, useStyle)
 	}
 }
 
-func statSync(msg string) {
+func statSync(msg string, useStyle bool) {
 	if myCnf.LogStats {
-		output(statLog, typeStat, msg)
+		output(statLog, msg, levelStat, useStyle)
 	}
 }
 
-func slowSync(msg string) {
+func slowSync(msg string, useStyle bool) {
 	if myCnf.LogStats {
-		output(slowLog, typeSlow, msg)
+		output(slowLog, msg, levelSlow, useStyle)
 	}
 }

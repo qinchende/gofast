@@ -207,7 +207,7 @@ func (a errMessages) MarshalJSON() ([]byte, error) {
 }
 
 // 所有错误合并成字符串
-func (a errMessages) String(logType int8) string {
+func (a errMessages) ToString(logType int8) string {
 	if len(a) == 0 {
 		return ""
 	}

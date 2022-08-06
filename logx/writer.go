@@ -23,6 +23,7 @@ func newLogWriter(logger *log.Logger) logWriter {
 	}
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (lw logWriter) Close() error {
 	return nil
 }
