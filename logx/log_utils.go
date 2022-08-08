@@ -1,9 +1,9 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package logx
 
 import (
-	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"runtime"
@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	timeFormat     = "2006-01-02T15:04:05.000Z07"
+	timeFormat     = "2006-01-02 15:04:05"
 	timeFormatMini = "01-02 15:04:05"
 )
 
@@ -69,14 +69,24 @@ func getCaller(callDepth int) *strings.Builder {
 // 日志的输出，最后都要到这个方法进行输出
 func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
-	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
-	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
-	//log.SetFlags(log.LstdFlags) // 设置成日期+时间 格式
+	log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
+	log.SetFlags(log.Lmsgprefix) // 取消前置字符串
+	log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
 
 	if useStyle == true {
 		switch myCnf.logStyle {
 		case LogStyleSdx:
-			info = fmt.Sprint("[", getTimestampMini(), "][", logLevel, "]: ", info)
+			// fmt.Sprint("[", getTimestampMini(), "][", logLevel, "]: ", info)
+			sb := strings.Builder{}
+			sb.Grow(len(info) + 26)
+			sb.WriteByte('[')
+			sb.WriteString(getTimestampMini())
+			sb.WriteString("][")
+			sb.WriteString(logLevel)
+			sb.WriteString("]: ")
+			sb.WriteString(info)
+			outputDirectBuilder(w, &sb)
+			return
 		case LogStyleSdxMini:
 		case LogStyleJsonMini:
 		case LogStyleJson:
@@ -86,10 +96,11 @@ func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 				Content:   info,
 			}
 			if content, err := jsonx.Marshal(logWrap); err != nil {
-				info = err.Error()
+				outputDirect(w, err.Error())
 			} else {
-				info = stringx.BytesToString(content)
+				outputDirectBytes(w, content)
 			}
+			return
 		}
 	}
 	outputDirect(w, info)
@@ -100,5 +111,23 @@ func outputDirect(w WriterCloser, str string) {
 		log.Println(str)
 	} else {
 		_ = w.Writeln(str)
+	}
+}
+
+// 推荐使用bytes版本
+func outputDirectBytes(w WriterCloser, bs []byte) {
+	if w == nil {
+		log.Println(bs)
+	} else {
+		_ = w.WritelnBytes(bs)
+	}
+}
+
+// 推荐使用bytes版本
+func outputDirectBuilder(w WriterCloser, sb *strings.Builder) {
+	if w == nil {
+		log.Println(sb.String())
+	} else {
+		_ = w.WritelnBuilder(sb)
 	}
 }

@@ -1,4 +1,4 @@
-// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
 package logx
 
@@ -11,14 +11,15 @@ const (
 	LogLevelStack             // LogLevelError includes [stack]
 )
 
+// 日志样式类型
 const (
-	// 日志样式类型
 	LogStyleJson int8 = iota
 	LogStyleJsonMini
 	LogStyleSdx
 	LogStyleSdxMini
 )
 
+// 日志文件拆分成几个分别保存内容
 const (
 	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
 	fileOne               // 1：全部放在一个日志文件info中
