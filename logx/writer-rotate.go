@@ -1,9 +1,12 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package logx
 
 import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/skill/stringx"
 	"io"
 	"log"
 	"os"
@@ -19,7 +22,7 @@ import (
 )
 
 const (
-	dateFormat          = "2006-01-02"
+	dateFormatYMD       = "2006-01-02"
 	hoursPerDay         = 24
 	bufferSize          = 100
 	defaultDirMode      = 0755
@@ -27,28 +30,24 @@ const (
 	backupFileDelimiter = "-"
 )
 
-type (
-	RotateRule interface {
-		BackupFileName() string
-		OutdatedFiles() []string
-		MarkRotated()
-		NeedRotate() bool
-	}
+type RotateRule interface {
+	ArchiveFileName() string
+	OutdatedFiles() []string
+	NeedRotate() bool
+	MarkRotated()
+}
 
+type (
 	RotateLogger struct {
 		filename string
-		backup   string
-		fp       *os.File
-		channel  chan []byte
-		done     chan lang.PlaceholderType
 		rule     RotateRule
 		compress bool
-		keepDays int
-		// can't use threading.RoutineGroup because of cycle import
-		waitGroup sync.WaitGroup
+
+		fp        *os.File
+		channel   chan []byte
+		done      chan lang.PlaceholderType
+		waitGroup sync.WaitGroup // can't use threading.RoutineGroup because of cycle import
 		closeOnce sync.Once
-		//mu        sync.Mutex // ensures atomic writes; protects the following fields
-		//buf       []byte     // for accumulating text to write
 	}
 
 	DailyRotateRule struct {
@@ -71,14 +70,11 @@ func DefDailyRotateRule(filename, delimiter string, days int, gzip bool) RotateR
 	}
 }
 
-func (r *DailyRotateRule) BackupFileName() string {
-	return fmt.Sprintf("%s%s%s", r.filename, r.delimiter, time.Now().Format(dateFormat))
+func (r *DailyRotateRule) ArchiveFileName() string {
+	return fmt.Sprintf("%s%s%s", r.filename, r.delimiter, time.Now().Format(dateFormatYMD))
 }
 
-func (r *DailyRotateRule) MarkRotated() {
-	r.yearDay = time.Now().YearDay()
-}
-
+// 过期的文件列表
 func (r *DailyRotateRule) OutdatedFiles() []string {
 	if r.days <= 0 {
 		return nil
@@ -97,13 +93,11 @@ func (r *DailyRotateRule) OutdatedFiles() []string {
 		return nil
 	}
 
-	var buf strings.Builder
-	boundary := time.Now().Add(-time.Hour * time.Duration(hoursPerDay*r.days)).Format(dateFormat)
-	fmt.Fprintf(&buf, "%s%s%s", r.filename, r.delimiter, boundary)
+	boundary := time.Now().Add(-time.Hour * time.Duration(hoursPerDay*r.days)).Format(dateFormatYMD)
+	boundaryFile := fmt.Sprintf("%s%s%s", r.filename, r.delimiter, boundary)
 	if r.gzip {
-		buf.WriteString(".gz")
+		boundaryFile += ".gz"
 	}
-	boundaryFile := buf.String()
 
 	var outDates []string
 	for _, file := range files {
@@ -115,6 +109,10 @@ func (r *DailyRotateRule) OutdatedFiles() []string {
 	return outDates
 }
 
+func (r *DailyRotateRule) MarkRotated() {
+	r.yearDay = time.Now().YearDay()
+}
+
 func (r *DailyRotateRule) NeedRotate() bool {
 	return time.Now().YearDay() != r.yearDay
 }
@@ -124,10 +122,10 @@ func (r *DailyRotateRule) NeedRotate() bool {
 func NewRotateLogger(filename string, rule RotateRule, compress bool) (*RotateLogger, error) {
 	rl := &RotateLogger{
 		filename: filename,
-		channel:  make(chan []byte, bufferSize),
-		done:     make(chan lang.PlaceholderType),
 		rule:     rule,
 		compress: compress,
+		channel:  make(chan []byte, bufferSize),
+		done:     make(chan lang.PlaceholderType),
 	}
 	if err := rl.initRotateLogger(); err != nil {
 		return nil, err
@@ -162,9 +160,7 @@ func (rl *RotateLogger) Write(data []byte) (int, error) {
 
 // 每次调用都会在 data 后面自动判断并加上 \n
 func (rl *RotateLogger) Writeln(data string) (err error) {
-	// TODO：字符串转换成 字节切片，增加内存开销，会影响性能，类似这种问题一会想办法改进
 	bs := []byte(data)
-
 	if len(bs) == 0 || bs[len(bs)-1] != '\n' {
 		bs = append(bs, '\n')
 	}
@@ -172,20 +168,24 @@ func (rl *RotateLogger) Writeln(data string) (err error) {
 	return
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// utils
-func (rl *RotateLogger) getBackupFilename() string {
-	if len(rl.backup) == 0 {
-		return rl.rule.BackupFileName()
-	} else {
-		return rl.backup
+func (rl *RotateLogger) WritelnBytes(data []byte) (err error) {
+	if len(data) == 0 || data[len(data)-1] != '\n' {
+		data = append(data, '\n')
 	}
+	_, err = rl.Write(data)
+	return
 }
 
-// TODO: 这里可以指定用 标准库中的 log 包来写数据
-func (rl *RotateLogger) initRotateLogger() error {
-	rl.backup = rl.rule.BackupFileName()
+func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
+	sb.WriteByte('\n')
+	_, err = rl.Write(stringx.StringToBytes(sb.String()))
+	return
+}
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// utils
+func (rl *RotateLogger) initRotateLogger() error {
+	// 判断当前日志文件是否存在，不存在就创建新的
 	if _, err := os.Stat(rl.filename); err != nil {
 		basePath := path.Dir(rl.filename)
 		if _, err = os.Stat(basePath); err != nil {
@@ -193,16 +193,15 @@ func (rl *RotateLogger) initRotateLogger() error {
 				return err
 			}
 		}
-
 		if rl.fp, err = os.Create(rl.filename); err != nil {
 			return err
 		}
+		// 打开这个已经存在的文件，采用追加只写的模式
 	} else if rl.fp, err = os.OpenFile(rl.filename, os.O_APPEND|os.O_WRONLY, defaultFileMode); err != nil {
 		return err
 	}
 
 	fs.CloseOnExec(rl.fp)
-
 	return nil
 }
 
@@ -223,7 +222,7 @@ func (rl *RotateLogger) maybeDeleteOutdatedFiles() {
 	files := rl.rule.OutdatedFiles()
 	for _, file := range files {
 		if err := os.Remove(file); err != nil {
-			ErrorF("failed to remove outdated file: %s", file)
+			ErrorF("logx failed to remove outdated file: %s", file)
 		}
 	}
 }
@@ -236,7 +235,8 @@ func (rl *RotateLogger) postRotate(file string) {
 	}()
 }
 
-func (rl *RotateLogger) rotate() error {
+// 开始归档
+func (rl *RotateLogger) doRotate() error {
 	if rl.fp != nil {
 		err := rl.fp.Close()
 		rl.fp = nil
@@ -246,21 +246,18 @@ func (rl *RotateLogger) rotate() error {
 	}
 
 	_, err := os.Stat(rl.filename)
-	if err == nil && len(rl.backup) > 0 {
-		backupFilename := rl.getBackupFilename()
-		err = os.Rename(rl.filename, backupFilename)
+	if err == nil {
+		archFilename := rl.rule.ArchiveFileName()
+		err = os.Rename(rl.filename, archFilename)
 		if err != nil {
 			return err
 		}
-
-		rl.postRotate(backupFilename)
+		rl.postRotate(archFilename)
 	}
 
-	rl.backup = rl.rule.BackupFileName()
 	if rl.fp, err = os.Create(rl.filename); err == nil {
 		fs.CloseOnExec(rl.fp)
 	}
-
 	return err
 }
 
@@ -283,7 +280,7 @@ func (rl *RotateLogger) startWorker() {
 // 检查标记，做好日志的拆分，自动判断 gzip 标记并压缩
 func (rl *RotateLogger) writeExec(data []byte) {
 	if rl.rule.NeedRotate() {
-		if err := rl.rotate(); err != nil {
+		if err := rl.doRotate(); err != nil {
 			log.Println(err)
 		} else {
 			rl.rule.MarkRotated()
@@ -312,7 +309,7 @@ func gzipFile(file string) error {
 	}
 	defer in.Close()
 
-	out, err := os.Create(fmt.Sprintf("%s.gz", file))
+	out, err := os.Create(file + ".gz")
 	if err != nil {
 		return err
 	}

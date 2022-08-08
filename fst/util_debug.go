@@ -20,6 +20,6 @@ func debugPrintRoute(gft *GoFast, ri *RouteItem) {
 
 func debugPrintRouteTree(gft *GoFast, strTree *strings.Builder) {
 	if gft.IsDebugging() {
-		logx.DebugDirect(strTree)
+		logx.DebugDirectStr(strTree.String())
 	}
 }

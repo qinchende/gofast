@@ -1,10 +1,10 @@
-// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
 package logx
 
 import (
-	"encoding/json"
 	"fmt"
+	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/timex"
 	"time"
 )
@@ -33,12 +33,12 @@ var genSdxReqLogString = func(p *ReqLogEntity) string {
 	// 请求参数
 	var reqParams []byte
 	if p.Pms != nil {
-		reqParams, _ = json.Marshal(p.Pms)
+		reqParams, _ = jsonx.Marshal(p.Pms)
 	} else if p.RawReq.Form != nil {
-		reqParams, _ = json.Marshal(p.RawReq.Form)
+		reqParams, _ = jsonx.Marshal(p.RawReq.Form)
 	}
 	// 请求 核心参数
-	reqBaseParams, _ := json.Marshal(basePms)
+	reqBaseParams, _ := jsonx.Marshal(basePms)
 
 	return fmt.Sprintf(formatStr,
 		p.RawReq.Method,

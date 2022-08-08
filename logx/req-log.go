@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package logx
 
 import (
@@ -23,13 +25,13 @@ type ReqLogEntity struct {
 func WriteReqLog(p *ReqLogEntity) {
 	switch myCnf.logStyle {
 	case LogStyleSdx:
-		InfoDirect(genSdxReqLogString(p))
+		InfoDirectStr(genSdxReqLogString(p))
 	case LogStyleSdxMini:
-		InfoDirect(genSdxReqLogString(p))
+		InfoDirectStr(genSdxReqLogString(p))
 	case LogStyleJson:
-		InfoDirect(genSdxReqLogString(p))
+		InfoDirectStr(genSdxReqLogString(p))
 	case LogStyleJsonMini:
-		InfoDirect(genSdxReqLogString(p))
+		InfoDirectStr(genSdxReqLogString(p))
 	default:
 	}
 }
