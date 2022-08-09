@@ -25,13 +25,13 @@ type ReqLogEntity struct {
 func WriteReqLog(p *ReqLogEntity) {
 	switch myCnf.logStyle {
 	case LogStyleSdx:
-		InfoDirectStr(genSdxReqLogString(p))
+		InfoStrDirect(genSdxReqLogString(p))
 	case LogStyleSdxMini:
-		InfoDirectStr(genSdxReqLogString(p))
+		InfoStrDirect(genSdxReqLogString(p))
 	case LogStyleJson:
-		InfoDirectStr(genSdxReqLogString(p))
+		InfoStrDirect(genSdxReqLogString(p))
 	case LogStyleJsonMini:
-		InfoDirectStr(genSdxReqLogString(p))
+		InfoStrDirect(genSdxReqLogString(p))
 	default:
 	}
 }

@@ -34,7 +34,7 @@ func MustSetup(cnf *LogConfig) {
 	}
 
 	if err := setup(myCnf); err != nil {
-		info := formatWithCaller(err.Error(), 3)
+		info := formatWithCaller(err.Error(), callerInnerDepth)
 		log.Println(info)
 		output(stackLog, info, levelStack, true)
 		os.Exit(1)
