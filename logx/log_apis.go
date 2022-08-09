@@ -29,7 +29,7 @@ func DebugF(format string, v ...any) {
 	}
 }
 
-func DebugDirectStr(v string) {
+func DebugStrDirect(v string) {
 	if myCnf.logLevel <= LogLevelDebug {
 		output(debugLog, v, levelDebug, false)
 	}
@@ -55,7 +55,7 @@ func InfoF(format string, v ...any) {
 }
 
 // 直接打印所给的数据
-func InfoDirectStr(v string) {
+func InfoStrDirect(v string) {
 	if myCnf.logLevel <= LogLevelInfo {
 		output(infoLog, v, levelInfo, false)
 	}

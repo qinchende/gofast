@@ -36,11 +36,11 @@ func SessBuilder(c *fst.Context) {
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确，需要分配新的Token。
 	// 2. 过期，用当前Token重建Session记录。
-	isValid := checkToken(reqGuid, reqHmac, MySessDB.Secret+c.ClientIP())
+	isValid := checkToken(reqGuid, reqHmac, MySess.Secret+c.ClientIP())
 
 	// 按照ip计算出当前hmac，和请求中的hmac相比较，看是否相等
 	// 如果Guid验证通过
-	if isValid || MySessDB.MustKeepIP == false {
+	if isValid || MySess.MustKeepIP == false {
 		ss.Guid = reqGuid
 	}
 
@@ -55,7 +55,7 @@ func SessBuilder(c *fst.Context) {
 
 // 验证是否登录
 func MustLogin(c *fst.Context) {
-	uid := c.Sess.Get(MySessDB.GuidField)
+	uid := c.Sess.Get(MySess.GuidField)
 	if uid == nil || uid == "" {
 		c.AbortHandlers()
 		c.Fai(110, "认证失败，请先登录。", nil)
@@ -78,7 +78,7 @@ func NewSession(c *fst.Context) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *CtxSession) rebuildToken(c *fst.Context) {
-	guid, tok := genToken(MySessDB.Secret + c.ClientIP())
+	guid, tok := genToken(MySess.Secret + c.ClientIP())
 	ss.Values = make(map[string]any)
 	ss.Guid = guid
 	ss.Token = tok

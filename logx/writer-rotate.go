@@ -148,36 +148,45 @@ func (rl *RotateLogger) Close() error {
 	return err
 }
 
-func (rl *RotateLogger) Write(data []byte) (int, error) {
+func (rl *RotateLogger) Write(bytes []byte) (int, error) {
 	select {
-	case rl.channel <- data:
-		return len(data), nil
+	case rl.channel <- bytes:
+		return len(bytes), nil
 	case <-rl.done:
-		log.Println(data)
+		log.Println(bytes)
 		return 0, errors.New("error: log file closed")
 	}
 }
 
-// 每次调用都会在 data 后面自动判断并加上 \n
-func (rl *RotateLogger) Writeln(data string) (err error) {
-	bs := []byte(data)
-	if len(bs) == 0 || bs[len(bs)-1] != '\n' {
-		bs = append(bs, '\n')
+// 每次调用都会在 str 后面自动判断并加上 \n
+func (rl *RotateLogger) Writeln(str string) (err error) {
+	if str[len(str)-1] != '\n' {
+		DebugStr("NOTE: A line break is recommended by this log info.")
+
+		bytes := []byte(str)
+		if len(bytes) == 0 || bytes[len(bytes)-1] != '\n' {
+			bytes = append(bytes, '\n')
+		}
+		_, err = rl.Write(bytes)
+		return
 	}
-	_, err = rl.Write(bs)
+	_, err = rl.Write(stringx.StringToBytes(str))
 	return
 }
 
-func (rl *RotateLogger) WritelnBytes(data []byte) (err error) {
-	if len(data) == 0 || data[len(data)-1] != '\n' {
-		data = append(data, '\n')
+func (rl *RotateLogger) WritelnBytes(bytes []byte) (err error) {
+	if len(bytes) == 0 || bytes[len(bytes)-1] != '\n' {
+		bytes = append(bytes, '\n')
 	}
-	_, err = rl.Write(data)
+	_, err = rl.Write(bytes)
 	return
 }
 
 func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
-	sb.WriteByte('\n')
+	str := sb.String()
+	if str[len(str)-1] != '\n' {
+		sb.WriteByte('\n')
+	}
 	_, err = rl.Write(stringx.StringToBytes(sb.String()))
 	return
 }
@@ -278,7 +287,7 @@ func (rl *RotateLogger) startWorker() {
 }
 
 // 检查标记，做好日志的拆分，自动判断 gzip 标记并压缩
-func (rl *RotateLogger) writeExec(data []byte) {
+func (rl *RotateLogger) writeExec(bytes []byte) {
 	if rl.rule.NeedRotate() {
 		if err := rl.doRotate(); err != nil {
 			log.Println(err)
@@ -287,7 +296,7 @@ func (rl *RotateLogger) writeExec(data []byte) {
 		}
 	}
 	if rl.fp != nil {
-		_, _ = rl.fp.Write(data)
+		_, _ = rl.fp.Write(bytes)
 	}
 }
 

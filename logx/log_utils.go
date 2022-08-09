@@ -96,17 +96,17 @@ func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 				Content:   info,
 			}
 			if content, err := jsonx.Marshal(logWrap); err != nil {
-				outputDirect(w, err.Error())
+				outputDirectString(w, err.Error())
 			} else {
 				outputDirectBytes(w, content)
 			}
 			return
 		}
 	}
-	outputDirect(w, info)
+	outputDirectString(w, info)
 }
 
-func outputDirect(w WriterCloser, str string) {
+func outputDirectString(w WriterCloser, str string) {
 	if w == nil {
 		log.Println(str)
 	} else {
@@ -115,15 +115,15 @@ func outputDirect(w WriterCloser, str string) {
 }
 
 // 推荐使用bytes版本
-func outputDirectBytes(w WriterCloser, bs []byte) {
+func outputDirectBytes(w WriterCloser, bytes []byte) {
 	if w == nil {
-		log.Println(bs)
+		log.Println(bytes)
 	} else {
-		_ = w.WritelnBytes(bs)
+		_ = w.WritelnBytes(bytes)
 	}
 }
 
-// 推荐使用bytes版本
+// 推荐使用strings.Builder版本
 func outputDirectBuilder(w WriterCloser, sb *strings.Builder) {
 	if w == nil {
 		log.Println(sb.String())

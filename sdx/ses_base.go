@@ -27,14 +27,14 @@ type SessionDB struct {
 }
 
 // 每个进程只有一个全局 SdxSS 配置对象
-var MySessDB *SessionDB
+var MySess *SessionDB
 
 // 采用 “闪电侠” session 方案的时候需要先初始化参数
 func SetupSession(ss *SessionDB) {
-	if MySessDB != nil {
+	if MySess != nil {
 		return
 	}
-	MySessDB = ss
+	MySess = ss
 
 	if ss.Redis == nil {
 		ss.Redis = gfrds.NewGoRedis(&ss.RedisConn)
