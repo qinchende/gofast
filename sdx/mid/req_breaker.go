@@ -5,8 +5,8 @@ package mid
 import (
 	"fmt"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/sdx/gate"
 	"github.com/qinchende/gofast/skill/httpx"
 	"net/http"
 )

@@ -77,10 +77,10 @@ func (ss *CtxSession) SetKV(kvs fst.KV) {
 	}
 }
 
-func (ss *CtxSession) Save() {
+func (ss *CtxSession) Save() error {
 	// 如果已经保存了，不会重复保存
 	if ss.Saved == true {
-		return
+		return nil
 	}
 	// 调用自定义函数保存当前 session
 	_, err := ss.saveSessionToRedis()
@@ -91,6 +91,7 @@ func (ss *CtxSession) Save() {
 	} else {
 		ss.Saved = true
 	}
+	return nil
 }
 
 func (ss *CtxSession) Del(key string) {

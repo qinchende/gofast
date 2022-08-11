@@ -2,9 +2,10 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package render
+package drops
 
 import (
+	"github.com/qinchende/gofast/fst/render"
 	"gopkg.in/yaml.v2"
 	"net/http"
 )
@@ -31,5 +32,5 @@ func (r YAML) Write(w http.ResponseWriter) error {
 
 // WriteContentType (YAML) writes YAML ContentType for response.
 func (r YAML) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, yamlContentType)
+	render.writeContentType(w, yamlContentType)
 }

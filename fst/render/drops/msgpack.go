@@ -5,16 +5,17 @@
 //go:build !nomsgpack
 // +build !nomsgpack
 
-package render
+package drops
 
 import (
+	"github.com/qinchende/gofast/fst/render"
 	"net/http"
 
 	"github.com/ugorji/go/codec"
 )
 
 var (
-	_ Render = MsgPack{}
+	_ render.Render = MsgPack{}
 )
 
 // MsgPack contains the given interface object.
@@ -26,7 +27,7 @@ var msgpackContentType = []string{"application/msgpack; charset=utf-8"}
 
 // WriteContentType (MsgPack) writes MsgPack ContentType.
 func (r MsgPack) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, msgpackContentType)
+	render.writeContentType(w, msgpackContentType)
 }
 
 // Render (MsgPack) encodes the given interface object and writes data with custom ContentType.
@@ -36,7 +37,7 @@ func (r MsgPack) Write(w http.ResponseWriter) error {
 
 // WriteMsgPack writes MsgPack ContentType and encodes the given interface object.
 func WriteMsgPack(w http.ResponseWriter, obj any) error {
-	writeContentType(w, msgpackContentType)
+	render.writeContentType(w, msgpackContentType)
 	var mh codec.MsgpackHandle
 	return codec.NewEncoder(w, &mh).Encode(obj)
 }

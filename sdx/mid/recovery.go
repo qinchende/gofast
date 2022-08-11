@@ -19,7 +19,7 @@ func Recovery(c *fst.Context) {
 			if err, ok := result.(cst.GFError); ok {
 				c.AbortFaiStr(fmt.Sprint("GFError: ", err))
 			} else {
-				logx.Stack(c.ReqRaw)
+				logx.Stacks(c.ReqRaw)
 				logx.StackF("%s", debug.Stack())
 
 				c.AbortDirect(http.StatusInternalServerError, fmt.Sprint("panic: ", result))

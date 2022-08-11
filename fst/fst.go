@@ -247,7 +247,7 @@ func (gft *GoFast) Listen(addr ...string) (err error) {
 	// 依次执行 onReady 事件处理函数
 	gft.execAppHandlers(gft.eReadyHds)
 
-	defer logx.Stack(err)
+	defer logx.Stacks(err)
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
 	if addr == nil && gft.ListenAddr != "" {
 		addr = []string{gft.ListenAddr}

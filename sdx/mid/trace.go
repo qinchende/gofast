@@ -34,7 +34,7 @@ func Tracing(ctx *fst.Context) {
 	carrier, err := trace.Extract(trace.HttpFormat, ctx.ReqRaw.Header)
 	// ErrInvalidCarrier means no trace id was set in http header
 	if err != nil && err != trace.ErrInvalidCarrier {
-		logx.Error(err)
+		logx.Error(err.Error())
 	}
 
 	newCtx, span := trace.StartServerSpan(ctx.ReqRaw.Context(), carrier, host.Hostname(), ctx.ReqRaw.RequestURI)
