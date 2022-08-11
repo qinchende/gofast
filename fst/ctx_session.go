@@ -7,7 +7,7 @@ type SessionKeeper interface {
 	Set(string, any)
 	SetKV(KV)
 	Del(string)
-	Save()
+	Save() error
 	Expire(int32)
 	SidIsNew() bool // SessionID is new?
 	Sid() string    // SessionID

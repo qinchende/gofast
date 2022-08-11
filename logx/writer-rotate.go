@@ -161,7 +161,7 @@ func (rl *RotateLogger) Write(bytes []byte) (int, error) {
 // 每次调用都会在 str 后面自动判断并加上 \n
 func (rl *RotateLogger) Writeln(str string) (err error) {
 	if str[len(str)-1] != '\n' {
-		DebugStr("NOTE: A line break is recommended by this log info.")
+		Debug("NOTE: A line break is recommended by this log info.")
 
 		bytes := []byte(str)
 		if len(bytes) == 0 || bytes[len(bytes)-1] != '\n' {
@@ -221,7 +221,7 @@ func (rl *RotateLogger) maybeCompressFile(file string) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			Stack(r)
+			Stacks(r)
 		}
 	}()
 	compressLogFile(file)

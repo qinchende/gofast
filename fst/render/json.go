@@ -14,10 +14,41 @@ import (
 	"github.com/qinchende/gofast/skill/stringx"
 )
 
+var jsonContentType = []string{"application/json; charset=utf-8"}
+var jsonpContentType = []string{"application/javascript; charset=utf-8"}
+var jsonAsciiContentType = []string{"application/json"}
+
 // JSON contains the given interface object.
 type JSON struct {
 	Data any
 }
+
+// Render (JSON) writes data with custom ContentType.
+func (r JSON) Write(w http.ResponseWriter) (err error) {
+	if err = WriteJSON(w, r.Data); err != nil {
+		panic(err)
+	}
+	return
+}
+
+// WriteContentType (JSON) writes JSON ContentType.
+func (r JSON) WriteContentType(w http.ResponseWriter) {
+	setContentType(w, jsonContentType)
+}
+
+// WriteJSON marshals the given interface object and writes it with custom ContentType.
+func WriteJSON(w http.ResponseWriter, obj any) error {
+	setContentType(w, jsonContentType)
+	jsonBytes, err := jsonx.Marshal(obj)
+	if err != nil {
+		return err
+	}
+	_, err = w.Write(jsonBytes)
+	return err
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// other kind of json
 
 // IndentedJSON contains the given interface object.
 type IndentedJSON struct {
@@ -49,34 +80,6 @@ type PureJSON struct {
 	Data any
 }
 
-var jsonContentType = []string{"application/json; charset=utf-8"}
-var jsonpContentType = []string{"application/javascript; charset=utf-8"}
-var jsonAsciiContentType = []string{"application/json"}
-
-// Render (JSON) writes data with custom ContentType.
-func (r JSON) Write(w http.ResponseWriter) (err error) {
-	if err = WriteJSON(w, r.Data); err != nil {
-		panic(err)
-	}
-	return
-}
-
-// WriteContentType (JSON) writes JSON ContentType.
-func (r JSON) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, jsonContentType)
-}
-
-// WriteJSON marshals the given interface object and writes it with custom ContentType.
-func WriteJSON(w http.ResponseWriter, obj any) error {
-	writeContentType(w, jsonContentType)
-	jsonBytes, err := jsonx.Marshal(obj)
-	if err != nil {
-		return err
-	}
-	_, err = w.Write(jsonBytes)
-	return err
-}
-
 // Render (IndentedJSON) marshals the given interface object and writes it with custom ContentType.
 func (r IndentedJSON) Write(w http.ResponseWriter) error {
 	r.WriteContentType(w)
@@ -90,7 +93,7 @@ func (r IndentedJSON) Write(w http.ResponseWriter) error {
 
 // WriteContentType (IndentedJSON) writes JSON ContentType.
 func (r IndentedJSON) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, jsonContentType)
+	setContentType(w, jsonContentType)
 }
 
 // Render (SecureJSON) marshals the given interface object and writes it with custom ContentType.
@@ -114,7 +117,7 @@ func (r SecureJSON) Write(w http.ResponseWriter) error {
 
 // WriteContentType (SecureJSON) writes JSON ContentType.
 func (r SecureJSON) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, jsonContentType)
+	setContentType(w, jsonContentType)
 }
 
 // Render (JsonpJSON) marshals the given interface object and writes it and its callback with custom ContentType.
@@ -153,7 +156,7 @@ func (r JsonpJSON) Write(w http.ResponseWriter) (err error) {
 
 // WriteContentType (JsonpJSON) writes Javascript ContentType.
 func (r JsonpJSON) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, jsonpContentType)
+	setContentType(w, jsonpContentType)
 }
 
 // Render (AsciiJSON) marshals the given interface object and writes it with custom ContentType.
@@ -179,7 +182,7 @@ func (r AsciiJSON) Write(w http.ResponseWriter) (err error) {
 
 // WriteContentType (AsciiJSON) writes JSON ContentType.
 func (r AsciiJSON) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, jsonAsciiContentType)
+	setContentType(w, jsonAsciiContentType)
 }
 
 // Render (PureJSON) writes custom ContentType and encodes the given interface object.
@@ -192,5 +195,5 @@ func (r PureJSON) Write(w http.ResponseWriter) error {
 
 // WriteContentType (PureJSON) writes custom ContentType.
 func (r PureJSON) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, jsonContentType)
+	setContentType(w, jsonContentType)
 }

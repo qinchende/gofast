@@ -2,10 +2,11 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package render
+package drops
 
 import (
 	"encoding/xml"
+	"github.com/qinchende/gofast/fst/render"
 	"net/http"
 )
 
@@ -24,5 +25,5 @@ func (r XML) Write(w http.ResponseWriter) error {
 
 // WriteContentType (XML) writes XML ContentType for response.
 func (r XML) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, xmlContentType)
+	render.writeContentType(w, xmlContentType)
 }
