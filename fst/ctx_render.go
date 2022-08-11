@@ -102,7 +102,7 @@ func (c *Context) Json(resStatus int, obj any) {
 
 // String writes the given string into the response body.
 func (c *Context) String(resStatus int, format string, values ...any) {
-	c.Render(resStatus, render.String{Format: format, Data: values})
+	c.Render(resStatus, render.Text{Format: format, Data: values})
 }
 
 // File writes the specified file into the body stream in a efficient way.
@@ -116,15 +116,13 @@ func (c *Context) File(filepath string) {
 // 可以自定义扩展自己需要的Render
 func (c *Context) Render(resStatus int, r render.Render) {
 	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
+	c.mu.Lock()
 	if c.rendered {
 		logx.Warn("Double render, the call canceled.")
 		return
 	}
-	// Render之前加入对应的 render 数据
 	c.rendered = true
-
-	// add preSend & afterSend events by sdx on 2021.01.06
-	c.execPreSendHandlers()
+	c.mu.Unlock()
 
 	c.ResWrap.WriteHeader(resStatus)
 	// 如果指定的返回状态，不能返回数据内容。需要特殊处理
@@ -133,27 +131,20 @@ func (c *Context) Render(resStatus int, r render.Render) {
 		return
 	}
 
-	// TODO: render之前，统一保存 session
-	if c.Sess != nil {
-		c.Sess.Save()
-	}
-
 	// 返回结果先写入缓存
 	if err := r.Write(c.ResWrap); err != nil {
 		panic(err)
 	}
-	// really send response data
-	if _, err := c.ResWrap.Send(); err != nil {
-		panic(err)
-	}
 
 	// add preSend & afterSend events by sdx on 2021.01.06
+	c.execPreSendHandlers() // 可以抛出异常，终止 Send data
+	if c.Sess != nil {
+		_ = c.Sess.Save()
+	}
+	if _, err := c.ResWrap.Send(); err != nil { // really send response data
+		panic(err)
+	}
 	c.execAfterSendHandlers()
-
-	// NOTE(by chende 2021.10.28): 下面的这一堆代码需要删除掉，否则中间件不会往下执行了。
-	// 到这里其实也意味着调用链到这里就中断了。不需要再执行其它处理函数。
-	// 调用链是：[before(s)->handler(s)->after(s)]其中任何地方执行了Render，后面的函数都将不再调用。
-	// 但是 preSend 和 afterSend 函数将继续执行。
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

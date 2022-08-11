@@ -26,7 +26,7 @@ func RoutineId() uint64 {
 func RunSafe(fn func()) {
 	defer func() {
 		if p := recover(); p != nil {
-			logx.Stack(p)
+			logx.Stacks(p)
 		}
 	}()
 

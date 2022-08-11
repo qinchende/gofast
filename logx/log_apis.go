@@ -11,15 +11,15 @@ import (
 	"runtime/debug"
 )
 
-func Debug(v ...any) {
+func Debug(v string) {
 	if myCnf.logLevel <= LogLevelDebug {
-		output(debugLog, fmt.Sprint(v...), levelDebug, true)
+		output(debugLog, v, levelDebug, true)
 	}
 }
 
-func DebugStr(v string) {
+func Debugs(v ...any) {
 	if myCnf.logLevel <= LogLevelDebug {
-		output(debugLog, v, levelDebug, true)
+		output(debugLog, fmt.Sprint(v...), levelDebug, true)
 	}
 }
 
@@ -29,22 +29,22 @@ func DebugF(format string, v ...any) {
 	}
 }
 
-func DebugStrDirect(v string) {
+func DebugDirect(v string) {
 	if myCnf.logLevel <= LogLevelDebug {
 		output(debugLog, v, levelDebug, false)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Info(v ...any) {
+func Info(v string) {
 	if myCnf.logLevel <= LogLevelInfo {
-		output(infoLog, fmt.Sprint(v...), levelInfo, true)
+		output(infoLog, v, levelInfo, true)
 	}
 }
 
-func InfoStr(v string) {
+func Infos(v ...any) {
 	if myCnf.logLevel <= LogLevelInfo {
-		output(infoLog, v, levelInfo, true)
+		output(infoLog, fmt.Sprint(v...), levelInfo, true)
 	}
 }
 
@@ -55,31 +55,31 @@ func InfoF(format string, v ...any) {
 }
 
 // 直接打印所给的数据
-func InfoStrDirect(v string) {
+func InfoDirect(v string) {
 	if myCnf.logLevel <= LogLevelInfo {
 		output(infoLog, v, levelInfo, false)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Warn(v ...any) {
-	warnSync(fmt.Sprint(v...), true)
+func Warn(v string) {
+	warnSync(v, true)
 }
 
-func WarnStr(v string) {
-	warnSync(v, true)
+func Warns(v ...any) {
+	warnSync(fmt.Sprint(v...), true)
 }
 
 func WarnF(format string, v ...any) {
 	warnSync(fmt.Sprintf(format, v...), true)
 }
 
-func Error(v ...any) {
-	errorSync(fmt.Sprint(v...), callerInnerDepth, true)
+func Error(v string) {
+	errorSync(v, callerInnerDepth, true)
 }
 
-func ErrorStr(v string) {
-	errorSync(v, callerInnerDepth, true)
+func Errors(v ...any) {
+	errorSync(fmt.Sprint(v...), callerInnerDepth, true)
 }
 
 func ErrorF(format string, v ...any) {
@@ -96,12 +96,12 @@ func ErrorFatalF(format string, v ...any) {
 	os.Exit(1)
 }
 
-func Stack(v ...any) {
-	stackSync(fmt.Sprint(v...), true)
+func Stack(v string) {
+	stackSync(v, true)
 }
 
-func StackStr(v string) {
-	stackSync(v, true)
+func Stacks(v ...any) {
+	stackSync(fmt.Sprint(v...), true)
 }
 
 func StackF(format string, v ...any) {
@@ -109,15 +109,15 @@ func StackF(format string, v ...any) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Stat(v ...any) {
+func Stat(v string) {
 	if myCnf.LogStats {
-		output(statLog, fmt.Sprint(v...), levelStat, true)
+		output(statLog, v, levelStat, true)
 	}
 }
 
-func StatStr(v string) {
+func Stats(v ...any) {
 	if myCnf.LogStats {
-		output(statLog, v, levelStat, true)
+		output(statLog, fmt.Sprint(v...), levelStat, true)
 	}
 }
 
@@ -127,15 +127,15 @@ func StatF(format string, v ...any) {
 	}
 }
 
-func Slow(v ...any) {
+func Slow(v string) {
 	if myCnf.LogStats {
-		output(slowLog, fmt.Sprint(v...), levelSlow, true)
+		output(slowLog, v, levelSlow, true)
 	}
 }
 
-func SlowStr(v string) {
+func Slows(v ...any) {
 	if myCnf.LogStats {
-		output(slowLog, v, levelSlow, true)
+		output(slowLog, fmt.Sprint(v...), levelSlow, true)
 	}
 }
 

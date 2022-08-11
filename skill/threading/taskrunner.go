@@ -27,7 +27,7 @@ func (rp *TaskRunner) Schedule(task func()) {
 			<-rp.limitChan
 
 			if p := recover(); p != nil {
-				logx.Stack(p)
+				logx.Stacks(p)
 			}
 		}()
 
