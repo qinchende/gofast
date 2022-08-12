@@ -57,17 +57,8 @@ func setup(c *LogConfig) error {
 		return errors.New("item LogLevel not match")
 	}
 
-	switch c.LogStyle {
-	case styleSdxStr:
-		c.logStyle = LogStyleSdx
-	case styleSdxMiniStr:
-		c.logStyle = LogStyleSdxMini
-	case styleJsonMiniStr:
-		c.logStyle = LogStyleJsonMini
-	case styleJsonStr:
-		c.logStyle = LogStyleJson
-	default:
-		return errors.New("item LogStyle not match")
+	if err := initStyle(c); err != nil {
+		return err
 	}
 
 	switch c.LogMedium {
