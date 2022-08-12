@@ -37,7 +37,7 @@ type Error struct {
 	Meta any
 }
 
-type errMessages []*Error
+type CtxMessages []*Error
 
 var _ error = &Error{}
 
@@ -62,7 +62,7 @@ func (c *Context) CollectError(err error) *Error {
 			Type: ErrorTypePrivate,
 		}
 	}
-	c.Errors = append(c.Errors, parsedError)
+	c.Messages = append(c.Messages, parsedError)
 	return parsedError
 }
 
@@ -79,7 +79,7 @@ func (c *Context) Error(err error) *Error {
 		}
 	}
 
-	c.Errors = append(c.Errors, parsedError)
+	c.Messages = append(c.Messages, parsedError)
 	return parsedError
 }
 
@@ -144,14 +144,14 @@ func (msg *Error) IsType(flags ErrorType) bool {
 
 // ByType returns a readonly copy filtered the byte.
 // ie ByType(gin.ErrorTypePublic) returns a slice of errors with type=ErrorTypePublic.
-func (a errMessages) ByType(typ ErrorType) errMessages {
+func (a CtxMessages) ByType(typ ErrorType) CtxMessages {
 	if len(a) == 0 {
 		return nil
 	}
 	if typ == ErrorTypeAny {
 		return a
 	}
-	var result errMessages
+	var result CtxMessages
 	for _, msg := range a {
 		if msg.IsType(typ) {
 			result = append(result, msg)
@@ -162,7 +162,7 @@ func (a errMessages) ByType(typ ErrorType) errMessages {
 
 // Last returns the last error in the slice. It returns nil if the array is empty.
 // Shortcut for errors[len(errors)-1].
-func (a errMessages) Last() *Error {
+func (a CtxMessages) Last() *Error {
 	if length := len(a); length > 0 {
 		return a[length-1]
 	}
@@ -175,7 +175,7 @@ func (a errMessages) Last() *Error {
 // 		c.Error(errors.New("second"))
 // 		c.Error(errors.New("third"))
 // 		c.Errors.Errors() // == []string{"first", "second", "third"}
-func (a errMessages) Errors() []string {
+func (a CtxMessages) Errors() []string {
 	if len(a) == 0 {
 		return nil
 	}
@@ -186,7 +186,7 @@ func (a errMessages) Errors() []string {
 	return errorStrings
 }
 
-func (a errMessages) JSON() any {
+func (a CtxMessages) JSON() any {
 	switch len(a) {
 	case 0:
 		return nil
@@ -202,12 +202,12 @@ func (a errMessages) JSON() any {
 }
 
 // MarshalJSON implements the json.Marshaller interface.
-func (a errMessages) MarshalJSON() ([]byte, error) {
+func (a CtxMessages) MarshalJSON() ([]byte, error) {
 	return json.Marshal(a.JSON())
 }
 
 // 所有错误合并成字符串
-func (a errMessages) ToString(logType int8) string {
+func (a CtxMessages) ToString(logType int8) string {
 	if len(a) == 0 {
 		return ""
 	}

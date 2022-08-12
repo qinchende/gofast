@@ -11,14 +11,6 @@ const (
 	LogLevelStack             // LogLevelError includes [stack]
 )
 
-// 日志样式类型
-const (
-	LogStyleJson int8 = iota
-	LogStyleJsonMini
-	LogStyleSdx
-	LogStyleSdxMini
-)
-
 // 日志文件拆分成几个分别保存内容
 const (
 	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
@@ -28,12 +20,6 @@ const (
 )
 
 const (
-	// 日志样式名称
-	styleJsonStr     = "json"
-	styleJsonMiniStr = "json-mini"
-	styleSdxStr      = "sdx"
-	styleSdxMiniStr  = "sdx-mini"
-
 	logMediumConsole = "console"
 	logMediumFile    = "file"
 	logMediumVolume  = "volume"

@@ -46,15 +46,14 @@ func CloseFiles() error {
 	return nil
 }
 
-//func Disable() {
-//	once.Do(func() {
-//		atomic.StoreUint32(&initialized, 1)
-//
-//		//infoLog = iox.NopCloser(ioutil.Discard)
-//		//errorLog = iox.NopCloser(ioutil.Discard)
-//		//severeLog = iox.NopCloser(ioutil.Discard)
-//		//slowLog = iox.NopCloser(ioutil.Discard)
-//		//statLog = iox.NopCloser(ioutil.Discard)
-//		//stackLog = ioutil.Discard
-//	})
-//}
+func Disable() {
+	initOnce.Do(func() {
+		//atomic.StoreUint32(&initialized, 1)
+
+		//infoLog = iox.NopCloser(ioutil.Discard)
+		//errorLog = iox.NopCloser(ioutil.Discard)
+		//slowLog = iox.NopCloser(ioutil.Discard)
+		//statLog = iox.NopCloser(ioutil.Discard)
+		//stackLog = ioutil.Discard
+	})
+}

@@ -16,7 +16,7 @@ import (
 type Context struct {
 	myApp *GoFast // 用于上下文
 
-	Errors    errMessages   // []*Error
+	Messages  CtxMessages   // []*Message，可以携带消息体数组
 	EnterTime time.Duration // 请求起始时间
 	ResWrap   *ResponseWrap
 	ReqRaw    *http.Request // request
@@ -42,7 +42,7 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Errors = nil
+	c.Messages = c.Messages[0:0]
 	//c.EnterTime = timex.Now()
 	//c.ResWrap = nil
 	//c.ReqRaw = nil
