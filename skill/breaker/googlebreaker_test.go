@@ -2,7 +2,6 @@ package breaker
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/logx"
 	"math/rand"
 	"testing"
 	"time"
@@ -16,7 +15,7 @@ const (
 )
 
 func init() {
-	logx.SetReporter(nil)
+	SetReporter(nil)
 }
 
 func getGoogleBreaker() *googleBreaker {

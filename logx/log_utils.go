@@ -3,39 +3,13 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"runtime"
 	"strconv"
 	"strings"
 )
 
-var (
-	timeFormat     = "2006-01-02 15:04:05"
-	timeFormatMini = "01-02 15:04:05"
-)
-
-type logEntry struct {
-	Timestamp string `json:"@timestamp"`
-	Level     string `json:"lv"`
-	Duration  string `json:"duration,omitempty"`
-	Content   string `json:"ct"`
-}
-
-func LogStyleType() int8 {
-	return myCnf.logStyle
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func getTimestamp() string {
-	return timex.Time().Format(timeFormat)
-}
-
-func getTimestampMini() string {
-	return timex.Time().Format(timeFormatMini)
-}
-
 // 消息前面加上堆栈信息
 func formatWithCaller(msg string, callDepth int) string {
 	callerBuf := getCaller(callDepth)
@@ -63,47 +37,6 @@ func getCaller(callDepth int) *strings.Builder {
 		buf.WriteString(strconv.Itoa(line))
 	}
 	return &buf
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 日志的输出，最后都要到这个方法进行输出
-func output(w WriterCloser, info string, logLevel string, useStyle bool) {
-	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
-	log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
-	log.SetFlags(log.Lmsgprefix) // 取消前置字符串
-	log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
-
-	if useStyle == true {
-		switch myCnf.logStyle {
-		case LogStyleSdx:
-			// fmt.Sprint("[", getTimestampMini(), "][", logLevel, "]: ", info)
-			sb := strings.Builder{}
-			sb.Grow(len(info) + 26)
-			sb.WriteByte('[')
-			sb.WriteString(getTimestampMini())
-			sb.WriteString("][")
-			sb.WriteString(logLevel)
-			sb.WriteString("]: ")
-			sb.WriteString(info)
-			outputDirectBuilder(w, &sb)
-			return
-		case LogStyleSdxMini:
-		case LogStyleJsonMini:
-		case LogStyleJson:
-			logWrap := logEntry{
-				Timestamp: getTimestamp(),
-				Level:     logLevel,
-				Content:   info,
-			}
-			if content, err := jsonx.Marshal(logWrap); err != nil {
-				outputDirectString(w, err.Error())
-			} else {
-				outputDirectBytes(w, content)
-			}
-			return
-		}
-	}
-	outputDirectString(w, info)
 }
 
 func outputDirectString(w WriterCloser, str string) {

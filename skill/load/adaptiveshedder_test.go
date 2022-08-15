@@ -1,6 +1,7 @@
 package load
 
 import (
+	"github.com/qinchende/gofast/skill/breaker"
 	"math/rand"
 	"sync"
 	"sync/atomic"
@@ -20,7 +21,7 @@ const (
 )
 
 func init() {
-	logx.SetReporter(nil)
+	breaker.SetReporter(nil)
 }
 
 func TestAdaptiveShedder(t *testing.T) {

@@ -3,6 +3,7 @@ package load
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/sysx"
 	"math"
 	"sync/atomic"
@@ -195,7 +196,7 @@ func (as *adaptiveShedder) shouldDrop() bool {
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
 				sysx.CpuSmoothUsage, as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
 			logx.Error(msg)
-			logx.Report(msg)
+			breaker.Report(msg)
 			return true
 		}
 	}

@@ -3,7 +3,6 @@ package breaker
 import (
 	"errors"
 	"fmt"
-	"github.com/qinchende/gofast/logx"
 	"strconv"
 	"strings"
 	"testing"
@@ -12,7 +11,7 @@ import (
 )
 
 func init() {
-	logx.SetReporter(nil)
+	SetReporter(nil)
 }
 
 func TestCircuitBreaker_Allow(t *testing.T) {

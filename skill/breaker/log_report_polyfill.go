@@ -3,7 +3,7 @@
 //go:build !linux
 // +build !linux
 
-package logx
+package breaker
 
 func Report(string) {
 }
