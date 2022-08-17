@@ -56,9 +56,13 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 
 	mSchema := cacheGetSchema(rTyp) // 看类型，缓存有就直接用，否则计算一次并缓存
 	if mSchema == nil {
+		mPath := rTyp.PkgPath()
+		mFullName := rTyp.String()
+		mName := rTyp.Name()
+
 		if rTyp.Kind() != reflect.Struct {
 			// 如果是 KV map 类型的。统一
-			if rTyp.Name() == "KV" {
+			if mName == "KV" {
 				mSchema = &ModelSchema{}
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
@@ -102,10 +106,11 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 
 		// 获取 Model的所有控制属性
 		rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
-		mdAttrs := new(ModelAttrs)
 		attrsFunc := rTypVal.MethodByName("GfAttrs")
+		var mdAttrs *ModelAttrs
 		if attrsFunc.IsValid() {
-			mdAttrs = attrsFunc.Call(nil)[0].Interface().(*ModelAttrs)
+			vls := []reflect.Value{rTypVal}
+			mdAttrs = attrsFunc.Call(vls)[0].Interface().(*ModelAttrs)
 		}
 		if mdAttrs == nil {
 			mdAttrs = &ModelAttrs{}
@@ -122,7 +127,11 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		copy(fDBNew, fDB)
 		// 构造ORM Model元数据
 		mSchema = &ModelSchema{
-			attrs:        *mdAttrs,
+			pkgPath:  mPath,
+			fullName: mFullName,
+			name:     mName,
+			attrs:    *mdAttrs,
+
 			columns:      fDBNew,
 			fieldsKV:     make(map[string]int8, len(fStruct)),
 			columnsKV:    make(map[string]int8, len(fStruct)),
