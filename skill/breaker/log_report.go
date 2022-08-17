@@ -1,11 +1,14 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 //go:build linux
 // +build linux
 
-package logx
+package breaker
 
 import (
 	"flag"
 	"fmt"
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/sysx/host"
 	"strings"
 	"sync"
@@ -24,7 +27,7 @@ const (
 )
 
 var (
-	reporter     = Alert
+	reporter     = logx.Info
 	lock         sync.RWMutex
 	lessExecutor = executors.NewLessExecutor(time.Minute * 5)
 	dropped      int32

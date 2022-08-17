@@ -155,7 +155,7 @@ func (c *Context) ParseForm() {
 		//c.formCache = make(url.Values)
 		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory); err != nil {
 			if err != http.ErrNotMultipart {
-				logx.DebugPrint("error on parse multipart form array: %v", err)
+				logx.DebugF("error on parse multipart form array: %v", err)
 			}
 		}
 		c.formCache = c.ReqRaw.PostForm
@@ -278,4 +278,13 @@ func (c *Context) IsWebsocket() bool {
 
 func (c *Context) requestHeader(key string) string {
 	return c.ReqRaw.Header.Get(key)
+}
+
+func filterFlags(content string) string {
+	for i, char := range content {
+		if char == ' ' || char == ';' {
+			return content[:i]
+		}
+	}
+	return content
 }

@@ -15,7 +15,6 @@ func Logger(c *fst.Context) {
 	// 请求处理完，并成功返回了，接下来就是打印请求日志
 	p := &logx.ReqLogEntity{
 		RawReq: c.ReqRaw,
-		// isTerm:  isTerm,
 	}
 	p.Pms = c.Pms
 	p.ClientIP = c.ClientIP()
@@ -23,13 +22,13 @@ func Logger(c *fst.Context) {
 	p.ResData = c.ResWrap.WrittenData()
 	p.BodySize = len(p.ResData)
 
-	// TODO: 内部错误信息一般不返回给调用者，而是打印日志
-	p.ErrorMsg = c.Errors.String(logx.Style())
+	// 内部错误信息一般不返回给调用者，但是需要打印日志信息
+	p.MsgBaskets = c.MsgBaskets()
 
 	// Stop timer
 	p.TimeStamp = timex.Now()
 	p.Latency = p.TimeStamp - c.EnterTime
 
 	// 打印请求日志
-	logx.WriteReqLog(p)
+	logx.PrintReqLog(p)
 }

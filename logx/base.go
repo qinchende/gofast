@@ -1,12 +1,67 @@
-// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
 package logx
 
-import (
-	"errors"
-	"sync"
-	"time"
+// 日志级别的设定，自动显示对应级别的日志
+const (
+	LogLevelDebug int8 = iota // LogLevelDebug logs [everything]
+	LogLevelInfo              // LogLevelInfo logs [info, warn, error, stack]
+	LogLevelWarn              // LogLevelError includes [warn, error, stack]
+	LogLevelError             // LogLevelError includes [error, stack]
+	LogLevelStack             // LogLevelError includes [stack]
 )
+
+// 日志文件拆分成几个分别保存内容
+const (
+	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
+	fileOne               // 1：全部放在一个日志文件info中
+	fileTwo               // 2：只分info和stat两个文件
+	fileThree             // 3：只分info和error和stat三个文件
+)
+
+const (
+	logMediumConsole = "console"
+	logMediumFile    = "file"
+	logMediumVolume  = "volume"
+
+	// 多钟不同的log分类
+	levelDebug = "debug"
+	levelInfo  = "info"
+	levelWarn  = "warn"
+	levelError = "error"
+	levelStack = "stack"
+	// 几种统计日志
+	levelStat = "stat"
+	levelSlow = "slow"
+
+	callerInnerDepth = 3
+)
+
+type LogConfig struct {
+	AppName   string `v:""`
+	LogMedium string `v:"def=console,enum=console|file|volume"`
+	LogLevel  string `v:"def=info,enum=debug|info|warn|error|stack"` // 记录日志的级别
+	LogStyle  string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`  // 日志样式
+	LogStats  bool   `v:"def=true"`                                  // 是否打印统计信息
+
+	FileFolder string `v:""`                  // 日志文件夹路径
+	FilePrefix string `v:""`                  // 日志文件名统一前缀(默认是AppName)
+	FileNumber int8   `v:"def=2,range=[0:3]"` // 日志文件数量，默认只拆分成 info and stat (日志 + 统计)
+
+	FileKeepDays int  `v:"def=7"`     // 日志文件保留天数
+	FileGzip     bool `v:"def=false"` // 是否Gzip压缩日志文件
+	// FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
+
+	logLevel int8 // 日志级别
+	logStyle int8 // 日志样式类型
+}
+
+//// 日志文件的目标系统
+//const (
+//	LogTypeConsole    = "console"
+//	LogTypeELK        = "elk"
+//	LogTypePrometheus = "prometheus"
+//)
 
 //const (
 //	green   = "\033[97;42m"
@@ -24,121 +79,23 @@ import (
 ////DefErrorWriter io.Writer = os.Stderr
 //)
 
-const (
-	InfoLevel   = iota // InfoLevel logs everything
-	ErrorLevel         // ErrorLevel includes errors, slows, stacks
-	SevereLevel        // SevereLevel only log severe messages
-)
+//logOptions struct {
+//	gzipEnabled          bool
+//	logStackArchiveMills int
+//	keepDays             int
+//}
+//
+//LogOption func(options *logOptions)
 
-const (
-	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
-	fileOne               // 1：全部放在一个日志文件access中
-	fileTwo               // 2：只分access和error两个文件
-	fileThree             // 3：只分access和error和stat三个文件
-)
+//Logger interface {
+//	Error(...any)
+//	ErrorF(string, ...any)
+//	Info(...any)
+//	InfoF(string, ...any)
+//	Slow(...any)
+//	Slowf(string, ...any)
+//	WithDuration(time.Duration) Logger
+//}
 
-// 日志样式类型
-const (
-	StyleJson int8 = iota
-	StyleJsonMini
-	StyleSdx
-	StyleSdxMini
-)
-
-// 日志样式名称
-const (
-	styleJsonStr     = "json"
-	styleJsonMiniStr = "json-mini"
-	styleSdxStr      = "sdx"
-	styleSdxMiniStr  = "sdx-mini"
-)
-
-const (
-	timeFormat     = "2006-01-02T15:04:05.000Z07"
-	timeFormatMini = "01-02 15:04:05"
-
-	accessFilename = "access.log"
-	errorFilename  = "error.log"
-	warnFilename   = "warn.log"
-	severeFilename = "severe.log"
-	slowFilename   = "slow.log"
-	statFilename   = "stat.log"
-	stackFilename  = "stack.log"
-
-	consoleMode = "console"
-	volumeMode  = "volume"
-
-	levelAlert  = "alert"
-	levelInfo   = "info"
-	levelError  = "error"
-	levelWarn   = "warn"
-	levelSevere = "severe"
-	levelFatal  = "fatal"
-	levelSlow   = "slow"
-	levelStat   = "stat"
-
-	callerInnerDepth = 5
-	flags            = 0x0
-)
-
-var (
-	ErrLogPathNotSet        = errors.New("log path must be set")
-	ErrLogNotInitialized    = errors.New("log not initialized")
-	ErrLogServiceNameNotSet = errors.New("log service name must be set")
-
-	writeConsole bool
-	logLevel     uint32
-	// 6个不同等级的日志输出
-	accessLog WriterCloser
-	errorLog  WriterCloser
-	warnLog   WriterCloser
-	severeLog WriterCloser
-	slowLog   WriterCloser
-	statLog   WriterCloser
-	stackLog  WriterCloser
-
-	once        sync.Once
-	initialized uint32
-	options     logOptions
-)
-
-type (
-	LogConfig struct {
-		AppName            string `v:""`
-		PrintMedium        string `v:"def=console,enum=console|file|volume"`
-		LogLevel           string `v:"def=info,enum=info|error|severe"` // 记录日志的级别
-		FilePath           string `v:"def=_logs_"`                      // 日志文件路径
-		FilePrefix         string `v:""`                                // 日志文件名统一前缀(默认是AppName)
-		FileNumber         int8   `v:"def=0,range=[0:3]"`               // 日志文件数量
-		Compress           bool   `v:"def=false"`
-		KeepDays           int    `v:"def=0"`
-		StackArchiveMillis int    `v:"def=100"`
-		StyleName          string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"` // 日志样式
-		styleType          int8   `v:""`                                         // 日志样式类型
-	}
-
-	logEntry struct {
-		Timestamp string `json:"@timestamp"`
-		Level     string `json:"lv"`
-		Duration  string `json:"duration,omitempty"`
-		Content   string `json:"ct"`
-	}
-
-	logOptions struct {
-		gzipEnabled          bool
-		logStackArchiveMills int
-		keepDays             int
-	}
-
-	LogOption func(options *logOptions)
-
-	Logger interface {
-		Error(...any)
-		ErrorF(string, ...any)
-		Info(...any)
-		InfoF(string, ...any)
-		Slow(...any)
-		Slowf(string, ...any)
-		WithDuration(time.Duration) Logger
-	}
-)
+//writeConsole bool
+//initialized  uint32 // 是否已经完成初始化

@@ -4,18 +4,17 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"net/http"
 )
 
-type funcServeHTTP func(w http.ResponseWriter, r *http.Request)
-
-type FitHelper struct {
-	nextHandler funcServeHTTP
-}
-
-func (fh *FitHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fh.nextHandler(w, r)
-}
+//type funcServeHTTP func(w http.ResponseWriter, r *http.Request)
+//
+//type FitHelper struct {
+//	nextHandler funcServeHTTP
+//}
+//
+//func (fh *FitHelper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+//	fh.nextHandler(w, r)
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 高级功能：每项路由可选配置，精准控制

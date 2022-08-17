@@ -7,9 +7,9 @@ type SessionKeeper interface {
 	Set(string, any)
 	SetKV(KV)
 	Del(string)
-	Save()
+	Save() error
 	Expire(int32)
-	SidIsNew() bool
-	Sid() string
-	Destroy() // 销毁当前Session
+	SidIsNew() bool // SessionID is new?
+	Sid() string    // SessionID
+	Destroy()       // 销毁当前Session
 }

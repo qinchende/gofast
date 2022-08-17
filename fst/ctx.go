@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/fst/tools"
 	"math"
 	"net/http"
 	"net/url"
@@ -16,14 +17,13 @@ import (
 type Context struct {
 	myApp *GoFast // 用于上下文
 
-	Errors    errMessages   // []*Error
 	EnterTime time.Duration // 请求起始时间
 	ResWrap   *ResponseWrap
 	ReqRaw    *http.Request // request
 	Sess      SessionKeeper // Session数据，数据存储部分可以自定义
 	Params    *Params       // : 或 * 对应的参数
 	Pms       cst.KV        // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	//PmsCarry  cst.KV        // 后台上下文传递的数据
+	Baskets   tools.Baskets // []*Basket，可以携带扩展的自定义数据
 
 	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
@@ -35,6 +35,8 @@ type Context struct {
 	rendered  bool         // 是否已经执行了Render
 	IsTimeout bool         // 请求是否超时了
 	RouteIdx  uint16       // router的唯一标识ID，方便区分不同的router
+
+	//PmsCarry  cst.KV        // 后台上下文传递的数据
 }
 
 /************************************/
@@ -42,7 +44,7 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Errors = nil
+	c.Baskets = c.Baskets[0:0]
 	//c.EnterTime = timex.Now()
 	//c.ResWrap = nil
 	//c.ReqRaw = nil

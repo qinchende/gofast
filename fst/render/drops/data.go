@@ -2,9 +2,11 @@
 // Use of this source code is governed by a MIT style
 // license that can be found in the LICENSE file.
 
-package render
+package drops
 
-import "net/http"
+import (
+	"net/http"
+)
 
 // Data contains ContentType and bytes data.
 type Data struct {
@@ -21,5 +23,5 @@ func (r Data) Write(w http.ResponseWriter) (err error) {
 
 // WriteContentType (Data) writes custom ContentType.
 func (r Data) WriteContentType(w http.ResponseWriter) {
-	writeContentType(w, []string{r.ContentType})
+	//render.writeContentType(w, []string{r.ContentType})
 }

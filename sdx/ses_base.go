@@ -6,8 +6,8 @@ import (
 )
 
 var (
-	sdxTokenPrefix   = "t:"
-	sdxSessKeyPrefix = "tls:"
+	sdxTokenPrefix   = "t:"   // token 字符串的 前缀
+	sdxSessKeyPrefix = "tls:" // session 的前缀
 )
 
 type RedisSessCnf struct {
@@ -27,14 +27,14 @@ type SessionDB struct {
 }
 
 // 每个进程只有一个全局 SdxSS 配置对象
-var MySessDB *SessionDB
+var MySess *SessionDB
 
 // 采用 “闪电侠” session 方案的时候需要先初始化参数
 func SetupSession(ss *SessionDB) {
-	if MySessDB != nil {
+	if MySess != nil {
 		return
 	}
-	MySessDB = ss
+	MySess = ss
 
 	if ss.Redis == nil {
 		ss.Redis = gfrds.NewGoRedis(&ss.RedisConn)
@@ -77,10 +77,10 @@ func (ss *CtxSession) SetKV(kvs fst.KV) {
 	}
 }
 
-func (ss *CtxSession) Save() {
+func (ss *CtxSession) Save() error {
 	// 如果已经保存了，不会重复保存
 	if ss.Saved == true {
-		return
+		return nil
 	}
 	// 调用自定义函数保存当前 session
 	_, err := ss.saveSessionToRedis()
@@ -91,6 +91,7 @@ func (ss *CtxSession) Save() {
 	} else {
 		ss.Saved = true
 	}
+	return nil
 }
 
 func (ss *CtxSession) Del(key string) {

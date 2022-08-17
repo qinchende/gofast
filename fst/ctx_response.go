@@ -67,7 +67,7 @@ func (w *ResponseWrap) Write(data []byte) (n int, err error) {
 	defer w.mu.Unlock()
 
 	if w.committed {
-		logx.Warn(errAlreadyRendered, "Can't Write.")
+		logx.Warn(errAlreadyRendered + "Can't Write.")
 		return 0, nil
 	}
 	n, err = w.dataBuf.Write(data)
@@ -79,7 +79,7 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 	defer w.mu.Unlock()
 
 	if w.committed {
-		logx.Warn(errAlreadyRendered, "Can't WriteString.")
+		logx.Warn(errAlreadyRendered + "Can't WriteString.")
 		return 0, nil
 	}
 	n, err = w.dataBuf.WriteString(s)
@@ -106,7 +106,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 	w.mu.Lock()
 	// 不允许 double render
 	if w.committed {
-		logx.Warn(errAlreadyRendered, "Can't Send.")
+		logx.Warn(errAlreadyRendered + "Can't Send.")
 		w.mu.Unlock()
 		return 0, nil
 	}
@@ -128,7 +128,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
 		w.mu.Unlock()
-		logx.Warn(errAlreadyRendered, "Can't Hijack.")
+		logx.Warn(errAlreadyRendered + "Can't Hijack.")
 		return 0
 	}
 	w.committed = true
@@ -142,7 +142,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	w.ResponseWriter.WriteHeader(w.status)
 	n, err := w.ResponseWriter.Write(w.dataBuf.Bytes())
 	if err != nil {
-		logx.ErrorStackF("SendHijack ResponseWriter error: %s", err)
+		logx.StackF("SendHijack ResponseWriter error: %s", err)
 	}
 	return
 }

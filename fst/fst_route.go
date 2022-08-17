@@ -28,7 +28,7 @@ func (gft *GoFast) buildAllRouters() {
 func (gft *GoFast) regRouterItem(ri *RouteItem) {
 	// Debug模式下打印新添加的路由
 	if gft.PrintRouteTrees {
-		debugPrintRoute(ri)
+		debugPrintRoute(gft, ri)
 	}
 
 	mTree := gft.getMethodTree(ri.method)

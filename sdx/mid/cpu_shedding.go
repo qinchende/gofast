@@ -4,8 +4,8 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/fst/gate"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/sdx/gate"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/sysx"
 	"net/http"
