@@ -25,9 +25,9 @@ func UnmarshalFromString(v any, str string) error {
 	return decoder.Decode(v)
 }
 
-func GetMapFromString(str string) (map[string]any, error) {
+func UnmarshalStringToKV(str string) (map[string]any, error) {
 	res := make(map[string]any)
-	if str == `` {
+	if str == "" {
 		return res, nil
 	}
 	err := UnmarshalFromString(&res, str)
