@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-func (conn *MysqlORM) Insert(obj orm.ApplyOrmStruct) int64 {
+func (conn *MysqlORM) Insert(obj orm.OrmStruct) int64 {
 	obj.BeforeSave() // 设置值
 	sm, values := orm.SchemaValues(obj)
 
@@ -33,7 +33,7 @@ func (conn *MysqlORM) Delete(obj any) int64 {
 	return parseResult(ret, val, conn, sm)
 }
 
-func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
+func (conn *MysqlORM) Update(obj orm.OrmStruct) int64 {
 	obj.BeforeSave()
 	sm, values := orm.SchemaValues(obj)
 
@@ -48,7 +48,7 @@ func (conn *MysqlORM) Update(obj orm.ApplyOrmStruct) int64 {
 }
 
 // 通过给定的结构体字段更新数据
-func (conn *MysqlORM) UpdateColumns(obj orm.ApplyOrmStruct, columns ...string) int64 {
+func (conn *MysqlORM) UpdateColumns(obj orm.OrmStruct, columns ...string) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(obj))
 	sm := orm.Schema(obj)
 
