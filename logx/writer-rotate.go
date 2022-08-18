@@ -6,7 +6,10 @@ import (
 	"compress/gzip"
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/skill/fs"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/qinchende/gofast/skill/timex"
 	"io"
 	"log"
 	"os"
@@ -15,10 +18,6 @@ import (
 	"strings"
 	"sync"
 	"time"
-
-	"github.com/qinchende/gofast/skill/fs"
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/timex"
 )
 
 const (

@@ -2,8 +2,10 @@ package logx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/fst/tools"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/timex"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -63,6 +65,28 @@ var buildSdxReqLog = func(p *ReqLogEntity) string {
 		reqBaseParams,
 		reqParams,
 		(p.ResData)[:tLen],
-		"", //p.Messages,
+		logBaskets(p.MsgBaskets),
 	)
+}
+
+// 所有错误合并成字符串
+func logBaskets(bs tools.Baskets) string {
+	if len(bs) == 0 {
+		return ""
+	}
+
+	var buf strings.Builder
+	buf.Grow(len(bs[0].Msg) + 10)
+
+	buf.WriteString("\n  E: ")
+	infos := bs.CollectMessages()
+	for i, str := range infos {
+		if i != 0 {
+			buf.WriteString("\n     ")
+		}
+		buf.WriteString(strconv.Itoa(i))
+		buf.WriteString(". ")
+		buf.WriteString(str)
+	}
+	return buf.String()
 }

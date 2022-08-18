@@ -13,8 +13,8 @@ const (
 	dbColumnNameTag2 = "pms" // 数据库字段名称，次优先级
 )
 
-type ApplyOrmStruct interface {
-	TableName() string
+type OrmStruct interface {
+	GfAttrs(parent OrmStruct) *ModelAttrs
 	BeforeSave()
 	AfterInsert(sql.Result)
 }

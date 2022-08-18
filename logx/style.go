@@ -3,6 +3,7 @@ package logx
 import (
 	"errors"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/fst/tools"
 	"net/http"
 	"time"
 )
@@ -38,7 +39,7 @@ type ReqLogEntity struct {
 	Pms        cst.KV
 	BodySize   int
 	ResData    []byte
-	//Messages   fst.CtxMessages
+	MsgBaskets tools.Baskets
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

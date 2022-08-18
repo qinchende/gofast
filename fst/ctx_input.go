@@ -279,3 +279,12 @@ func (c *Context) IsWebsocket() bool {
 func (c *Context) requestHeader(key string) string {
 	return c.ReqRaw.Header.Get(key)
 }
+
+func filterFlags(content string) string {
+	for i, char := range content {
+		if char == ' ' || char == ';' {
+			return content[:i]
+		}
+	}
+	return content
+}
