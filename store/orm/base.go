@@ -14,7 +14,7 @@ const (
 )
 
 type OrmStruct interface {
-	GfAttrs(super OrmStruct) *ModelAttrs
+	GfAttrs(parent OrmStruct) *ModelAttrs
 	BeforeSave()
 	AfterInsert(sql.Result)
 }

@@ -66,7 +66,7 @@ func parseResult(ret sql.Result, keyVal any, conn *MysqlORM, sm *orm.ModelSchema
 	if ct > 0 && sm.CacheAll() {
 		// 目前只支持第一个redis实例作缓存
 		if conn.rdsNodes != nil {
-			key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DBName, keyVal)
+			key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DbName, keyVal)
 			_, _ = (*conn.rdsNodes)[0].Del(key)
 		}
 	}
@@ -90,7 +90,7 @@ func (conn *MysqlORM) QueryIDCC(dest any, id any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 	sm := orm.SchemaOfType(dstVal.Type())
 
-	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DBName, id)
+	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DbName, id)
 	cValStr, err := (*conn.rdsNodes)[0].Get(key)
 	if err == nil && cValStr != "" {
 		if err = jsonx.UnmarshalFromString(dest, cValStr); err == nil {

@@ -25,11 +25,11 @@ type CommonFields struct {
 	UpdatedAt time.Time `dbc:"updated_field"`
 }
 
-func (cf *CommonFields) GfAttrs(super OrmStruct) *ModelAttrs {
+func (cf *CommonFields) GfAttrs(parent OrmStruct) *ModelAttrs {
 	if modelAttrsList != nil {
 		fullName := ""
-		if super != nil {
-			fullName = reflect.TypeOf(super).Elem().String()
+		if parent != nil {
+			fullName = reflect.TypeOf(parent).Elem().String()
 		}
 		if attr := modelAttrsList[fullName]; attr != nil {
 			return attr
