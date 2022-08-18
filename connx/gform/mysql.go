@@ -22,14 +22,14 @@ type (
 )
 
 func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
-	mysqlOrm := sqlx.MysqlORM{Attrs: &sqlx.MysqlORMAttrs{}, Ctx: context.Background()}
+	mysqlOrm := sqlx.MysqlORM{Attrs: &sqlx.MysqlOrmAttrs{}, Ctx: context.Background()}
 
 	// DBName ->
 	dbAttrs, _ := mysql.ParseDSN(cf.ConnStr)
 	if dbAttrs != nil {
 		// 必须统一数据库名称，全部转换成小写
 		// 将来表缓存的时候需要用到这里的DBName
-		mysqlOrm.Attrs.DBName = strings.ToLower(dbAttrs.DBName)
+		mysqlOrm.Attrs.DbName = strings.ToLower(dbAttrs.DBName)
 	}
 
 	// 主库连接

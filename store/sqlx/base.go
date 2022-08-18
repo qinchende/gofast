@@ -8,7 +8,7 @@ import (
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type MysqlORM struct {
-	Attrs    *MysqlORMAttrs
+	Attrs    *MysqlOrmAttrs
 	Ctx      context.Context
 	Reader   *sql.DB          // 只读连接（从库）
 	Writer   *sql.DB          // 只写连接（主库）
@@ -16,8 +16,8 @@ type MysqlORM struct {
 	rdsNodes *[]gfrds.GfRedis // redis集群用来做缓存的
 }
 
-type MysqlORMAttrs struct {
-	DBName string
+type MysqlOrmAttrs struct {
+	DbName string
 }
 
 func (conn *MysqlORM) SetRdsNodes(nodes *[]gfrds.GfRedis) {
