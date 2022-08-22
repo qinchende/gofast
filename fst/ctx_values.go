@@ -128,38 +128,39 @@ func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string)
 	return
 }
 
-/************************************/
-/***** golang.org/x/net/context *****/
-/************************************/
-
-// Deadline always returns that there is no deadline (ok==false),
-// maybe you want to use Req.Context().Deadline() instead.
-func (c *Context) Deadline() (deadline time.Time, ok bool) {
-	return
-}
-
-// Done always returns nil (chan which will wait forever),
-// if you want to abort your work when the connection was closed
-// you should use Req.Context().Done() instead.
-func (c *Context) Done() <-chan struct{} {
-	return nil
-}
-
-// Err always returns nil, maybe you want to use Req.Context().Err() instead.
-func (c *Context) Err() error {
-	return nil
-}
-
-// Value returns the value associated with this context for key, or nil
-// if no value is associated with key. Successive calls to Value with
-// the same key returns the same result.
-func (c *Context) Value(key any) any {
-	if key == 0 {
-		return c.ReqRaw
-	}
-	if keyAsString, ok := key.(string); ok {
-		val, _ := c.Get(keyAsString)
-		return val
-	}
-	return nil
-}
+//
+///************************************/
+///***** golang.org/x/net/context *****/
+///************************************/
+//
+//// Deadline always returns that there is no deadline (ok==false),
+//// maybe you want to use Req.Context().Deadline() instead.
+//func (c *Context) Deadline() (deadline time.Time, ok bool) {
+//	return
+//}
+//
+//// Done always returns nil (chan which will wait forever),
+//// if you want to abort your work when the connection was closed
+//// you should use Req.Context().Done() instead.
+//func (c *Context) Done() <-chan struct{} {
+//	return nil
+//}
+//
+//// Err always returns nil, maybe you want to use Req.Context().Err() instead.
+//func (c *Context) Err() error {
+//	return nil
+//}
+//
+//// Value returns the value associated with this context for key, or nil
+//// if no value is associated with key. Successive calls to Value with
+//// the same key returns the same result.
+//func (c *Context) Value(key any) any {
+//	if key == 0 {
+//		return c.ReqRaw
+//	}
+//	if keyAsString, ok := key.(string); ok {
+//		val, _ := c.Get(keyAsString)
+//		return val
+//	}
+//	return nil
+//}

@@ -21,8 +21,8 @@ type (
 	}
 )
 
-func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
-	mysqlOrm := sqlx.MysqlORM{Attrs: &sqlx.MysqlOrmAttrs{}, Ctx: context.Background()}
+func OpenMysql(cf *ConnCnf) *sqlx.OrmDB {
+	mysqlOrm := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DbDriver: "mysql"}, Ctx: context.Background()}
 
 	// DBName ->
 	dbAttrs, _ := mysql.ParseDSN(cf.ConnStr)
