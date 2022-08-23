@@ -3,6 +3,7 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"github.com/qinchende/gofast/connx/gfrds"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/timex"
 	"time"
@@ -11,28 +12,26 @@ import (
 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
 const slowThreshold = time.Millisecond * 500
 
-func (conn *OrmDB) Prepare(q string) *sql.Stmt {
-	return conn.PrepareCtx(conn.Ctx, q)
+func (conn *OrmDB) SetRdsNodes(nodes *[]gfrds.GfRedis) {
+	if len(*nodes) > 0 {
+		conn.rdsNodes = nodes
+	} else {
+		conn.rdsNodes = nil
+	}
 }
 
-func (conn *OrmDB) PrepareCtx(ctx context.Context, q string) *sql.Stmt {
-	var stmt *sql.Stmt
-	var err error
-	if conn.tx == nil {
-		stmt, err = conn.Writer.PrepareContext(ctx, q)
-	} else {
-		stmt, err = conn.tx.PrepareContext(ctx, q)
-	}
-	errPanic(err)
-	return stmt
+func (conn *OrmDB) CloneWithCtx(ctx context.Context) *OrmDB {
+	newConn := *conn
+	newConn.Ctx = ctx
+	return &newConn
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *OrmDB) Exec(sql string, args ...any) sql.Result {
-	return conn.ExecCtx(conn.Ctx, sql, args...)
+func (conn *OrmDB) ExecSql(sqlStr string, args ...any) sql.Result {
+	return conn.ExecSqlCtx(conn.Ctx, sqlStr, args...)
 }
 
-func (conn *OrmDB) ExecCtx(ctx context.Context, sqlStr string, args ...any) sql.Result {
+func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) sql.Result {
 	logx.Debug(sqlStr)
 
 	var result sql.Result
@@ -51,8 +50,8 @@ func (conn *OrmDB) ExecCtx(ctx context.Context, sqlStr string, args ...any) sql.
 	return result
 }
 
-func (conn *OrmDB) QuerySql(sql string, args ...any) *sql.Rows {
-	return conn.QuerySqlCtx(conn.Ctx, sql, args...)
+func (conn *OrmDB) QuerySql(sqlStr string, args ...any) *sql.Rows {
+	return conn.QuerySqlCtx(conn.Ctx, sqlStr, args...)
 }
 
 func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) *sql.Rows {
@@ -114,7 +113,8 @@ func (conn *OrmDB) TransEnd() {
 	} else {
 		err = conn.Commit()
 	}
+	// 出现了非常严重的错误，可能连接没有释放
 	if err != nil {
-		logx.ErrorF("Terrible mistake. TransEnd error: %s", err)
+		logx.StackF("Terrible mistake. TransEnd error: %s", err)
 	}
 }

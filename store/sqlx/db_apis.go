@@ -18,7 +18,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 		values[priIdx] = values[0]
 	}
 
-	ret := conn.Exec(insertSql(sm), values[1:]...)
+	ret := conn.ExecSql(insertSql(sm), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
 	ct, err := ret.RowsAffected()
 	errLog(err)
@@ -28,7 +28,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 func (conn *OrmDB) Delete(obj any) int64 {
 	sm := orm.Schema(obj)
 	val := sm.PrimaryValue(obj)
-	ret := conn.Exec(deleteSql(sm), val)
+	ret := conn.ExecSql(deleteSql(sm), val)
 	return parseResult(ret, val, conn, sm)
 }
 
@@ -42,7 +42,7 @@ func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
 	values[priIdx] = values[fLen-1]
 	values[fLen-1] = tVal
 
-	ret := conn.Exec(updateSql(sm), values...)
+	ret := conn.ExecSql(updateSql(sm), values...)
 	return parseResult(ret, tVal, conn, sm)
 }
 
@@ -53,7 +53,7 @@ func (conn *OrmDB) UpdateColumns(obj orm.OrmStruct, columns ...string) int64 {
 
 	obj.BeforeSave()
 	upSQL, tValues := updateSqlByColumns(sm, &dstVal, columns)
-	ret := conn.Exec(upSQL, tValues...)
+	ret := conn.ExecSql(upSQL, tValues...)
 	return parseResult(ret, tValues[len(tValues)-1], conn, sm)
 }
 
@@ -74,6 +74,7 @@ func parseResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema) i
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 对应ID值的一行记录
 func (conn *OrmDB) QueryID(dest any, id any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
@@ -84,7 +85,7 @@ func (conn *OrmDB) QueryID(dest any, id any) int64 {
 	return parseQueryRow(&dstVal, sqlRows, sm)
 }
 
-// TODO: 当前重点解决缓存的问题
+// 对应ID值的一行记录，支持行记录缓存
 func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 	sm := orm.SchemaOfType(dstVal.Type())
@@ -110,6 +111,7 @@ func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
 	return ct
 }
 
+// 查询一行记录，查询条件自定义
 func (conn *OrmDB) QueryRow(dest any, where string, pms ...any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
@@ -117,6 +119,12 @@ func (conn *OrmDB) QueryRow(dest any, where string, pms ...any) int64 {
 	sqlRows := conn.QuerySql(selectSqlByOne(sm, where), pms...)
 	defer sqlRows.Close()
 
+	return parseQueryRow(&dstVal, sqlRows, sm)
+}
+
+func ParseRow(dest any, sqlRows *sql.Rows) int64 {
+	dstVal := reflect.Indirect(reflect.ValueOf(dest))
+	sm := orm.SchemaOfType(dstVal.Type())
 	return parseQueryRow(&dstVal, sqlRows, sm)
 }
 
@@ -176,11 +184,17 @@ func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 带缓存版本
 
-//func (conn *OrmDB) QueryPetCache(dest interface{}, pet *SelectPetCache) int64 {
-//	return 0
-//}
+func (conn *OrmDB) QueryPetCache(dest interface{}, pet *SelectPetCache) int64 {
+	return 0
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func ParseRows(dest any, sqlRows *sql.Rows) int64 {
+	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
+	sm := orm.SchemaOfType(dItemType)
+	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+}
+
 // 解析查询到的数据记录
 func parseQueryRows(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema,
 	dSliceTyp reflect.Type, dItemType reflect.Type, isPtr bool, isKV bool) int64 {

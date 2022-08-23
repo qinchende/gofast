@@ -31,6 +31,15 @@ func UnmarshalFromString(v any, str string) error {
 	return decoder.Decode(v)
 }
 
+func UnmarshalStringToKV(str string) (map[string]any, error) {
+	res := make(map[string]any)
+	if str == "" {
+		return res, nil
+	}
+	err := UnmarshalFromString(&res, str)
+	return res, err
+}
+
 func UnmarshalFromReader(v any, reader io.Reader) error {
 	var buf strings.Builder
 	teeReader := io.TeeReader(reader, &buf)

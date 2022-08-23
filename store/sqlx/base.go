@@ -18,18 +18,20 @@ type OrmDB struct {
 }
 
 type DBAttrs struct {
-	DbDriver string // 数据库类型
-	DbName   string // 数据库名
+	DriverName string // 数据库类型名称
+	DbName     string // 数据库名
 }
 
-//const (
-//	ConnWriter uint8 = iota // 默认0：从读
-//	ConnReader              // 1：主写
-//)
+type StmtConn struct {
+	ctx      context.Context
+	stmt     *sql.Stmt
+	sqlStr   string
+	readonly bool
+}
 
 const (
-	CacheMem   uint8 = iota // 默认0：内存
-	CacheRedis              // 1：redis
+	CacheMem   uint8 = iota // 默认0：用本地内存缓存，无法实现分布式一致性。但支持存取对象，性能好
+	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
 )
 
 type SelectPet struct {
