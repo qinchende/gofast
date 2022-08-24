@@ -23,10 +23,10 @@ type DBAttrs struct {
 }
 
 type StmtConn struct {
-	ctx      context.Context
-	stmt     *sql.Stmt
-	sqlStr   string
-	readonly bool
+	ctx      context.Context // 传递上下文
+	stmt     *sql.Stmt       // 标准库Stmt对象
+	sqlStr   string          // 预执行SQL语句
+	readonly bool            // 是否连接只读库
 }
 
 const (

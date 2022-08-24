@@ -123,21 +123,23 @@ func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []stri
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
-func selectSqlByID(mss *orm.ModelSchema) string {
+func selectSqlForID(mss *orm.ModelSchema) string {
 	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
-		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? limit 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})
 }
 
-func selectSqlByOne(mss *orm.ModelSchema, where string) string {
+func selectSqlForOne(mss *orm.ModelSchema, fields string, where string) string {
+	if fields == "" {
+		fields = "*"
+	}
 	if where == "" {
 		where = "1=1"
 	}
-	return fmt.Sprintf("SELECT * FROM %s WHERE %s limit 1;", mss.TableName(), where)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, mss.TableName(), where)
 }
 
-// 不带缓存
-func selectSqlByWhere(mss *orm.ModelSchema, fields string, where string) string {
+func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -145,12 +147,12 @@ func selectSqlByWhere(mss *orm.ModelSchema, fields string, where string) string 
 		where = "1=1"
 	}
 	if strings.Index(where, "limit") < 0 {
-		where += " limit 10000" // 最多1万条记录
+		where += " LIMIT 10000" // 最多1万条记录
 	}
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, mss.TableName(), where)
 }
 
-func selectSqlByPet(mss *orm.ModelSchema, pet *SelectPet) string {
+func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
 	if pet.Table == "" {
 		pet.Table = mss.TableName()
 	}
@@ -166,5 +168,5 @@ func selectSqlByPet(mss *orm.ModelSchema, pet *SelectPet) string {
 	if pet.Where == "" {
 		pet.Where = "1=1"
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s limit %d offset %d;", pet.Columns, pet.Table, pet.Where, pet.Limit, pet.Offset)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.Limit, pet.Offset)
 }

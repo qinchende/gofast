@@ -11,6 +11,31 @@ import (
 	"runtime/debug"
 )
 
+func ShowDebug() bool {
+	return myCnf.logLevel <= LogLevelDebug
+}
+
+func ShowInfo() bool {
+	return myCnf.logLevel <= LogLevelInfo
+}
+
+func ShowWarn() bool {
+	return myCnf.logLevel <= LogLevelWarn
+}
+
+func ShowError() bool {
+	return myCnf.logLevel <= LogLevelError
+}
+
+func ShowStack() bool {
+	return myCnf.logLevel <= LogLevelStack
+}
+
+func ShowStat() bool {
+	return myCnf.LogStats
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Debug(v string) {
 	if myCnf.logLevel <= LogLevelDebug {
 		output(debugLog, v, levelDebug, true)
