@@ -1,18 +1,24 @@
 package sqlx
 
 import (
+	"fmt"
 	"github.com/qinchende/gofast/logx"
+	"strings"
 )
 
-func errPanic(err error) {
+func ErrPanic(err error) {
 	if err != nil {
-		logx.Error(err.Error())
+		logx.Stack(err.Error())
 		panic(err)
 	}
 }
 
-func errLog(err error) {
+func ErrLog(err error) {
 	if err != nil {
-		logx.Error(err.Error())
+		logx.Stack(err.Error())
 	}
+}
+
+func realSql(sqlStr string, args ...any) string {
+	return fmt.Sprintf(strings.ReplaceAll(sqlStr, "?", "%#v"), args...)
 }

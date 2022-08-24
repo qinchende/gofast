@@ -21,7 +21,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 	ret := conn.ExecSql(insertSql(sm), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
 	ct, err := ret.RowsAffected()
-	errLog(err)
+	ErrLog(err)
 	return ct
 }
 
@@ -59,7 +59,7 @@ func (conn *OrmDB) UpdateColumns(obj orm.OrmStruct, columns ...string) int64 {
 
 func parseResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema) int64 {
 	ct, err := ret.RowsAffected()
-	errLog(err)
+	ErrLog(err)
 
 	// 判断是否要删除缓存
 	if ct > 0 && sm.CacheAll() {
@@ -79,10 +79,10 @@ func (conn *OrmDB) QueryID(dest any, id any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
 	sm := orm.SchemaOfType(dstVal.Type())
-	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
-	defer sqlRows.Close()
+	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
+	defer ErrLog(sqlRows.Close())
 
-	return parseQueryRow(&dstVal, sqlRows, sm)
+	return scanSqlRowsOne(&dstVal, sqlRows, sm)
 }
 
 // 对应ID值的一行记录，支持行记录缓存
@@ -99,9 +99,9 @@ func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
 	}
 
 	// 执行SQL查询并设置缓存
-	sqlRows := conn.QuerySql(selectSqlByID(sm), id)
-	defer sqlRows.Close()
-	ct := parseQueryRow(&dstVal, sqlRows, sm)
+	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
+	defer ErrLog(sqlRows.Close())
+	ct := scanSqlRowsOne(&dstVal, sqlRows, sm)
 	if ct > 0 {
 		if jsonValBytes, err := jsonx.Marshal(dest); err == nil {
 			_, _ = (*conn.rdsNodes)[0].Set(key, jsonValBytes, time.Duration(sm.ExpireS())*time.Second)
@@ -113,22 +113,26 @@ func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
 
 // 查询一行记录，查询条件自定义
 func (conn *OrmDB) QueryRow(dest any, where string, pms ...any) int64 {
+	return conn.QueryRow2(dest, "*", where, pms...)
+}
+
+func (conn *OrmDB) QueryRow2(dest any, fields string, where string, pms ...any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
 	sm := orm.SchemaOfType(dstVal.Type())
-	sqlRows := conn.QuerySql(selectSqlByOne(sm, where), pms...)
-	defer sqlRows.Close()
+	sqlRows := conn.QuerySql(selectSqlForOne(sm, fields, where), pms...)
+	defer ErrLog(sqlRows.Close())
 
-	return parseQueryRow(&dstVal, sqlRows, sm)
+	return scanSqlRowsOne(&dstVal, sqlRows, sm)
 }
 
-func ParseRow(dest any, sqlRows *sql.Rows) int64 {
+func ScanRow(dest any, sqlRows *sql.Rows) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 	sm := orm.SchemaOfType(dstVal.Type())
-	return parseQueryRow(&dstVal, sqlRows, sm)
+	return scanSqlRowsOne(&dstVal, sqlRows, sm)
 }
 
-func parseQueryRow(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
+func scanSqlRowsOne(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 	if !sqlRows.Next() {
 		return 0
 	}
@@ -148,7 +152,7 @@ func parseQueryRow(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema
 		}
 	}
 	err := sqlRows.Scan(fieldsAddr...)
-	errPanic(err)
+	ErrPanic(err)
 	return 1
 }
 
@@ -161,10 +165,10 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, pms ...any)
 	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
 
 	sm := orm.SchemaOfType(dItemType)
-	sqlRows := conn.QuerySql(selectSqlByWhere(sm, fields, where), pms...)
-	defer sqlRows.Close()
+	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), pms...)
+	defer ErrLog(sqlRows.Close())
 
-	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
 
 // 高级查询，可以自定义更多参数
@@ -173,31 +177,27 @@ func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
 
 	sm := orm.SchemaOfType(dItemType)
 	if pet.Sql == "" {
-		pet.Sql = selectSqlByPet(sm, pet)
+		pet.Sql = selectSqlForPet(sm, pet)
 	}
 	sqlRows := conn.QuerySql(pet.Sql, pet.Prams...)
-	defer sqlRows.Close()
+	defer ErrLog(sqlRows.Close())
 
-	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 带缓存版本
-
-func (conn *OrmDB) QueryPetCache(dest interface{}, pet *SelectPetCache) int64 {
+func (conn *OrmDB) QueryPetCache(dest any, pet *SelectPetCache) int64 {
 	return 0
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func ParseRows(dest any, sqlRows *sql.Rows) int64 {
+func ScanRows(dest any, sqlRows *sql.Rows) int64 {
 	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
 	sm := orm.SchemaOfType(dItemType)
-	return parseQueryRows(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
 
 // 解析查询到的数据记录
-func parseQueryRows(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema,
-	dSliceTyp reflect.Type, dItemType reflect.Type, isPtr bool, isKV bool) int64 {
+func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, dSliceTyp reflect.Type, dItemType reflect.Type, isPtr bool, isKV bool) int64 {
 	dbColumns, _ := sqlRows.Columns()
 	smColumns := sm.ColumnsKV()
 
@@ -219,7 +219,7 @@ func parseQueryRows(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema,
 
 		for sqlRows.Next() {
 			err := sqlRows.Scan(valuesAddr...)
-			errPanic(err)
+			ErrPanic(err)
 
 			obj := make(map[string]any, dbClsLen)
 			for i := 0; i < dbClsLen; i++ {
@@ -260,7 +260,7 @@ func parseQueryRows(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema,
 			}
 
 			err := sqlRows.Scan(valuesAddr...)
-			errPanic(err)
+			ErrPanic(err)
 
 			if isPtr {
 				tpItems = append(tpItems, itemPtr)

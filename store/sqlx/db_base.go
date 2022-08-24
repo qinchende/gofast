@@ -32,7 +32,9 @@ func (conn *OrmDB) ExecSql(sqlStr string, args ...any) sql.Result {
 }
 
 func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) sql.Result {
-	logx.Debug(sqlStr)
+	if logx.ShowDebug() {
+		logx.Debug(realSql(sqlStr, args...))
+	}
 
 	var result sql.Result
 	var err error
@@ -44,9 +46,9 @@ func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) s
 	}
 	dur := timex.Since(startTime)
 	if dur > slowThreshold {
-		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, sqlStr)
+		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	errPanic(err)
+	ErrPanic(err)
 	return result
 }
 
@@ -55,7 +57,9 @@ func (conn *OrmDB) QuerySql(sqlStr string, args ...any) *sql.Rows {
 }
 
 func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) *sql.Rows {
-	logx.Debug(sqlStr)
+	if logx.ShowDebug() {
+		logx.Debug(realSql(sqlStr, args...))
+	}
 
 	var rows *sql.Rows
 	var err error
@@ -67,9 +71,9 @@ func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) 
 	}
 	dur := timex.Since(startTime)
 	if dur > slowThreshold {
-		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, sqlStr)
+		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	errPanic(err)
+	ErrPanic(err)
 	return rows
 }
 
@@ -80,7 +84,7 @@ func (conn *OrmDB) TransBegin() *OrmDB {
 
 func (conn *OrmDB) TransCtx(ctx context.Context) *OrmDB {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	errPanic(err)
+	ErrPanic(err)
 	return &OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 }
 
@@ -90,7 +94,7 @@ func (conn *OrmDB) TransFunc(fn func(newConn *OrmDB)) {
 
 func (conn *OrmDB) TransFuncCtx(ctx context.Context, fn func(newConn *OrmDB)) {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	errPanic(err)
+	ErrPanic(err)
 
 	nConn := OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 	defer nConn.TransEnd()
@@ -113,8 +117,5 @@ func (conn *OrmDB) TransEnd() {
 	} else {
 		err = conn.Commit()
 	}
-	// 出现了非常严重的错误，可能连接没有释放
-	if err != nil {
-		logx.StackF("Terrible mistake. TransEnd error: %s", err)
-	}
+	ErrLog(err) // 出现了非常严重的错误，可能连接没有释放
 }
