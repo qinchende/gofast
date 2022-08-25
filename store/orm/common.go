@@ -40,7 +40,7 @@ func (cf *CommonFields) GfAttrs(parent OrmStruct) *ModelAttrs {
 
 // 万一更新失败，这里的值已经修改，需要回滚吗？？？
 func (cf *CommonFields) BeforeSave() {
-	if cf.ID == 0 && cf.CreatedAt.IsZero() {
+	if cf.ID == 0 || cf.CreatedAt.IsZero() {
 		cf.CreatedAt = time.Now()
 	}
 	cf.UpdatedAt = time.Now()

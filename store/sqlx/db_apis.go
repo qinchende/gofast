@@ -6,7 +6,6 @@ import (
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
-	"time"
 )
 
 func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
@@ -29,7 +28,7 @@ func (conn *OrmDB) Delete(obj any) int64 {
 	sm := orm.Schema(obj)
 	val := sm.PrimaryValue(obj)
 	ret := conn.ExecSql(deleteSql(sm), val)
-	return parseResult(ret, val, conn, sm)
+	return parseSqlResult(ret, val, conn, sm)
 }
 
 func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
@@ -43,7 +42,7 @@ func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
 	values[fLen-1] = tVal
 
 	ret := conn.ExecSql(updateSql(sm), values...)
-	return parseResult(ret, tVal, conn, sm)
+	return parseSqlResult(ret, tVal, conn, sm)
 }
 
 // 通过给定的结构体字段更新数据
@@ -54,19 +53,22 @@ func (conn *OrmDB) UpdateColumns(obj orm.OrmStruct, columns ...string) int64 {
 	obj.BeforeSave()
 	upSQL, tValues := updateSqlByColumns(sm, &dstVal, columns)
 	ret := conn.ExecSql(upSQL, tValues...)
-	return parseResult(ret, tValues[len(tValues)-1], conn, sm)
+	return parseSqlResult(ret, tValues[len(tValues)-1], conn, sm)
 }
 
-func parseResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema) int64 {
+func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema) int64 {
 	ct, err := ret.RowsAffected()
 	ErrLog(err)
 
-	// 判断是否要删除缓存
+	// 判断是否要删除缓存，删除缓存的逻辑要特殊处理，
+	// TODO：删除Key要有策略，比如删除之后加一个删除标记，后面设置缓存策略先查询这个标记，如果有标记就删除标记但本次不设置缓存
 	if ct > 0 && sm.CacheAll() {
 		// 目前只支持第一个redis实例作缓存
 		if conn.rdsNodes != nil {
 			key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DbName, keyVal)
-			_, _ = (*conn.rdsNodes)[0].Del(key)
+			rds := (*conn.rdsNodes)[0]
+			_, _ = rds.Del(key)
+			_, _ = rds.SetEX(key+"_del", "1", sm.ExpireDuration())
 		}
 	}
 
@@ -80,7 +82,7 @@ func (conn *OrmDB) QueryID(dest any, id any) int64 {
 
 	sm := orm.SchemaOfType(dstVal.Type())
 	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
-	defer ErrLog(sqlRows.Close())
+	defer sqlRowsClose(sqlRows)
 
 	return scanSqlRowsOne(&dstVal, sqlRows, sm)
 }
@@ -90,22 +92,26 @@ func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 	sm := orm.SchemaOfType(dstVal.Type())
 
+	// TODO：获取缓存的值
 	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DbName, id)
-	cValStr, err := (*conn.rdsNodes)[0].Get(key)
+	rds := (*conn.rdsNodes)[0]
+	cValStr, err := rds.Get(key)
 	if err == nil && cValStr != "" {
 		if err = jsonx.UnmarshalFromString(dest, cValStr); err == nil {
 			return 1
 		}
 	}
 
-	// 执行SQL查询并设置缓存
+	// TODO: 执行SQL查询并设置缓存
 	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
-	defer ErrLog(sqlRows.Close())
+	defer sqlRowsClose(sqlRows)
 	ct := scanSqlRowsOne(&dstVal, sqlRows, sm)
 	if ct > 0 {
-		if jsonValBytes, err := jsonx.Marshal(dest); err == nil {
-			_, _ = (*conn.rdsNodes)[0].Set(key, jsonValBytes, time.Duration(sm.ExpireS())*time.Second)
-			//logx.Info(str, err)
+		keyDel := key + "_del"
+		if cValStr, _ := rds.Get(keyDel); cValStr == "1" {
+			_, _ = rds.Del(keyDel)
+		} else if jsonValBytes, err := jsonx.Marshal(dest); err == nil {
+			_, _ = rds.Set(key, jsonValBytes, sm.ExpireDuration())
 		}
 	}
 	return ct
@@ -121,7 +127,7 @@ func (conn *OrmDB) QueryRow2(dest any, fields string, where string, pms ...any) 
 
 	sm := orm.SchemaOfType(dstVal.Type())
 	sqlRows := conn.QuerySql(selectSqlForOne(sm, fields, where), pms...)
-	defer ErrLog(sqlRows.Close())
+	defer sqlRowsClose(sqlRows)
 
 	return scanSqlRowsOne(&dstVal, sqlRows, sm)
 }
@@ -166,7 +172,7 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, pms ...any)
 
 	sm := orm.SchemaOfType(dItemType)
 	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), pms...)
-	defer ErrLog(sqlRows.Close())
+	defer sqlRowsClose(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
@@ -180,7 +186,7 @@ func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
 		pet.Sql = selectSqlForPet(sm, pet)
 	}
 	sqlRows := conn.QuerySql(pet.Sql, pet.Prams...)
-	defer ErrLog(sqlRows.Close())
+	defer sqlRowsClose(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }

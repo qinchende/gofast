@@ -3,6 +3,7 @@ package orm
 import (
 	"reflect"
 	"sync"
+	"time"
 )
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
@@ -54,6 +55,11 @@ func (ms *ModelSchema) CachePreFix() string {
 
 func (ms *ModelSchema) ExpireS() uint32 {
 	return ms.attrs.ExpireS
+}
+
+// 可以考虑加上随机 5% 左右的偏差，防止将来缓存统一过期导致缓存雪崩
+func (ms *ModelSchema) ExpireDuration() time.Duration {
+	return time.Duration(ms.attrs.ExpireS) * time.Second
 }
 
 func (ms *ModelSchema) FieldsKV() map[string]int8 {
