@@ -24,3 +24,11 @@ func (rdx *GfRedis) Expire(key string, seconds time.Duration) (bool, error) {
 func (rdx *GfRedis) Del(key string) (int64, error) {
 	return rdx.Cli.Del(rdx.Ctx, key).Result()
 }
+
+func (rdx *GfRedis) SetEX(key string, value any, seconds time.Duration) (string, error) {
+	return rdx.Cli.SetEX(rdx.Ctx, key, value, seconds).Result()
+}
+
+func (rdx *GfRedis) SetNX(key string, value any, seconds time.Duration) (bool, error) {
+	return rdx.Cli.SetNX(rdx.Ctx, key, value, seconds).Result()
+}

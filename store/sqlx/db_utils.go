@@ -1,6 +1,7 @@
 package sqlx
 
 import (
+	"database/sql"
 	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"strings"
@@ -17,6 +18,10 @@ func ErrLog(err error) {
 	if err != nil {
 		logx.Stack(err.Error())
 	}
+}
+
+func sqlRowsClose(rows *sql.Rows) {
+	ErrLog(rows.Close())
 }
 
 func realSql(sqlStr string, args ...any) string {
