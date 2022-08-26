@@ -72,7 +72,7 @@ func (conn *StmtConn) QueryRow(dest any, args ...any) int64 {
 
 func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
-	defer sqlRowsClose(sqlRows)
+	defer CloseSqlRows(sqlRows)
 
 	if err != nil {
 		ErrLog(err)
@@ -90,7 +90,7 @@ func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
 
 func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
-	defer sqlRowsClose(sqlRows)
+	defer CloseSqlRows(sqlRows)
 
 	if err != nil {
 		ErrLog(err)

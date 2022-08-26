@@ -28,7 +28,7 @@ func SchemaValues(obj any) (*ModelSchema, []any) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 反射提取结构体的值（支持嵌套递归）
+// 反射提取结构体的值（支持内联递归）
 func structValues(values *[]any, nextIndex *int8, obj any) {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 
