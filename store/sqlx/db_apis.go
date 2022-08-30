@@ -71,30 +71,30 @@ func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
 }
 
 // 查询一行记录，查询条件自定义
-func (conn *OrmDB) QueryRow(dest any, where string, pms ...any) int64 {
-	return conn.QueryRow2(dest, "*", where, pms...)
+func (conn *OrmDB) QueryRow(dest any, where string, args ...any) int64 {
+	return conn.QueryRow2(dest, "*", where, args...)
 }
 
-func (conn *OrmDB) QueryRow2(dest any, fields string, where string, pms ...any) int64 {
+func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 
 	sm := orm.SchemaOfType(dstVal.Type())
-	sqlRows := conn.QuerySql(selectSqlForOne(sm, fields, where), pms...)
+	sqlRows := conn.QuerySql(selectSqlForOne(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsOne(&dstVal, sqlRows, sm)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *OrmDB) QueryRows(dest any, where string, pms ...any) int64 {
-	return conn.QueryRows2(dest, "*", where, pms...)
+func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {
+	return conn.QueryRows2(dest, "*", where, args...)
 }
 
-func (conn *OrmDB) QueryRows2(dest any, fields string, where string, pms ...any) int64 {
+func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any) int64 {
 	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
 
 	sm := orm.SchemaOfType(dItemType)
-	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), pms...)
+	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
@@ -108,7 +108,7 @@ func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
 	if pet.Sql == "" {
 		pet.Sql = selectSqlForPet(sm, pet)
 	}
-	sqlRows := conn.QuerySql(pet.Sql, pet.Prams...)
+	sqlRows := conn.QuerySql(pet.Sql, pet.Args...)
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)

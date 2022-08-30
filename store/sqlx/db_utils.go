@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
-	"strings"
 )
 
 var (
@@ -248,8 +247,4 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	}
 
 	return dSliceTyp, dItemType, isPtr, isKV
-}
-
-func realSql(sqlStr string, args ...any) string {
-	return fmt.Sprintf(strings.ReplaceAll(sqlStr, "?", "%#v"), args...)
 }

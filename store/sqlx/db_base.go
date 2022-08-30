@@ -32,6 +32,7 @@ func (conn *OrmDB) ExecSql(sqlStr string, args ...any) sql.Result {
 }
 
 func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) sql.Result {
+	args = formatArgs(args)
 	if logx.ShowDebug() {
 		logx.Debug(realSql(sqlStr, args...))
 	}
@@ -57,6 +58,7 @@ func (conn *OrmDB) QuerySql(sqlStr string, args ...any) *sql.Rows {
 }
 
 func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) *sql.Rows {
+	args = formatArgs(args)
 	if logx.ShowDebug() {
 		logx.Debug(realSql(sqlStr, args...))
 	}

@@ -47,6 +47,7 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 		return 0
 	}
 
+	args = formatArgs(args)
 	if logx.ShowDebug() {
 		logx.Debug(realSql(conn.sqlStr, args...))
 	}
@@ -103,6 +104,7 @@ func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) i
 }
 
 func (conn *StmtConn) queryContext(ctx context.Context, args ...any) (sqlRows *sql.Rows, err error) {
+	args = formatArgs(args)
 	if logx.ShowDebug() {
 		logx.Debug(realSql(conn.sqlStr, args...))
 	}

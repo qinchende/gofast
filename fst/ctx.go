@@ -21,7 +21,7 @@ type Context struct {
 	ResWrap   *ResponseWrap
 	ReqRaw    *http.Request // request
 	Sess      SessionKeeper // Session数据，数据存储部分可以自定义
-	Params    *Params       // : 或 * 对应的参数
+	UrlParams *Params       // : 或 * 对应的参数
 	Pms       cst.KV        // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	Baskets   tools.Baskets // []*Basket，可以携带扩展的自定义数据
 
@@ -49,7 +49,7 @@ func (c *Context) reset() {
 	//c.ResWrap = nil
 	//c.ReqRaw = nil
 	c.Sess = nil
-	c.Params = c.match.params
+	c.UrlParams = c.match.params
 	c.Pms = nil
 	//c.PmsCarry = nil
 	c.RouteIdx = 0

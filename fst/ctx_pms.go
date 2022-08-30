@@ -10,6 +10,16 @@ import (
 	"strings"
 )
 
+// Param returns the value of the URL param.
+// It is a shortcut for c.Params.ByName(key)
+//     router.GET("/user/:id", func(c *gin.Context) {
+//         // a GET request to /user/john
+//         id := c.Param("id") // id == "john"
+//     })
+func (c *Context) Param(key string) string {
+	return c.match.params.ByName(key)
+}
+
 // add by sdx on 20210305
 // 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
 func (c *Context) BindPms(dst any) error {
@@ -61,51 +71,3 @@ func applyUrlValue(pms cst.KV, values url.Values) {
 		}
 	}
 }
-
-//// 如果没有匹配路由，需要一些初始化
-//func (c *Context) GetPms(key string) (val any, ok bool) {
-//	c.mu.RLock()
-//	val, ok = c.Pms[key]
-//	c.mu.RUnlock()
-//	return
-//}
-
-//// 启用这个模块之后，gin 的 binding 特性就不能使用了，因为无法读取body内容了。
-//func (c *Context) GenPmsByJSONBody() {
-//	if c.Pms != nil {
-//		return
-//	}
-//	c.Pms = make(cst.KV)
-//	if err := c.BindJSON(&c.Pms); err != nil {
-//	}
-//
-//	c.ParseQuery()
-//	for key, val := range c.queryCache {
-//		c.Pms[key] = val[0]
-//	}
-//}
-//
-//func (c *Context) GenPmsByFormBody() {
-//	if c.Pms != nil {
-//		return
-//	}
-//	c.ParseForm()
-//	c.Pms = make(cst.KV, len(c.ReqRaw.Form))
-//	for key, val := range c.ReqRaw.Form {
-//		c.Pms[key] = val[0]
-//	}
-//}
-//
-//func (c *Context) GenPmsByXMLBody() {
-//	if c.Pms != nil {
-//		return
-//	}
-//	c.Pms = make(cst.KV)
-//	if err := c.BindXML(&c.Pms); err != nil {
-//	}
-//
-//	c.ParseQuery()
-//	for key, val := range c.queryCache {
-//		c.Pms[key] = val[0]
-//	}
-//}
