@@ -60,9 +60,13 @@ func GFPanicIf(yn bool, msg string) {
 }
 
 func GFPanic(msg string) {
-	panic(cst.GFError(errors.New(msg)))
+	if len(msg) != 0 {
+		panic(cst.GFError(errors.New(msg)))
+	}
 }
 
 func GFPanicErr(err error) {
-	panic(cst.GFError(err))
+	if err != nil {
+		panic(cst.GFError(err))
+	}
 }

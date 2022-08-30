@@ -178,7 +178,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
 		miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape)
-		c.Params = c.match.params
+		c.UrlParams = c.match.params
 
 		// 如果能匹配到路径
 		if c.match.ptrNode != nil {
@@ -208,7 +208,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
 			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape); c.match.ptrNode != nil {
 				c.match.ptrNode = gft.miniNode405
-				c.Params = c.match.params
+				c.UrlParams = c.match.params
 				c.execHandlers()
 				return
 			}

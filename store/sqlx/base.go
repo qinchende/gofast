@@ -7,6 +7,11 @@ import (
 	"github.com/qinchende/gofast/connx/gfrds"
 )
 
+const (
+	timeFormat     = "2006-01-02 15:04:05"
+	timeFormatMini = "01-02 15:04:05"
+)
+
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type OrmDB struct {
 	Attrs    *DBAttrs
@@ -41,7 +46,7 @@ type SelectPet struct {
 	Offset  int64
 	Limit   int64
 	Where   string
-	Prams   []any
+	Args    []any
 }
 
 type SelectPetCache struct {

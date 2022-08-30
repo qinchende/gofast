@@ -1,30 +1,177 @@
-// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Copyright 2021 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
-	"io"
-	"mime/multipart"
-	"net"
+	"github.com/qinchende/gofast/skill/lang"
 	"net/http"
-	"os"
 	"strings"
+	"time"
 )
+
+const (
+	errorConvertValue = "Data convert error."
+)
+
+/************************************/
+/******* metadata management ********/
+/************************************/
+
+// Set is used to store a new key/value pair exclusively for this context.
+// It also lazy initializes  c.Keys if it was not used previously.
+func (c *Context) Set(key string, value any) {
+	c.mu.Lock()
+	if c.Pms == nil {
+		c.Pms = make(cst.KV)
+	}
+	c.Pms[key] = value
+	c.mu.Unlock()
+}
+
+// Get returns the value for the given key, ie: (value, true).
+// If the value does not exists it returns (nil, false)
+func (c *Context) Get(key string) (value any, exists bool) {
+	c.mu.RLock()
+	value, exists = c.Pms[key]
+	c.mu.RUnlock()
+	return
+}
+
+// MustGet returns the value for the given key if it exists, otherwise it panics.
+func (c *Context) MustGet(key string) any {
+	if value, exists := c.Get(key); exists {
+		return value
+	}
+	GFPanic("Key " + key + " does not exist")
+	return nil
+}
+
+// GetString returns the value associated with the key as a string.
+func (c *Context) GetString(key string) (s string) {
+	if val, ok := c.Get(key); ok && val != nil {
+		s, _ = val.(string)
+	}
+	return
+}
+
+func (c *Context) MustGetString(key string) (s string) {
+	s = c.MustGet(key).(string)
+	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GetBool returns the value associated with the key as a boolean.
+func (c *Context) GetBool(key string) (b bool) {
+	if val, ok := c.Get(key); ok && val != nil {
+		b, _ = val.(bool)
+	}
+	return
+}
+
+// GetInt returns the value associated with the key as an integer.
+func (c *Context) GetInt(key string) (i int) {
+	if val, ok := c.Get(key); ok && val != nil {
+		i, _ = val.(int)
+	}
+	return
+}
+
+func (c *Context) GetInt64(key string) (i64 int64, ok bool) {
+	if val, ok := c.Get(key); ok && val != nil {
+		i64, ok = val.(int64)
+	}
+	return
+}
+
+// 没有参数就用默认值替代
+func (c *Context) GetInt64Def(key string, def int64) (i64 int64) {
+	if val, ok := c.Get(key); ok && val != nil {
+		if i64, ok = val.(int64); !ok {
+			i64 = def
+		}
+	} else {
+		i64 = def
+	}
+	return
+}
+
+func (c *Context) GetInt64Must(key string) int64 {
+	src := c.MustGet(key)
+	v, err := lang.ToInt64(src)
+	GFPanicErr(err)
+	return v
+}
+
+func (c *Context) GetUInt64Must(key string) uint64 {
+	src := c.MustGet(key)
+	v, err := lang.ToUInt64(src)
+	GFPanicErr(err)
+	return v
+}
+
+//func parseToInt64()
+
+// GetFloat64 returns the value associated with the key as a float64.
+func (c *Context) GetFloat64(key string) (f64 float64) {
+	if val, ok := c.Get(key); ok && val != nil {
+		f64, _ = val.(float64)
+	}
+	return
+}
+
+// GetTime returns the value associated with the key as time.
+func (c *Context) GetTime(key string) (t time.Time) {
+	if val, ok := c.Get(key); ok && val != nil {
+		t, _ = val.(time.Time)
+	}
+	return
+}
+
+// GetDuration returns the value associated with the key as a duration.
+func (c *Context) GetDuration(key string) (d time.Duration) {
+	if val, ok := c.Get(key); ok && val != nil {
+		d, _ = val.(time.Duration)
+	}
+	return
+}
+
+// GetStringSlice returns the value associated with the key as a slice of strings.
+func (c *Context) GetStringSlice(key string) (ss []string) {
+	if val, ok := c.Get(key); ok && val != nil {
+		ss, _ = val.([]string)
+	}
+	return
+}
+
+// GetStringMap returns the value associated with the key as a map of interfaces.
+func (c *Context) GetStringMap(key string) (sm map[string]any) {
+	if val, ok := c.Get(key); ok && val != nil {
+		sm, _ = val.(map[string]any)
+	}
+	return
+}
+
+// GetStringMapString returns the value associated with the key as a map of strings.
+func (c *Context) GetStringMapString(key string) (sms map[string]string) {
+	if val, ok := c.Get(key); ok && val != nil {
+		sms, _ = val.(map[string]string)
+	}
+	return
+}
+
+// GetStringMapStringSlice returns the value associated with the key as a map to a slice of strings.
+func (c *Context) GetStringMapStringSlice(key string) (smss map[string][]string) {
+	if val, ok := c.Get(key); ok && val != nil {
+		smss, _ = val.(map[string][]string)
+	}
+	return
+}
 
 /************************************/
 /************ input data ************/
 /************************************/
-
-// Param returns the value of the URL param.
-// It is a shortcut for c.Params.ByName(key)
-//     router.GET("/user/:id", func(c *gin.Context) {
-//         // a GET request to /user/john
-//         id := c.Param("id") // id == "john"
-//     })
-func (c *Context) Param(key string) string {
-	return c.match.params.ByName(key)
-}
 
 // A. ++++++++++++++++++++++++++++
 // 解析 Url 中的参数
@@ -198,93 +345,4 @@ func (c *Context) get(m map[string][]string, key string) (map[string]string, boo
 		}
 	}
 	return dicts, exist
-}
-
-// FormFile returns the first file for the provided form key.
-func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
-	if c.ReqRaw.MultipartForm == nil {
-		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory); err != nil {
-			return nil, err
-		}
-	}
-	f, fh, err := c.ReqRaw.FormFile(name)
-	if err != nil {
-		return nil, err
-	}
-	f.Close()
-	return fh, err
-}
-
-// MultipartForm is the parsed multipart form, including file uploads.
-func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory)
-	return c.ReqRaw.MultipartForm, err
-}
-
-// SaveUploadedFile uploads the form file to specific dst.
-func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error {
-	src, err := file.Open()
-	if err != nil {
-		return err
-	}
-	defer src.Close()
-
-	out, err := os.Create(dst)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-
-	_, err = io.Copy(out, src)
-	return err
-}
-
-// ClientIP implements a best effort algorithm to return the real client IP, it parses
-// X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
-// Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
-func (c *Context) ClientIP() string {
-	if c.myApp.ForwardedByClientIP {
-		clientIP := c.requestHeader("X-Forwarded-For")
-		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
-		if clientIP == "" {
-			clientIP = strings.TrimSpace(c.requestHeader("X-Real-Ip"))
-		}
-		if clientIP != "" {
-			return clientIP
-		}
-	}
-
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.ReqRaw.RemoteAddr)); err == nil {
-		return ip
-	}
-
-	return ""
-}
-
-// ContentType returns the Content-Type header of the request.
-func (c *Context) ContentType() string {
-	return filterFlags(c.requestHeader("Content-Type"))
-}
-
-// IsWebsocket returns true if the request headers indicate that a websocket
-// handshake is being initiated by the client.
-func (c *Context) IsWebsocket() bool {
-	if strings.Contains(strings.ToLower(c.requestHeader("Connection")), "upgrade") &&
-		strings.EqualFold(c.requestHeader("Upgrade"), "websocket") {
-		return true
-	}
-	return false
-}
-
-func (c *Context) requestHeader(key string) string {
-	return c.ReqRaw.Header.Get(key)
-}
-
-func filterFlags(content string) string {
-	for i, char := range content {
-		if char == ' ' || char == ';' {
-			return content[:i]
-		}
-	}
-	return content
 }
