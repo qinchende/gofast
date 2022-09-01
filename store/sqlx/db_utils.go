@@ -3,7 +3,6 @@ package sqlx
 import (
 	"database/sql"
 	"errors"
-	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/store/orm"
@@ -57,7 +56,7 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema
 	if ct > 0 && sm.CacheAll() {
 		// 目前只支持第一个redis实例作缓存
 		if conn.rdsNodes != nil {
-			key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DbName, keyVal)
+			key := sm.CacheLineKey(conn.Attrs.DbName, keyVal)
 			rds := (*conn.rdsNodes)[0]
 			_, _ = rds.Del(key)
 			_, _ = rds.SetEX(key+"_del", "1", sm.ExpireDuration())
@@ -72,7 +71,7 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 	sm := orm.SchemaOfType(dstVal.Type())
 
 	// TODO：获取缓存的值
-	key := fmt.Sprintf(sm.CachePreFix(), conn.Attrs.DbName, id)
+	key := sm.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
 	cValStr, err := rds.Get(key)
 	if err == nil && cValStr != "" {

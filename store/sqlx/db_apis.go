@@ -43,12 +43,12 @@ func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
 }
 
 // 通过给定的结构体字段更新数据
-func (conn *OrmDB) UpdateColumns(obj orm.OrmStruct, columns ...string) int64 {
+func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(obj))
 	sm := orm.Schema(obj)
 
 	obj.BeforeSave()
-	upSQL, tValues := updateSqlByColumns(sm, &dstVal, columns)
+	upSQL, tValues := updateSqlByFields(sm, &dstVal, fNames...)
 	ret := conn.ExecSql(upSQL, tValues...)
 	return parseSqlResult(ret, tValues[len(tValues)-1], conn, sm)
 }
@@ -86,6 +86,7 @@ func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 查询多行记录
 func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {
 	return conn.QueryRows2(dest, "*", where, args...)
 }
@@ -100,6 +101,7 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any
 	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 高级查询，可以自定义更多参数
 func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
 	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
@@ -112,6 +114,30 @@ func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+}
+
+func (conn *OrmDB) QueryPetPaging(dest any, pet *SelectPet) (int64, int64) {
+	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
+	sm := orm.SchemaOfType(dItemType)
+
+	checkPet(sm, pet)
+	if pet.SqlCount == "" {
+		pet.SqlCount = selectCountSqlForPet(sm, pet)
+	}
+	if pet.Sql == "" {
+		pet.Sql = selectPagingSqlForPet(sm, pet)
+	}
+
+	sqlRows1 := conn.QuerySql(pet.SqlCount, pet.Args...)
+	defer CloseSqlRows(sqlRows1)
+	var total int64
+	trv := reflect.ValueOf(total)
+	scanSqlRowsOne(&trv, sqlRows1, sm)
+
+	sqlRows2 := conn.QuerySql(pet.Sql, pet.Args...)
+	defer CloseSqlRows(sqlRows2)
+
+	return scanSqlRowsSlice(dest, sqlRows2, sm, dSliceTyp, dItemType, isPtr, isKV), total
 }
 
 func (conn *OrmDB) QueryPetCache(dest any, pet *SelectPetCache) int64 {

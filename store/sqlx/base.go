@@ -40,13 +40,19 @@ const (
 )
 
 type SelectPet struct {
-	Sql     string
-	Table   string
-	Columns string
-	Offset  int64
-	Limit   int64
-	Where   string
-	Args    []any
+	SqlCount string
+	Sql      string
+	Table    string
+	Columns  string
+	Where    string
+	OrderBy  string
+	orderByT string
+	GroupBy  string
+	Args     []any
+	PageSize int32
+	Page     int32
+	Offset   int32
+	Limit    int32
 }
 
 type SelectPetCache struct {

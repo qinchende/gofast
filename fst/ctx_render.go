@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
@@ -70,6 +71,13 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 
 func (c *Context) AbortHandlers() {
 	c.execIdx = maxRouteHandlers
+}
+
+// 简易的抛出异常的方式，终止执行链，返回错误
+func (c *Context) FaiPanicIf(yes bool, msg string) {
+	if yes {
+		panic(cst.GFFaiString(msg))
+	}
 }
 
 // 自定义返回结果和状态

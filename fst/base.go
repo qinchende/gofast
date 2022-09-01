@@ -53,8 +53,8 @@ var (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主动抛异常
-func GFPanicIf(yn bool, msg string) {
-	if yn {
+func GFPanicIf(yes bool, msg string) {
+	if yes {
 		panic(cst.GFError(errors.New(msg)))
 	}
 }

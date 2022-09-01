@@ -71,25 +71,25 @@ func updateSql(mss *orm.ModelSchema) string {
 }
 
 // 更新特定字段
-func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []string) (string, []any) {
-	if len(columns) == 1 {
-		columns = strings.Split(columns[0], ",")
+func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
+	if len(fNames) == 1 {
+		fNames = strings.Split(fNames[0], ",")
 	}
 
-	tgLen := len(columns)
+	tgLen := len(fNames)
 	if tgLen <= 0 {
-		panic("UpdateByColumns params [columns] is empty")
+		panic("sqlx: UpdateByFields args [fNames] is empty")
 	}
 
-	clsKV := ms.ColumnsKV()
+	flsKV := ms.FieldsKV()
 	cls := ms.Columns()
 	sBuf := strings.Builder{}
 	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx, ok := clsKV[columns[i]]
+		idx, ok := flsKV[fNames[i]]
 		if !ok {
-			fst.GFPanicErr(fmt.Errorf("field %s not exist", columns[i]))
+			fst.GFPanicErr(fmt.Errorf("Field %s not exist.", fNames[i]))
 		}
 
 		// 更新字符串
@@ -152,7 +152,8 @@ func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string 
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, mss.TableName(), where)
 }
 
-func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func checkPet(mss *orm.ModelSchema, pet *SelectPet) {
 	if pet.Table == "" {
 		pet.Table = mss.TableName()
 	}
@@ -168,5 +169,28 @@ func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
 	if pet.Where == "" {
 		pet.Where = "1=1"
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.Limit, pet.Offset)
+	pet.orderByT = ""
+	if pet.OrderBy != "" {
+		pet.orderByT = "ORDER BY " + pet.OrderBy
+	}
+
+	if pet.Page <= 0 {
+		pet.Page = 1
+	}
+	if pet.PageSize <= 0 {
+		pet.PageSize = 10
+	}
+}
+
+func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	checkPet(mss, pet)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s %s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.orderByT, pet.Limit, pet.Offset)
+}
+
+func selectCountSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
+}
+
+func selectPagingSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s %s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }
