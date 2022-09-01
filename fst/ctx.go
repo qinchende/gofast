@@ -35,8 +35,6 @@ type Context struct {
 	rendered  bool         // 是否已经执行了Render
 	IsTimeout bool         // 请求是否超时了
 	RouteIdx  uint16       // router的唯一标识ID，方便区分不同的router
-
-	//PmsCarry  cst.KV        // 后台上下文传递的数据
 }
 
 /************************************/

@@ -1,6 +1,7 @@
 package orm
 
 import (
+	"fmt"
 	"reflect"
 	"sync"
 	"time"
@@ -51,6 +52,10 @@ func (ms *ModelSchema) CacheAll() bool {
 
 func (ms *ModelSchema) CachePreFix() string {
 	return ms.attrs.cacheKeyFmt
+}
+
+func (ms *ModelSchema) CacheLineKey(dbName, id any) string {
+	return fmt.Sprintf(ms.attrs.cacheKeyFmt, dbName, id)
 }
 
 func (ms *ModelSchema) ExpireS() uint32 {
