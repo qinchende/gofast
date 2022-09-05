@@ -1,8 +1,13 @@
 package sqlx
 
 import (
+	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
+	"time"
 )
 
 func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
@@ -56,13 +61,10 @@ func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对应ID值的一行记录
 func (conn *OrmDB) QueryID(dest any, id any) int64 {
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-
-	sm := orm.SchemaOfType(dstVal.Type())
+	sm := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
 	defer CloseSqlRows(sqlRows)
-
-	return scanSqlRowsOne(&dstVal, sqlRows, sm)
+	return scanSqlRowsOne(dest, sqlRows, sm)
 }
 
 // 对应ID值的一行记录，支持行记录缓存
@@ -76,13 +78,10 @@ func (conn *OrmDB) QueryRow(dest any, where string, args ...any) int64 {
 }
 
 func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any) int64 {
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-
-	sm := orm.SchemaOfType(dstVal.Type())
+	sm := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForOne(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
-
-	return scanSqlRowsOne(&dstVal, sqlRows, sm)
+	return scanSqlRowsOne(dest, sqlRows, sm)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -92,54 +91,99 @@ func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {
 }
 
 func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any) int64 {
-	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
-
-	sm := orm.SchemaOfType(dItemType)
+	sm := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
-	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	return scanSqlRowsSlice(dest, sqlRows, sm)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 高级查询，可以自定义更多参数
-func (conn *OrmDB) QueryPet(dest any, pet *SelectPet) int64 {
-	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
+func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
+	sm := orm.Schema(pet.Target)
 
-	sm := orm.SchemaOfType(dItemType)
-	if pet.Sql == "" {
-		pet.Sql = selectSqlForPet(sm, pet)
+	// 生成Sql语句
+	sql := pet.Sql
+	if sql == "" {
+		sql = selectSqlForPet(sm, checkPet(sm, pet))
 	}
-	sqlRows := conn.QuerySql(pet.Sql, pet.Args...)
-	defer CloseSqlRows(sqlRows)
 
-	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	// 需要走缓存版本
+	if pet.PetCache != nil && pet.PetCache.ExpireS > 0 {
+		pet.Args = formatArgs(pet.Args)
+		pet.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
+
+		// TODO：获取缓存的值
+		key := pet.sqlHash
+		rds := (*conn.rdsNodes)[0]
+		cValStr, err := rds.Get(key)
+		if err == nil && cValStr != "" {
+			dest := cst.KV{"count": 0, "records": cst.KV{}}
+			if err = jsonx.UnmarshalFromString(&dest, cValStr); err == nil {
+				err := mapx.ApplySliceOfConfig(pet.Target, dest["records"])
+				ErrPanic(err)
+				ct, _ := lang.ToInt64(dest["count"])
+				return ct
+			}
+		}
+
+		// TODO: 执行SQL查询并设置缓存
+		sqlRows := conn.QuerySql(sql, pet.Args...)
+		defer CloseSqlRows(sqlRows)
+		ct := scanSqlRowsSlice(pet.Target, sqlRows, sm)
+
+		if ct > 0 {
+			if jsonValBytes, err := jsonx.Marshal(cst.KV{"count": ct, "records": pet.Target}); err == nil {
+				_, _ = rds.Set(key, jsonValBytes, time.Duration(pet.ExpireS)*time.Second)
+			}
+		}
+		return ct
+	}
+
+	sqlRows := conn.QuerySql(sql, pet.Args...)
+	defer CloseSqlRows(sqlRows)
+	return scanSqlRowsSlice(pet.Target, sqlRows, sm)
 }
 
-func (conn *OrmDB) QueryPetPaging(dest any, pet *SelectPet) (int64, int64) {
-	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
-	sm := orm.SchemaOfType(dItemType)
+func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
+	sm := orm.Schema(pet.Target)
 
-	checkPet(sm, pet)
-	if pet.SqlCount == "" {
-		pet.SqlCount = selectCountSqlForPet(sm, pet)
+	sqlCount := pet.SqlCount
+	if sqlCount == "" {
+		sqlCount = selectCountSqlForPet(sm, checkPet(sm, pet))
 	}
-	if pet.Sql == "" {
-		pet.Sql = selectPagingSqlForPet(sm, pet)
+	sql := pet.Sql
+	if sql == "" {
+		sql = selectPagingSqlForPet(sm, pet)
 	}
 
-	sqlRows1 := conn.QuerySql(pet.SqlCount, pet.Args...)
+	// 此条件下一共多少条
+	sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
 	defer CloseSqlRows(sqlRows1)
-	var total int64
-	trv := reflect.ValueOf(total)
-	scanSqlRowsOne(&trv, sqlRows1, sm)
-
-	sqlRows2 := conn.QuerySql(pet.Sql, pet.Args...)
+	// 此条件下的分页记录
+	sqlRows2 := conn.QuerySql(sql, pet.Args...)
 	defer CloseSqlRows(sqlRows2)
 
-	return scanSqlRowsSlice(dest, sqlRows2, sm, dSliceTyp, dItemType, isPtr, isKV), total
+	var total int64
+	scanSqlRowsOne(&total, sqlRows1, sm)
+
+	return scanSqlRowsSlice(pet.Target, sqlRows2, sm), total
 }
 
-func (conn *OrmDB) QueryPetCache(dest any, pet *SelectPetCache) int64 {
-	return 0
+func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
+	sm := orm.Schema(pet.Target)
+	// 生成Sql语句
+	sql := pet.Sql
+	if sql == "" {
+		sql = selectSqlForPet(sm, checkPet(sm, pet))
+	}
+
+	pet.Args = formatArgs(pet.Args)
+	pet.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
+
+	key := pet.sqlHash
+	rds := (*conn.rdsNodes)[0]
+	_, err = rds.Del(key)
+	return
 }

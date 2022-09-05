@@ -10,8 +10,8 @@ import (
 )
 
 var (
-	ErrNotMatchDestination  = errors.New("not matching destination to scan")
-	ErrNotReadableValue     = errors.New("value not addressable or interfaceable")
+	//ErrNotMatchDestination  = errors.New("not matching destination to scan")
+	//ErrNotReadableValue     = errors.New("value not addressable or interfaceable")
 	ErrNotSettable          = errors.New("passed in variable is not settable")
 	ErrUnsupportedValueType = errors.New("unsupported unmarshal type")
 )
@@ -35,15 +35,13 @@ func CloseSqlRows(rows *sql.Rows) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func ScanRow(dest any, sqlRows *sql.Rows) int64 {
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-	sm := orm.SchemaOfType(dstVal.Type())
-	return scanSqlRowsOne(&dstVal, sqlRows, sm)
+	sm := orm.Schema(dest)
+	return scanSqlRowsOne(dest, sqlRows, sm)
 }
 
 func ScanRows(dest any, sqlRows *sql.Rows) int64 {
-	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
-	sm := orm.SchemaOfType(dItemType)
-	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	sm := orm.Schema(dest)
+	return scanSqlRowsSlice(dest, sqlRows, sm)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -67,14 +65,14 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema
 }
 
 func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-	sm := orm.SchemaOfType(dstVal.Type())
+	sm := orm.Schema(dest)
 
 	// TODO：获取缓存的值
 	key := sm.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
 	cValStr, err := rds.Get(key)
 	if err == nil && cValStr != "" {
+		// 因为字段名都一样，所以标准库就能自动解析出结构体
 		if err = jsonx.UnmarshalFromString(dest, cValStr); err == nil {
 			return 1
 		}
@@ -83,7 +81,7 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 	// TODO: 执行SQL查询并设置缓存
 	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
 	defer CloseSqlRows(sqlRows)
-	ct := scanSqlRowsOne(&dstVal, sqlRows, sm)
+	ct := scanSqlRowsOne(dest, sqlRows, sm)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cValStr, _ := rds.Get(keyDel); cValStr == "1" {
@@ -96,7 +94,7 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanSqlRowsOne(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
+func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 	if !sqlRows.Next() {
 		if err := sqlRows.Err(); err != nil {
 			ErrLog(err)
@@ -106,16 +104,16 @@ func scanSqlRowsOne(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchem
 		return 0
 	}
 
-	rte := dstVal.Type()
+	rte := reflect.TypeOf(dest).Elem()
+	rve := reflect.Indirect(reflect.ValueOf(dest))
 	switch rte.Kind() {
 	case reflect.Bool,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
 		reflect.Float32, reflect.Float64,
 		reflect.String:
-		if dstVal.CanSet() {
-			err := sqlRows.Scan(dstVal.Interface())
-			ErrPanic(err)
+		if rve.CanSet() {
+			ErrPanic(sqlRows.Scan(rve.Addr().Interface()))
 		} else {
 			ErrPanic(ErrNotSettable)
 		}
@@ -128,7 +126,7 @@ func scanSqlRowsOne(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchem
 		for cIdx, column := range dbColumns {
 			idx, ok := smColumns[column]
 			if ok {
-				fieldsAddr[cIdx] = sm.AddrByIndex(dstVal, idx)
+				fieldsAddr[cIdx] = sm.AddrByIndex(&rve, idx)
 			} else {
 				// 这个值会被丢弃
 				fieldsAddr[cIdx] = new(any)
@@ -143,7 +141,9 @@ func scanSqlRowsOne(dstVal *reflect.Value, sqlRows *sql.Rows, sm *orm.ModelSchem
 }
 
 // 解析查询到的数据记录
-func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, dSliceTyp reflect.Type, dItemType reflect.Type, isPtr bool, isKV bool) int64 {
+func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
+	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
+
 	dbColumns, _ := sqlRows.Columns()
 	smColumns := sm.ColumnsKV()
 

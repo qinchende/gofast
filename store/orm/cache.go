@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/hash"
 	"reflect"
 	"sync"
 	"time"
@@ -56,6 +57,10 @@ func (ms *ModelSchema) CachePreFix() string {
 
 func (ms *ModelSchema) CacheLineKey(dbName, id any) string {
 	return fmt.Sprintf(ms.attrs.cacheKeyFmt, dbName, id)
+}
+
+func (ms *ModelSchema) CacheSqlKey(sql string) string {
+	return "Gf#Pet#" + hash.Md5HexString(sql)
 }
 
 func (ms *ModelSchema) ExpireS() uint32 {

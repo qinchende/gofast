@@ -18,13 +18,13 @@ func SchemaOfType(rTyp reflect.Type) *ModelSchema {
 
 // 结构体中属性的数据库字段名称合集
 func SchemaValues(obj any) (*ModelSchema, []any) {
-	mSchema := Schema(obj)
+	sm := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
-	values := make([]any, len(mSchema.columns))
+	values := make([]any, len(sm.columns))
 	structValues(&values, &vIndex, obj)
 
-	return mSchema, values
+	return sm, values
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -50,6 +50,11 @@ func structValues(values *[]any, nextIndex *int8, obj any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的ORM Schema元数据
 func fetchSchema(rTyp reflect.Type) *ModelSchema {
+	eTyp := rTyp.Elem()
+	if eTyp.Kind() == reflect.Slice {
+		rTyp = eTyp.Elem()
+	}
+
 	for rTyp.Kind() == reflect.Ptr {
 		rTyp = rTyp.Elem()
 	}
@@ -67,7 +72,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
 			}
-			panic(fmt.Errorf("target type must be structs; but got %T", rTyp))
+			panic(fmt.Errorf("target item type must be structs; but got %T", rTyp))
 		}
 
 		// primary, updated

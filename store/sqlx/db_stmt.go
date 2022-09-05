@@ -6,7 +6,6 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/timex"
 	"github.com/qinchende/gofast/store/orm"
-	"reflect"
 	"time"
 )
 
@@ -80,9 +79,8 @@ func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) in
 		return 0
 	}
 
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-	sm := orm.SchemaOfType(dstVal.Type())
-	return scanSqlRowsOne(&dstVal, sqlRows, sm)
+	sm := orm.Schema(dest)
+	return scanSqlRowsOne(dest, sqlRows, sm)
 }
 
 func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
@@ -98,9 +96,8 @@ func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) i
 		return 0
 	}
 
-	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
-	sm := orm.SchemaOfType(dItemType)
-	return scanSqlRowsSlice(dest, sqlRows, sm, dSliceTyp, dItemType, isPtr, isKV)
+	sm := orm.Schema(dest)
+	return scanSqlRowsSlice(dest, sqlRows, sm)
 }
 
 func (conn *StmtConn) queryContext(ctx context.Context, args ...any) (sqlRows *sql.Rows, err error) {
