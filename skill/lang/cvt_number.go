@@ -1,6 +1,7 @@
 package lang
 
 import (
+	"encoding/json"
 	"math"
 	"strconv"
 )
@@ -14,6 +15,8 @@ func ToInt64(v any) (i64 int64, err error) {
 	switch vt := v.(type) {
 	case string:
 		i64, err = strconv.ParseInt(vt, 10, 64)
+	case json.Number:
+		i64, err = strconv.ParseInt(string(vt), 10, 64)
 	case int:
 		i64 = int64(vt)
 	case uint:
@@ -59,6 +62,8 @@ func ToUint64(v any) (ui64 uint64, err error) {
 	switch vt := v.(type) {
 	case string:
 		ui64, err = strconv.ParseUint(vt, 10, 64)
+	case json.Number:
+		ui64, err = strconv.ParseUint(string(vt), 10, 64)
 	case int:
 		if vt >= 0 {
 			ui64 = uint64(vt)
@@ -115,6 +120,8 @@ func ToFloat64(v any) (f64 float64, err error) {
 	switch vt := v.(type) {
 	case string:
 		f64, err = strconv.ParseFloat(vt, 64)
+	case json.Number:
+		f64, err = strconv.ParseFloat(string(vt), 64)
 	case float32:
 		f64 = float64(vt)
 	case float64:

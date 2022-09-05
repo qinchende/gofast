@@ -153,44 +153,50 @@ func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string 
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func checkPet(mss *orm.ModelSchema, pet *SelectPet) {
+func checkPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
 	if pet.Table == "" {
 		pet.Table = mss.TableName()
 	}
 	if pet.Columns == "" {
 		pet.Columns = "*"
 	}
-	if pet.Limit <= 0 {
+	if pet.Limit == 0 {
 		pet.Limit = 10000
 	}
-	if pet.Offset < 0 {
-		pet.Offset = 0
-	}
+	//if pet.Offset < 0 {
+	//	pet.Offset = 0
+	//}
 	if pet.Where == "" {
 		pet.Where = "1=1"
 	}
 	pet.orderByT = ""
 	if pet.OrderBy != "" {
-		pet.orderByT = "ORDER BY " + pet.OrderBy
+		pet.orderByT = " ORDER BY " + pet.OrderBy
 	}
-
-	if pet.Page <= 0 {
+	pet.groupByT = ""
+	if pet.GroupBy != "" {
+		pet.groupByT = " GROUP BY " + pet.GroupBy
+	}
+	if pet.Page == 0 {
 		pet.Page = 1
 	}
-	if pet.PageSize <= 0 {
+	if pet.PageSize == 0 {
 		pet.PageSize = 10
 	}
+	return pet
 }
 
 func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
-	checkPet(mss, pet)
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s %s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.orderByT, pet.Limit, pet.Offset)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.Limit, pet.Offset)
 }
 
 func selectCountSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
-	return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
+	if pet.GroupBy == "" {
+		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
+	}
+	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
 func selectPagingSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s %s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }

@@ -3,7 +3,7 @@ package hash
 import (
 	"crypto/md5"
 	"fmt"
-
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/spaolacci/murmur3"
 )
 
@@ -17,6 +17,10 @@ func Md5(data []byte) []byte {
 	return digest.Sum(nil)
 }
 
-func Md5Hex(data []byte) string {
+func Md5HexBytes(data []byte) string {
 	return fmt.Sprintf("%x", Md5(data))
+}
+
+func Md5HexString(data string) string {
+	return fmt.Sprintf("%x", Md5(lang.StringToBytes(data)))
 }

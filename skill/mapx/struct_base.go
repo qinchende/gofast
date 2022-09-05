@@ -91,12 +91,12 @@ func structSchema(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 	mdAttrs := new(orm.ModelAttrs)
 	attrsFunc := rTypVal.MethodByName("GfAttrs")
 	if attrsFunc.IsValid() {
-		mdAttrs = attrsFunc.Call(nil)[0].Interface().(*orm.ModelAttrs)
+		vls := []reflect.Value{rTypVal}
+		mdAttrs = attrsFunc.Call(vls)[0].Interface().(*orm.ModelAttrs)
 	}
 	if mdAttrs == nil {
 		mdAttrs = &orm.ModelAttrs{}
 	}
-	//mdAttrs.cacheKeyFmt = "Gf#Line#%s#" + mdAttrs.TableName + "#%v"
 
 	// 收缩切片
 	fColumnsNew := make([]string, len(fColumns))

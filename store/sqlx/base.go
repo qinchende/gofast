@@ -40,26 +40,29 @@ const (
 )
 
 type SelectPet struct {
-	SqlCount string
+	Target   any
 	Sql      string
+	SqlCount string
 	Table    string
 	Columns  string
 	Where    string
 	OrderBy  string
 	orderByT string
 	GroupBy  string
+	groupByT string
 	Args     []any
-	PageSize int32
-	Page     int32
-	Offset   int32
-	Limit    int32
+	PageSize uint32
+	Page     uint32
+	Offset   uint32
+	Limit    uint32
+	*PetCache
 }
 
-type SelectPetCache struct {
-	SelectPet
+type PetCache struct {
+	sqlHash   string
 	ExpireS   uint32 // 过期时间（秒）
 	CacheType uint8  // 缓存类型
 }
 
 type SP SelectPet
-type SPC SelectPetCache
+type PC PetCache
