@@ -56,12 +56,17 @@ type SelectPet struct {
 	Offset   uint32
 	Limit    uint32
 	*PetCache
+	*PetResult
 }
 
 type PetCache struct {
 	sqlHash   string
 	ExpireS   uint32 // 过期时间（秒）
 	CacheType uint8  // 缓存类型
+}
+
+type PetResult struct {
+	OriginTarget bool // 不解析Target对象，直接返回原始值类型
 }
 
 type SP SelectPet

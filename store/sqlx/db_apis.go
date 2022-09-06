@@ -109,14 +109,15 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 		sql = selectSqlForPet(sm, checkPet(sm, pet))
 	}
 
+	key := pet.sqlHash
+	rds := (*conn.rdsNodes)[0]
+
 	// 需要走缓存版本
 	if pet.PetCache != nil && pet.PetCache.ExpireS > 0 {
 		pet.Args = formatArgs(pet.Args)
 		pet.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
 
 		// TODO：获取缓存的值
-		key := pet.sqlHash
-		rds := (*conn.rdsNodes)[0]
 		cValStr, err := rds.Get(key)
 		if err == nil && cValStr != "" {
 			dest := cst.KV{"count": 0, "records": cst.KV{}}
@@ -127,23 +128,19 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 				return ct
 			}
 		}
-
-		// TODO: 执行SQL查询并设置缓存
-		sqlRows := conn.QuerySql(sql, pet.Args...)
-		defer CloseSqlRows(sqlRows)
-		ct := scanSqlRowsSlice(pet.Target, sqlRows, sm)
-
-		if ct > 0 {
-			if jsonValBytes, err := jsonx.Marshal(cst.KV{"count": ct, "records": pet.Target}); err == nil {
-				_, _ = rds.Set(key, jsonValBytes, time.Duration(pet.ExpireS)*time.Second)
-			}
-		}
-		return ct
 	}
 
+	// TODO: 执行SQL查询并设置缓存
 	sqlRows := conn.QuerySql(sql, pet.Args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsSlice(pet.Target, sqlRows, sm)
+	ct := scanSqlRowsSlice(pet.Target, sqlRows, sm)
+
+	if ct > 0 && pet.PetCache != nil && pet.PetCache.ExpireS > 0 {
+		if jsonValBytes, err := jsonx.Marshal(cst.KV{"count": ct, "records": pet.Target}); err == nil {
+			_, _ = rds.Set(key, jsonValBytes, time.Duration(pet.ExpireS)*time.Second)
+		}
+	}
+	return ct
 }
 
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
