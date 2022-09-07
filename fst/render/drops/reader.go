@@ -5,7 +5,6 @@
 package drops
 
 import (
-	"github.com/qinchende/gofast/fst/render"
 	"io"
 	"net/http"
 	"strconv"
@@ -35,7 +34,7 @@ func (r Reader) Write(w http.ResponseWriter) (err error) {
 
 // WriteContentType (Reader) writes custom ContentType.
 func (r Reader) WriteContentType(w http.ResponseWriter) {
-	render.writeContentType(w, []string{r.ContentType})
+	//render.writeContentType(w, []string{r.ContentType})
 }
 
 // writeHeaders writes custom Header.

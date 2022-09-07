@@ -97,7 +97,7 @@ func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) i
 	}
 
 	sm := orm.Schema(dest)
-	return scanSqlRowsSlice(dest, sqlRows, sm)
+	return scanSqlRowsSlice(dest, sqlRows, sm, nil)
 }
 
 func (conn *StmtConn) queryContext(ctx context.Context, args ...any) (sqlRows *sql.Rows, err error) {

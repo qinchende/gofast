@@ -55,8 +55,8 @@ type SelectPet struct {
 	Page     uint32
 	Offset   uint32
 	Limit    uint32
-	*PetCache
-	*PetResult
+	Cache    *PetCache
+	Result   *PetResult
 }
 
 type PetCache struct {
@@ -66,7 +66,8 @@ type PetCache struct {
 }
 
 type PetResult struct {
-	OriginTarget bool // 不解析Target对象，直接返回原始值类型
+	GsonStr bool // 不解析Target对象，直接返回原始值类型
+	Target  any
 }
 
 type SP SelectPet

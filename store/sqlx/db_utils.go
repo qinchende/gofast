@@ -41,7 +41,7 @@ func ScanRow(dest any, sqlRows *sql.Rows) int64 {
 
 func ScanRows(dest any, sqlRows *sql.Rows) int64 {
 	sm := orm.Schema(dest)
-	return scanSqlRowsSlice(dest, sqlRows, sm)
+	return scanSqlRowsSlice(dest, sqlRows, sm, nil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -70,10 +70,10 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 	// TODO：获取缓存的值
 	key := sm.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
-	cValStr, err := rds.Get(key)
-	if err == nil && cValStr != "" {
+	cacheStr, err := rds.Get(key)
+	if err == nil && cacheStr != "" {
 		// 因为字段名都一样，所以标准库就能自动解析出结构体
-		if err = jsonx.UnmarshalFromString(dest, cValStr); err == nil {
+		if err = jsonx.UnmarshalFromString(dest, cacheStr); err == nil {
 			return 1
 		}
 	}
@@ -84,7 +84,7 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 	ct := scanSqlRowsOne(dest, sqlRows, sm)
 	if ct > 0 {
 		keyDel := key + "_del"
-		if cValStr, _ := rds.Get(keyDel); cValStr == "1" {
+		if cacheStr, _ := rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
 		} else if jsonValBytes, err := jsonx.Marshal(dest); err == nil {
 			_, _ = rds.Set(key, jsonValBytes, sm.ExpireDuration())
@@ -141,20 +141,26 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 }
 
 // 解析查询到的数据记录
-func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
-	dSliceTyp, dItemType, isPtr, isKV := checkDestType(dest)
+// TODO: 如果 dest 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
+func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gsonResult) int64 {
+	sliceType, recordType, isPtr, isKV := checkDestType(dest)
 
 	dbColumns, _ := sqlRows.Columns()
 	smColumns := sm.ColumnsKV()
 
-	dbClsLen := len(dbColumns)
-	valuesAddr := make([]any, dbClsLen)
-	tpItems := make([]reflect.Value, 0, 25)
+	clsLen := len(dbColumns)
+	valuesAddr := make([]any, clsLen)
+	tpRecords := make([]reflect.Value, 0, 25) // 一般来说，我们的分页大小在25左右，即使要扩容，扩容一次到50也差不多了
+	if gr != nil {
+		gr.Cls = dbColumns
+		gr.Rows = make([][]any, 0, 25)
+	}
+
 	// 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
 	if isKV {
 		// TODO：可以通过 sqlRows.ColumnsType() 进一步确定字段的类型
 		clsType, _ := sqlRows.ColumnTypes()
-		for i := 0; i < dbClsLen; i++ {
+		for i := 0; i < clsLen; i++ {
 			typ := clsType[i].ScanType()
 			if typ.String() == "sql.RawBytes" {
 				valuesAddr[i] = new(string)
@@ -163,63 +169,74 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 			}
 		}
 
+		//if gr != nil {
+		//	gr.columnNames = dbColumns
+		//}
+
 		for sqlRows.Next() {
 			err := sqlRows.Scan(valuesAddr...)
 			ErrPanic(err)
 
-			obj := make(map[string]any, dbClsLen)
-			for i := 0; i < dbClsLen; i++ {
-				obj[dbColumns[i]] = reflect.ValueOf(valuesAddr[i]).Elem().Interface()
+			if gr != nil {
+				values := make([]any, len(valuesAddr))
+				copy(values, valuesAddr)
+				gr.Rows = append(gr.Rows, values)
 			}
-			tpItems = append(tpItems, reflect.ValueOf(obj))
+
+			// 每条记录就是一个类JSON的 KV 对象
+			record := make(map[string]any, clsLen)
+			for i := 0; i < clsLen; i++ {
+				record[dbColumns[i]] = reflect.ValueOf(valuesAddr[i]).Elem().Interface()
+			}
+			tpRecords = append(tpRecords, reflect.ValueOf(record))
 		}
 	} else {
-		dbClsIndex := make([]int8, dbClsLen)
-		for i := 0; i < dbClsLen; i++ {
+		clsPos := make([]int8, clsLen)
+		for i := 0; i < clsLen; i++ {
 			idx, ok := smColumns[dbColumns[i]]
 			if ok {
-				dbClsIndex[i] = idx
+				clsPos[i] = idx
 			} else {
-				dbClsIndex[i] = -1
+				clsPos[i] = -1
 				valuesAddr[i] = new(any)
 			}
 		}
 
 		for sqlRows.Next() {
-			itemPtr := reflect.New(dItemType)
-			itemVal := reflect.Indirect(itemPtr)
+			recordPtr := reflect.New(recordType)
+			recordVal := reflect.Indirect(recordPtr)
 
-			//// 每一个db-column都应该有对应的变量接收值
-			//for cIdx, column := range dbColumns {
-			//	// TODO：这里可以优化，不用每次map查找，而是只查一次，然后缓存index关系
-			//	idx, ok := smColumns[column]
-			//	if ok {
-			//		valuesAddr[cIdx] = sm.AddrByIndex(&itemVal, idx)
-			//	} else if valuesAddr[cIdx] == nil {
-			//		valuesAddr[cIdx] = new(interface{}) // 这个值会被丢弃
-			//	}
-			//}
-			for i := 0; i < dbClsLen; i++ {
-				if dbClsIndex[i] >= 0 {
-					valuesAddr[i] = sm.AddrByIndex(&itemVal, dbClsIndex[i])
+			for i := 0; i < clsLen; i++ {
+				if clsPos[i] >= 0 {
+					valuesAddr[i] = sm.AddrByIndex(&recordVal, clsPos[i])
 				}
 			}
 
 			err := sqlRows.Scan(valuesAddr...)
 			ErrPanic(err)
 
+			if gr != nil {
+				values := make([]any, len(valuesAddr))
+				copy(values, valuesAddr)
+				gr.Rows = append(gr.Rows, values)
+			}
+
 			if isPtr {
-				tpItems = append(tpItems, itemPtr)
+				tpRecords = append(tpRecords, recordPtr)
 			} else {
-				tpItems = append(tpItems, itemVal)
+				tpRecords = append(tpRecords, recordVal)
 			}
 		}
 	}
 
-	records := reflect.MakeSlice(dSliceTyp, 0, len(tpItems))
-	records = reflect.Append(records, tpItems...)
+	if gr != nil {
+		gr.Ct = int64(len(tpRecords))
+	}
+
+	records := reflect.MakeSlice(sliceType, 0, len(tpRecords))
+	records = reflect.Append(records, tpRecords...)
 	reflect.ValueOf(dest).Elem().Set(records)
-	return int64(len(tpItems))
+	return int64(len(tpRecords))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -229,21 +246,21 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	if dTyp.Kind() != reflect.Ptr {
 		panic("dest must be pointer.")
 	}
-	dSliceTyp := dTyp.Elem()
-	if dSliceTyp.Kind() != reflect.Slice {
+	sliceType := dTyp.Elem()
+	if sliceType.Kind() != reflect.Slice {
 		panic("dest must be slice.")
 	}
 
 	isPtr := false
 	isKV := false
-	dItemType := dSliceTyp.Elem()
+	recordType := sliceType.Elem()
 	// 推荐: dest 传入的 slice 类型为指针类型，这样将来就不涉及变量值拷贝了。
-	if dItemType.Kind() == reflect.Ptr {
+	if recordType.Kind() == reflect.Ptr {
 		isPtr = true
-		dItemType = dItemType.Elem()
-	} else if dItemType.Name() == "KV" {
+		recordType = recordType.Elem()
+	} else if recordType.Name() == "KV" || recordType.Name() == "cst.KV" || recordType.Name() == "fst.KV" {
 		isKV = true
 	}
 
-	return dSliceTyp, dItemType, isPtr, isKV
+	return sliceType, recordType, isPtr, isKV
 }
