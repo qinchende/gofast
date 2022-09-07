@@ -1,10 +1,7 @@
 package sqlx
 
 import (
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"time"
@@ -95,7 +92,7 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any
 	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
-	return scanSqlRowsSlice(dest, sqlRows, sm)
+	return scanSqlRowsSlice(dest, sqlRows, sm, nil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -109,35 +106,36 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 		sql = selectSqlForPet(sm, checkPet(sm, pet))
 	}
 
-	key := pet.sqlHash
+	var gr *gsonResult
 	rds := (*conn.rdsNodes)[0]
-
-	// 需要走缓存版本
-	if pet.PetCache != nil && pet.PetCache.ExpireS > 0 {
+	// 1. 需要走缓存版本
+	if pet.Cache != nil && pet.Cache.ExpireS > 0 {
 		pet.Args = formatArgs(pet.Args)
-		pet.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
+		pet.Cache.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
 
-		// TODO：获取缓存的值
-		cValStr, err := rds.Get(key)
-		if err == nil && cValStr != "" {
-			dest := cst.KV{"count": 0, "records": cst.KV{}}
-			if err = jsonx.UnmarshalFromString(&dest, cValStr); err == nil {
-				err := mapx.ApplySliceOfConfig(pet.Target, dest["records"])
-				ErrPanic(err)
-				ct, _ := lang.ToInt64(dest["count"])
-				return ct
+		cacheStr, err := rds.Get(pet.Cache.sqlHash)
+		if err == nil && cacheStr != "" {
+			if pet.Result != nil && pet.Result.GsonStr == true {
+				pet.Result.Target = cacheStr
+				return 0
 			}
+
+			gr = new(gsonResult)
+			err := loadFromGsonString(pet.Target, cacheStr, gr)
+			ErrPanic(err)
+			return gr.Ct
 		}
+		gr = new(gsonResult)
 	}
 
-	// TODO: 执行SQL查询并设置缓存
+	// 2. 执行SQL查询并设置缓存
 	sqlRows := conn.QuerySql(sql, pet.Args...)
 	defer CloseSqlRows(sqlRows)
-	ct := scanSqlRowsSlice(pet.Target, sqlRows, sm)
+	ct := scanSqlRowsSlice(pet.Target, sqlRows, sm, gr)
 
-	if ct > 0 && pet.PetCache != nil && pet.PetCache.ExpireS > 0 {
-		if jsonValBytes, err := jsonx.Marshal(cst.KV{"count": ct, "records": pet.Target}); err == nil {
-			_, _ = rds.Set(key, jsonValBytes, time.Duration(pet.ExpireS)*time.Second)
+	if ct > 0 && gr != nil {
+		if jsonValBytes, err := jsonx.Marshal(gr); err == nil {
+			_, _ = rds.Set(pet.Cache.sqlHash, jsonValBytes, time.Duration(pet.Cache.ExpireS)*time.Second)
 		}
 	}
 	return ct
@@ -165,7 +163,7 @@ func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 	var total int64
 	scanSqlRowsOne(&total, sqlRows1, sm)
 
-	return scanSqlRowsSlice(pet.Target, sqlRows2, sm), total
+	return scanSqlRowsSlice(pet.Target, sqlRows2, sm, nil), total
 }
 
 func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
@@ -177,9 +175,9 @@ func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
 	}
 
 	pet.Args = formatArgs(pet.Args)
-	pet.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
+	pet.Cache.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
 
-	key := pet.sqlHash
+	key := pet.Cache.sqlHash
 	rds := (*conn.rdsNodes)[0]
 	_, err = rds.Del(key)
 	return
