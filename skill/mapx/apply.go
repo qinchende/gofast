@@ -37,7 +37,7 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 
 		if ok {
 		} else if fOpt != nil {
-			if fOpt.Required {
+			if fOpt.Required && applyOpts.NotValid == false {
 				return fmt.Errorf("field %s requied", fName)
 			} else if applyOpts.NotDefValue != true {
 				sv = fOpt.DefValue

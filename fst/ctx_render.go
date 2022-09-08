@@ -126,6 +126,7 @@ func (c *Context) Render(resStatus int, r render.Render) {
 	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 	c.mu.Lock()
 	if c.rendered {
+		c.mu.Unlock()
 		logx.Warn("Double render, the call canceled.")
 		return
 	}
