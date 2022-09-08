@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"time"
@@ -92,7 +93,7 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any
 	sqlRows := conn.QuerySql(selectSqlForSome(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
-	return scanSqlRowsSlice(dest, sqlRows, sm, nil)
+	return scanSqlRowsSlice(dest, sqlRows, nil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -106,39 +107,79 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 		sql = selectSqlForPet(sm, checkPet(sm, pet))
 	}
 
+	ct, _ := conn.innerQueryPet(sql, "", pet, sm)
+	return ct
+}
+
+func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.ModelSchema) (int64, int64) {
+	withCache := pet.Cache != nil && pet.Cache.ExpireS > 0
+	gsonStr := pet.Result != nil && pet.Result.GsonStr == true
+
 	var gr *gsonResult
 	rds := (*conn.rdsNodes)[0]
 	// 1. 需要走缓存版本
-	if pet.Cache != nil && pet.Cache.ExpireS > 0 {
+	if withCache {
 		pet.Args = formatArgs(pet.Args)
 		pet.Cache.sqlHash = sm.CacheSqlKey(realSql(sql, pet.Args...))
 
 		cacheStr, err := rds.Get(pet.Cache.sqlHash)
 		if err == nil && cacheStr != "" {
-			if pet.Result != nil && pet.Result.GsonStr == true {
+			if gsonStr {
 				pet.Result.Target = cacheStr
-				return 0
+				return 1, 0
 			}
 
 			gr = new(gsonResult)
 			err := loadFromGsonString(pet.Target, cacheStr, gr)
 			ErrPanic(err)
-			return gr.Ct
+			return gr.Ct, gr.Tt
 		}
 		gr = new(gsonResult)
 	}
+	if gsonStr {
+		if gr == nil {
+			gr = new(gsonResult)
+		}
+		gr.onlyGson = true
+	}
 
 	// 2. 执行SQL查询并设置缓存
-	sqlRows := conn.QuerySql(sql, pet.Args...)
-	defer CloseSqlRows(sqlRows)
-	ct := scanSqlRowsSlice(pet.Target, sqlRows, sm, gr)
+	var tt int64
+	if sqlCount != "" {
+		// 此条件下一共多少条
+		sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
+		defer CloseSqlRows(sqlRows1)
+		scanSqlRowsOne(&tt, sqlRows1, sm)
 
-	if ct > 0 && gr != nil {
-		if jsonValBytes, err := jsonx.Marshal(gr); err == nil {
-			_, _ = rds.Set(pet.Cache.sqlHash, jsonValBytes, time.Duration(pet.Cache.ExpireS)*time.Second)
+		if tt <= 0 {
+			return 0, 0
+		}
+		if gr != nil {
+			gr.Tt = tt
 		}
 	}
-	return ct
+
+	sqlRows := conn.QuerySql(sql, pet.Args...)
+	defer CloseSqlRows(sqlRows)
+	ct := scanSqlRowsSlice(pet.Target, sqlRows, gr)
+
+	var err error
+	if gsonStr {
+		ret, err := jsonx.Marshal(gr.Gson)
+		ErrPanic(err)
+		pet.Result.Target = lang.BytesToString(ret)
+	}
+	if ct > 0 && withCache {
+		cacheStr := new(any)
+		if gsonStr {
+			*cacheStr = pet.Result.Target
+		} else {
+			*cacheStr, err = jsonx.Marshal(gr.Gson)
+			ErrPanic(err)
+		}
+		_, _ = rds.Set(pet.Cache.sqlHash, *cacheStr, time.Duration(pet.Cache.ExpireS)*time.Second)
+	}
+	return ct, tt
 }
 
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
@@ -153,17 +194,18 @@ func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 		sql = selectPagingSqlForPet(sm, pet)
 	}
 
-	// 此条件下一共多少条
-	sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
-	defer CloseSqlRows(sqlRows1)
-	// 此条件下的分页记录
-	sqlRows2 := conn.QuerySql(sql, pet.Args...)
-	defer CloseSqlRows(sqlRows2)
-
-	var total int64
-	scanSqlRowsOne(&total, sqlRows1, sm)
-
-	return scanSqlRowsSlice(pet.Target, sqlRows2, sm, nil), total
+	return conn.innerQueryPet(sql, sqlCount, pet, sm)
+	//// 此条件下一共多少条
+	//sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
+	//defer CloseSqlRows(sqlRows1)
+	//// 此条件下的分页记录
+	//sqlRows2 := conn.QuerySql(sql, pet.Args...)
+	//defer CloseSqlRows(sqlRows2)
+	//
+	//var total int64
+	//scanSqlRowsOne(&total, sqlRows1, sm)
+	//
+	//return scanSqlRowsSlice(pet.Target, sqlRows2, nil), total
 }
 
 func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {

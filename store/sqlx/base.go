@@ -66,8 +66,8 @@ type PetCache struct {
 }
 
 type PetResult struct {
-	GsonStr bool // 不解析Target对象，直接返回原始值类型
 	Target  any
+	GsonStr bool // 不解析Target对象，直接返回原始值类型
 }
 
 type SP SelectPet

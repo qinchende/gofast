@@ -40,8 +40,7 @@ func ScanRow(dest any, sqlRows *sql.Rows) int64 {
 }
 
 func ScanRows(dest any, sqlRows *sql.Rows) int64 {
-	sm := orm.Schema(dest)
-	return scanSqlRowsSlice(dest, sqlRows, sm, nil)
+	return scanSqlRowsSlice(dest, sqlRows, nil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -142,23 +141,27 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 
 // 解析查询到的数据记录
 // TODO: 如果 dest 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
-func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gsonResult) int64 {
-	sliceType, recordType, isPtr, isKV := checkDestType(dest)
+func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
+	sm, sliceType, recordType, isPtr, isKV := checkDestType(dest)
 
 	dbColumns, _ := sqlRows.Columns()
 	smColumns := sm.ColumnsKV()
 
 	clsLen := len(dbColumns)
 	valuesAddr := make([]any, clsLen)
-	tpRecords := make([]reflect.Value, 0, 25) // 一般来说，我们的分页大小在25左右，即使要扩容，扩容一次到50也差不多了
+	var tpRecords []reflect.Value
+
+	// 一般来说，我们的分页大小在25左右，即使要扩容，扩容一次到50也差不多了
 	if gr != nil {
 		gr.Cls = dbColumns
 		gr.Rows = make([][]any, 0, 25)
+		if gr.onlyGson != true {
+			tpRecords = make([]reflect.Value, 0, 25)
+		}
 	}
 
 	// 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
 	if isKV {
-		// TODO：可以通过 sqlRows.ColumnsType() 进一步确定字段的类型
 		clsType, _ := sqlRows.ColumnTypes()
 		for i := 0; i < clsLen; i++ {
 			typ := clsType[i].ScanType()
@@ -169,10 +172,6 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gson
 			}
 		}
 
-		//if gr != nil {
-		//	gr.columnNames = dbColumns
-		//}
-
 		for sqlRows.Next() {
 			err := sqlRows.Scan(valuesAddr...)
 			ErrPanic(err)
@@ -181,6 +180,10 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gson
 				values := make([]any, len(valuesAddr))
 				copy(values, valuesAddr)
 				gr.Rows = append(gr.Rows, values)
+
+				if gr.onlyGson == true {
+					continue
+				}
 			}
 
 			// 每条记录就是一个类JSON的 KV 对象
@@ -219,6 +222,10 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gson
 				values := make([]any, len(valuesAddr))
 				copy(values, valuesAddr)
 				gr.Rows = append(gr.Rows, values)
+
+				if gr.onlyGson == true {
+					continue
+				}
 			}
 
 			if isPtr {
@@ -230,7 +237,11 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gson
 	}
 
 	if gr != nil {
-		gr.Ct = int64(len(tpRecords))
+		gr.Ct = int64(len(gr.Rows))
+
+		if gr.onlyGson == true {
+			return gr.Ct
+		}
 	}
 
 	records := reflect.MakeSlice(sliceType, 0, len(tpRecords))
@@ -241,7 +252,7 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gr *gson
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Utils
-func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
+func checkDestType(dest any) (*orm.ModelSchema, reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Ptr {
 		panic("dest must be pointer.")
@@ -250,6 +261,7 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	if sliceType.Kind() != reflect.Slice {
 		panic("dest must be slice.")
 	}
+	sm := orm.SchemaOfType(dTyp)
 
 	isPtr := false
 	isKV := false
@@ -262,5 +274,5 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 		isKV = true
 	}
 
-	return sliceType, recordType, isPtr, isKV
+	return sm, sliceType, recordType, isPtr, isKV
 }

@@ -1,6 +1,7 @@
 package mapx
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
@@ -23,6 +24,8 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 	case reflect.String:
 		if s, ok := src.(string); ok {
 			return sdxSetWithString(dst, s)
+		} else if num, ok := src.(json.Number); ok {
+			return sdxSetWithString(dst, num.String())
 		} else {
 			return sdxSetWithString(dst, fmt.Sprint(src))
 		}
