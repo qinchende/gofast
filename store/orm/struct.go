@@ -2,6 +2,8 @@ package orm
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/hash"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strings"
@@ -123,7 +125,9 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if mdAttrs.TableName == "" {
 			mdAttrs.TableName = stringx.Camel2Snake(rTyp.Name())
 		}
-		mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#%v"
+		mdAttrs.hashNumber = hash.Hash(lang.StringToBytes(strings.Join(fDB, ",")))
+		hashStr, _ := lang.ToString(mdAttrs.hashNumber)
+		mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#%v"
 
 		// 收缩切片
 		fIndexesNew := make([][]int, len(fIndexes))

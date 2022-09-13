@@ -6,3 +6,8 @@ type Gson struct {
 	Cls  []string
 	Rows [][]any
 }
+
+type GsonOne struct {
+	Cls []string
+	Row []any
+}

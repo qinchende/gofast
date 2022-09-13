@@ -5,6 +5,7 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
+	"strings"
 	"time"
 )
 
@@ -62,7 +63,7 @@ func (conn *OrmDB) QueryID(dest any, id any) int64 {
 	sm := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, sm)
+	return scanSqlRowsOne(dest, sqlRows, sm, nil)
 }
 
 // 对应ID值的一行记录，支持行记录缓存
@@ -79,7 +80,7 @@ func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any)
 	sm := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForOne(sm, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, sm)
+	return scanSqlRowsOne(dest, sqlRows, sm, nil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -101,10 +102,11 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any
 func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 	sm := orm.Schema(pet.Target)
 
+	checkPet(sm, pet)
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlForPet(sm, checkPet(sm, pet))
+		sql = selectSqlForPet(sm, pet)
 	}
 
 	ct, _ := conn.innerQueryPet(sql, "", pet, sm)
@@ -130,7 +132,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.M
 			}
 
 			gr = new(gsonResult)
-			err := loadFromGsonString(pet.Target, cacheStr, gr)
+			err := loadRecordsFromGsonString(pet.Target, cacheStr, gr)
 			ErrPanic(err)
 			return gr.Ct, gr.Tt
 		}
@@ -149,7 +151,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.M
 		// 此条件下一共多少条
 		sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
 		defer CloseSqlRows(sqlRows1)
-		scanSqlRowsOne(&tt, sqlRows1, sm)
+		scanSqlRowsOne(&tt, sqlRows1, sm, nil)
 
 		if tt <= 0 {
 			return 0, 0
@@ -185,35 +187,29 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.M
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 	sm := orm.Schema(pet.Target)
 
-	sqlCount := pet.SqlCount
-	if sqlCount == "" {
-		sqlCount = selectCountSqlForPet(sm, checkPet(sm, pet))
+	checkPet(sm, pet)
+	sqlCt := pet.SqlCount
+	if sqlCt == "" {
+		sqlCt = selectCountSqlForPet(sm, pet)
+	} else if strings.ToLower(sqlCt) == "false" {
+		sqlCt = ""
 	}
 	sql := pet.Sql
 	if sql == "" {
 		sql = selectPagingSqlForPet(sm, pet)
 	}
 
-	return conn.innerQueryPet(sql, sqlCount, pet, sm)
-	//// 此条件下一共多少条
-	//sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
-	//defer CloseSqlRows(sqlRows1)
-	//// 此条件下的分页记录
-	//sqlRows2 := conn.QuerySql(sql, pet.Args...)
-	//defer CloseSqlRows(sqlRows2)
-	//
-	//var total int64
-	//scanSqlRowsOne(&total, sqlRows1, sm)
-	//
-	//return scanSqlRowsSlice(pet.Target, sqlRows2, nil), total
+	return conn.innerQueryPet(sql, sqlCt, pet, sm)
 }
 
 func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
 	sm := orm.Schema(pet.Target)
+
+	checkPet(sm, pet)
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlForPet(sm, checkPet(sm, pet))
+		sql = selectSqlForPet(sm, pet)
 	}
 
 	pet.Args = formatArgs(pet.Args)

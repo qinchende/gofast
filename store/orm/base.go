@@ -46,6 +46,6 @@ type ModelAttrs struct {
 	ExpireS   uint32 // 过期时间（秒）默认7天
 
 	// 内部状态标记
-	hashValue   uint64 // 本结构体的哈希值
+	hashNumber  uint64 // 本结构体的哈希值
 	cacheKeyFmt string // 行记录缓存的Key前缀
 }

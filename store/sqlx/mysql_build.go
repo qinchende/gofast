@@ -154,6 +154,10 @@ func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string 
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func checkPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
+	if pet.isReady {
+		return pet
+	}
+
 	if pet.Table == "" {
 		pet.Table = mss.TableName()
 	}
@@ -161,9 +165,9 @@ func checkPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
 		pet.Columns = "*"
 	}
 	if pet.Limit == 0 {
-		pet.Limit = 10000
+		pet.Limit = 100
 	}
-	//if pet.Offset < 0 {
+	//if pet.Offset == 0 {
 	//	pet.Offset = 0
 	//}
 	if pet.Where == "" {
@@ -181,8 +185,10 @@ func checkPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
 		pet.Page = 1
 	}
 	if pet.PageSize == 0 {
-		pet.PageSize = 10
+		pet.PageSize = 100
 	}
+
+	pet.isReady = true
 	return pet
 }
 

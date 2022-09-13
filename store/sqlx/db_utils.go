@@ -36,7 +36,7 @@ func CloseSqlRows(rows *sql.Rows) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func ScanRow(dest any, sqlRows *sql.Rows) int64 {
 	sm := orm.Schema(dest)
-	return scanSqlRowsOne(dest, sqlRows, sm)
+	return scanSqlRowsOne(dest, sqlRows, sm, nil)
 }
 
 func ScanRows(dest any, sqlRows *sql.Rows) int64 {
@@ -66,26 +66,25 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema
 func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 	sm := orm.Schema(dest)
 
-	// TODO：获取缓存的值
 	key := sm.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
 	cacheStr, err := rds.Get(key)
 	if err == nil && cacheStr != "" {
-		// 因为字段名都一样，所以标准库就能自动解析出结构体
-		if err = jsonx.UnmarshalFromString(dest, cacheStr); err == nil {
+		if err = loadRecordFromGsonString(dest, cacheStr, sm); err == nil {
 			return 1
 		}
 	}
 
-	// TODO: 执行SQL查询并设置缓存
 	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
 	defer CloseSqlRows(sqlRows)
-	ct := scanSqlRowsOne(dest, sqlRows, sm)
+
+	var gro gsonResultOne
+	ct := scanSqlRowsOne(dest, sqlRows, sm, &gro)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cacheStr, _ := rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
-		} else if jsonValBytes, err := jsonx.Marshal(dest); err == nil {
+		} else if jsonValBytes, err := jsonx.Marshal(gro.Row); err == nil {
 			_, _ = rds.Set(key, jsonValBytes, sm.ExpireDuration())
 		}
 	}
@@ -93,7 +92,7 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
+func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gro *gsonResultOne) int64 {
 	if !sqlRows.Next() {
 		if err := sqlRows.Err(); err != nil {
 			ErrLog(err)
@@ -133,6 +132,17 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema) int64 {
 		}
 		err := sqlRows.Scan(fieldsAddr...)
 		ErrPanic(err)
+
+		// 返回行记录的值
+		if gro != nil {
+			gro.hasValue = true
+			gro.Cls = sm.Columns()
+			gro.Row = make([]any, len(gro.Cls))
+
+			for idx, column := range gro.Cls {
+				gro.Row[idx] = sm.ValueByIndex(&rve, smColumns[column])
+			}
+		}
 	default:
 		ErrPanic(ErrUnsupportedValueType)
 	}

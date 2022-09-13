@@ -80,7 +80,7 @@ func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) in
 	}
 
 	sm := orm.Schema(dest)
-	return scanSqlRowsOne(dest, sqlRows, sm)
+	return scanSqlRowsOne(dest, sqlRows, sm, nil)
 }
 
 func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
@@ -95,7 +95,7 @@ func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) i
 		ErrLog(err)
 		return 0
 	}
-	
+
 	return scanSqlRowsSlice(dest, sqlRows, nil)
 }
 
