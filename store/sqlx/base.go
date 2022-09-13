@@ -39,24 +39,26 @@ const (
 	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
 )
 
+// 功能强大的
 type SelectPet struct {
-	Target   any
-	Sql      string
-	SqlCount string
-	Table    string
-	Columns  string
-	Where    string
-	OrderBy  string
-	orderByT string
-	GroupBy  string
-	groupByT string
-	Args     []any
-	PageSize uint32
-	Page     uint32
-	Offset   uint32
-	Limit    uint32
-	Cache    *PetCache
-	Result   *PetResult
+	Target   any        // 解析的目标对象数组
+	Sql      string     // 自定义完整的SQL语句，注意(Sql和SqlCount是成对出现的)
+	SqlCount string     // 分页场景下自定义查询总数的SQL语句（如果传"false"字符串，将不会查询总数）
+	Table    string     // 表名
+	Columns  string     // 自定义查询字段
+	Where    string     // where
+	OrderBy  string     // order by
+	orderByT string     // order by inner temp
+	GroupBy  string     // group by
+	groupByT string     // group by inner temp
+	Args     []any      // SQL语句参数，防注入
+	PageSize uint32     // 分页大小
+	Page     uint32     // 当前页
+	Offset   uint32     // 查询偏移量
+	Limit    uint32     // 查询限量
+	Cache    *PetCache  // 缓存设置参数
+	Result   *PetResult // 扩展返回数据的形式
+	isReady  bool       // 是否已经初始化
 }
 
 type PetCache struct {

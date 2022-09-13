@@ -4,8 +4,14 @@ import (
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/gson"
+	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
+
+type gsonResultOne struct {
+	gson.GsonOne
+	hasValue bool
+}
 
 // 缓存实体 gsonResult
 type gsonResult struct {
@@ -13,7 +19,22 @@ type gsonResult struct {
 	onlyGson bool
 }
 
-func loadFromGsonString(dest any, data string, gr *gsonResult) error {
+func loadRecordFromGsonString(dest any, data string, sm *orm.ModelSchema) error {
+	var values []any
+	if err := jsonx.UnmarshalFromString(&values, data); err != nil {
+		return err
+	}
+
+	cls := sm.Columns()
+	recordKV := make(map[string]any, len(cls))
+	for j := 0; j < len(cls); j++ {
+		recordKV[cls[j]] = values[j]
+	}
+
+	return mapx.ApplyKVOfData(dest, recordKV)
+}
+
+func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
 	if err := jsonx.UnmarshalFromString(&gr.Gson, data); err != nil {
 		return err
 	}
