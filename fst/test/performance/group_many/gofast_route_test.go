@@ -16,7 +16,7 @@ var myApp *fst.GoFast
 func initGoFastServer() {
 	// 新建Server
 	myApp = fst.CreateServer(&fst.GfConfig{
-		RunMode: fst.ProductMode,
+		RunningMode: fst.ProductMode,
 	})
 
 	gftAddMiddlewareHandlers(middlewareNum)

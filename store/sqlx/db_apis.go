@@ -13,9 +13,9 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 	obj.BeforeSave() // 设置值
 	sm, values := orm.SchemaValues(obj)
 
-	priIdx := sm.PrimaryIndex()
-	if priIdx > 0 {
-		values[priIdx] = values[0]
+	autoIdx := sm.AutoIndex()
+	if autoIdx > 0 {
+		values[autoIdx] = values[0]
 	}
 
 	ret := conn.ExecSql(insertSql(sm), values[1:]...)
@@ -59,16 +59,16 @@ func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对应ID值的一行记录
-func (conn *OrmDB) QueryID(dest any, id any) int64 {
+func (conn *OrmDB) QueryPrimary(dest any, id any) int64 {
 	sm := orm.Schema(dest)
-	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
+	sqlRows := conn.QuerySql(selectSqlForPrimary(sm), id)
 	defer CloseSqlRows(sqlRows)
 	return scanSqlRowsOne(dest, sqlRows, sm, nil)
 }
 
 // 对应ID值的一行记录，支持行记录缓存
-func (conn *OrmDB) QueryIDCache(dest any, id any) int64 {
-	return queryByIdWithCache(conn, dest, id)
+func (conn *OrmDB) QueryPrimaryCache(dest any, id any) int64 {
+	return queryByPrimaryWithCache(conn, dest, id)
 }
 
 // 查询一行记录，查询条件自定义

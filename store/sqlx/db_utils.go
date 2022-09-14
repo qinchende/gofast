@@ -63,7 +63,7 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema
 	return ct
 }
 
-func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
+func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
 	sm := orm.Schema(dest)
 
 	key := sm.CacheLineKey(conn.Attrs.DbName, id)
@@ -75,7 +75,7 @@ func queryByIdWithCache(conn *OrmDB, dest any, id any) int64 {
 		}
 	}
 
-	sqlRows := conn.QuerySql(selectSqlForID(sm), id)
+	sqlRows := conn.QuerySql(selectSqlForPrimary(sm), id)
 	defer CloseSqlRows(sqlRows)
 
 	var gro gsonResultOne
