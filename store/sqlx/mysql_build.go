@@ -18,7 +18,8 @@ func insertSql(mss *orm.ModelSchema) string {
 		sBuf.Grow(256)
 		bVal := make([]byte, (clsLen-1)*2-1)
 
-		priIdx := ms.PrimaryIndex()
+		// insert 时 auto increment 字段不需要赋值。我们和需要赋值的字段调换位置
+		autoIdx := ms.AutoIndex()
 		ct := 0
 		for i := 1; i < clsLen; i++ {
 			if ct > 0 {
@@ -27,7 +28,7 @@ func insertSql(mss *orm.ModelSchema) string {
 				ct++
 			}
 			// 写第一个字段值
-			if priIdx == int8(i) {
+			if autoIdx == int8(i) {
 				sBuf.WriteString(cls[0])
 			} else {
 				sBuf.WriteString(cls[i])
@@ -123,7 +124,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
-func selectSqlForID(mss *orm.ModelSchema) string {
+func selectSqlForPrimary(mss *orm.ModelSchema) string {
 	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})

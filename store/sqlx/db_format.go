@@ -14,6 +14,8 @@ func formatArgs(args []any) []any {
 		switch item.(type) {
 		case time.Time:
 			args[idx] = item.(time.Time).Format(timeFormat)
+		case *time.Time:
+			args[idx] = item.(*time.Time).Format(timeFormat)
 		}
 	}
 	return args

@@ -3,10 +3,12 @@ package orm
 import "database/sql"
 
 const (
+	dbDefAutoIncKeyName = "ID"            // 默认数据库自增键字段名
 	dbDefPrimaryKeyName = "ID"            // 默认主键的字段名
 	dbDefUpdatedKeyName = "UpdatedAt"     // 默认主键的字段名
 	dbConfigTag         = "dbc"           // 数据库字段配置tag头
-	dbPrimaryKeyFlag    = "primary_field" // 数据库主键tag头中配置值
+	dbAutoIncKeyFlag    = "auto_field"    // 数据库自增字段tag标记
+	dbPrimaryKeyFlag    = "primary_field" // 数据库主键tag标记
 	dbUpdatedKeyFlag    = "updated_field" // 更新时间
 
 	dbColumnNameTag  = "dbf" // 数据库字段名称，对应的tag
@@ -30,6 +32,7 @@ type ModelSchema struct {
 	fieldsKV     map[string]int8 // field_name index
 	columnsKV    map[string]int8 // column_name index
 	fieldsIndex  [][]int         // reflect fields index
+	autoIndex    int8            // 自增字段原始索引位置
 	primaryIndex int8            // 主键字段原始索引位置
 	updatedIndex int8            // 更新字段原始索引位置，没有则为-1
 

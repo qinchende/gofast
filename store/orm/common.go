@@ -19,10 +19,10 @@ func ShareModelAttrs(list map[string]*ModelAttrs) {
 
 // GoFast框架的ORM定义，所有Model必须公用的方法
 type CommonFields struct {
-	ID        int64 `dbc:"primary_field"`
-	Status    int16
-	CreatedAt time.Time `dbc:"created_field"`
-	UpdatedAt time.Time `dbc:"updated_field"`
+	ID        int64     // `dbc:"primary_field"`
+	Status    int16     // `dbc:"status_field"`
+	CreatedAt time.Time // `dbc:"created_field"`
+	UpdatedAt time.Time // `dbc:"updated_field"`
 }
 
 func (cf *CommonFields) GfAttrs(parent OrmStruct) *ModelAttrs {

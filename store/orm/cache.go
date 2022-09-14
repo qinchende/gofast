@@ -57,6 +57,10 @@ func (ms *ModelSchema) PrimaryIndex() int8 {
 	return ms.primaryIndex
 }
 
+func (ms *ModelSchema) AutoIndex() int8 {
+	return ms.autoIndex
+}
+
 func (ms *ModelSchema) InsertSQL(fn func(*ModelSchema) string) string {
 	if ms.insertSQL == "" {
 		ms.insertSQL = fn(ms)
