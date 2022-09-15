@@ -13,8 +13,6 @@ var (
 	errorKeyNotExist = errors.New("Key does not exist.")
 )
 
-// Set is used to store a new key/value pair exclusively for this context.
-// It also lazy initializes  c.Keys if it was not used previously.
 func (c *Context) Set(key string, value any) {
 	c.mu.Lock()
 	if c.Pms == nil {
@@ -24,8 +22,6 @@ func (c *Context) Set(key string, value any) {
 	c.mu.Unlock()
 }
 
-// Get returns the value for the given key, ie: (value, true).
-// If the value does not exists it returns (nil, false)
 func (c *Context) Get(key string) (value any, exists bool) {
 	c.mu.RLock()
 	value, exists = c.Pms[key]
@@ -33,7 +29,6 @@ func (c *Context) Get(key string) (value any, exists bool) {
 	return
 }
 
-// MustGet returns the value for the given key if it exists, otherwise it panics.
 func (c *Context) GetMust(key string) any {
 	if value, exists := c.Get(key); exists {
 		return value

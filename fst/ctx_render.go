@@ -7,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/stringx"
 	"net/http"
 )
@@ -32,17 +33,25 @@ func (c *Context) FaiKV(data KV) {
 	c.Fai(0, "", data)
 }
 
+func (c *Context) FaiCode(code int32) {
+	c.kvSucFai(statusFai, code, "", nil)
+}
+
 func (c *Context) Fai(code int32, msg string, data any) {
 	c.kvSucFai(statusFai, code, msg, data)
 }
 
 // +++++
 func (c *Context) SucStr(msg string) {
-	c.Suc(0, msg, nil)
+	c.Suc(1, msg, nil)
 }
 
 func (c *Context) SucKV(data KV) {
-	c.Suc(0, "", data)
+	c.Suc(1, "", data)
+}
+
+func (c *Context) SucCode(code int32) {
+	c.kvSucFai(statusSuc, code, "", nil)
 }
 
 func (c *Context) Suc(code int32, msg string, data any) {
@@ -74,17 +83,29 @@ func (c *Context) AbortHandlers() {
 }
 
 // 简易的抛出异常的方式，终止执行链，返回错误
-func (c *Context) FaiPanicIf(yes bool, msg string) {
-	if yes {
-		panic(cst.GFFaiString(msg))
+func (c *Context) FaiPanicIf(yes bool, val any) {
+	if !yes {
+		return
+	}
+
+	switch val.(type) {
+	case string:
+		panic(cst.GFFaiString(val.(string)))
+	case int:
+		panic(cst.GFFaiInt(val.(int)))
+	case error:
+		panic(cst.GFError(val.(error)))
+	default:
+		str, _ := lang.ToString(val)
+		panic(cst.GFFaiString(str))
 	}
 }
 
 // 自定义返回结果和状态
-func (c *Context) AbortFaiStr(msg string) {
+func (c *Context) AbortFai(code int, msg string) {
 	bytes, _ := jsonx.Marshal(KV{
 		"status": statusFai,
-		"code":   -1,
+		"code":   code,
 		"msg":    msg,
 	})
 	c.AbortDirectBytes(http.StatusOK, bytes)

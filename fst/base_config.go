@@ -14,7 +14,7 @@ type GfConfig struct {
 	ListenAddr            string `v:"def=0.0.0.0:8099,match=ipv4:port"`
 	RunningMode           string `v:"def=product,enum=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix      string `v:"def=while(1);"`
-	MaxMultipartMemory    int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
+	MaxMultipartBytes     int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
 	SecondsBeforeShutdown int64  `v:"def=1000"`     // 退出server之前等待的毫秒，等待清理释放资源
 	RedirectTrailingSlash bool   `v:"def=false"`    // 探测url后面加减'/'之后是否能匹配路由（这个时代默认不需要了）
 	CheckOtherMethodRoute bool   `v:"def=false"`    // 检查其它Method下，是否有对应的路由
