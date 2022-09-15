@@ -12,6 +12,12 @@ import (
 	"strings"
 )
 
+// add by sdx on 20210305
+// c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
+func (c *Context) Bind(dst any) error {
+	return mapx.ApplyKVOfData(dst, c.Pms)
+}
+
 // Param returns the value of the URL param.
 // It is a shortcut for c.Params.ByName(key)
 //     router.GET("/user/:id", func(c *gin.Context) {
@@ -22,15 +28,10 @@ func (c *Context) Param(key string) string {
 	return c.match.params.ByName(key)
 }
 
-// add by sdx on 20210305
-// 就当 c.Pms (c.ReqRaw.Form) 中的是 JSON 对象，我们需要用这个数据源绑定任意的对象
-func (c *Context) BindPms(dst any) error {
-	return mapx.ApplyKVOfData(dst, c.Pms)
-}
-
-/************************************/
-/*********** Context Pms ************/
-/************************************/
+// ##这个方法很重要##
+// 框架每次都将请求所携带的相关数据解析之后加入统一的变量c.Pms中，这样对开发人员来说只需要关注c.Pms中有无自己想要的数据，
+// 至于数据是通过什么形式提交上来的并不那么重要。
+// 最常见的就是GET请求URL上的参数，POST请求中req.Body携带的信息
 func (c *Context) ParseRequestData() error {
 	// 防止重复解析
 	if c.Pms != nil {
@@ -45,15 +46,15 @@ func (c *Context) ParseRequestData() error {
 		if err := jsonx.UnmarshalFromReader(&c.Pms, c.ReqRaw.Body); err != nil {
 			return err
 		}
-	//case strings.HasPrefix(ctType, cst.MIMEAppXml), strings.HasPrefix(ctType, cst.MIMEXml):
-	//	if err := c.BindXML(&c.Pms); err != nil {
-	//		return err
-	//	}
 	case strings.HasPrefix(ctType, cst.MIMEPostForm), strings.HasPrefix(ctType, cst.MIMEMultiPostForm):
 		c.ParseForm()
 		urlParsed = true
 		applyUrlValue(c.Pms, c.ReqRaw.Form)
 	}
+	//case strings.HasPrefix(ctType, cst.MIMEAppXml), strings.HasPrefix(ctType, cst.MIMEXml):
+	//	if err := c.BindXML(&c.Pms); err != nil {
+	//		return err
+	//	}
 
 	if !urlParsed {
 		c.ParseQuery()
@@ -77,6 +78,7 @@ func applyUrlValue(pms cst.KV, values url.Values) {
 // A. ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析 Url 中的参数
 func (c *Context) ParseQuery() {
+	// 单独调用这个还是会解析一下Get请求中携带的URL参数，即使ParseForm已解析了一次URL参数
 	if c.queryCache == nil {
 		c.queryCache = c.ReqRaw.URL.Query()
 	}
@@ -91,7 +93,7 @@ func (c *Context) ParseQuery() {
 // 	   c.Query("value") == ""
 // 	   c.Query("wtf") == ""
 func (c *Context) Query(key string) string {
-	value, _ := c.GetQuery(key)
+	value, _ := c.Query2(key)
 	return value
 }
 
@@ -102,8 +104,8 @@ func (c *Context) Query(key string) string {
 //     c.DefaultQuery("name", "unknown") == "Manu"
 //     c.DefaultQuery("id", "none") == "none"
 //     c.DefaultQuery("lastname", "none") == ""
-func (c *Context) DefaultQuery(key, defaultValue string) string {
-	if value, ok := c.GetQuery(key); ok {
+func (c *Context) QueryDef(key, defaultValue string) string {
+	if value, ok := c.Query2(key); ok {
 		return value
 	}
 	return defaultValue
@@ -117,8 +119,8 @@ func (c *Context) DefaultQuery(key, defaultValue string) string {
 //     ("Manu", true) == c.GetQuery("name")
 //     ("", false) == c.GetQuery("id")
 //     ("", true) == c.GetQuery("lastname")
-func (c *Context) GetQuery(key string) (string, bool) {
-	if values, ok := c.GetQueryArray(key); ok {
+func (c *Context) Query2(key string) (string, bool) {
+	if values, ok := c.QueryArray2(key); ok {
 		return values[0], ok
 	}
 	return "", false
@@ -127,13 +129,13 @@ func (c *Context) GetQuery(key string) (string, bool) {
 // QueryArray returns a slice of strings for a given query key.
 // The length of the slice depends on the number of params with the given key.
 func (c *Context) QueryArray(key string) []string {
-	values, _ := c.GetQueryArray(key)
+	values, _ := c.QueryArray2(key)
 	return values
 }
 
 // GetQueryArray returns a slice of strings for a given query key, plus
 // a boolean value whether at least one value exists for the given key.
-func (c *Context) GetQueryArray(key string) ([]string, bool) {
+func (c *Context) QueryArray2(key string) ([]string, bool) {
 	c.ParseQuery()
 	if values, ok := c.queryCache[key]; ok && len(values) > 0 {
 		return values, true
@@ -143,15 +145,26 @@ func (c *Context) GetQueryArray(key string) ([]string, bool) {
 
 // QueryMap returns a map for a given query key.
 func (c *Context) QueryMap(key string) map[string]string {
-	kvs, _ := c.GetQueryMap(key)
+	kvs, _ := c.QueryMap2(key)
 	return kvs
 }
 
 // GetQueryMap returns a map for a given query key, plus a boolean value
 // whether at least one value exists for the given key.
-func (c *Context) GetQueryMap(key string) (map[string]string, bool) {
+func (c *Context) QueryMap2(key string) (map[string]string, bool) {
 	c.ParseQuery()
 	return c.get(c.queryCache, key)
+}
+
+// B. ++++++++++++++++++++++++++++
+// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
+func (c *Context) ParseForm() {
+	if c.formCache == nil {
+		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartBytes); err != nil && err != http.ErrNotMultipart {
+			logx.DebugF("error on parse multipart form array: %v", err)
+		}
+		c.formCache = c.ReqRaw.PostForm
+	}
 }
 
 // POST Content-type:
@@ -161,15 +174,15 @@ func (c *Context) GetQueryMap(key string) (map[string]string, bool) {
 // PostForm returns the specified key from a POST urlencoded form or multipart form
 // when it exists, otherwise it returns an empty string `("")`.
 func (c *Context) PostForm(key string) string {
-	value, _ := c.GetPostForm(key)
+	value, _ := c.PostForm2(key)
 	return value
 }
 
 // DefaultPostForm returns the specified key from a POST urlencoded form or multipart form
 // when it exists, otherwise it returns the specified defaultValue string.
 // See: PostForm() and GetPostForm() for further information.
-func (c *Context) DefaultPostForm(key, defaultValue string) string {
-	if value, ok := c.GetPostForm(key); ok {
+func (c *Context) PostFormDef(key, defaultValue string) string {
+	if value, ok := c.PostForm2(key); ok {
 		return value
 	}
 	return defaultValue
@@ -182,8 +195,8 @@ func (c *Context) DefaultPostForm(key, defaultValue string) string {
 //     email=mail@example.com  -->  ("mail@example.com", true) := GetPostForm("email") // set email to "mail@example.com"
 // 	   email=                  -->  ("", true) := GetPostForm("email") // set email to ""
 //                             -->  ("", false) := GetPostForm("email") // do nothing with email
-func (c *Context) GetPostForm(key string) (string, bool) {
-	if values, ok := c.GetPostFormArray(key); ok {
+func (c *Context) PostForm2(key string) (string, bool) {
+	if values, ok := c.PostFormArray2(key); ok {
 		return values[0], ok
 	}
 	return "", false
@@ -192,27 +205,13 @@ func (c *Context) GetPostForm(key string) (string, bool) {
 // PostFormArray returns a slice of strings for a given form key.
 // The length of the slice depends on the number of params with the given key.
 func (c *Context) PostFormArray(key string) []string {
-	values, _ := c.GetPostFormArray(key)
+	values, _ := c.PostFormArray2(key)
 	return values
-}
-
-// B. ++++++++++++++++++++++++++++
-// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
-func (c *Context) ParseForm() {
-	if c.formCache == nil {
-		//c.formCache = make(url.Values)
-		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartMemory); err != nil {
-			if err != http.ErrNotMultipart {
-				logx.DebugF("error on parse multipart form array: %v", err)
-			}
-		}
-		c.formCache = c.ReqRaw.PostForm
-	}
 }
 
 // GetPostFormArray returns a slice of strings for a given form key, plus
 // a boolean value whether at least one value exists for the given key.
-func (c *Context) GetPostFormArray(key string) ([]string, bool) {
+func (c *Context) PostFormArray2(key string) ([]string, bool) {
 	c.ParseForm()
 	if values := c.formCache[key]; len(values) > 0 {
 		return values, true
@@ -222,17 +221,18 @@ func (c *Context) GetPostFormArray(key string) ([]string, bool) {
 
 // PostFormMap returns a map for a given form key.
 func (c *Context) PostFormMap(key string) map[string]string {
-	kvs, _ := c.GetPostFormMap(key)
+	kvs, _ := c.PostFormMap2(key)
 	return kvs
 }
 
 // GetPostFormMap returns a map for a given form key, plus a boolean value
 // whether at least one value exists for the given key.
-func (c *Context) GetPostFormMap(key string) (map[string]string, bool) {
+func (c *Context) PostFormMap2(key string) (map[string]string, bool) {
 	c.ParseForm()
 	return c.get(c.formCache, key)
 }
 
+// C. ++++++++++++++++++++++++++++
 // get is an internal method and returns a map which satisfy conditions.
 func (c *Context) get(m map[string][]string, key string) (map[string]string, bool) {
 	kvs := make(map[string]string)

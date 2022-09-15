@@ -5,5 +5,6 @@ type (
 	WebKV       map[string]string
 	Slice       []any
 	GFError     error
+	GFFaiInt    int
 	GFFaiString string
 )

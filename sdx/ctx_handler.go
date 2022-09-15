@@ -6,7 +6,7 @@ import (
 
 func PmsParser(c *fst.Context) {
 	if err := c.ParseRequestData(); err != nil {
-		c.AbortFaiStr("PmsParser error: " + err.Error())
+		c.AbortFai(0, "PmsParser error: "+err.Error())
 	}
 }
 
