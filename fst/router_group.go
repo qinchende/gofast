@@ -11,8 +11,8 @@ import (
 
 // Note：如果分组已经存在，需要报错。 或者不报错。
 // GoFast选择不报错，允许添加相同路径的不同分组，区别应用不同的特性
-func (gp *RouterGroup) Group(relPath string) *RouterGroup {
-	gpNew := &RouterGroup{
+func (gp *RouteGroup) Group(relPath string) *RouteGroup {
+	gpNew := &RouteGroup{
 		prefix: gp.fixAbsolutePath(relPath),
 		myApp:  gp.myApp,
 		hdsIdx: -1,
@@ -23,7 +23,7 @@ func (gp *RouterGroup) Group(relPath string) *RouterGroup {
 
 // Prefix returns the base path of router gp.
 // For example, if v := router.Group("/rest/n/v1/api"), v.Prefix() is "/rest/n/v1/api".
-func (gp *RouterGroup) Prefix() string {
+func (gp *RouteGroup) Prefix() string {
 	return gp.prefix
 }
 
@@ -33,7 +33,7 @@ func (gp *RouterGroup) Prefix() string {
 
 // StaticFile registers a single route in order to serve a single file of the local filesystem.
 // router.StaticFile("favicon.ico", "./resources/favicon.ico")
-func (gp *RouterGroup) StaticFile(relPath, filepath string) *RouterGroup {
+func (gp *RouteGroup) StaticFile(relPath, filepath string) *RouteGroup {
 	if strings.ContainsAny(relPath, ":*") {
 		panic("URL parameters can not be used when serving a static file")
 	}
@@ -51,13 +51,13 @@ func (gp *RouterGroup) StaticFile(relPath, filepath string) *RouterGroup {
 // To use the operating system's file system implementation,
 // use :
 //     router.Static("/static", "/var/www")
-func (gp *RouterGroup) Static(relPath, root string) *RouterGroup {
+func (gp *RouteGroup) Static(relPath, root string) *RouteGroup {
 	return gp.StaticFS(relPath, Dir(root, false))
 }
 
 // StaticFS works just like `Static()` but a custom `http.FileSystem` can be used instead.
 // Gin by default user: gin.Dir()
-func (gp *RouterGroup) StaticFS(relPath string, fs http.FileSystem) *RouterGroup {
+func (gp *RouteGroup) StaticFS(relPath string, fs http.FileSystem) *RouteGroup {
 	if strings.ContainsAny(relPath, ":*") {
 		panic("URL parameters can not be used when serving a static folder")
 	}
@@ -70,7 +70,7 @@ func (gp *RouterGroup) StaticFS(relPath string, fs http.FileSystem) *RouterGroup
 	return gp
 }
 
-func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) CtxHandler {
+func (gp *RouteGroup) createStaticHandler(relPath string, fs http.FileSystem) CtxHandler {
 	absPath := gp.fixAbsolutePath(relPath)
 	fileServer := http.StripPrefix(absPath, http.FileServer(fs))
 
@@ -94,7 +94,7 @@ func (gp *RouterGroup) createStaticHandler(relPath string, fs http.FileSystem) C
 	}
 }
 
-func (gp *RouterGroup) fixAbsolutePath(relPath string) string {
+func (gp *RouteGroup) fixAbsolutePath(relPath string) string {
 	return joinPaths(gp.prefix, relPath)
 }
 

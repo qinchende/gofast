@@ -23,7 +23,7 @@ func initGoFastServer() {
 	addRoutes(routersLevel, func(url string) {
 		myApp.Handle(http.MethodGet, url, gftHandle2)
 	})
-	myApp.BuildRouters()
+	myApp.BuildRoutes()
 }
 
 func gftMiddlewareHandle(ctx *fst.Context) int {

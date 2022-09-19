@@ -14,7 +14,7 @@ func (gft *GoFast) printRouteTrees() {
 	strTree := new(strings.Builder)
 	strTree.WriteString("\n+++++++++++++++The route tree:\n")
 
-	for _, tree := range gft.routeTrees {
+	for _, tree := range gft.routerTrees {
 		printTree(tree, strTree)
 	}
 	strTree.WriteString("++++++++++++++++++++++++++++++\n")

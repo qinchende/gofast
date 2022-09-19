@@ -5,7 +5,6 @@
 package drops
 
 import (
-	"github.com/qinchende/gofast/fst/render"
 	"net/http"
 
 	"github.com/golang/protobuf/proto"
@@ -33,5 +32,5 @@ func (r ProtoBuf) Write(w http.ResponseWriter) error {
 
 // WriteContentType (ProtoBuf) writes ProtoBuf ContentType.
 func (r ProtoBuf) WriteContentType(w http.ResponseWriter) {
-	render.writeContentType(w, protobufContentType)
+	//render.setContentType(w, protobufContentType)
 }

@@ -5,7 +5,7 @@ package fst
 // TODO: 第一种方案：将可执行中间件分类，依次执行。
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers() {
-	c.RouteIdx = c.match.ptrNode.routerIdx
+	c.RouteIdx = c.match.ptrNode.routeIdx
 	c.handlers = c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
 	c.execIdx = -1
 	c.Next()
