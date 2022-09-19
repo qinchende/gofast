@@ -12,6 +12,14 @@ import (
 	"net/http"
 )
 
+//  返回结构体
+type Ret struct {
+	Code int32 // 状态
+	Msg  string
+	Data any
+	Desc string
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
 // JSON是GoFast默认的返回格式，一等公民。所以默认函数命名没有给出JSON字样
@@ -37,6 +45,10 @@ func (c *Context) FaiCode(code int32) {
 	c.kvSucFai(statusFai, code, "", nil)
 }
 
+func (c *Context) FaiRet(ret *Ret) {
+	c.kvSucFai(statusFai, ret.Code, ret.Msg, ret.Data)
+}
+
 func (c *Context) Fai(code int32, msg string, data any) {
 	c.kvSucFai(statusFai, code, msg, data)
 }
@@ -52,6 +64,10 @@ func (c *Context) SucKV(data KV) {
 
 func (c *Context) SucCode(code int32) {
 	c.kvSucFai(statusSuc, code, "", nil)
+}
+
+func (c *Context) SucRet(ret *Ret) {
+	c.kvSucFai(statusSuc, ret.Code, ret.Msg, ret.Data)
 }
 
 func (c *Context) Suc(code int32, msg string, data any) {
@@ -108,18 +124,24 @@ func (c *Context) AbortFai(code int, msg string) {
 		"code":   code,
 		"msg":    msg,
 	})
-	c.AbortDirectBytes(http.StatusOK, bytes)
+	c.AbortDirect(http.StatusOK, bytes)
 }
 
 // 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortDirect(resStatus int, msg string) {
+func (c *Context) AbortDirect(resStatus int, stream any) {
 	c.execIdx = maxRouteHandlers
-	_ = c.ResWrap.SendHijack(resStatus, stringx.StringToBytes(msg))
-}
 
-func (c *Context) AbortDirectBytes(resStatus int, bytes []byte) {
-	c.execIdx = maxRouteHandlers
-	_ = c.ResWrap.SendHijack(resStatus, bytes)
+	var data []byte
+	switch stream.(type) {
+	case string:
+		data = stringx.StringToBytes(stream.(string))
+	case []byte:
+		data = stream.([]byte)
+	default:
+		str, _ := lang.ToString(stream)
+		data = stringx.StringToBytes(str)
+	}
+	_ = c.ResWrap.SendHijack(resStatus, data)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

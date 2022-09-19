@@ -14,7 +14,7 @@ const (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 Context handlers 都要通过此函数来注册
-// 包括 RouterGroup 和 RouteItem
+// 包括 RouteGroup 和 RouteItem
 func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []CtxHandler) (*routeEvents, uint16) {
 	if len(hds) == 0 || hds[0] == nil {
 		return re, 0
@@ -47,32 +47,32 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 	return re, uint16(len(tHds))
 }
 
-// RouterGroup
+// RouteGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (gp *RouterGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouterGroup {
+func (gp *RouteGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouteGroup {
 	_, ct := gp.regCtxHandler(gp.myApp.fstMem, eType, hds)
 	// 记录分组中一共加入的 处理 函数个数
 	gp.selfHdsLen += ct
 	return gp
 }
 
-func (gp *RouterGroup) Before(hds ...CtxHandler) *RouterGroup {
+func (gp *RouteGroup) Before(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EBefore, hds)
 }
 
-func (gp *RouterGroup) After(hds ...CtxHandler) *RouterGroup {
+func (gp *RouteGroup) After(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfter, hds)
 }
 
-func (gp *RouterGroup) PreBind(hds ...CtxHandler) *RouterGroup {
+func (gp *RouteGroup) PreBind(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EPreBind, hds)
 }
 
-func (gp *RouterGroup) PreSend(hds ...CtxHandler) *RouterGroup {
+func (gp *RouteGroup) PreSend(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EPreSend, hds)
 }
 
-func (gp *RouterGroup) AfterSend(hds ...CtxHandler) *RouterGroup {
+func (gp *RouteGroup) AfterSend(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfterSend, hds)
 }
 
@@ -107,6 +107,6 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 // RouterItemConfig
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouteItem) Config(rc RouteConfig) *RouteItem {
-	rc.AddToList(ri.routerIdx)
+	rc.AddToList(ri.routeIdx)
 	return ri
 }

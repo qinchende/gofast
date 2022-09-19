@@ -34,7 +34,7 @@ type Context struct {
 	execIdx   int8         // 执行链的索引 不能大于 127 个
 	rendered  bool         // 是否已经执行了Render
 	IsTimeout bool         // 请求是否超时了
-	RouteIdx  uint16       // router的唯一标识ID，方便区分不同的router
+	RouteIdx  uint16       // route的唯一标识ID，方便区分不同的route
 }
 
 /************************************/

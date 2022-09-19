@@ -34,17 +34,17 @@ type GoFast struct {
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
-	RouterGroup // HomeRouter 本身就是一个路由分组
+	RouteGroup // HomeRouter 本身就是一个路由分组
 
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
 	miniNode404 *radixMiniNode
 	miniNode405 *radixMiniNode
-	allRouters  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
+	allRoutes   []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
 	// 绝大部分应用Get和Post路由居多，我们能尽快匹配就不需要无用的Method比较选择的过程
-	routeTrees methodTrees
+	routerTrees methodTrees
 
 	// 主要以数组结构的形式，存储了 Routes & Handlers
 	fstMem *fstMemSpace
@@ -96,24 +96,24 @@ func (gft *GoFast) initHomeRouter() {
 	gft.prefix = "/"
 	gft.myApp = gft
 
-	gft.allRouters = make([]*RouteItem, 0)
+	gft.allRoutes = make([]*RouteItem, 0)
 	// 默认为空的节点
-	gft.allRouters = append(gft.allRouters, &RouteItem{
-		group:     nil,
-		fullPath:  "*",
-		routerIdx: 0,
+	gft.allRoutes = append(gft.allRoutes, &RouteItem{
+		group:    nil,
+		fullPath: "*",
+		routeIdx: 0,
 	})
 	// 404 Default Route
-	gft.allRouters = append(gft.allRouters, &RouteItem{
-		group:     &gft.RouterGroup,
-		fullPath:  "/404",
-		routerIdx: 1,
+	gft.allRoutes = append(gft.allRoutes, &RouteItem{
+		group:    &gft.RouteGroup,
+		fullPath: "/404",
+		routeIdx: 1,
 	})
 	// 405 Default Route
-	gft.allRouters = append(gft.allRouters, &RouteItem{
-		group:     &gft.RouterGroup,
-		fullPath:  "/405",
-		routerIdx: 2,
+	gft.allRoutes = append(gft.allRoutes, &RouteItem{
+		group:    &gft.RouteGroup,
+		fullPath: "/405",
+		routeIdx: 2,
 	})
 	gft.fstMem = new(fstMemSpace)
 
@@ -201,7 +201,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
 	if gft.CheckOtherMethodRoute {
-		for _, tree := range gft.routeTrees {
+		for _, tree := range gft.routerTrees {
 			if tree.method == c.ReqRaw.Method || tree.miniRoot == nil {
 				continue
 			}
@@ -225,7 +225,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // NOTE：重构路由树。（重要！重要！重要！必须调用这个方法初始化路由树和中间件）
 // 在不执行真正Listen的场景中，调用此函数能初始化服务器（必须要调用此函数来构造路由）
-func (gft *GoFast) BuildRouters() {
+func (gft *GoFast) BuildRoutes() {
 	gft.readyOnce.Do(func() {
 		gft.initDefaultHandlers()
 		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
@@ -233,7 +233,7 @@ func (gft *GoFast) BuildRouters() {
 		gft.bindContextFit(gft.serveHTTPWithCtx)
 	})
 	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
-	gft.buildAllRouters()
+	gft.buildAllRoutes()
 	gft.execAppHandlers(gft.eAfterBuildRoutesHds) // after build routes
 }
 
@@ -242,7 +242,7 @@ func (gft *GoFast) BuildRouters() {
 // 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
 func (gft *GoFast) Listen(addr ...string) (err error) {
 	// listen接受请求之前，必须调用这个来生成最终的路由树
-	gft.BuildRouters()
+	gft.BuildRoutes()
 
 	// 依次执行 onReady 事件处理函数
 	gft.execAppHandlers(gft.eReadyHds)

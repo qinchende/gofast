@@ -20,10 +20,10 @@ func defMessageHandler(resStatus int, defaultMessage []byte) CtxHandler {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
-	if gft.DefNoRouteHandler && len(gft.allRouters[1].eHds) == 0 {
+	if gft.DefNoRouteHandler && len(gft.allRoutes[1].eHds) == 0 {
 		gft.NoRoute(defMessageHandler(http.StatusNotFound, default404Body))
 	}
-	if gft.DefNotAllowedHandler && len(gft.allRouters[2].eHds) == 0 {
+	if gft.DefNotAllowedHandler && len(gft.allRoutes[2].eHds) == 0 {
 		gft.NoMethod(defMessageHandler(http.StatusMethodNotAllowed, default405Body))
 	}
 }

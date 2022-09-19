@@ -8,7 +8,7 @@ package fst
 // 一共 ? 字节
 type radixMiniNode struct {
 	// router index (2字节)
-	routerIdx uint16
+	routeIdx uint16
 
 	// 前缀字符（3字节）
 	matchStart uint16
@@ -65,7 +65,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	if n.leafItem != nil {
 		newMini.hdsGroupIdx = n.leafItem.group.hdsIdx     // 记录“分组”事件在 全局 事件队列中的 起始位置
 		newMini.hdsItemIdx = n.leafItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
-		newMini.routerIdx = n.leafItem.routerIdx
+		newMini.routeIdx = n.leafItem.routeIdx
 		combNodeHandlers(fstMem, newMini, true) // 构造执行链
 	}
 	// 释放掉资源
@@ -131,14 +131,14 @@ func combNodeHandlers(fstMem *fstMemSpace, miniNode *radixMiniNode, needGroup bo
 // 重建特殊节点
 func rebuildDefaultHandlers(home *GoFast) {
 	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
-	home.miniNode404 = &radixMiniNode{routerIdx: home.allRouters[1].routerIdx}
-	home.miniNode404.hdsGroupIdx = home.allRouters[1].group.hdsIdx
-	home.miniNode404.hdsItemIdx = home.allRouters[1].rebuildHandlers()
+	home.miniNode404 = &radixMiniNode{routeIdx: home.allRoutes[1].routeIdx}
+	home.miniNode404.hdsGroupIdx = home.allRoutes[1].group.hdsIdx
+	home.miniNode404.hdsItemIdx = home.allRoutes[1].rebuildHandlers()
 	combNodeHandlers(home.fstMem, home.miniNode404, true)
 
-	home.miniNode405 = &radixMiniNode{routerIdx: home.allRouters[2].routerIdx}
-	home.miniNode405.hdsGroupIdx = home.allRouters[2].group.hdsIdx
-	home.miniNode405.hdsItemIdx = home.allRouters[2].rebuildHandlers()
+	home.miniNode405 = &radixMiniNode{routeIdx: home.allRoutes[2].routeIdx}
+	home.miniNode405.hdsGroupIdx = home.allRoutes[2].group.hdsIdx
+	home.miniNode405.hdsItemIdx = home.allRoutes[2].rebuildHandlers()
 	combNodeHandlers(home.fstMem, home.miniNode405, true)
 }
 
@@ -169,22 +169,22 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem.treeCharsLen = 0
 	fstMem.allRadixMiniLen = 0
 	fstMem.routeGroupNum = 0
-	fstMem.routeItemNum = uint16(len(gft.allRouters) - 1) // 有404和405这两个默认节点，但是第一个节点是占位，无意义
+	fstMem.routeItemNum = uint16(len(gft.allRoutes) - 1) // 有404和405这两个默认节点，但是第一个节点是占位，无意义
 	// end
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// 合并分组事件到下一级分组当中，返回所有节点新增父级节点事件的和
-	gft.combEvents = gft.RouterGroup.routeEvents
-	parentHandlerSum := gpCombineHandlers(&gft.RouterGroup)
+	gft.combEvents = gft.RouteGroup.routeEvents
+	parentHandlerSum := gpCombineHandlers(&gft.RouteGroup)
 	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小
 	fstMem.tidyHdsLen = parentHandlerSum + fstMem.allCtxHdsLen
 	// 分配内存空间
 	allocateMemSpace(gft)
 
 	// 1. 将分组事件 转换到 新版全局数组中
-	gpRebuildHandlers(&gft.RouterGroup)
+	gpRebuildHandlers(&gft.RouteGroup)
 	// 2. 重建路由树 （这里面将节点事件 转换到 新版全局数组中）
-	for _, mTree := range gft.routeTrees {
+	for _, mTree := range gft.routerTrees {
 		rebuildMethodTree(fstMem, mTree)
 	}
 	// 3. 重建特殊节点，比如 NoRoute | NoMethod
@@ -200,7 +200,7 @@ func (gft *GoFast) buildMiniRoutes() {
 
 		fstMem.treeCharT = nil
 
-		for _, mTree := range gft.routeTrees {
+		for _, mTree := range gft.routerTrees {
 			mTree.root = nil
 		}
 	}
@@ -211,7 +211,7 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem := gft.fstMem
 
 	var totalNodes, nodeStrLen uint16
-	for _, mTree := range gft.routeTrees {
+	for _, mTree := range gft.routerTrees {
 		totalNodes += mTree.nodeCt
 		nodeStrLen += mTree.nodeStrLen
 	}
@@ -229,7 +229,7 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
 	fstMem.allRadixMiniNodes = make([]radixMiniNode, totalNodes, totalNodes)
 	for idx := 0; idx < len(fstMem.allRadixMiniNodes); idx++ {
-		fstMem.allRadixMiniNodes[idx].routerIdx = 0
+		fstMem.allRadixMiniNodes[idx].routeIdx = 0
 		fstMem.allRadixMiniNodes[idx].hdsGroupIdx = -1
 		fstMem.allRadixMiniNodes[idx].hdsItemIdx = -1
 	}
@@ -237,7 +237,7 @@ func allocateMemSpace(gft *GoFast) {
 
 // 合并所有路由分组的事件到下一级的分组当中
 // 返回所有节点新增加处理函数个数的和
-func gpCombineHandlers(gp *RouterGroup) uint16 {
+func gpCombineHandlers(gp *RouteGroup) uint16 {
 	// 所有分组个数
 	gp.myApp.fstMem.routeGroupNum++
 	if gp.children == nil {
@@ -272,7 +272,7 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 }
 
 // 将分组事件 转换到 新版全局数组中
-func gpRebuildHandlers(gp *RouterGroup) {
+func gpRebuildHandlers(gp *RouteGroup) {
 	// 每一个分组的事件都去注册
 	gp.rebuildHandlers()
 	if gp.children == nil {
@@ -286,7 +286,7 @@ func gpRebuildHandlers(gp *RouterGroup) {
 // 第一套 分开方案
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 为每个最后一级的分组，将 routeEvent 变成内存占用更小的 handlersNode
-func (gp *RouterGroup) rebuildHandlers() {
+func (gp *RouteGroup) rebuildHandlers() {
 	fstMem := gp.myApp.fstMem
 	setNewNode(fstMem, &gp.combEvents)
 
