@@ -26,7 +26,7 @@ func (ps *Params) ByName(name string) (va string) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-type matchResult struct {
+type matchRoute struct {
 	ptrNode  *radixMiniNode
 	params   *Params
 	allowRTS bool // 是否需要做 RedirectTrailingSlash 的检测
@@ -34,7 +34,7 @@ type matchResult struct {
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，加快匹配速度
-func (n *radixMiniNode) matchRoute(fstMem *fstMemSpace, path string, mr *matchResult, unescape bool) {
+func (n *radixMiniNode) matchRoute(fstMem *fstMemSpace, path string, mr *matchRoute, unescape bool) {
 	var pLen uint8
 	var pNode *radixMiniNode
 

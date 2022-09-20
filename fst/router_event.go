@@ -5,11 +5,12 @@ package fst
 // Note：该设计给将来预留了足够的扩展空间
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
-	EPreBind   = "onPreBind" // 这个事件暂时不用，没有发现有大的必要
-	EBefore    = "onBefore"
-	EAfter     = "onAfter"
-	EPreSend   = "onPreSend"
-	EAfterSend = "onAfterSend"
+	EAfterMatch = "onAfterMatch" // 初步匹配路由之后，调用这个做更进一步的自定义Check检查
+	EPreBind    = "onPreBind"    // 这个事件暂时不用，没有发现有大的必要
+	EBefore     = "onBefore"
+	EAfter      = "onAfter"
+	EPreSend    = "onPreSend"
+	EAfterSend  = "onAfterSend"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -29,6 +30,8 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 	}
 
 	switch eType {
+	case EAfterMatch:
+		re.eAfterMatchHds = append(re.eAfterMatchHds, addCtxHandlers(fstMem, hds)...)
 	case EPreBind:
 		re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, hds)...)
 	case EBefore:
@@ -60,7 +63,15 @@ func (gp *RouteGroup) Before(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EBefore, hds)
 }
 
+func (gp *RouteGroup) B(hds ...CtxHandler) *RouteGroup {
+	return gp.regGroupCtxHandler(EBefore, hds)
+}
+
 func (gp *RouteGroup) After(hds ...CtxHandler) *RouteGroup {
+	return gp.regGroupCtxHandler(EAfter, hds)
+}
+
+func (gp *RouteGroup) A(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfter, hds)
 }
 
@@ -88,7 +99,15 @@ func (ri *RouteItem) Before(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EBefore, hds)
 }
 
+func (ri *RouteItem) B(hds ...CtxHandler) *RouteItem {
+	return ri.regItemCtxHandler(EBefore, hds)
+}
+
 func (ri *RouteItem) After(hds ...CtxHandler) *RouteItem {
+	return ri.regItemCtxHandler(EAfter, hds)
+}
+
+func (ri *RouteItem) A(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfter, hds)
 }
 
@@ -104,9 +123,14 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfterSend, hds)
 }
 
-// RouterItemConfig
+//// 路由匹配到之后，没等执行中间件就走这个逻辑，可以返回标记，中断后面的中间件
+//func (ri *RouteItem) AfterMatch(hds ...CtxHandlerInt) *RouteItem {
+//	return ri.regItemCtxHandler(EAfterMatch, hds)
+//}
+
+// RouteItemAttrs
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ri *RouteItem) Config(rc RouteConfig) *RouteItem {
-	rc.AddToList(ri.routeIdx)
+func (ri *RouteItem) Attrs(ra RouteAttrs) *RouteItem {
+	ra.SetRouteIndex(ri.routeIdx)
 	return ri
 }

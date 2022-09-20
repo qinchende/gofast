@@ -29,12 +29,13 @@ type Context struct {
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
 	mu         sync.RWMutex // This mutex protect Keys map
 
-	handlers  handlersNode // 匹配到的执行链标记
-	match     matchResult  // 路由匹配结果，[Params] ? 一般用于确定相应资源
-	execIdx   int8         // 执行链的索引 不能大于 127 个
-	rendered  bool         // 是否已经执行了Render
-	IsTimeout bool         // 请求是否超时了
-	RouteIdx  uint16       // route的唯一标识ID，方便区分不同的route
+	handlers handlersNode // 匹配到的执行链标记
+	route    matchRoute   // 路由匹配结果，[Params] ? 一般用于确定相应资源
+	execIdx  int8         // 执行链的索引 不能大于 127 个
+	rendered bool         // 是否已经执行了Render
+
+	IsTimeout bool   // 请求是否超时了
+	RouteIdx  uint16 // route的唯一标识ID，方便区分不同的route
 }
 
 /************************************/
@@ -47,20 +48,20 @@ func (c *Context) reset() {
 	//c.ResWrap = nil
 	//c.ReqRaw = nil
 	c.Sess = nil
-	c.UrlParams = c.match.params
+	c.UrlParams = c.route.params
 	c.Pms = nil
 	//c.PmsCarry = nil
 	c.RouteIdx = 0
 	c.IsTimeout = false
 
 	// add by sdx 2021.01.06
-	c.match.ptrNode = nil
-	if c.match.params == nil {
-		c.match.params = new(Params)
+	c.route.ptrNode = nil
+	if c.route.params == nil {
+		c.route.params = new(Params)
 	}
-	*c.match.params = (*c.match.params)[0:0]
-	c.match.rts = false
-	c.match.allowRTS = c.myApp.RedirectTrailingSlash
+	*c.route.params = (*c.route.params)[0:0]
+	c.route.rts = false
+	c.route.allowRTS = c.myApp.RedirectTrailingSlash
 	//c.handlers = nil
 	c.execIdx = math.MaxInt8
 	c.rendered = false

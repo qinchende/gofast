@@ -11,7 +11,7 @@ import (
 type GfConfig struct {
 	LogConfig             logx.LogConfig
 	AppName               string `v:"required"`
-	ListenAddr            string `v:"def=0.0.0.0:8099,match=ipv4:port"`
+	ListenAddr            string `v:"def=0.0.0.0:8099,route=ipv4:port"`
 	RunningMode           string `v:"def=product,enum=debug|test|product"` // 当前模式[debug|test|product]
 	SecureJsonPrefix      string `v:"def=while(1);"`
 	MaxMultipartBytes     int64  `v:"def=33554432"` // 最大上传文件的大小，默认32MB
@@ -21,6 +21,7 @@ type GfConfig struct {
 	DefNotAllowedHandler  bool   `v:"def=true"`     // 是否采用默认的NotAllowed处理函数
 	DefNoRouteHandler     bool   `v:"def=true"`     // 是否采用默认的NoRoute匹配函数
 	ForwardedByClientIP   bool   `v:"def=true"`
+	ApplyUrlParams        bool   `v:"def=true"`                        // 将UrlParams解析的参数自动加入Pms
 	RemoveExtraSlash      bool   `v:"def=false"`                       // 规范请求的URL
 	UseRawPath            bool   `v:"def=false"`                       // 默认取原始的Path，不需要自动转义
 	UnescapePathValues    bool   `v:"def=true"`                        // 默认把URL中的参数值做转义

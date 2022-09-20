@@ -80,7 +80,7 @@ func (gft *GoFast) initResourcePool() {
 	gft.ctxPool.New = func() any {
 		c := &Context{myApp: gft, ResWrap: &ResponseWrap{}}
 		// c.Pms = make(map[string]string)
-		// c.match.needRTS = gft.RedirectTrailingSlash
+		// c.route.needRTS = gft.RedirectTrailingSlash
 		return c
 	}
 }
@@ -177,11 +177,11 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
-		miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape)
-		c.UrlParams = c.match.params
+		miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape)
+		c.UrlParams = c.route.params
 
 		// 如果能匹配到路径
-		if c.match.ptrNode != nil {
+		if c.route.ptrNode != nil {
 			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			c.execHandlers()
 			//c.ResWrap.WriteHeaderNow()
@@ -190,7 +190,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 		// 匹配不到路由 先考虑 重定向
 		// c.ReqRaw.Method != CONNECT && reqPath != [home index]
-		if c.match.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
+		if c.route.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
 			redirectTrailingSlash(c)
 			return
 		}
@@ -206,9 +206,9 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.match, unescape); c.match.ptrNode != nil {
-				c.match.ptrNode = gft.miniNode405
-				c.UrlParams = c.match.params
+			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape); c.route.ptrNode != nil {
+				c.route.ptrNode = gft.miniNode405
+				c.UrlParams = c.route.params
 				c.execHandlers()
 				return
 			}
@@ -216,7 +216,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	}
 
 	// C. 以上都无法匹配，就走404逻辑
-	c.match.ptrNode = gft.miniNode404
+	c.route.ptrNode = gft.miniNode404
 	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
 	c.execHandlers()
 	return

@@ -35,7 +35,7 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 	}
 
 	return func(c *fst.Context) {
-		rt := RConfigs[c.RouteIdx]
+		rt := RAttrsList[c.RouteIdx]
 		ctxTimeout, cancelCtx := context.WithTimeout(c.ReqRaw.Context(), time.Duration(rt.Timeout)*time.Millisecond)
 		defer cancelCtx()
 

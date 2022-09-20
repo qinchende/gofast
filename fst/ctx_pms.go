@@ -25,7 +25,7 @@ func (c *Context) Bind(dst any) error {
 //         id := c.Param("id") // id == "john"
 //     })
 func (c *Context) Param(key string) string {
-	return c.match.params.ByName(key)
+	return c.route.params.ByName(key)
 }
 
 // ##这个方法很重要##
@@ -59,6 +59,13 @@ func (c *Context) ParseRequestData() error {
 	if !urlParsed {
 		c.ParseQuery()
 		applyUrlValue(c.Pms, c.queryCache)
+	}
+
+	// 将UrlParams加入参数字典
+	if c.myApp.ApplyUrlParams && c.UrlParams != nil {
+		for _, param := range *c.UrlParams {
+			c.Pms[param.Key] = param.Value
+		}
 	}
 
 	return nil

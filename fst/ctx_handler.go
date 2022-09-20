@@ -5,8 +5,8 @@ package fst
 // TODO: 第一种方案：将可执行中间件分类，依次执行。
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers() {
-	c.RouteIdx = c.match.ptrNode.routeIdx
-	c.handlers = c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+	c.RouteIdx = c.route.ptrNode.routeIdx
+	c.handlers = c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	c.execIdx = -1
 	c.Next()
 }
@@ -27,11 +27,11 @@ func (c *Context) Next() {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // NOTE: 下面的钩子函数不需要中断执行链。
 func (c *Context) execPreSendHandlers() {
-	if c.match.ptrNode == nil {
+	if c.route.ptrNode == nil {
 		return
 	}
-	it := c.handlers // c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-	gp := c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsGroupIdx]
+	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
 	// 5.preSend
 	for it.preSendLen > 0 {
@@ -55,11 +55,11 @@ func (c *Context) execPreSendHandlers() {
 }
 
 func (c *Context) execAfterSendHandlers() {
-	if c.match.ptrNode == nil {
+	if c.route.ptrNode == nil {
 		return
 	}
-	it := c.handlers // c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-	gp := c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsGroupIdx]
+	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
 	// 6.afterSend
 	for it.afterSendLen > 0 {
@@ -112,12 +112,12 @@ func (c *Context) execAfterSendHandlers() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //func (c *Context) execHandlers() {
-//	c.handlers = c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
+//	c.handlers = c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 //	c.execIdx = 0
 //	c.Next()
 //
-//	//it := c.myApp.fstMem.hdsNodes[c.match.ptrNode.hdsItemIdx]
-//	//gp := c.myApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsGroupIdx]
+//	//it := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+//	//gp := c.myApp.fstMem.hdsMiniNodes[c.route.ptrNode.hdsGroupIdx]
 //
 //	//// 2.before
 //	//for gp.beforeLen > 0 {
@@ -184,11 +184,11 @@ func (c *Context) execAfterSendHandlers() {
 //}
 
 //func (c *Context) execPreBindHandlers() {
-//	if c.match.ptrNode == nil {
+//	if c.route.ptrNode == nil {
 //		return
 //	}
-//	it := c.myApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsItemIdx]
-//	gp := c.myApp.fstMem.hdsMiniNodes[c.match.ptrNode.hdsIdx]
+//	it := c.myApp.fstMem.hdsMiniNodes[c.route.ptrNode.hdsItemIdx]
+//	gp := c.myApp.fstMem.hdsMiniNodes[c.route.ptrNode.hdsIdx]
 //
 //	// 1.valid
 //	for gp.validLen > 0 {
