@@ -8,12 +8,13 @@ package fst
 // TODO: 此结构占用空间还是比较大的，可以考虑释放。
 type routeEvents struct {
 	// 下面的事件类型，按照执行顺序排列
-	ePreValidHds  []uint16
-	eBeforeHds    []uint16
-	eHds          []uint16
-	eAfterHds     []uint16
-	ePreSendHds   []uint16
-	eAfterSendHds []uint16
+	eAfterMatchHds []uint16
+	ePreValidHds   []uint16
+	eBeforeHds     []uint16
+	eHds           []uint16
+	eAfterHds      []uint16
+	ePreSendHds    []uint16
+	eAfterSendHds  []uint16
 }
 
 type RouteGroup struct {
@@ -64,17 +65,3 @@ type handlersNode struct {
 //	startIdx uint16 // 2字节
 //	hdsLen   uint8  // 1字节
 //}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 路由节点支持自定义扩展。可以自定义配置项，和配置项集合。
-type RouteConfigs interface {
-	Reordering(*GoFast, uint16)
-}
-
-type RouteConfig interface {
-	AddToList(uint16)
-}
-
-type RouteIndex struct {
-	Idx uint16 // 此路由在路由数组中的索引值
-}

@@ -14,10 +14,10 @@ import (
 
 //  返回结构体
 type Ret struct {
-	Code int32 // 状态
-	Msg  string
-	Data any
-	Desc string
+	Code int32  // 返回编码
+	Msg  string // 文本消息
+	Data any    // 携带数据体
+	Desc string // 描述
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -42,11 +42,11 @@ func (c *Context) FaiKV(data KV) {
 }
 
 func (c *Context) FaiCode(code int32) {
-	c.kvSucFai(statusFai, code, "", nil)
+	c.Fai(code, "", nil)
 }
 
 func (c *Context) FaiRet(ret *Ret) {
-	c.kvSucFai(statusFai, ret.Code, ret.Msg, ret.Data)
+	c.Fai(ret.Code, ret.Msg, ret.Data)
 }
 
 func (c *Context) Fai(code int32, msg string, data any) {
@@ -63,11 +63,11 @@ func (c *Context) SucKV(data KV) {
 }
 
 func (c *Context) SucCode(code int32) {
-	c.kvSucFai(statusSuc, code, "", nil)
+	c.Suc(code, "", nil)
 }
 
 func (c *Context) SucRet(ret *Ret) {
-	c.kvSucFai(statusSuc, ret.Code, ret.Msg, ret.Data)
+	c.Suc(ret.Code, ret.Msg, ret.Data)
 }
 
 func (c *Context) Suc(code int32, msg string, data any) {

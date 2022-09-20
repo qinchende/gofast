@@ -17,10 +17,11 @@ func init() {
 }
 
 type (
-	KV         map[string]any
-	AppHandler func(gft *GoFast)
-	FitFunc    func(http.HandlerFunc) http.HandlerFunc
-	CtxHandler func(ctx *Context)
+	KV            map[string]any
+	AppHandler    func(gft *GoFast)
+	FitFunc       func(http.HandlerFunc) http.HandlerFunc
+	CtxHandlerInt func(ctx *Context) int
+	CtxHandler    func(ctx *Context)
 
 	// 抽取出一些常用函数原型
 	injectFunc func(*GoFast) *GoFast
