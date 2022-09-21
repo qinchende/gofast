@@ -18,11 +18,11 @@ func (c *Context) Bind(dst any) error {
 	return mapx.ApplyKVOfData(dst, c.Pms)
 }
 
-// Param returns the value of the URL param.
-// It is a shortcut for c.Params.ByName(key)
+// UrlParam returns the value of the URL param.
+// It is a shortcut for c.UrlParams.ByName(key)
 //     router.GET("/user/:id", func(c *gin.Context) {
 //         // a GET request to /user/john
-//         id := c.Param("id") // id == "john"
+//         id := c.UrlParam("id") // id == "john"
 //     })
 func (c *Context) Param(key string) string {
 	return c.route.params.ByName(key)

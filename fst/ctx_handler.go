@@ -2,9 +2,19 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+// 强制路由匹配走404逻辑
+func (c *Context) RouteAs404() {
+	c.route.ptrNode = c.myApp.miniNode404
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // TODO: 第一种方案：将可执行中间件分类，依次执行。
 // 方案1. 依次执行分组和节点自己的事件中间件函数
 func (c *Context) execHandlers() {
+	if c.execIdx == maxRouteHandlers {
+		return
+	}
+
 	c.RouteIdx = c.route.ptrNode.routeIdx
 	c.handlers = c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	c.execIdx = -1
@@ -25,8 +35,20 @@ func (c *Context) Next() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (c *Context) execAfterMatchHandlers() {
+	if c.route.ptrNode == nil {
+		return
+	}
+	it := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+	for it.afterMatchLen > 0 {
+		c.myApp.fstMem.tidyHandlers[it.afterMatchIdx](c)
+		it.afterMatchLen--
+		it.afterMatchIdx++
+	}
+}
+
 // NOTE: 下面的钩子函数不需要中断执行链。
-func (c *Context) execPreSendHandlers() {
+func (c *Context) execBeforeSendHandlers() {
 	if c.route.ptrNode == nil {
 		return
 	}
@@ -34,21 +56,21 @@ func (c *Context) execPreSendHandlers() {
 	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
 	// 5.preSend
-	for it.preSendLen > 0 {
+	for it.beforeSendLen > 0 {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.myApp.fstMem.tidyHandlers[it.preSendIdx](c)
-		it.preSendLen--
-		it.preSendIdx++
+		c.myApp.fstMem.tidyHandlers[it.beforeSendIdx](c)
+		it.beforeSendLen--
+		it.beforeSendIdx++
 	}
-	for gp.preSendLen > 0 {
+	for gp.beforeSendLen > 0 {
 		//if c.aborted {
 		//	goto over
 		//}
-		c.myApp.fstMem.tidyHandlers[gp.preSendIdx](c)
-		gp.preSendLen--
-		gp.preSendIdx++
+		c.myApp.fstMem.tidyHandlers[gp.beforeSendIdx](c)
+		gp.beforeSendLen--
+		gp.beforeSendIdx++
 	}
 	//over:
 	//	return
@@ -105,107 +127,6 @@ func (c *Context) execAfterSendHandlers() {
 //		c.myApp.fstMem.hdsList[it.startIdx](c)
 //		it.hdsLen--
 //		it.startIdx++
-//	}
-//over:
-//	return
-//}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func (c *Context) execHandlers() {
-//	c.handlers = c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-//	c.execIdx = 0
-//	c.Next()
-//
-//	//it := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-//	//gp := c.myApp.fstMem.hdsMiniNodes[c.route.ptrNode.hdsGroupIdx]
-//
-//	//// 2.before
-//	//for gp.beforeLen > 0 {
-//	//	if c.aborted {
-//	//		goto over
-//	//	}
-//	//	c.myApp.fstMem.hdsList[gp.beforeIdx](c)
-//	//	gp.beforeLen--
-//	//	gp.beforeIdx++
-//	//}
-//	//for it.beforeLen > 0 {
-//	//	if c.aborted {
-//	//		goto over
-//	//	}
-//	//	c.myApp.fstMem.hdsList[it.beforeIdx](c)
-//	//	it.beforeLen--
-//	//	it.beforeIdx++
-//	//}
-//
-//	//// 3.handler
-//	//for it.hdsLen > 0 {
-//	//	if c.aborted {
-//	//		goto over
-//	//	}
-//	//	c.myApp.fstMem.tidyHandlers[it.hdsIdx](c)
-//	//	it.hdsLen--
-//	//	it.hdsIdx++
-//	//}
-//
-//	//// 4.after
-//	//for it.afterLen > 0 {
-//	//	if c.aborted {
-//	//		goto over
-//	//	}
-//	//	c.myApp.fstMem.hdsList[it.afterIdx](c)
-//	//	it.afterLen--
-//	//	it.afterIdx++
-//	//}
-//	//for gp.afterLen > 0 {
-//	//	if c.aborted {
-//	//		goto over
-//	//	}
-//	//	c.myApp.fstMem.hdsList[gp.afterIdx](c)
-//	//	gp.afterLen--
-//	//	gp.afterIdx++
-//	//}
-//	//over:
-//	//	return
-//}
-
-//// 可以指定任何路由节点中的 handlers 来执行
-//func (c *Context) execJustHandlers(ptrMini *radixMiniNode) {
-//	it := c.myApp.fstMem.hdsNodes[ptrMini.hdsItemIdx]
-//
-//	// 3.handler
-//	for it.hdsLen > 0 {
-//		if c.aborted {
-//			return
-//		}
-//		c.myApp.fstMem.tidyHandlers[it.hdsIdx](c)
-//		it.hdsLen--
-//		it.hdsIdx++
-//	}
-//}
-
-//func (c *Context) execPreBindHandlers() {
-//	if c.route.ptrNode == nil {
-//		return
-//	}
-//	it := c.myApp.fstMem.hdsMiniNodes[c.route.ptrNode.hdsItemIdx]
-//	gp := c.myApp.fstMem.hdsMiniNodes[c.route.ptrNode.hdsIdx]
-//
-//	// 1.valid
-//	for gp.validLen > 0 {
-//		if c.aborted {
-//			goto over
-//		}
-//		c.myApp.fstMem.hdsList[gp.validIdx](c)
-//		gp.validLen--
-//		gp.validIdx++
-//	}
-//	for it.validLen > 0 {
-//		if c.aborted {
-//			goto over
-//		}
-//		c.myApp.fstMem.hdsList[it.validIdx](c)
-//		it.validLen--
-//		it.validIdx++
 //	}
 //over:
 //	return
