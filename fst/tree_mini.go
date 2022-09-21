@@ -247,9 +247,12 @@ func gpCombineHandlers(gp *RouteGroup) uint16 {
 	for _, chGroup := range gp.children {
 		hdsCount := 0
 
+		hdsCount += len(gp.combEvents.eAfterMatchHds)
+		chGroup.combEvents.eAfterMatchHds = combineHandlers(gp.combEvents.eAfterMatchHds, chGroup.eAfterMatchHds)
+
 		// TODO: 这里要补充完整所有的事件类型
-		hdsCount += len(gp.combEvents.ePreValidHds)
-		chGroup.combEvents.ePreValidHds = combineHandlers(gp.combEvents.ePreValidHds, chGroup.ePreValidHds)
+		//hdsCount += len(gp.combEvents.ePreValidHds)
+		//chGroup.combEvents.ePreValidHds = combineHandlers(gp.combEvents.ePreValidHds, chGroup.ePreValidHds)
 
 		hdsCount += len(gp.combEvents.eBeforeHds)
 		chGroup.combEvents.eBeforeHds = combineHandlers(gp.combEvents.eBeforeHds, chGroup.eBeforeHds)
@@ -259,8 +262,8 @@ func gpCombineHandlers(gp *RouteGroup) uint16 {
 		hdsCount += len(gp.combEvents.eAfterHds)
 		chGroup.combEvents.eAfterHds = append(chGroup.eAfterHds, gp.combEvents.eAfterHds...)
 
-		hdsCount += len(gp.combEvents.ePreSendHds)
-		chGroup.combEvents.ePreSendHds = append(chGroup.ePreSendHds, gp.combEvents.ePreSendHds...)
+		hdsCount += len(gp.combEvents.eBeforeSendHds)
+		chGroup.combEvents.eBeforeSendHds = append(chGroup.eBeforeSendHds, gp.combEvents.eBeforeSendHds...)
 
 		hdsCount += len(gp.combEvents.eAfterSendHds)
 		chGroup.combEvents.eAfterSendHds = append(chGroup.eAfterSendHds, gp.combEvents.eAfterSendHds...)
@@ -307,14 +310,16 @@ func (ri *RouteItem) rebuildHandlers() (idx int16) {
 func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 	node := &fstMem.hdsNodes[fstMem.hdsNodesLen]
 
+	node.afterMatchLen, node.afterMatchIdx = tidyEventHandlers(fstMem, &re.eAfterMatchHds)
+
 	// 获取所有的 handlers (执行链)
 	node.hdsLen, node.hdsIdx = tidyEventHandlers(fstMem, &re.eHds)
 	node.beforeLen, node.beforeIdx = tidyEventHandlers(fstMem, &re.eBeforeHds)
 	node.afterLen, node.afterIdx = tidyEventHandlers(fstMem, &re.eAfterHds)
 
 	// 装饰器
-	node.validLen, node.validIdx = tidyEventHandlers(fstMem, &re.ePreValidHds)
-	node.preSendLen, node.preSendIdx = tidyEventHandlers(fstMem, &re.ePreSendHds)
+	//node.validLen, node.validIdx = tidyEventHandlers(fstMem, &re.ePreValidHds)
+	node.beforeSendLen, node.beforeSendIdx = tidyEventHandlers(fstMem, &re.eBeforeSendHds)
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(fstMem, &re.eAfterSendHds)
 }
 
@@ -345,8 +350,8 @@ func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx u
 //	node.hdsLen += tidyEventHandlersMini(&ri.eHds)
 //	node.hdsLen += tidyEventHandlersMini(&ri.eAfterHds)
 //	node.hdsLen += tidyEventHandlersMini(&gp.eAfterHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.ePreSendHds)
-//	node.hdsLen += tidyEventHandlersMini(&gp.ePreSendHds)
+//	node.hdsLen += tidyEventHandlersMini(&ri.eBeforeSendHds)
+//	node.hdsLen += tidyEventHandlersMini(&gp.eBeforeSendHds)
 //	//node.hdsLen += tidyEventHandlersMini(&ri.eResponseHds)
 //	//node.hdsLen += tidyEventHandlersMini(&gp.eResponseHds)
 //

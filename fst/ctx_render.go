@@ -53,6 +53,25 @@ func (c *Context) Fai(code int32, msg string, data any) {
 	c.kvSucFai(statusFai, code, msg, data)
 }
 
+// 简易的抛出异常的方式，终止执行链，返回错误
+func (c *Context) FaiPanicIf(yes bool, val any) {
+	if !yes {
+		return
+	}
+
+	switch val.(type) {
+	case string:
+		panic(cst.GFFaiString(val.(string)))
+	case int:
+		panic(cst.GFFaiInt(val.(int)))
+	case error:
+		panic(cst.GFError(val.(error)))
+	default:
+		str, _ := lang.ToString(val)
+		panic(cst.GFFaiString(str))
+	}
+}
+
 // +++++
 func (c *Context) SucStr(msg string) {
 	c.Suc(1, msg, nil)
@@ -93,31 +112,7 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Abort系列函数都将终止当前 handlers 的执行
-
-func (c *Context) AbortHandlers() {
-	c.execIdx = maxRouteHandlers
-}
-
-// 简易的抛出异常的方式，终止执行链，返回错误
-func (c *Context) FaiPanicIf(yes bool, val any) {
-	if !yes {
-		return
-	}
-
-	switch val.(type) {
-	case string:
-		panic(cst.GFFaiString(val.(string)))
-	case int:
-		panic(cst.GFFaiInt(val.(int)))
-	case error:
-		panic(cst.GFError(val.(error)))
-	default:
-		str, _ := lang.ToString(val)
-		panic(cst.GFFaiString(str))
-	}
-}
-
-// 自定义返回结果和状态
+// 立即返回错误，跳过后面的执行链
 func (c *Context) AbortFai(code int, msg string) {
 	bytes, _ := jsonx.Marshal(KV{
 		"status": statusFai,
@@ -125,23 +120,6 @@ func (c *Context) AbortFai(code int, msg string) {
 		"msg":    msg,
 	})
 	c.AbortDirect(http.StatusOK, bytes)
-}
-
-// 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortDirect(resStatus int, stream any) {
-	c.execIdx = maxRouteHandlers
-
-	var data []byte
-	switch stream.(type) {
-	case string:
-		data = stringx.StringToBytes(stream.(string))
-	case []byte:
-		data = stream.([]byte)
-	default:
-		str, _ := lang.ToString(stream)
-		data = stringx.StringToBytes(str)
-	}
-	_ = c.ResWrap.SendHijack(resStatus, data)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -166,15 +144,9 @@ func (c *Context) File(filepath string) {
 // 返回数据的接口
 // 可以自定义扩展自己需要的Render
 func (c *Context) Render(resStatus int, r render.Render) {
-	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
-	c.mu.Lock()
-	if c.rendered {
-		c.mu.Unlock()
-		logx.Warn("Double render, the call canceled.")
+	if c.tryToRender() == false {
 		return
 	}
-	c.rendered = true
-	c.mu.Unlock()
 
 	c.ResWrap.WriteHeader(resStatus)
 	// 如果指定的返回状态，不能返回数据内容。需要特殊处理
@@ -188,8 +160,7 @@ func (c *Context) Render(resStatus int, r render.Render) {
 		panic(err)
 	}
 
-	// add preSend & afterSend events by sdx on 2021.01.06
-	c.execPreSendHandlers() // 可以抛出异常，终止 Send data
+	c.execBeforeSendHandlers() // 可以抛出异常，终止 Send data
 	if c.Sess != nil {
 		_ = c.Sess.Save()
 	}
@@ -199,8 +170,27 @@ func (c *Context) Render(resStatus int, r render.Render) {
 	c.execAfterSendHandlers()
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// bodyAllowedForStatus is a copy of http.bodyAllowedForStatus non-exported function.
+// 强行终止处理，立即返回指定结果，不执行Render
+func (c *Context) AbortDirect(resStatus int, stream any) {
+	c.execIdx = maxRouteHandlers
+
+	if c.tryToRender() == false {
+		return
+	}
+	
+	var data []byte
+	switch stream.(type) {
+	case string:
+		data = stringx.StringToBytes(stream.(string))
+	case []byte:
+		data = stream.([]byte)
+	default:
+		str, _ := lang.ToString(stream)
+		data = stringx.StringToBytes(str)
+	}
+	_ = c.ResWrap.SendHijack(resStatus, data)
+}
+
 func bodyAllowedForStatus(status int) bool {
 	switch {
 	case status >= 100 && status <= 199:
@@ -210,5 +200,18 @@ func bodyAllowedForStatus(status int) bool {
 	case status == http.StatusNotModified:
 		return false
 	}
+	return true
+}
+
+// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
+func (c *Context) tryToRender() bool {
+	c.mu.Lock()
+	if c.rendered {
+		c.mu.Unlock()
+		logx.Warn("Double render, the call canceled.")
+		return false
+	}
+	c.rendered = true
+	c.mu.Unlock()
 	return true
 }

@@ -180,15 +180,16 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape)
 		c.UrlParams = c.route.params
 
+		// 匹配到路由之后，这里做进一步的check，比如可以在这里直接返回404，不走后面中间件链
+		c.execAfterMatchHandlers()
+
 		// 如果能匹配到路径
 		if c.route.ptrNode != nil {
-			// 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
-			c.execHandlers()
-			//c.ResWrap.WriteHeaderNow()
+			c.execHandlers() // 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
 			return
 		}
 
-		// 匹配不到路由 先考虑 重定向
+		// 考虑 重定向 可能性
 		// c.ReqRaw.Method != CONNECT && reqPath != [home index]
 		if c.route.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
 			redirectTrailingSlash(c)
@@ -209,6 +210,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape); c.route.ptrNode != nil {
 				c.route.ptrNode = gft.miniNode405
 				c.UrlParams = c.route.params
+
 				c.execHandlers()
 				return
 			}

@@ -20,13 +20,13 @@ var (
 	RAttrsList attrsList // 所有配置项汇总
 )
 
-func (rc *RAttrs) SetRouteIndex(routeIdx uint16) {
-	rc.RIndex = routeIdx
-	RAttrsList = append(RAttrsList, rc)
+func (ras *RAttrs) SetRouteIndex(routeIdx uint16) {
+	ras.RIndex = routeIdx
+	RAttrsList = append(RAttrsList, ras)
 }
 
 // 对当前配置项，按照route索引顺序排序
-func (rcs *attrsList) Reordering(app *fst.GoFast, rtLen uint16) {
+func (*attrsList) Reordering(app *fst.GoFast, rtLen uint16) {
 	old := RAttrsList
 	RAttrsList = make(attrsList, rtLen, rtLen)
 	for i := 0; i < len(old); i++ {

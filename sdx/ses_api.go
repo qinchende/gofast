@@ -45,8 +45,7 @@ func SessBuilder(c *fst.Context) {
 		ss.values = make(fst.KV)
 		if err := ss.loadSessionFromRedis(c); err != nil {
 			c.AddMsgBasket(err.Error())
-			c.AbortHandlers()
-			c.Fai(110, "加载 Session 数据失败。", nil)
+			c.AbortFai(110, "加载 Session 数据失败。")
 		}
 	}
 }
@@ -55,8 +54,7 @@ func SessBuilder(c *fst.Context) {
 func SessMustLogin(c *fst.Context) {
 	uid := c.Sess.Get(MySess.GuidField)
 	if uid == nil || uid == "" {
-		c.AbortHandlers()
-		c.Fai(110, "登录验证失败。", nil)
+		c.AbortFai(110, "登录验证失败。")
 	}
 }
 

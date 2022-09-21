@@ -8,12 +8,12 @@ package fst
 // TODO: 此结构占用空间还是比较大的，可以考虑释放。
 type routeEvents struct {
 	// 下面的事件类型，按照执行顺序排列
+	//ePreValidHds   []uint16
 	eAfterMatchHds []uint16
-	ePreValidHds   []uint16
 	eBeforeHds     []uint16
 	eHds           []uint16
 	eAfterHds      []uint16
-	ePreSendHds    []uint16
+	eBeforeSendHds []uint16
 	eAfterSendHds  []uint16
 }
 
@@ -42,26 +42,19 @@ type RouteItem struct {
 type handlersNode struct {
 	hdsIdxChain []uint16 // 执行链的索引数组
 
-	validIdx     uint16
-	beforeIdx    uint16
-	hdsIdx       uint16
-	afterIdx     uint16
-	preSendIdx   uint16
-	afterSendIdx uint16
+	//validIdx      uint16
+	afterMatchIdx uint16
+	beforeIdx     uint16
+	hdsIdx        uint16
+	afterIdx      uint16
+	beforeSendIdx uint16
+	afterSendIdx  uint16
 
-	validLen     uint8
-	beforeLen    uint8
-	afterLen     uint8
-	hdsLen       uint8
-	preSendLen   uint8
-	afterSendLen uint8
+	//validLen      uint8
+	afterMatchLen uint8
+	beforeLen     uint8
+	afterLen      uint8
+	hdsLen        uint8
+	beforeSendLen uint8
+	afterSendLen  uint8
 }
-
-//// ++++++++++++++++++++++++++++++++++++++++++++++
-//// 第二种方案（暂时不用）
-//// 将某个路由节点的所有处理函数按顺序全部排序成数组，请求匹配到路由节点之后直接执行这里的队列即可
-//// 当节点多的时候这种方式相对第一种占用更多内存。
-//type handlersNodePlan2 struct {
-//	startIdx uint16 // 2字节
-//	hdsLen   uint8  // 1字节
-//}
