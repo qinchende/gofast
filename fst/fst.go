@@ -28,7 +28,7 @@ type GoFast struct {
 	// 根路由组相关属性
 	*HomeRouter                  // 根路由组（Root Group）
 	fitHandlers []FitFunc        // 全局中间件处理函数，incoming request handlers
-	fitEnter    http.HandlerFunc // fit系列中间件函数的入口
+	fitEnter    http.HandlerFunc // fit系列中间件函数的入口，请求进入之后第一个接收函数
 	ctxPool     sync.Pool        // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
 }
 
@@ -115,7 +115,7 @@ func (gft *GoFast) initHomeRouter() {
 		fullPath: "/405",
 		routeIdx: 2,
 	})
-	gft.fstMem = new(fstMemSpace)
+	gft.fstMem = &fstMemSpace{myApp: gft}
 
 	//// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
 	//// TODO: 因为Server初始化之后就执行了这里，所以这里的中间件在客户自定义中间件之前
@@ -180,16 +180,16 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape)
 		c.UrlParams = c.route.params
 
-		// 匹配到路由之后，这里做进一步的check，比如可以在这里直接返回404，不走后面中间件链
-		c.execAfterMatchHandlers()
-
 		// 如果能匹配到路径
 		if c.route.ptrNode != nil {
-			c.execHandlers() // 第一种方案（默认）：两种不用的事件队列结构，看执行那一个
+			// 进一步的check，比如可以在这里跳转成404；或者直接AbortDirect
+			c.execAfterMatchHandlers()
+
+			c.execHandlers() // 执行处理链
 			return
 		}
 
-		// 考虑 重定向 可能性
+		// 检查重定向
 		// c.ReqRaw.Method != CONNECT && reqPath != [home index]
 		if c.route.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
 			redirectTrailingSlash(c)
@@ -219,7 +219,6 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 	// C. 以上都无法匹配，就走404逻辑
 	c.route.ptrNode = gft.miniNode404
-	// 如果没有匹配到任何路由，需要执行: 全局中间件 + noRoute handler
 	c.execHandlers()
 	return
 }
@@ -277,7 +276,7 @@ func (gft *GoFast) GracefulShutdown() {
 	// 执行 onClose 事件订阅函数
 	gft.execAppHandlers(gft.eCloseHds)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.SecondsBeforeShutdown)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.BeforeShutdownMS)*time.Millisecond)
 	defer cancel()
 	if err := gft.srv.Shutdown(ctx); err != nil {
 		fmt.Sprintln("Server Shutdown Error: ", err)

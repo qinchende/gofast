@@ -5,10 +5,9 @@ package fst
 import "net/url"
 
 type matchRoute struct {
-	ptrNode  *radixMiniNode
-	params   *routeParams
-	allowRTS bool // 是否需要做 RedirectTrailingSlash 的检测
-	rts      bool // 是否可以通过重定向，URL最后加或减一个 ‘/’ 访问到有处理函数的节点
+	ptrNode *radixMiniNode
+	params  *routeParams
+	rts     bool // 判断是否可以 RedirectTrailingSlash 找到节点
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，加快匹配速度
@@ -112,7 +111,7 @@ matchChildNode:
 
 checkRTS:
 	// 是否允许重定向，是否有 RedirectTrailingSlash 可以匹配
-	if mr.allowRTS {
+	if fstMem.myApp.RedirectTrailingSlash {
 		if pLen == 0 {
 			for id := uint16(0); id < uint16(n.childLen); id++ {
 				pNode = &fstMem.allRadixMiniNodes[n.childStart+id]

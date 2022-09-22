@@ -28,8 +28,8 @@ type Context struct {
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
 	mu         sync.RWMutex // This mutex protect Keys map
 
-	handlers handlersNode // 匹配到的执行链标记
 	route    matchRoute   // 路由匹配结果，[UrlParams] ? 一般用于确定相应资源
+	handlers handlersNode // 匹配到的执行链标记
 	execIdx  int8         // 执行链的索引 不能大于 127 个
 	rendered bool         // 是否已经执行了Render
 
@@ -42,14 +42,13 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Baskets = c.Baskets[0:0]
 	//c.EnterTime = timex.Now()
 	//c.ResWrap = nil
 	//c.ReqRaw = nil
 	c.Sess = nil
-	c.UrlParams = c.route.params
+	c.UrlParams = nil
 	c.Pms = nil
-	//c.PmsCarry = nil
+	c.Baskets = c.Baskets[0:0]
 	c.RouteIdx = 0
 	c.IsTimeout = false
 
@@ -60,10 +59,10 @@ func (c *Context) reset() {
 	}
 	*c.route.params = (*c.route.params)[0:0]
 	c.route.rts = false
-	c.route.allowRTS = c.myApp.RedirectTrailingSlash
 	//c.handlers = nil
 	c.execIdx = -1 // 当前不处于任何执行函数
 	c.rendered = false
+
 	c.queryCache = nil
 	c.formCache = nil
 	//c.mu = nil

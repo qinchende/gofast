@@ -39,26 +39,6 @@ func (gft *GoFast) NoMethod(hds ...CtxHandler) {
 	gft.reg405Handler(hds)
 }
 
-//func redirectTrailingSlash(c *Context) {
-//	req := c.ReqRaw
-//	p := req.URL.Path
-//	if prefix := path.Clean(c.ReqRaw.Header.Get("X-Forwarded-Prefix")); prefix != "." {
-//		p = prefix + "/" + req.URL.Path
-//	}
-//	code := http.StatusMovedPermanently // Permanent redirect, request with GET method
-//	if req.Method != "GET" {
-//		code = http.StatusTemporaryRedirect
-//	}
-//
-//	req.URL.Path = p + "/"
-//	if length := len(p); length > 1 && p[length-1] == '/' {
-//		req.URL.Path = p[:length-1]
-//	}
-//	skill.DebugPrint("redirecting request %d: %s --> %s", code, p, req.URL.String())
-//	http.Redirect(c.ResWrap, req, req.URL.String(), code)
-//	c.ResWrap.WriteHeaderNow()
-//}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 请求结尾的 '/' 取消或者添加之后重定向，看是否能够匹配到相应路由
 func redirectTrailingSlash(c *Context) {
@@ -71,20 +51,13 @@ func redirectTrailingSlash(c *Context) {
 	if length := len(p); length > 1 && p[length-1] == '/' {
 		req.URL.Path = p[:length-1]
 	}
-	redirectRequest(c)
-}
-
-func redirectRequest(c *Context) {
-	req := c.ReqRaw
-	rPath := req.URL.Path
-	rURL := req.URL.String()
 
 	// GET 和 非GET 请求重定向状态不一样
 	code := http.StatusMovedPermanently // Permanent redirect, request with GET method
 	if req.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect
 	}
-	logx.DebugF("redirecting request %d: %s --> %s", code, rPath, rURL)
+	rURL := req.URL.String()
+	logx.DebugF("redirecting request %d: %s --> %s", code, req.URL.Path, rURL)
 	http.Redirect(c.ResWrap, req, rURL, code)
-	//c.ResWrap.WriteHeaderNow()
 }
