@@ -42,7 +42,7 @@ func (w *ResponseWrap) Header() http.Header {
 }
 
 // Gin: 只会改变这里的w.status值，而不会改变response给客户端的状态了。（这没有多大意义，GoFast做出改变）
-// GoFast: 打印警告日志，不改变变量。也就是只能被调用一次。
+// GoFast: 没有提交之前可以无限次的改变，最终返回最后一次设置的值
 func (w *ResponseWrap) WriteHeader(newStatus int) {
 	w.mu.Lock()
 	defer w.mu.Unlock()
@@ -52,11 +52,10 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 		return
 	}
 
-	if w.status <= defaultStatus {
-		w.status = newStatus
-	} else {
-		logx.WarnF("Response status already %d, can't change to %d.", w.status, newStatus)
+	if w.status != newStatus && w.status != defaultStatus {
+		logx.WarnF("Response status already %d, but now change to %d.", w.status, newStatus)
 	}
+	w.status = newStatus
 }
 
 // 最后都要通过这个函数Render所有数据
@@ -86,6 +85,7 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 	return
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (w *ResponseWrap) Status() int {
 	return w.status
 }
@@ -98,6 +98,20 @@ func (w *ResponseWrap) DataSize() int {
 // 当前已写的数据内容
 func (w *ResponseWrap) WrittenData() []byte {
 	return w.dataBuf.Bytes()
+}
+
+// 重置返回结果（没有最终response的情况下，可以重置返回内容）
+func (w *ResponseWrap) Flush() bool {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
+	if w.committed {
+		logx.Warn(errAlreadyRendered + "Can't Flush.")
+		return false
+	}
+	w.status = defaultStatus
+	w.dataBuf.Reset()
+	return true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

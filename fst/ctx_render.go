@@ -177,7 +177,7 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 	if c.tryToRender() == false {
 		return
 	}
-	
+
 	var data []byte
 	switch stream.(type) {
 	case string:

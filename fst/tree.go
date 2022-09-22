@@ -5,10 +5,10 @@ package fst
 // node的类型 0.默认 1.根 2.参数 3.通配
 // >=2 则可以认为是匹配了参数或者通配
 const (
-	normal   uint8 = iota // 默认值，普通字符匹配节点
-	root                  // 根节点
-	param                 // 参数 ：
-	catchAll              // 通配 *
+	normal   uint8 = iota // 0. 默认值，普通字符匹配节点
+	root                  // 1. 根节点 root
+	param                 // 2. 参数 ：
+	catchAll              // 3. 通配 *
 )
 
 // method路由树 对应数组（切片）

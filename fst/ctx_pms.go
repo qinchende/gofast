@@ -62,7 +62,7 @@ func (c *Context) ParseRequestData() error {
 	}
 
 	// 将UrlParams加入参数字典
-	if c.myApp.ApplyUrlParams && c.UrlParams != nil {
+	if c.myApp.ApplyUrlParamsToPms && c.UrlParams != nil {
 		for _, param := range *c.UrlParams {
 			c.Pms[param.Key] = param.Value
 		}
