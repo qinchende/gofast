@@ -12,7 +12,7 @@ import (
 // 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
 func DefGlobalFits(app *fst.GoFast) *fst.GoFast {
 	app.UseGlobalFit(mid.FitMaxConnections(app.FitMaxConnections))     // 最大同时接收请求数量
-	app.UseGlobalFit(mid.FitMaxContentLength(app.FitMaxContentLength)) // 最大的请求头限制，默认32MB
+	app.UseGlobalFit(mid.FitMaxContentLength(app.FitMaxContentLength)) // 请求头限制，最大32MB（但这是对所有请求的限制）
 	// gft.UseGlobalFit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
 	return app
 }

@@ -160,3 +160,23 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	}
 	return
 }
+
+// 强制跳转
+func (w *ResponseWrap) SendHijackRedirect(req *http.Request, resStatus int, redirectUrl string) {
+	w.mu.Lock()
+	// 已经render，无法打劫，啥也不做
+	if w.committed {
+		w.mu.Unlock()
+		logx.Warn(errAlreadyRendered + "Can't Hijack.")
+		return
+	}
+	w.committed = true
+	w.mu.Unlock()
+
+	// 打劫成功，强制改写返回结果
+	w.status = resStatus
+	w.dataBuf.Reset()
+	_, _ = w.dataBuf.WriteString(redirectUrl)
+
+	http.Redirect(w, req, redirectUrl, resStatus)
+}

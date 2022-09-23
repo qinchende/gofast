@@ -57,7 +57,8 @@ func redirectTrailingSlash(c *Context) {
 	if req.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect
 	}
+
 	rURL := req.URL.String()
-	logx.DebugF("redirecting request %d: %s --> %s", code, req.URL.Path, rURL)
-	http.Redirect(c.ResWrap, req, rURL, code)
+	logx.InfoF("redirecting request %d: %s --> %s", code, req.URL.Path, rURL)
+	c.AbortRedirect(code, rURL)
 }
