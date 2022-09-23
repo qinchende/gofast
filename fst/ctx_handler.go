@@ -3,8 +3,12 @@
 package fst
 
 // 强制路由匹配走404逻辑
-func (c *Context) SetRouteAs404() {
+func (c *Context) SetRouteTo404() {
 	c.route.ptrNode = c.myApp.miniNode404
+}
+
+func (c *Context) SetRouteTo405() {
+	c.route.ptrNode = c.myApp.miniNode405
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

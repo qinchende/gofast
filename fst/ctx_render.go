@@ -173,7 +173,6 @@ func (c *Context) Render(resStatus int, r render.Render) {
 // 强行终止处理，立即返回指定结果，不执行Render
 func (c *Context) AbortDirect(resStatus int, stream any) {
 	c.execIdx = maxRouteHandlers
-
 	if c.tryToRender() == false {
 		return
 	}
@@ -189,6 +188,14 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 		data = stringx.StringToBytes(str)
 	}
 	_ = c.ResWrap.SendHijack(resStatus, data)
+}
+
+func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
+	c.execIdx = maxRouteHandlers
+	if c.tryToRender() == false {
+		return
+	}
+	c.ResWrap.SendHijackRedirect(c.ReqRaw, resStatus, redirectUrl)
 }
 
 func bodyAllowedForStatus(status int) bool {

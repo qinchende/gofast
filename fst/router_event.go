@@ -50,6 +50,15 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 	return re, uint16(len(tHds))
 }
 
+// SpecialRouteGroup
+func (gft *GoFast) SpecialBefore(hds ...CtxHandler) {
+	gft.specialGroup.Before(hds...)
+}
+
+func (gft *GoFast) SpecialAfter(hds ...CtxHandler) {
+	gft.specialGroup.After(hds...)
+}
+
 // RouteGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gp *RouteGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouteGroup {

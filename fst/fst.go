@@ -34,13 +34,14 @@ type GoFast struct {
 
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
-	RouteGroup // HomeRouter 本身就是一个路由分组
+	RouteGroup              // HomeRouter 本身就是一个路由分组
+	allRoutes  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
 
 	// 有两个特殊 RouteItem： 1. noRoute  2. noMethod
 	// 这两个节点不参与构建路由树
-	miniNode404 *radixMiniNode
-	miniNode405 *radixMiniNode
-	allRoutes   []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
+	specialGroup *RouteGroup // 特殊路由分组
+	miniNode404  *radixMiniNode
+	miniNode405  *radixMiniNode
 
 	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
 	// 绝大部分应用Get和Post路由居多，我们能尽快匹配就不需要无用的Method比较选择的过程
@@ -95,23 +96,30 @@ func (gft *GoFast) initHomeRouter() {
 	gft.hdsIdx = -1
 	gft.prefix = "/"
 	gft.myApp = gft
+	//gft.specialGroup = &RouteGroup{
+	//	prefix: "/special",
+	//	myApp:  gft,
+	//	hdsIdx: -1,
+	//}
+	// TODO: 这里需要新指定节点
+	gft.specialGroup = gft.Group("/special")
 
-	gft.allRoutes = make([]*RouteItem, 0)
+	gft.allRoutes = make([]*RouteItem, 0, 3)
 	// 默认为空的节点
 	gft.allRoutes = append(gft.allRoutes, &RouteItem{
-		group:    nil,
+		group:    gft.specialGroup,
 		fullPath: "*",
 		routeIdx: 0,
 	})
 	// 404 Default Route
 	gft.allRoutes = append(gft.allRoutes, &RouteItem{
-		group:    &gft.RouteGroup,
+		group:    gft.specialGroup,
 		fullPath: "/404",
 		routeIdx: 1,
 	})
 	// 405 Default Route
 	gft.allRoutes = append(gft.allRoutes, &RouteItem{
-		group:    &gft.RouteGroup,
+		group:    gft.specialGroup,
 		fullPath: "/405",
 		routeIdx: 2,
 	})
@@ -184,15 +192,18 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		if c.route.ptrNode != nil {
 			// 进一步的check，比如可以在这里跳转成404；或者直接AbortDirect
 			c.execAfterMatchHandlers()
+			// 如果已经render，说明上面路由判断出了问题，执行特殊处理函数
+			if c.rendered {
 
-			c.execHandlers() // 执行处理链
+			} else {
+				c.execHandlers() // route match handlers
+			}
 			return
 		}
 
-		// 检查重定向
-		// c.ReqRaw.Method != CONNECT && reqPath != [home index]
+		// 支持重定向 && c.ReqRaw.Method != CONNECT && reqPath != [home index]
 		if c.route.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
-			redirectTrailingSlash(c)
+			redirectTrailingSlash(c) // redirect handlers
 			return
 		}
 	}
@@ -211,7 +222,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 				c.route.ptrNode = gft.miniNode405
 				c.UrlParams = c.route.params
 
-				c.execHandlers()
+				c.execHandlers() // 405 handlers
 				return
 			}
 		}
@@ -219,7 +230,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 	// C. 以上都无法匹配，就走404逻辑
 	c.route.ptrNode = gft.miniNode404
-	c.execHandlers()
+	c.execHandlers() // 404 handlers
 	return
 }
 
