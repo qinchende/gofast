@@ -32,3 +32,24 @@ func Logger(c *fst.Context) {
 	// 打印请求日志
 	logx.PrintReqLog(p)
 }
+
+func LoggerMini(c *fst.Context) {
+	// 执行完后面的请求，再打印日志
+	c.Next()
+
+	// 请求处理完，并成功返回了，接下来就是打印请求日志
+	p := &logx.ReqLogEntity{
+		RawReq: c.ReqRaw,
+	}
+	p.ClientIP = c.ClientIP()
+	p.StatusCode = c.ResWrap.Status()
+	p.ResData = c.ResWrap.WrittenData()
+	p.BodySize = len(p.ResData)
+
+	// Stop timer
+	p.TimeStamp = timex.Now()
+	p.Latency = p.TimeStamp - c.EnterTime
+
+	// 打印请求日志
+	logx.PrintReqLogMini(p)
+}

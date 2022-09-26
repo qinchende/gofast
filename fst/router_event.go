@@ -22,7 +22,7 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 	}
 
 	// 如果 hds 里面的有为 nil 的函数，丢弃掉
-	tHds := make([]CtxHandler, len(hds))
+	tHds := make([]CtxHandler, 0, len(hds))
 	for _, h := range hds {
 		if h != nil {
 			tHds = append(tHds, h)
@@ -31,17 +31,17 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 
 	switch eType {
 	//case EPreBind:
-	//	re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, hds)...)
+	//	re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, tHds)...)
 	case EAfterMatch:
-		re.eAfterMatchHds = append(re.eAfterMatchHds, addCtxHandlers(fstMem, hds)...)
+		re.eAfterMatchHds = append(re.eAfterMatchHds, addCtxHandlers(fstMem, tHds)...)
 	case EBefore:
-		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(fstMem, hds)...)
+		re.eBeforeHds = append(re.eBeforeHds, addCtxHandlers(fstMem, tHds)...)
 	case EAfter:
-		re.eAfterHds = append(re.eAfterHds, addCtxHandlers(fstMem, hds)...)
+		re.eAfterHds = append(re.eAfterHds, addCtxHandlers(fstMem, tHds)...)
 	case EBeforeSend:
-		re.eBeforeSendHds = append(re.eBeforeSendHds, addCtxHandlers(fstMem, hds)...)
+		re.eBeforeSendHds = append(re.eBeforeSendHds, addCtxHandlers(fstMem, tHds)...)
 	case EAfterSend:
-		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(fstMem, hds)...)
+		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(fstMem, tHds)...)
 
 	default:
 		panic("Event type error, can't find this type.")

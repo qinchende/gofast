@@ -49,13 +49,17 @@ func PrintReqLog(p *ReqLogEntity) {
 	case LogStyleSdx:
 		InfoDirect(buildSdxReqLog(p))
 	case LogStyleSdxMini:
-		InfoDirect(buildSdxReqLog(p))
+		InfoDirect(buildSdxReqLogMini(p))
 	case LogStyleJson:
 		InfoDirect(buildSdxReqLog(p))
 	case LogStyleJsonMini:
 		InfoDirect(buildSdxReqLog(p))
 	default:
 	}
+}
+
+func PrintReqLogMini(p *ReqLogEntity) {
+	InfoDirect(buildSdxReqLogMini(p))
 }
 
 // 日志的输出，最后都要到这个方法进行输出

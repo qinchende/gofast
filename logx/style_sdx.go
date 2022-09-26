@@ -69,6 +69,28 @@ var buildSdxReqLog = func(p *ReqLogEntity) string {
 	)
 }
 
+var buildSdxReqLogMini = func(p *ReqLogEntity) string {
+	formatStr := `
+[%s] %s (%s/%s) [%d/%d/%d] %s
+`
+	// 最长打印出 1024个字节的结果
+	tLen := len(p.ResData)
+	if tLen > 1024 {
+		tLen = 1024
+	}
+
+	return fmt.Sprintf(formatStr,
+		p.RawReq.Method,
+		p.RawReq.URL.Path,
+		p.ClientIP,
+		timex.ToTime(p.TimeStamp).Format(timeFormatMini),
+		p.StatusCode,
+		p.BodySize,
+		p.Latency/time.Millisecond,
+		(p.ResData)[:tLen],
+	)
+}
+
 // 所有错误合并成字符串
 func logBaskets(bs tools.Baskets) string {
 	if len(bs) == 0 {

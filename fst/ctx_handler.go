@@ -2,7 +2,10 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-// 强制路由匹配走404逻辑
+func (c *Context) SetRouteToAny() {
+	c.route.ptrNode = c.myApp.miniNodeAny
+}
+
 func (c *Context) SetRouteTo404() {
 	c.route.ptrNode = c.myApp.miniNode404
 }
