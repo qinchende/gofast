@@ -8,14 +8,14 @@ import (
 )
 
 // 待实现
-type logPrometheusEntry struct {
+type logElkEntry struct {
 	Timestamp string `json:"@timestamp"`
 	Level     string `json:"lv"`
 	Duration  string `json:"duration,omitempty"`
 	Content   string `json:"ct"`
 }
 
-func outputPrometheusStyle(w WriterCloser, info, logLevel string) {
+func outputElkStyle(w WriterCloser, info, logLevel string) {
 	logWrap := logPrometheusEntry{
 		Timestamp: timex.Time().Format(timeFormat),
 		Level:     logLevel,
@@ -28,6 +28,6 @@ func outputPrometheusStyle(w WriterCloser, info, logLevel string) {
 	}
 }
 
-func buildPrometheusReqLog(p *ReqLogEntity, flag int8) string {
+func buildElkReqLog(p *ReqLogEntity, flag int8) string {
 	return ""
 }

@@ -44,15 +44,15 @@ func MustSetup(cnf *LogConfig) {
 func setup(c *LogConfig) error {
 	switch c.LogLevel {
 	case "debug":
-		c.logLevel = LogLevelDebug
+		c.logLevelInt8 = LogLevelDebug
 	case "info":
-		c.logLevel = LogLevelInfo
+		c.logLevelInt8 = LogLevelInfo
 	case "warn":
-		c.logLevel = LogLevelWarn
+		c.logLevelInt8 = LogLevelWarn
 	case "error":
-		c.logLevel = LogLevelError
+		c.logLevelInt8 = LogLevelError
 	case "stack":
-		c.logLevel = LogLevelStack
+		c.logLevelInt8 = LogLevelStack
 	default:
 		return errors.New("item LogLevel not match")
 	}

@@ -30,7 +30,7 @@ func Logger(c *fst.Context) {
 	p.Latency = p.TimeStamp - c.EnterTime
 
 	// 打印请求日志
-	logx.PrintReqLog(p)
+	logx.RequestsLog(p, 0)
 }
 
 func LoggerMini(c *fst.Context) {
@@ -51,5 +51,5 @@ func LoggerMini(c *fst.Context) {
 	p.Latency = p.TimeStamp - c.EnterTime
 
 	// 打印请求日志
-	logx.PrintReqLogMini(p)
+	logx.RequestsLog(p, 1)
 }
