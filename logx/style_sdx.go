@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package logx
 
 import (
@@ -11,7 +13,7 @@ import (
 )
 
 func outputSdxStyle(w WriterCloser, info, logLevel string) {
-	// fmt.Sprint("[", getTimestampMini(), "][", logLevel, "]: ", info)
+	// fmt.Sprint("[", getTimestampMini(), "][", logLevelInt8, "]: ", info)
 	sb := strings.Builder{}
 	sb.Grow(len(info) + 26)
 	sb.WriteByte('[')
@@ -24,15 +26,20 @@ func outputSdxStyle(w WriterCloser, info, logLevel string) {
 }
 
 // 通过模板构造字符串可能性能更好。
-var buildSdxReqLog = func(p *ReqLogEntity) string {
+func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
+	// 需要用Mini版本
+	if flag > 0 {
+		return buildSdxReqLogMini(p)
+	}
+
 	formatStr := `
-[%s] %s (%s/%s) %d/%d [%d]
+[%s] %s (%s/%s) [%d/%d/%d]
   B: %s
   P: %s
   R: %s%s
 `
 	// 最长打印出 1024个字节的结果
-	tLen := len(p.ResData)
+	tLen := p.BodySize
 	if tLen > 1024 {
 		tLen = 1024
 	}
@@ -69,12 +76,12 @@ var buildSdxReqLog = func(p *ReqLogEntity) string {
 	)
 }
 
-var buildSdxReqLogMini = func(p *ReqLogEntity) string {
+func buildSdxReqLogMini(p *ReqLogEntity) string {
 	formatStr := `
 [%s] %s (%s/%s) [%d/%d/%d] %s
 `
 	// 最长打印出 1024个字节的结果
-	tLen := len(p.ResData)
+	tLen := p.BodySize
 	if tLen > 1024 {
 		tLen = 1024
 	}

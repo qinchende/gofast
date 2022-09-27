@@ -47,7 +47,7 @@ func outputDirectString(w WriterCloser, str string) {
 	}
 }
 
-// 推荐使用bytes版本
+// 不推荐使用 bytes 版本
 func outputDirectBytes(w WriterCloser, bytes []byte) {
 	if w == nil {
 		log.Println(bytes)
