@@ -187,7 +187,9 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 		// 如果能匹配到路径
 		if c.route.ptrNode != nil {
 			// 进一步的check，比如可以在这里跳转成404；或者直接AbortDirect
-			c.execAfterMatchHandlers()
+			if c.route.ptrNode.hasAfterMatch {
+				c.execAfterMatchHandlers()
+			}
 
 			// 如果已经render，说明上面路由判断出了问题，执行特殊处理函数
 			if c.rendered {

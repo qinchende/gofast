@@ -5,7 +5,7 @@ package fst
 // 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
-// 一共 ? 字节
+// 目前是64位系统的两个字长，16字节
 type radixMiniNode struct {
 	// router index (2字节)
 	routeIdx uint16
@@ -27,6 +27,11 @@ type radixMiniNode struct {
 	// 节点类型 （1字节）
 	nType uint8
 	// wildChild bool // 下一个节点是否为通配符
+
+	// 因为下面这几种情况相对来说都少，预先判断，利于每次请求的执行效率
+	hasAfterMatch bool // (1字节)
+	hasBeforeSend bool // (1字节)
+	hasAfterSend  bool // (1字节)
 }
 
 // 重建生成 mini 版本的 路由树
@@ -74,6 +79,20 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	// 节点类型 和 是否通配符
 	newMini.nType = n.nType
 	//newMini.wildChild = n.wildChild
+
+	if newMini.hdsGroupIdx > 0 && newMini.hdsItemIdx > 0 {
+		hdsGroup := fstMem.hdsNodes[newMini.hdsGroupIdx]
+		hdsItem := fstMem.hdsNodes[newMini.hdsItemIdx]
+		if hdsGroup.afterMatchLen > 0 || hdsItem.afterMatchLen > 0 {
+			newMini.hasAfterMatch = true
+		}
+		if hdsGroup.beforeSendLen > 0 || hdsItem.beforeSendLen > 0 {
+			newMini.hasBeforeSend = true
+		}
+		if hdsGroup.afterSendLen > 0 || hdsItem.afterSendLen > 0 {
+			newMini.hasAfterSend = true
+		}
+	}
 }
 
 // 默认特殊路径的路由执行链构造。
@@ -129,7 +148,7 @@ func combNodeHandlers(fstMem *fstMemSpace, miniNode *radixMiniNode, needGroup bo
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 重建特殊节点
-func rebuildDefaultHandlers(home *GoFast) {
+func rebuildSpecialHandlers(home *GoFast) {
 	home.miniNodeAny = &radixMiniNode{routeIdx: home.allRoutes[0].routeIdx}
 	home.miniNodeAny.hdsGroupIdx = home.allRoutes[0].group.hdsIdx
 	home.miniNodeAny.hdsItemIdx = home.allRoutes[0].rebuildHandlers()
@@ -196,7 +215,7 @@ func (gft *GoFast) buildMiniRoutes() {
 		rebuildMethodTree(fstMem, mTree)
 	}
 	// 3. 重建特殊节点，比如 NoRoute | NoMethod
-	rebuildDefaultHandlers(gft)
+	rebuildSpecialHandlers(gft)
 
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)

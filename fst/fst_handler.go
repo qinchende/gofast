@@ -20,23 +20,23 @@ func specialHandler(resStatus int, defaultMessage []byte) CtxHandler {
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
 	if gft.DefNoRouteHandler && len(gft.allRoutes[1].eHds) == 0 {
-		gft.NoRoute(specialHandler(http.StatusNotFound, default404Body))
+		gft.Reg404(specialHandler(http.StatusNotFound, default404Body))
 	}
 	if gft.DefNotAllowedHandler && len(gft.allRoutes[2].eHds) == 0 {
-		gft.NoMethod(specialHandler(http.StatusMethodNotAllowed, default405Body))
+		gft.Reg405(specialHandler(http.StatusMethodNotAllowed, default405Body))
 	}
 }
 
 // 每次设置都会替换掉以前设置好的方法
 // NoRoute adds handlers for NoRoute. It return a 404 code by default.
-func (gft *GoFast) NoRoute(hds ...CtxHandler) {
-	gft.reg404Handler(hds)
+func (gft *GoFast) Reg404(hds ...CtxHandler) {
+	gft.regSpecialHandlers(hds, 1)
 }
 
 // 每次设置都会替换掉以前设置好的方法
 // NoMethod sets the handlers called when...
-func (gft *GoFast) NoMethod(hds ...CtxHandler) {
-	gft.reg405Handler(hds)
+func (gft *GoFast) Reg405(hds ...CtxHandler) {
+	gft.regSpecialHandlers(hds, 2)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

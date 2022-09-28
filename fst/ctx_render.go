@@ -160,14 +160,18 @@ func (c *Context) Render(resStatus int, r render.Render) {
 		panic(err)
 	}
 
-	c.execBeforeSendHandlers() // 可以抛出异常，终止 Send data
+	if c.route.ptrNode.hasBeforeSend {
+		c.execBeforeSendHandlers() // 可以抛出异常，终止 Send data
+	}
 	if c.Sess != nil {
 		_ = c.Sess.Save()
 	}
 	if _, err := c.ResWrap.Send(); err != nil { // really send response data
 		panic(err)
 	}
-	c.execAfterSendHandlers()
+	if c.route.ptrNode.hasAfterSend {
+		c.execAfterSendHandlers()
+	}
 }
 
 // 强行终止处理，立即返回指定结果，不执行Render

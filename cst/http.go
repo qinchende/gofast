@@ -1,10 +1,19 @@
 package cst
 
+const (
+	CharsetUTF8 = "charset=utf-8"
+	// PROPFIND Method can be used on collection and property resources.
+	Propfind = "PROPFIND"
+	// REPORT Method can be used to get information about a resource, see rfc 3253
+	Report = "REPORT"
+)
+
 // Content-Type MIME of the most common data formats.
 const (
 	MIMEHtml          = "text/html"
 	MIMEPlain         = "text/plain"
 	MIMEXml           = "text/xml"
+	MIMEAppJavascript = "application/javascript"
 	MIMEAppXml        = "application/xml"
 	MIMEAppJson       = "application/json"
 	MIMEPostForm      = "application/x-www-form-urlencoded"
@@ -15,22 +24,16 @@ const (
 	MIMEYaml          = "application/x-yaml"
 )
 
-//// MIME types
-//const (
-//	MIMEApplicationJSONCharsetUTF8       = MIMEApplicationJSON + "; " + charsetUTF8
-//	MIMEApplicationJavaScriptCharsetUTF8 = MIMEApplicationJavaScript + "; " + charsetUTF8
-//	MIMEApplicationXMLCharsetUTF8        = MIMEApplicationXML + "; " + charsetUTF8
-//	MIMETextXMLCharsetUTF8               = MIMETextXML + "; " + charsetUTF8
-//	MIMETextHTMLCharsetUTF8              = MIMETextHTML + "; " + charsetUTF8
-//	MIMETextPlainCharsetUTF8             = MIMETextPlain + "; " + charsetUTF8
-//)
-
+// MIME types + CharsetUTF8
 const (
-	charsetUTF8 = "charset=UTF-8"
-	// PROPFIND Method can be used on collection and property resources.
-	PROPFIND = "PROPFIND"
-	// REPORT Method can be used to get information about a resource, see rfc 3253
-	REPORT = "REPORT"
+	MIMEHtmlUTF8          = MIMEHtml + "; " + CharsetUTF8
+	MIMEPlainUTF8         = MIMEPlain + "; " + CharsetUTF8
+	MIMEXmlUTF8           = MIMEXml + "; " + CharsetUTF8
+	MIMEAppJavascriptUTF8 = MIMEAppJavascript + "; " + CharsetUTF8
+	MIMEAppXmlUTF8        = MIMEAppXml + "; " + CharsetUTF8
+	MIMEAppJsonUTF8       = MIMEAppJson + "; " + CharsetUTF8
+	MIMEPostFormUTF8      = MIMEPostForm + "; " + CharsetUTF8
+	MIMEMultiPostFormUTF8 = MIMEMultiPostForm + "; " + CharsetUTF8
 )
 
 // Headers

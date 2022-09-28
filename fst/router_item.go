@@ -8,30 +8,13 @@ import (
 	"regexp"
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 注册一个404处理函数, 只能设置一次
-func (gft *GoFast) reg404Handler(hds []CtxHandler) {
-	if hds == nil {
-		return
-	}
-	GFPanicIf(len(gft.allRoutes[1].eHds) > 0, "重复，你可能已经设置了NoRoute处理函数")
-	if hds != nil {
-		gft.allRoutes[1].eHds = addCtxHandlers(gft.fstMem, hds)
-	}
+// idx 0. not match any 1. 404 handlers 2. 405 handlers
+func (gft *GoFast) regSpecialHandlers(hds []CtxHandler, idx int) {
+	GFPanicIf(len(hds) <= 0, "there must be at least one handler")
+	GFPanicIf(len(gft.allRoutes[idx].eHds) > 0, "handlers already exists.")
+	gft.allRoutes[idx].eHds = addCtxHandlers(gft.fstMem, hds)
 }
 
-// 注册一个405处理函数, 只能设置一次
-func (gft *GoFast) reg405Handler(hds []CtxHandler) {
-	if hds == nil {
-		return
-	}
-	GFPanicIf(len(gft.allRoutes[2].eHds) > 0, "重复，你可能已经设置了NoMethod处理函数")
-	if hds != nil {
-		gft.allRoutes[2].eHds = addCtxHandlers(gft.fstMem, hds)
-	}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 所有注册的 router handlers 都要通过此函数来注册
 func (gp *RouteGroup) register(httpMethod, relPath string, hds []CtxHandler) *RouteItem {
 	GFPanicIf(len(hds) <= 0, "there must be at least one handler")
