@@ -4,14 +4,14 @@ package mid
 
 import (
 	"compress/gzip"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/httpx"
 	"net/http"
 	"strings"
 )
 
 func Gunzip(c *fst.Context) {
-	if strings.Contains(c.ReqRaw.Header.Get(httpx.ContentEncoding), "gzip") {
+	if strings.Contains(c.ReqRaw.Header.Get(cst.HeaderContentEncoding), "gzip") {
 		reader, err := gzip.NewReader(c.ReqRaw.Body)
 		if err != nil {
 			c.AbortDirect(http.StatusBadRequest, "Can't unzip body!!!")

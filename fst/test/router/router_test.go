@@ -365,7 +365,7 @@ func TestRouteNotAllowedEnabled(t *testing.T) {
 	w := performRequest(router, http.MethodGet, "/path")
 	assert.Equal(t, http.StatusMethodNotAllowed, w.Code)
 
-	router.NoMethod(func(c *fst.Context) {
+	router.Reg404(func(c *fst.Context) {
 		c.String(http.StatusTeapot, "responseText")
 	})
 	router.BuildRoutes()
@@ -395,7 +395,7 @@ func TestRouteNotAllowedDisabled(t *testing.T) {
 	w := performRequest(router, http.MethodGet, "/path")
 	assert.Equal(t, http.StatusNotFound, w.Code)
 
-	router.NoMethod(func(c *fst.Context) {
+	router.Reg405(func(c *fst.Context) {
 		c.String(http.StatusTeapot, "responseText")
 	})
 	router.BuildRoutes()
@@ -457,7 +457,7 @@ func TestRouterNotFound(t *testing.T) {
 
 	// Test custom not found handler
 	var notFound bool
-	router.NoRoute(func(c *fst.Context) {
+	router.Reg404(func(c *fst.Context) {
 		//c.AbortAndRender(http.StatusNotFound)
 		notFound = true
 	})
@@ -486,7 +486,7 @@ func TestRouterStaticFSNotFound(t *testing.T) {
 	//router.SetMode(fst.DebugMode)
 
 	router.StaticFS("/", http.FileSystem(http.Dir("/thisreallydoesntexist/")))
-	router.NoRoute(func(c *fst.Context) {
+	router.Reg404(func(c *fst.Context) {
 		c.String(404, "non existent")
 	})
 	router.BuildRoutes()

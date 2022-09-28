@@ -41,10 +41,17 @@ func (c *Context) Next() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (c *Context) execAfterMatchHandlers() {
-	if c.route.ptrNode == nil {
-		return
-	}
+	//if c.route.ptrNode == nil {
+	//	return
+	//}
 	it := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
+
+	for gp.afterMatchLen > 0 {
+		c.myApp.fstMem.tidyHandlers[gp.afterMatchIdx](c)
+		gp.afterMatchLen--
+		gp.afterMatchIdx++
+	}
 	for it.afterMatchLen > 0 {
 		c.myApp.fstMem.tidyHandlers[it.afterMatchIdx](c)
 		it.afterMatchLen--
@@ -54,21 +61,13 @@ func (c *Context) execAfterMatchHandlers() {
 
 // NOTE: 下面的钩子函数不需要中断执行链。
 func (c *Context) execBeforeSendHandlers() {
-	if c.route.ptrNode == nil {
-		return
-	}
+	//if c.route.ptrNode == nil {
+	//	return
+	//}
 	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
-	// 5.preSend
-	for it.beforeSendLen > 0 {
-		//if c.aborted {
-		//	goto over
-		//}
-		c.myApp.fstMem.tidyHandlers[it.beforeSendIdx](c)
-		it.beforeSendLen--
-		it.beforeSendIdx++
-	}
+	// 5.beforeSend
 	for gp.beforeSendLen > 0 {
 		//if c.aborted {
 		//	goto over
@@ -77,14 +76,22 @@ func (c *Context) execBeforeSendHandlers() {
 		gp.beforeSendLen--
 		gp.beforeSendIdx++
 	}
+	for it.beforeSendLen > 0 {
+		//if c.aborted {
+		//	goto over
+		//}
+		c.myApp.fstMem.tidyHandlers[it.beforeSendIdx](c)
+		it.beforeSendLen--
+		it.beforeSendIdx++
+	}
 	//over:
 	//	return
 }
 
 func (c *Context) execAfterSendHandlers() {
-	if c.route.ptrNode == nil {
-		return
-	}
+	//if c.route.ptrNode == nil {
+	//	return
+	//}
 	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 

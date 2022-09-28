@@ -5,7 +5,6 @@ package fst
 // Note：该设计给将来预留了足够的扩展空间
 // 请求生命周期，设计了不同点的事件类型，这样可以自由 加入 hook
 const (
-	//EPreBind    = "onPreBind"    // 这个事件暂时不用，没有发现有大的必要
 	EAfterMatch = "onAfterMatch" // 初步匹配路由之后，调用这个做更进一步的自定义Check检查
 	EBefore     = "onBefore"
 	EAfter      = "onAfter"
@@ -30,8 +29,6 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 	}
 
 	switch eType {
-	//case EPreBind:
-	//	re.ePreValidHds = append(re.ePreValidHds, addCtxHandlers(fstMem, tHds)...)
 	case EAfterMatch:
 		re.eAfterMatchHds = append(re.eAfterMatchHds, addCtxHandlers(fstMem, tHds)...)
 	case EBefore:
@@ -42,7 +39,6 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 		re.eBeforeSendHds = append(re.eBeforeSendHds, addCtxHandlers(fstMem, tHds)...)
 	case EAfterSend:
 		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(fstMem, tHds)...)
-
 	default:
 		panic("Event type error, can't find this type.")
 	}
@@ -63,8 +59,7 @@ func (gft *GoFast) SpecialAfter(hds ...CtxHandler) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gp *RouteGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouteGroup {
 	_, ct := gp.regCtxHandler(gp.myApp.fstMem, eType, hds)
-	// 记录分组中一共加入的 处理 函数个数
-	gp.selfHdsLen += ct
+	gp.selfHdsLen += ct // 记录分组中一共加入的 各种处理 函数个数
 	return gp
 }
 
@@ -84,16 +79,16 @@ func (gp *RouteGroup) A(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfter, hds)
 }
 
-//func (gp *RouteGroup) PreBind(hds ...CtxHandler) *RouteGroup {
-//	return gp.regGroupCtxHandler(EPreBind, hds)
-//}
-
 func (gp *RouteGroup) PreSend(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EBeforeSend, hds)
 }
 
 func (gp *RouteGroup) AfterSend(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfterSend, hds)
+}
+
+func (gp *RouteGroup) AfterMatch(hds ...CtxHandler) *RouteGroup {
+	return gp.regGroupCtxHandler(EAfterMatch, hds)
 }
 
 // RouteItem
@@ -120,10 +115,6 @@ func (ri *RouteItem) A(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfter, hds)
 }
 
-//func (ri *RouteItem) PreValid(hds ...CtxHandler) *RouteItem {
-//	return ri.regItemCtxHandler(EPreBind, hds)
-//}
-
 func (ri *RouteItem) PreSend(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EBeforeSend, hds)
 }
@@ -132,7 +123,6 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfterSend, hds)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 路由匹配到之后，没等执行中间件就走这个逻辑，可以返回标记，中断后面的中间件
 func (ri *RouteItem) AfterMatch(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfterMatch, hds)
