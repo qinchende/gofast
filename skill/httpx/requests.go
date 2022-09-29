@@ -3,210 +3,136 @@ package httpx
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 )
 
-type (
-	Client interface {
-		Do() (*http.Response, error)
+func ParseJsonResponse(resp *http.Response, err error) (cst.KV, error) {
+	if resp == nil || err != nil {
+		return nil, err
 	}
-
-	superClient struct {
-		req *http.Request
+	kv := cst.KV{}
+	if err = jsonx.UnmarshalFromReader(&kv, resp.Body); err != nil {
+		return nil, err
 	}
-)
-
-func (client *superClient) Do() (*http.Response, error) {
-	return http.DefaultClient.Do(client.req)
-}
-
-func NewRequest(method, url string, data any) (Client, error) {
-	return NewRequestCtx(context.Background(), method, url, data)
-}
-func NewRequestCtx(ctx context.Context, method, url string, data any) (Client, error) {
-	r, err := buildRequest(ctx, method, url, data)
-	return &superClient{req: r}, err
+	return kv, err
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func DoRequest(method, url string, data any) (*http.Response, error) {
-	return DoRequestCtx(context.Background(), method, url, data)
+func Do(req *http.Request) (*http.Response, error) {
+	return http.DefaultClient.Do(req)
 }
 
-func DoRequestCtx(ctx context.Context, method, url string, data any) (*http.Response, error) {
-	if req, err := buildRequest(ctx, method, url, data); err != nil {
+func DoGetKV(req *http.Request) (cst.KV, error) {
+	return ParseJsonResponse(http.DefaultClient.Do(req))
+}
+
+func NewRequest(pet *RequestPet) (*http.Request, error) {
+	return NewRequestCtx(context.Background(), pet)
+}
+
+func NewRequestCtx(ctx context.Context, pet *RequestPet) (*http.Request, error) {
+	return buildRequest(ctx, pet)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func DoRequest(pet *RequestPet) (*http.Response, error) {
+	return DoRequestCtx(context.Background(), pet)
+}
+
+func DoRequestCtx(ctx context.Context, pet *RequestPet) (*http.Response, error) {
+	if req, err := buildRequest(ctx, pet); err != nil {
 		return nil, err
 	} else {
-		return request(req)
+		return http.DefaultClient.Do(req)
 	}
 }
 
-//
-//// Do sends an HTTP request with the given arguments and returns an HTTP response.
-//// data is automatically marshal into a *httpRequest, typically it's defined in an API file.
-//func Do(ctx context.Context, method, url string, data any) (*http.Response, error) {
-//	req, err := buildRequest(ctx, method, url, data)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return DoRequest(req)
-//}
+func DoRequestGetKV(pet *RequestPet) (cst.KV, error) {
+	return DoRequestGetKVCtx(context.Background(), pet)
+}
 
-//// DoRequest sends an HTTP request and returns an HTTP response.
-//func DoRequest(r *http.Request) (*http.Response, error) {
-//	return request(r, defaultClient{})
-//}
+func DoRequestGetKVCtx(ctx context.Context, pet *RequestPet) (cst.KV, error) {
+	// TODO：根据不同的 content-type 解析数据到 cst.KV 形式
+	return ParseJsonResponse(DoRequestCtx(ctx, pet))
+}
 
-func buildFormQuery(u *url.URL, val map[string]any) string {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func checkRequestPet(pet *RequestPet) {
+	if pet.Method == "" {
+		pet.Method = http.MethodPost
+	}
+}
+
+func fillQueryArgs(u *url.URL, args cst.KV) {
+	if args == nil {
+		return
+	}
+
 	query := u.Query()
-	for k, v := range val {
-		query.Add(k, fmt.Sprint(v))
+	for k, v := range args {
+		if v == nil {
+			continue
+		}
+		query.Add(k, lang.ToString(v))
 	}
-
-	return query.Encode()
+	u.RawQuery = query.Encode()
 }
 
-func buildRequest(ctx context.Context, method, rUrl string, data any) (*http.Request, error) {
-	u, err := url.Parse(rUrl)
-	if err != nil {
-		return nil, err
-	}
-
-	var val map[string]map[string]any
-	if data != nil {
-		//val, err = mapping.Marshal(data)
-		if err != nil {
-			return nil, err
+func fillHeader(r *http.Request, pet *RequestPet) {
+	if pet.Headers != nil {
+		for k, v := range pet.Headers {
+			r.Header.Add(k, v)
 		}
 	}
 
-	if err := fillPath(u, val[pathKey]); err != nil {
-		return nil, err
-	}
-
-	var reader io.Reader
-	jsonVars, hasJsonBody := val[jsonKey]
-	if hasJsonBody {
-		if method == http.MethodGet {
-			return nil, ErrGetWithBody
-		}
-
-		var buf bytes.Buffer
-		enc := jsonx.NewEncoder(&buf)
-		if err := enc.Encode(jsonVars); err != nil {
-			return nil, err
-		}
-
-		reader = &buf
-	}
-
-	req, err := http.NewRequestWithContext(ctx, method, u.String(), reader)
-	if err != nil {
-		return nil, err
-	}
-
-	req.URL.RawQuery = buildFormQuery(u, val[formKey])
-	fillHeader(req, val[headerKey])
-	if hasJsonBody {
-		req.Header.Set(cst.HeaderContentType, cst.MIMEAppJsonUTF8)
-	}
-
-	return req, nil
-}
-
-func fillHeader(r *http.Request, val map[string]any) {
-	for k, v := range val {
-		r.Header.Add(k, fmt.Sprint(v))
+	switch pet.BodyFormat {
+	case FormatJson:
+		r.Header.Set(cst.HeaderContentType, cst.MIMEAppJsonUTF8)
+	case FormatUrlEncoding:
+		r.Header.Set(cst.HeaderContentType, cst.MIMEPostFormUTF8)
+	case FormatXml:
+		r.Header.Set(cst.HeaderContentType, cst.MIMEAppXmlUTF8)
+	default:
+		r.Header.Set(cst.HeaderContentType, cst.MIMEPlainUTF8)
 	}
 }
 
-func fillPath(u *url.URL, val map[string]any) error {
-	used := make(map[string]lang.PlaceholderType)
-	fields := strings.Split(u.Path, slash)
+func buildBody(pet *RequestPet) io.Reader {
+	if pet.BodyArgs == nil {
+		return nil
+	}
 
-	for i := range fields {
-		field := fields[i]
-		if len(field) > 0 && field[0] == colon {
-			name := field[1:]
-			ival, ok := val[name]
-			if !ok {
-				return fmt.Errorf("missing path variable %q", name)
+	var buf bytes.Buffer
+	switch pet.BodyFormat {
+	case FormatJson:
+		_ = jsonx.NewEncoder(&buf).Encode(pet.BodyArgs)
+	case FormatUrlEncoding:
+		data := url.Values{}
+		for k, v := range pet.BodyArgs {
+			if v == nil {
+				continue
 			}
-			value := fmt.Sprint(ival)
-			if len(value) == 0 {
-				return fmt.Errorf("empty path variable %q", name)
-			}
-			fields[i] = value
-			used[name] = lang.Placeholder
+			data.Add(k, lang.ToString(v))
 		}
+		buf.WriteString(data.Encode())
+	case FormatXml:
+	default:
+
 	}
-
-	if len(val) != len(used) {
-		for key := range used {
-			delete(val, key)
-		}
-
-		var unused []string
-		for key := range val {
-			unused = append(unused, key)
-		}
-
-		return fmt.Errorf("more path variables are provided: %q", strings.Join(unused, ", "))
-	}
-
-	u.Path = strings.Join(fields, slash)
-	return nil
+	return &buf
 }
 
-func request(r *http.Request) (*http.Response, error) {
-	//tracer := otel.GetTracerProvider().Tracer(trace.TraceName)
-	//propagator := otel.GetTextMapPropagator()
+func buildRequest(ctx context.Context, pet *RequestPet) (*http.Request, error) {
+	checkRequestPet(pet)
 
-	//spanName := r.URL.Path
-	//ctx, span := tracer.Start(
-	//	r.Context(),
-	//	spanName,
-	//	oteltrace.WithSpanKind(oteltrace.SpanKindClient),
-	//	oteltrace.WithAttributes(semconv.HTTPClientAttributesFromHTTPRequest(r)...),
-	//)
-	//defer span.End()
+	req, err := http.NewRequestWithContext(ctx, pet.Method, pet.Url, buildBody(pet))
+	fillQueryArgs(req.URL, pet.QueryArgs)
+	fillHeader(req, pet)
 
-	//respHandlers := make([]internal.ResponseHandler, len(interceptors))
-	//for i, interceptor := range interceptors {
-	//	var h internal.ResponseHandler
-	//	r, h = interceptor(r)
-	//	respHandlers[i] = h
-	//}
-
-	//clientTrace := httptrace.ContextClientTrace(ctx)
-	//if clientTrace != nil {
-	//	ctx = httptrace.WithClientTrace(ctx, clientTrace)
-	//}
-
-	//r = r.WithContext(ctx)
-	//propagator.Inject(ctx, propagation.HeaderCarrier(r.Header))
-
-	resp, err := http.DefaultClient.Do(r)
-	//for i := len(respHandlers) - 1; i >= 0; i-- {
-	//	respHandlers[i](resp, err)
-	//}
-
-	//if err != nil {
-	//	span.RecordError(err)
-	//	span.SetStatus(codes.Error, err.Error())
-	//	return resp, err
-	//}
-
-	//span.SetAttributes(semconv.HTTPAttributesFromHTTPStatusCode(resp.StatusCode)...)
-	//span.SetStatus(semconv.SpanStatusFromHTTPStatusCode(resp.StatusCode))
-
-	return resp, err
+	return req, err
 }

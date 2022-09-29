@@ -8,15 +8,28 @@ import (
 	"os"
 )
 
-const xForwardFor = "X-Forward-For"
-
-// Returns the peer address, supports X-Forward-For
 func GetRemoteAddr(r *http.Request) string {
-	v := r.Header.Get(xForwardFor)
+	v := r.Header.Get(XForwardFor)
 	if len(v) > 0 {
 		return v
 	}
 	return r.RemoteAddr
+}
+
+func ResolveAddress(addr []string) string {
+	switch len(addr) {
+	case 0:
+		if port := os.Getenv("PORT"); port != "" {
+			logx.Debug("Environment variable PORT=" + port)
+			return ":" + port
+		}
+		logx.Debug("Environment variable PORT is undefined. Using port :8099 by default")
+		return ":8099"
+	case 1:
+		return addr[0]
+	default:
+		panic("Too many parameters")
+	}
 }
 
 func CheckWriteHeaderCode(code int) {
@@ -33,22 +46,6 @@ func CheckWriteHeaderCode(code int) {
 	// early. (We can't return an error from WriteHeader even if we wanted to.)
 	if code < 100 || code > 999 {
 		panic(fmt.Sprintf("invalid WriteHeader code %v", code))
-	}
-}
-
-func ResolveAddress(addr []string) string {
-	switch len(addr) {
-	case 0:
-		if port := os.Getenv("PORT"); port != "" {
-			logx.Debug("Environment variable PORT=" + port)
-			return ":" + port
-		}
-		logx.Debug("Environment variable PORT is undefined. Using port :8099 by default")
-		return ":8099"
-	case 1:
-		return addr[0]
-	default:
-		panic("Too many parameters")
 	}
 }
 

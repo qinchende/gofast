@@ -8,14 +8,6 @@ import (
 	"strings"
 )
 
-const (
-	emptyJson         = "{}"
-	maxMemory         = 32 << 20 // 32MB
-	maxBodyLen        = 8 << 20  // 8MB
-	separator         = ";"
-	tokensInAttribute = 2
-)
-
 //func Parse(r *http.Request, v any) error {
 //	if err := ParsePath(r, v); err != nil {
 //		return err

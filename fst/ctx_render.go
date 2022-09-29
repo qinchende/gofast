@@ -67,7 +67,7 @@ func (c *Context) FaiPanicIf(yes bool, val any) {
 	case error:
 		panic(cst.GFError(val.(error)))
 	default:
-		str, _ := lang.ToString(val)
+		str := lang.ToString(val)
 		panic(cst.GFFaiString(str))
 	}
 }
@@ -188,7 +188,7 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 	case []byte:
 		data = stream.([]byte)
 	default:
-		str, _ := lang.ToString(stream)
+		str := lang.ToString(stream)
 		data = stringx.StringToBytes(str)
 	}
 	_ = c.ResWrap.SendHijack(resStatus, data)

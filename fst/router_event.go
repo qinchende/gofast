@@ -79,7 +79,7 @@ func (gp *RouteGroup) A(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfter, hds)
 }
 
-func (gp *RouteGroup) PreSend(hds ...CtxHandler) *RouteGroup {
+func (gp *RouteGroup) BeforeSend(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EBeforeSend, hds)
 }
 
@@ -115,7 +115,7 @@ func (ri *RouteItem) A(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfter, hds)
 }
 
-func (ri *RouteItem) PreSend(hds ...CtxHandler) *RouteItem {
+func (ri *RouteItem) BeforeSend(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EBeforeSend, hds)
 }
 
