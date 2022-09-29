@@ -40,14 +40,14 @@ func (c *Context) GetMust(key string) any {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (c *Context) GetString(key string) (string, error) {
 	if v, ok := c.Get(key); ok {
-		return lang.ToString(v)
+		return lang.ToString2(v)
 	}
 	return "", errorKeyNotExist
 }
 
 func (c *Context) GetStringDef(key string, def string) string {
 	if v, ok := c.Get(key); ok && v != nil {
-		v2, err2 := lang.ToString(v)
+		v2, err2 := lang.ToString2(v)
 		GFPanicErr(err2)
 		return v2
 	}
@@ -55,7 +55,7 @@ func (c *Context) GetStringDef(key string, def string) string {
 }
 
 func (c *Context) GetStringMust(key string) string {
-	v, err := lang.ToString(c.GetMust(key))
+	v, err := lang.ToString2(c.GetMust(key))
 	GFPanicErr(err)
 	return v
 }

@@ -1,24 +1,10 @@
 package httpx
 
-//const (
-//	ApplicationJson = "application/json"
-//	ContentEncoding = "Content-Encoding"
-//	ContentSecurity = "X-Content-Security"
-//	ContentType     = "Content-Type"
-//	KeyField        = "key"
-//	SecretField     = "secret"
-//	TypeField       = "type"
-//	CryptionType    = 1
-//)
-//
-//const (
-//	CodeSignaturePass = iota
-//	CodeSignatureInvalidHeader
-//	CodeSignatureWrongTime
-//	CodeSignatureInvalidToken
-//)
+import (
+	"github.com/qinchende/gofast/cst"
+)
 
-import "errors"
+const XForwardFor = "X-Forward-For"
 
 const (
 	pathKey   = "path"
@@ -29,5 +15,27 @@ const (
 	colon     = ':'
 )
 
-// ErrGetWithBody indicates that GET request with body.
-var ErrGetWithBody = errors.New("HTTP GET should not have body")
+const (
+	emptyJson         = "{}"
+	maxMemory         = 32 << 20 // 32MB
+	maxBodyLen        = 8 << 20  // 8MB
+	separator         = ";"
+	tokensInAttribute = 2
+)
+
+//var ErrGetWithBody = errors.New("HTTP GET should not have body") // ErrGetWithBody indicates that GET request with body.
+
+const (
+	FormatJson = iota
+	FormatUrlEncoding
+	FormatXml
+)
+
+type RequestPet struct {
+	Method     string
+	Url        string
+	Headers    cst.WebKV
+	QueryArgs  cst.KV
+	BodyArgs   cst.KV
+	BodyFormat int8
+}

@@ -81,7 +81,7 @@ func GFPanic(val any) {
 	case error:
 		panic(cst.GFError(val.(error)))
 	default:
-		str, _ := lang.ToString(val)
+		str := lang.ToString(val)
 		if len(str) != 0 {
 			panic(cst.GFError(errors.New(str)))
 		}
