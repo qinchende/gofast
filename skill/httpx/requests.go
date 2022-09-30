@@ -11,18 +11,6 @@ import (
 	"net/url"
 )
 
-func ParseJsonResponse(resp *http.Response, err error) (cst.KV, error) {
-	if resp == nil || err != nil {
-		return nil, err
-	}
-	kv := cst.KV{}
-	if err = jsonx.UnmarshalFromReader(&kv, resp.Body); err != nil {
-		return nil, err
-	}
-	return kv, err
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Do(req *http.Request) (*http.Response, error) {
 	return http.DefaultClient.Do(req)
 }
@@ -64,7 +52,11 @@ func DoRequestGetKVCtx(ctx context.Context, pet *RequestPet) (cst.KV, error) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func checkRequestPet(pet *RequestPet) {
 	if pet.Method == "" {
-		pet.Method = http.MethodPost
+		if pet.BodyArgs != nil {
+			pet.Method = http.MethodPost
+		} else {
+			pet.Method = http.MethodGet
+		}
 	}
 }
 
@@ -90,15 +82,19 @@ func fillHeader(r *http.Request, pet *RequestPet) {
 		}
 	}
 
-	switch pet.BodyFormat {
-	case FormatJson:
-		r.Header.Set(cst.HeaderContentType, cst.MIMEAppJsonUTF8)
-	case FormatUrlEncoding:
-		r.Header.Set(cst.HeaderContentType, cst.MIMEPostFormUTF8)
-	case FormatXml:
-		r.Header.Set(cst.HeaderContentType, cst.MIMEAppXmlUTF8)
-	default:
-		r.Header.Set(cst.HeaderContentType, cst.MIMEPlainUTF8)
+	if r.Header.Get(cst.HeaderContentType) == "" {
+		ctValue := cst.MIMEPlainUTF8
+		switch {
+		case pet.Method == http.MethodGet:
+			ctValue = cst.MIMEPlainUTF8
+		case pet.BodyFormat == FormatJson:
+			ctValue = cst.MIMEAppJsonUTF8
+		case pet.BodyFormat == FormatUrlEncoding:
+			ctValue = cst.MIMEPostFormUTF8
+		case pet.BodyFormat == FormatXml:
+			ctValue = cst.MIMEAppXmlUTF8
+		}
+		r.Header.Set(cst.HeaderContentType, ctValue)
 	}
 }
 
