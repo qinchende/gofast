@@ -33,11 +33,11 @@ func (c *Context) FaiErr(err error) {
 	c.Fai(0, err.Error(), nil)
 }
 
-func (c *Context) FaiStr(msg string) {
+func (c *Context) FaiMsg(msg string) {
 	c.Fai(0, msg, nil)
 }
 
-func (c *Context) FaiKV(data KV) {
+func (c *Context) FaiData(data any) {
 	c.Fai(0, "", data)
 }
 
@@ -73,11 +73,11 @@ func (c *Context) FaiPanicIf(yes bool, val any) {
 }
 
 // +++++
-func (c *Context) SucStr(msg string) {
+func (c *Context) SucMsg(msg string) {
 	c.Suc(1, msg, nil)
 }
 
-func (c *Context) SucKV(data KV) {
+func (c *Context) SucData(data any) {
 	c.Suc(1, "", data)
 }
 

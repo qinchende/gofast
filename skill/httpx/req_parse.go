@@ -2,11 +2,23 @@ package httpx
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
 	"io"
 	"net/http"
 	"strings"
 )
+
+func ParseJsonResponse(resp *http.Response, err error) (cst.KV, error) {
+	if resp == nil || err != nil {
+		return nil, err
+	}
+	kv := cst.KV{}
+	if err = jsonx.UnmarshalFromReader(&kv, resp.Body); err != nil {
+		return nil, err
+	}
+	return kv, err
+}
 
 //func Parse(r *http.Request, v any) error {
 //	if err := ParsePath(r, v); err != nil {

@@ -17,7 +17,7 @@ func init() {
 }
 
 type (
-	KV         map[string]any
+	KV         cst.KV
 	AppHandler func(gft *GoFast)
 	FitFunc    func(http.HandlerFunc) http.HandlerFunc
 	CtxHandler func(ctx *Context)
