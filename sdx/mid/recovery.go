@@ -14,15 +14,19 @@ import (
 // 截获异常，防止程序崩溃。
 func Recovery(c *fst.Context) {
 	defer func() {
-		if result := recover(); result != nil {
-			// TODO: 这里要分两种异常，一种是常规的错误异常，一种是非预测性的系统异常
-			if err, ok := result.(cst.GFError); ok {
-				c.AbortFaiStr(fmt.Sprint("GFError: ", err))
-			} else {
+		if pic := recover(); pic != nil {
+			// TODO: 异常分类: 1.模拟返回错误信息 2.模拟返回错误编码 3.主动的error异常 4.非预测性的系统异常
+			switch info := pic.(type) {
+			case cst.GFFaiString:
+				c.AbortFai(0, string(info))
+			case cst.GFFaiInt:
+				c.AbortFai(int(info), "")
+			case cst.GFError:
+				c.AbortFai(0, fmt.Sprint("GFError: ", info))
+			default:
 				logx.Stacks(c.ReqRaw)
 				logx.StackF("%s", debug.Stack())
-
-				c.AbortDirect(http.StatusInternalServerError, fmt.Sprint("panic: ", result))
+				c.AbortDirect(http.StatusInternalServerError, fmt.Sprint("panic: ", info))
 			}
 		}
 	}()

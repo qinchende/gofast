@@ -41,7 +41,7 @@ type LogConfig struct {
 	AppName   string `v:""`
 	LogMedium string `v:"def=console,enum=console|file|volume"`
 	LogLevel  string `v:"def=info,enum=debug|info|warn|error|stack"` // 记录日志的级别
-	LogStyle  string `v:"def=sdx,enum=json|json-mini|sdx|sdx-mini"`  // 日志样式
+	LogStyle  string `v:"def=sdx,enum=custom|sdx|elk|prometheus"`    // 日志样式
 	LogStats  bool   `v:"def=true"`                                  // 是否打印统计信息
 
 	FileFolder string `v:""`                  // 日志文件夹路径
@@ -52,50 +52,6 @@ type LogConfig struct {
 	FileGzip     bool `v:"def=false"` // 是否Gzip压缩日志文件
 	// FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
 
-	logLevel int8 // 日志级别
-	logStyle int8 // 日志样式类型
+	logLevelInt8 int8 // 日志级别
+	logStyleInt8 int8 // 日志样式类型
 }
-
-//// 日志文件的目标系统
-//const (
-//	LogTypeConsole    = "console"
-//	LogTypeELK        = "elk"
-//	LogTypePrometheus = "prometheus"
-//)
-
-//const (
-//	green   = "\033[97;42m"
-//	white   = "\033[90;47m"
-//	yellow  = "\033[90;43m"
-//	red     = "\033[97;41m"
-//	blue    = "\033[97;44m"
-//	magenta = "\033[97;45m"
-//	cyan    = "\033[97;46m"
-//	Reset   = "\033[0m"
-//)
-//
-//var (
-////DefWriter      io.Writer = os.Stdout
-////DefErrorWriter io.Writer = os.Stderr
-//)
-
-//logOptions struct {
-//	gzipEnabled          bool
-//	logStackArchiveMills int
-//	keepDays             int
-//}
-//
-//LogOption func(options *logOptions)
-
-//Logger interface {
-//	Error(...any)
-//	ErrorF(string, ...any)
-//	Info(...any)
-//	InfoF(string, ...any)
-//	Slow(...any)
-//	Slowf(string, ...any)
-//	WithDuration(time.Duration) Logger
-//}
-
-//writeConsole bool
-//initialized  uint32 // 是否已经完成初始化

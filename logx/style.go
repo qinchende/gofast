@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package logx
 
 import (
@@ -13,21 +15,40 @@ const (
 	timeFormatMini = "01-02 15:04:05"
 )
 
+// NOTE：系统内置了几个系列的请求日志输出样式，比如custom、sdx、elk、prometheus等，当然你也可以自定义输出样式
+
 // 日志样式类型
 const (
-	LogStyleJson int8 = iota
-	LogStyleJsonMini
+	LogStyleCustom int8 = iota
 	LogStyleSdx
-	LogStyleSdxMini
+	LogStyleELK
+	LogStylePrometheus
 )
 
 // 日志样式名称
 const (
-	styleJsonStr     = "json"
-	styleJsonMiniStr = "json-mini"
-	styleSdxStr      = "sdx"
-	styleSdxMiniStr  = "sdx-mini"
+	styleCustomStr     = "custom" // 自定义
+	styleSdxStr        = "sdx"
+	styleELKStr        = "elk"
+	stylePrometheusStr = "prometheus"
 )
+
+// 将名称字符串转换成整数类型，提高判断性能
+func initStyle(c *LogConfig) error {
+	switch c.LogStyle {
+	case styleCustomStr:
+		c.logStyleInt8 = LogStyleCustom
+	case styleSdxStr:
+		c.logStyleInt8 = LogStyleSdx
+	case styleELKStr:
+		c.logStyleInt8 = LogStyleELK
+	case stylePrometheusStr:
+		c.logStyleInt8 = LogStylePrometheus
+	default:
+		return errors.New("item LogStyle not match")
+	}
+	return nil
+}
 
 // 日志参数实体
 type ReqLogEntity struct {
@@ -43,21 +64,6 @@ type ReqLogEntity struct {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 打印请求日志，可以指定不同的输出样式
-func PrintReqLog(p *ReqLogEntity) {
-	switch myCnf.logStyle {
-	case LogStyleSdx:
-		InfoDirect(buildSdxReqLog(p))
-	case LogStyleSdxMini:
-		InfoDirect(buildSdxReqLog(p))
-	case LogStyleJson:
-		InfoDirect(buildSdxReqLog(p))
-	case LogStyleJsonMini:
-		InfoDirect(buildSdxReqLog(p))
-	default:
-	}
-}
-
 // 日志的输出，最后都要到这个方法进行输出
 func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
@@ -66,15 +72,15 @@ func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 	//log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
 
 	if useStyle == true {
-		switch myCnf.logStyle {
+		switch myCnf.logStyleInt8 {
+		case LogStyleCustom:
+			outputCustomStyle(w, info, logLevel)
 		case LogStyleSdx:
 			outputSdxStyle(w, info, logLevel)
-		case LogStyleSdxMini:
-			outputSdxStyle(w, info, logLevel)
-		case LogStyleJson:
-			outputJsonStyle(w, info, logLevel)
-		case LogStyleJsonMini:
-			outputJsonStyle(w, info, logLevel)
+		case LogStyleELK:
+			outputElkStyle(w, info, logLevel)
+		case LogStylePrometheus:
+			outputPrometheusStyle(w, info, logLevel)
 		default:
 			outputDirectString(w, info)
 		}
@@ -83,22 +89,17 @@ func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 	}
 }
 
-func initStyle(c *LogConfig) error {
-	switch c.LogStyle {
-	case styleSdxStr:
-		c.logStyle = LogStyleSdx
-	case styleSdxMiniStr:
-		c.logStyle = LogStyleSdxMini
-	case styleJsonMiniStr:
-		c.logStyle = LogStyleJsonMini
-	case styleJsonStr:
-		c.logStyle = LogStyleJson
+// 打印请求日志，可以指定不同的输出样式
+func RequestsLog(p *ReqLogEntity, flag int8) {
+	switch myCnf.logStyleInt8 {
+	case LogStyleCustom:
+		InfoDirect(buildCustomReqLog(p, flag))
+	case LogStyleSdx:
+		InfoDirect(buildSdxReqLog(p, flag))
+	case LogStyleELK:
+		InfoDirect(buildElkReqLog(p, flag))
+	case LogStylePrometheus:
+		InfoDirect(buildPrometheusReqLog(p, flag))
 	default:
-		return errors.New("item LogStyle not match")
 	}
-	return nil
 }
-
-//func StyleType() int8 {
-//	return myCnf.logStyle
-//}

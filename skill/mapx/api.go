@@ -57,20 +57,10 @@ func ApplyKVOfData(dst any, kvs cst.KV) error {
 	return applyKVToStruct(dst, kvs, dataOptions)
 }
 
-//// JSON
-//func ApplyJsonReader(dst any, reader io.Reader, opts *ApplyOptions) error {
-//	return DecodeJsonReader(dst, reader, opts)
-//}
-//
-//func ApplyJsonBytes(dst any, content []byte, opts *ApplyOptions) error {
-//	return DecodeJsonBytes(dst, content, opts)
-//}
-//
-//// Yaml
-//func ApplyYamlReader(dst any, reader io.Reader, opts *ApplyOptions) error {
-//	return DecodeYamlReader(dst, reader, opts)
-//}
-//
-//func ApplyYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
-//	return DecodeYamlBytes(dst, content, opts)
-//}
+func ApplySliceOfConfig(dst any, src any) error {
+	return applyList(dst, src, nil, configOptions)
+}
+
+func ApplySliceOfData(dst any, src any) error {
+	return applyList(dst, src, nil, dataOptions)
+}

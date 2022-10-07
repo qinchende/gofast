@@ -18,7 +18,8 @@ func insertSql(mss *orm.ModelSchema) string {
 		sBuf.Grow(256)
 		bVal := make([]byte, (clsLen-1)*2-1)
 
-		priIdx := ms.PrimaryIndex()
+		// insert 时 auto increment 字段不需要赋值。我们和需要赋值的字段调换位置
+		autoIdx := ms.AutoIndex()
 		ct := 0
 		for i := 1; i < clsLen; i++ {
 			if ct > 0 {
@@ -27,7 +28,7 @@ func insertSql(mss *orm.ModelSchema) string {
 				ct++
 			}
 			// 写第一个字段值
-			if priIdx == int8(i) {
+			if autoIdx == int8(i) {
 				sBuf.WriteString(cls[0])
 			} else {
 				sBuf.WriteString(cls[i])
@@ -71,25 +72,25 @@ func updateSql(mss *orm.ModelSchema) string {
 }
 
 // 更新特定字段
-func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []string) (string, []any) {
-	if len(columns) == 1 {
-		columns = strings.Split(columns[0], ",")
+func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
+	if len(fNames) == 1 {
+		fNames = strings.Split(fNames[0], ",")
 	}
 
-	tgLen := len(columns)
+	tgLen := len(fNames)
 	if tgLen <= 0 {
-		panic("UpdateByColumns params [columns] is empty")
+		panic("sqlx: UpdateByFields args [fNames] is empty")
 	}
 
-	clsKV := ms.ColumnsKV()
+	flsKV := ms.FieldsKV()
 	cls := ms.Columns()
 	sBuf := strings.Builder{}
 	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx, ok := clsKV[columns[i]]
+		idx, ok := flsKV[fNames[i]]
 		if !ok {
-			fst.GFPanicErr(fmt.Errorf("field %s not exist", columns[i]))
+			fst.GFPanicErr(fmt.Errorf("Field %s not exist.", fNames[i]))
 		}
 
 		// 更新字符串
@@ -123,21 +124,23 @@ func updateSqlByColumns(ms *orm.ModelSchema, rVal *reflect.Value, columns []stri
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
-func selectSqlByID(mss *orm.ModelSchema) string {
+func selectSqlForPrimary(mss *orm.ModelSchema) string {
 	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
-		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? limit 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})
 }
 
-func selectSqlByOne(mss *orm.ModelSchema, where string) string {
+func selectSqlForOne(mss *orm.ModelSchema, fields string, where string) string {
+	if fields == "" {
+		fields = "*"
+	}
 	if where == "" {
 		where = "1=1"
 	}
-	return fmt.Sprintf("SELECT * FROM %s WHERE %s limit 1;", mss.TableName(), where)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, mss.TableName(), where)
 }
 
-// 不带缓存
-func selectSqlByWhere(mss *orm.ModelSchema, fields string, where string) string {
+func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -145,26 +148,62 @@ func selectSqlByWhere(mss *orm.ModelSchema, fields string, where string) string 
 		where = "1=1"
 	}
 	if strings.Index(where, "limit") < 0 {
-		where += " limit 10000" // 最多1万条记录
+		where += " LIMIT 10000" // 最多1万条记录
 	}
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, mss.TableName(), where)
 }
 
-func selectSqlByPet(mss *orm.ModelSchema, pet *SelectPet) string {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func checkPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
+	if pet.isReady {
+		return pet
+	}
+
 	if pet.Table == "" {
 		pet.Table = mss.TableName()
 	}
 	if pet.Columns == "" {
 		pet.Columns = "*"
 	}
-	if pet.Limit <= 0 {
-		pet.Limit = 10000
+	if pet.Limit == 0 {
+		pet.Limit = 100
 	}
-	if pet.Offset < 0 {
-		pet.Offset = 0
-	}
+	//if pet.Offset == 0 {
+	//	pet.Offset = 0
+	//}
 	if pet.Where == "" {
 		pet.Where = "1=1"
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s limit %d offset %d;", pet.Columns, pet.Table, pet.Where, pet.Limit, pet.Offset)
+	pet.orderByT = ""
+	if pet.OrderBy != "" {
+		pet.orderByT = " ORDER BY " + pet.OrderBy
+	}
+	pet.groupByT = ""
+	if pet.GroupBy != "" {
+		pet.groupByT = " GROUP BY " + pet.GroupBy
+	}
+	if pet.Page == 0 {
+		pet.Page = 1
+	}
+	if pet.PageSize == 0 {
+		pet.PageSize = 100
+	}
+
+	pet.isReady = true
+	return pet
+}
+
+func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.Limit, pet.Offset)
+}
+
+func selectCountSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	if pet.GroupBy == "" {
+		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
+	}
+	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
+}
+
+func selectPagingSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }

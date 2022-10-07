@@ -37,7 +37,7 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 
 		if ok {
 		} else if fOpt != nil {
-			if fOpt.Required {
+			if fOpt.Required && applyOpts.NotValid == false {
 				return fmt.Errorf("field %s requied", fName)
 			} else if applyOpts.NotDefValue != true {
 				sv = fOpt.DefValue
@@ -99,12 +99,24 @@ func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions)
 	case (dstKind == reflect.Slice || dstKind == reflect.Array) && (srcKind == reflect.Slice || srcKind == reflect.Array):
 		if dstKind == reflect.Array && dstV.Len() != srcV.Len() {
 			return errors.New("array length not match")
-		} else {
-			dstNew := reflect.MakeSlice(dstType, srcV.Len(), srcV.Len())
-			dstV.Set(dstNew)
 		}
+
+		sliceTyp, itemType, isPtr, _ := checkDestType(dst)
+		dstNew := reflect.MakeSlice(sliceTyp, srcV.Len(), srcV.Len())
+		dstV.Set(dstNew)
 		for i := 0; i < srcV.Len(); i++ {
 			fv := dstV.Index(i)
+			if isPtr {
+				fv.Set(reflect.New(itemType))
+				fv = fv.Elem()
+			}
+			if fv.Kind() == reflect.Struct {
+				if err = applyKVToStruct(fv.Addr().Interface(), srcV.Index(i).Interface().(map[string]any), applyOpts); err != nil {
+					return err
+				}
+				continue
+			}
+
 			if err = sdxSetValue(fv, srcV.Index(i).Interface(), fOpt, applyOpts); err != nil {
 				return err
 			}

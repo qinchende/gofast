@@ -4,40 +4,39 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/stringx"
 	"net/http"
 	"path"
 )
 
+// 特殊函数处理
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 系统默认错误处理函数，可以设置 code 和 message.
-func defMessageHandler(resStatus int, defaultMessage []byte) CtxHandler {
+func specialHandler(resStatus int, defaultMessage []byte) CtxHandler {
 	return func(c *Context) {
-		c.String(resStatus, stringx.BytesToString(defaultMessage))
+		c.AbortDirect(resStatus, defaultMessage)
 	}
 }
 
-// 特殊函数处理
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
-	if gft.DefNoRouteHandler && len(gft.allRouters[1].eHds) == 0 {
-		gft.NoRoute(defMessageHandler(http.StatusNotFound, default404Body))
+	if gft.DefNoRouteHandler && len(gft.allRoutes[1].eHds) == 0 {
+		gft.Reg404(specialHandler(http.StatusNotFound, default404Body))
 	}
-	if gft.DefNotAllowedHandler && len(gft.allRouters[2].eHds) == 0 {
-		gft.NoMethod(defMessageHandler(http.StatusMethodNotAllowed, default405Body))
+	if gft.DefNotAllowedHandler && len(gft.allRoutes[2].eHds) == 0 {
+		gft.Reg405(specialHandler(http.StatusMethodNotAllowed, default405Body))
 	}
 }
 
 // 每次设置都会替换掉以前设置好的方法
 // NoRoute adds handlers for NoRoute. It return a 404 code by default.
-func (gft *GoFast) NoRoute(handlers ...CtxHandler) {
-	gft.reg404Handler(handlers)
+func (gft *GoFast) Reg404(hds ...CtxHandler) {
+	gft.regSpecialHandlers(hds, 1)
 }
 
 // 每次设置都会替换掉以前设置好的方法
 // NoMethod sets the handlers called when...
-func (gft *GoFast) NoMethod(handlers ...CtxHandler) {
-	gft.reg405Handler(handlers)
+func (gft *GoFast) Reg405(hds ...CtxHandler) {
+	gft.regSpecialHandlers(hds, 2)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -52,20 +51,14 @@ func redirectTrailingSlash(c *Context) {
 	if length := len(p); length > 1 && p[length-1] == '/' {
 		req.URL.Path = p[:length-1]
 	}
-	redirectRequest(c)
-}
-
-func redirectRequest(c *Context) {
-	req := c.ReqRaw
-	rPath := req.URL.Path
-	rURL := req.URL.String()
 
 	// GET 和 非GET 请求重定向状态不一样
 	code := http.StatusMovedPermanently // Permanent redirect, request with GET method
 	if req.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect
 	}
-	logx.DebugF("redirecting request %d: %s --> %s", code, rPath, rURL)
-	http.Redirect(c.ResWrap, req, rURL, code)
-	//c.ResWrap.WriteHeaderNow()
+
+	rURL := req.URL.String()
+	logx.InfoF("redirecting request %d: %s --> %s", code, req.URL.Path, rURL)
+	c.AbortRedirect(code, rURL)
 }

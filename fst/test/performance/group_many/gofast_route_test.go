@@ -16,14 +16,14 @@ var myApp *fst.GoFast
 func initGoFastServer() {
 	// 新建Server
 	myApp = fst.CreateServer(&fst.GfConfig{
-		RunMode: fst.ProductMode,
+		RunningMode: fst.ProductMode,
 	})
 
 	gftAddMiddlewareHandlers(middlewareNum)
 	addRoutes(routersLevel, func(url string) {
 		myApp.Handle(http.MethodGet, url, gftHandle2)
 	})
-	myApp.BuildRouters()
+	myApp.BuildRoutes()
 }
 
 func gftMiddlewareHandle(ctx *fst.Context) int {
@@ -48,7 +48,7 @@ func gftHandle2(_ *fst.Context) {
 //	io.WriteString(c.ResWrap, c.ReqRaw.RequestURI)
 //}
 //func gftHandleWrite(c *fst.Context) {
-//	io.WriteString(c.ResWrap, c.Params.ByName("name"))
+//	io.WriteString(c.ResWrap, c.UrlParams.ByName("name"))
 //}
 
 // add GoFast middlewares

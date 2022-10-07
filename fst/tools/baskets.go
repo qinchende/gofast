@@ -89,7 +89,7 @@ func (bs Baskets) CollectMessages() []string {
 	if len(bs) == 0 {
 		return nil
 	}
-	msgStrings := make([]string, len(bs))
+	msgStrings := make([]string, len(bs), len(bs))
 	for i, b := range bs {
 		msgStrings[i] = b.Msg
 	}
@@ -103,7 +103,7 @@ func (bs Baskets) JSON() any {
 	case 1:
 		return bs.Last().JSON()
 	default:
-		json := make([]any, len(bs))
+		json := make([]any, len(bs), len(bs))
 		for i, b := range bs {
 			json[i] = b.JSON()
 		}

@@ -21,19 +21,19 @@ type (
 	}
 )
 
-func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
-	mysqlOrm := sqlx.MysqlORM{Attrs: &sqlx.MysqlOrmAttrs{}, Ctx: context.Background()}
+func OpenMysql(cf *ConnCnf) *sqlx.OrmDB {
+	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
 
 	// DBName ->
-	dbAttrs, _ := mysql.ParseDSN(cf.ConnStr)
-	if dbAttrs != nil {
+	dbConfig, _ := mysql.ParseDSN(cf.ConnStr)
+	if dbConfig != nil {
 		// 必须统一数据库名称，全部转换成小写
 		// 将来表缓存的时候需要用到这里的DBName
-		mysqlOrm.Attrs.DbName = strings.ToLower(dbAttrs.DBName)
+		ormDB.Attrs.DbName = strings.ToLower(dbConfig.DBName)
 	}
 
 	// 主库连接
-	writer, err := sql.Open("mysql", cf.ConnStr)
+	writer, err := sql.Open(ormDB.Attrs.DriverName, cf.ConnStr)
 	if err != nil {
 		log.Fatalf("Conn %s err: %s", cf.ConnStr, err)
 	}
@@ -41,12 +41,12 @@ func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
 	writer.SetConnMaxLifetime(time.Minute * 3)
 	writer.SetMaxOpenConns(cf.MaxOpen)
 	writer.SetMaxIdleConns(cf.MaxIdle)
-	mysqlOrm.Writer = writer
+	ormDB.Writer = writer
 
 	// 从库连接
 	// 如果配置文件配置了只读数据库，应用于读写分离
 	if cf.ConnStrR != "" {
-		reader, err := sql.Open("mysql", cf.ConnStrR)
+		reader, err := sql.Open(ormDB.Attrs.DriverName, cf.ConnStrR)
 		if err != nil {
 			log.Fatalf("Conn %s err: %s", cf.ConnStrR, err)
 		}
@@ -54,9 +54,9 @@ func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
 		reader.SetConnMaxLifetime(time.Minute * 3)
 		reader.SetMaxOpenConns(cf.MaxOpen)
 		reader.SetMaxIdleConns(cf.MaxIdle)
-		mysqlOrm.Reader = reader
+		ormDB.Reader = reader
 	} else {
-		mysqlOrm.Reader = mysqlOrm.Writer
+		ormDB.Reader = ormDB.Writer
 	}
 
 	// redis cache
@@ -66,7 +66,7 @@ func OpenMysql(cf *ConnCnf) *sqlx.MysqlORM {
 		rdsCnf := gfrds.ParseDsn(rds[i])
 		rdsNodes[i] = *gfrds.NewGoRedis(rdsCnf)
 	}
-	mysqlOrm.SetRdsNodes(&rdsNodes)
+	ormDB.SetRdsNodes(&rdsNodes)
 
-	return &mysqlOrm
+	return &ormDB
 }

@@ -4,6 +4,7 @@ package jsonx
 
 import (
 	jsonIterator "github.com/json-iterator/go"
+	"github.com/qinchende/gofast/skill/lang"
 	"io"
 	"strings"
 )
@@ -27,8 +28,7 @@ func Unmarshal(v any, data []byte) error {
 }
 
 func UnmarshalFromString(v any, str string) error {
-	decoder := NewDecoder(strings.NewReader(str))
-	return decoder.Decode(v)
+	return Unmarshal(v, lang.StringToBytes(str))
 }
 
 func UnmarshalFromReader(v any, reader io.Reader) error {
@@ -36,4 +36,13 @@ func UnmarshalFromReader(v any, reader io.Reader) error {
 	teeReader := io.TeeReader(reader, &buf)
 	decoder := NewDecoder(teeReader)
 	return decoder.Decode(v)
+}
+
+func UnmarshalStringToKV(str string) (map[string]any, error) {
+	res := make(map[string]any)
+	if str == "" {
+		return res, nil
+	}
+	err := UnmarshalFromString(&res, str)
+	return res, err
 }

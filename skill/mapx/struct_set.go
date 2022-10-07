@@ -1,6 +1,7 @@
 package mapx
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
@@ -8,6 +9,7 @@ import (
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -22,6 +24,8 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 	case reflect.String:
 		if s, ok := src.(string); ok {
 			return sdxSetWithString(dst, s)
+		} else if num, ok := src.(json.Number); ok {
+			return sdxSetWithString(dst, num.String())
 		} else {
 			return sdxSetWithString(dst, fmt.Sprint(src))
 		}
@@ -72,7 +76,7 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 	case reflect.Struct:
 		// 这个时候值可能是时间类型
 		if _, ok := dst.Interface().(time.Time); ok {
-			return sdxSetTimeDuration(dst, sdxAsString(src))
+			return sdxSetTime(dst, sdxAsString(src))
 		}
 	}
 	return nil
@@ -195,7 +199,7 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 	case reflect.Int64:
 		switch dst.Interface().(type) {
 		case time.Duration:
-			return sdxSetTimeDuration(dst, src)
+			return sdxSetTime(dst, src)
 		}
 		return sdxSetInt(dst, src, 64)
 	case reflect.Uint:
@@ -230,7 +234,7 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
-			return sdxSetTimeDuration(dst, src)
+			return sdxSetTime(dst, src)
 		}
 		return jsonx.Unmarshal(dst.Addr().Interface(), stringx.StringToBytes(src))
 	default:
@@ -289,63 +293,63 @@ func sdxSetStringSlice(dest reflect.Value, values []string) error {
 	return nil
 }
 
-func sdxSetTimeDuration(dst reflect.Value, src string) error {
-	d, err := time.ParseDuration(src)
-	if err != nil {
-		return err
-	}
-	dst.Set(reflect.ValueOf(d))
-	return nil
-}
-
-//func sdxSetTime(dst reflect.Value, src string) error {
-//	//timeFormat := field.Tag.Get("time_format")
-//	//if timeFormat == "" {
-//	//	timeFormat = time.RFC3339
-//	//}
-//
-//	timeFormat := time.RFC3339
-//	switch tf := strings.ToLower(timeFormat); tf {
-//	case "unix", "unixnano":
-//		tv, err := strconv.ParseInt(src, 10, 0)
-//		if err != nil {
-//			return err
-//		}
-//
-//		d := time.Duration(1)
-//		if tf == "unixnano" {
-//			d = time.Second
-//		}
-//
-//		t := time.Unix(tv/int64(d), tv%int64(d))
-//		dst.Set(reflect.ValueOf(t))
-//		return nil
-//
-//	}
-//
-//	if src == "" {
-//		dst.Set(reflect.ValueOf(time.Time{}))
-//		return nil
-//	}
-//
-//	l := time.Local
-//	//if isUTC, _ := strconv.ParseBool(field.Tag.Get("time_utc")); isUTC {
-//	//	l = time.UTC
-//	//}
-//
-//	//if locTag := field.Tag.Get("time_location"); locTag != "" {
-//	//	loc, err := time.LoadLocation(locTag)
-//	//	if err != nil {
-//	//		return err
-//	//	}
-//	//	l = loc
-//	//}
-//
-//	t, err := time.ParseInLocation(timeFormat, src, l)
+//func sdxSetTimeDuration(dst reflect.Value, src string) error {
+//	d, err := time.ParseDuration(src)
 //	if err != nil {
 //		return err
 //	}
-//
-//	dst.Set(reflect.ValueOf(t))
+//	dst.Set(reflect.ValueOf(d))
 //	return nil
 //}
+
+func sdxSetTime(dst reflect.Value, src string) error {
+	//timeFormat := field.Tag.Get("time_format")
+	//if timeFormat == "" {
+	//	timeFormat = time.RFC3339
+	//}
+
+	timeFormat := time.RFC3339
+	switch tf := strings.ToLower(timeFormat); tf {
+	case "unix", "unixnano":
+		tv, err := strconv.ParseInt(src, 10, 0)
+		if err != nil {
+			return err
+		}
+
+		d := time.Duration(1)
+		if tf == "unixnano" {
+			d = time.Second
+		}
+
+		t := time.Unix(tv/int64(d), tv%int64(d))
+		dst.Set(reflect.ValueOf(t))
+		return nil
+
+	}
+
+	if src == "" {
+		dst.Set(reflect.ValueOf(time.Time{}))
+		return nil
+	}
+
+	l := time.Local
+	//if isUTC, _ := strconv.ParseBool(field.Tag.Get("time_utc")); isUTC {
+	//	l = time.UTC
+	//}
+	//
+	//if locTag := field.Tag.Get("time_location"); locTag != "" {
+	//	loc, err := time.LoadLocation(locTag)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	l = loc
+	//}
+
+	t, err := time.ParseInLocation(timeFormat, src, l)
+	if err != nil {
+		return err
+	}
+
+	dst.Set(reflect.ValueOf(t))
+	return nil
+}

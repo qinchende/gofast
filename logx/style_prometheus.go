@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package logx
 
 import (
@@ -5,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/skill/timex"
 )
 
+// 待实现
 type logPrometheusEntry struct {
 	Timestamp string `json:"@timestamp"`
 	Level     string `json:"lv"`
@@ -12,7 +15,7 @@ type logPrometheusEntry struct {
 	Content   string `json:"ct"`
 }
 
-func outputJsonStyle(w WriterCloser, info, logLevel string) {
+func outputPrometheusStyle(w WriterCloser, info, logLevel string) {
 	logWrap := logPrometheusEntry{
 		Timestamp: timex.Time().Format(timeFormat),
 		Level:     logLevel,
@@ -23,4 +26,8 @@ func outputJsonStyle(w WriterCloser, info, logLevel string) {
 	} else {
 		outputDirectBytes(w, content)
 	}
+}
+
+func buildPrometheusReqLog(p *ReqLogEntity, flag int8) string {
+	return ""
 }

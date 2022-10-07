@@ -4,37 +4,14 @@ package fst
 
 import "net/url"
 
-type Param struct {
-	Key   string
-	Value string
-}
-
-type Params []Param
-
-func (ps *Params) Get(name string) (string, bool) {
-	for _, entry := range *ps {
-		if entry.Key == name {
-			return entry.Value, true
-		}
-	}
-	return "", false
-}
-
-func (ps *Params) ByName(name string) (va string) {
-	va, _ = ps.Get(name)
-	return
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-type matchResult struct {
-	ptrNode  *radixMiniNode
-	params   *Params
-	allowRTS bool // 是否需要做 RedirectTrailingSlash 的检测
-	rts      bool // 是否可以通过重定向，URL最后加或减一个 ‘/’ 访问到有处理函数的节点
+type matchRoute struct {
+	ptrNode *radixMiniNode
+	params  *routeParams
+	rts     bool // 判断是否可以 RedirectTrailingSlash 找到节点
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，加快匹配速度
-func (n *radixMiniNode) matchRoute(fstMem *fstMemSpace, path string, mr *matchResult, unescape bool) {
+func (n *radixMiniNode) matchRoute(fstMem *fstMemSpace, path string, mr *matchRoute, unescape bool) {
 	var pLen uint8
 	var pNode *radixMiniNode
 
@@ -74,7 +51,7 @@ nextLoop:
 					pVal = v
 				}
 			}
-			*mr.params = append(*mr.params, Param{Key: keyName, Value: pVal})
+			*mr.params = append(*mr.params, UrlParam{Key: keyName, Value: pVal})
 			// 匹配后面的节点，后面肯定只能是一个 '/' 开头的节点
 			path = path[pos:]
 			goto matchChildNode
@@ -86,7 +63,7 @@ nextLoop:
 			}
 		}
 		// 说明完全匹配当前url段
-		*mr.params = append(*mr.params, Param{Key: keyName, Value: path})
+		*mr.params = append(*mr.params, UrlParam{Key: keyName, Value: path})
 		mr.ptrNode = n
 		return
 	}
@@ -134,7 +111,7 @@ matchChildNode:
 
 checkRTS:
 	// 是否允许重定向，是否有 RedirectTrailingSlash 可以匹配
-	if mr.allowRTS {
+	if fstMem.myApp.RedirectTrailingSlash {
 		if pLen == 0 {
 			for id := uint16(0); id < uint16(n.childLen); id++ {
 				pNode = &fstMem.allRadixMiniNodes[n.childStart+id]

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/tools"
+	"github.com/qinchende/gofast/skill/lang"
 	"math"
 	"net/http"
 )
@@ -16,7 +17,7 @@ func init() {
 }
 
 type (
-	KV         map[string]any
+	KV         cst.KV
 	AppHandler func(gft *GoFast)
 	FitFunc    func(http.HandlerFunc) http.HandlerFunc
 	CtxHandler func(ctx *Context)
@@ -53,16 +54,36 @@ var (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主动抛异常
-func GFPanicIf(yn bool, msg string) {
-	if yn {
-		panic(cst.GFError(errors.New(msg)))
+func GFPanicIf(yes bool, val any) {
+	if !yes {
+		return
 	}
-}
-
-func GFPanic(msg string) {
-	panic(cst.GFError(errors.New(msg)))
+	GFPanic(val)
 }
 
 func GFPanicErr(err error) {
-	panic(cst.GFError(err))
+	if err != nil {
+		panic(cst.GFError(err))
+	}
+}
+
+func GFPanic(val any) {
+	if val == nil {
+		return
+	}
+
+	switch val.(type) {
+	case string:
+		str := val.(string)
+		if len(str) != 0 {
+			panic(cst.GFError(errors.New(str)))
+		}
+	case error:
+		panic(cst.GFError(val.(error)))
+	default:
+		str := lang.ToString(val)
+		if len(str) != 0 {
+			panic(cst.GFError(errors.New(str)))
+		}
+	}
 }

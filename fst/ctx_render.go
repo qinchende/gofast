@@ -3,12 +3,22 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/stringx"
 	"net/http"
 )
+
+//  返回结构体
+type Ret struct {
+	Code int32  // 返回编码
+	Msg  string // 文本消息
+	Data any    // 携带数据体
+	Desc string // 描述
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
@@ -23,25 +33,60 @@ func (c *Context) FaiErr(err error) {
 	c.Fai(0, err.Error(), nil)
 }
 
-func (c *Context) FaiStr(msg string) {
+func (c *Context) FaiMsg(msg string) {
 	c.Fai(0, msg, nil)
 }
 
-func (c *Context) FaiKV(data KV) {
+func (c *Context) FaiData(data any) {
 	c.Fai(0, "", data)
+}
+
+func (c *Context) FaiCode(code int32) {
+	c.Fai(code, "", nil)
+}
+
+func (c *Context) FaiRet(ret *Ret) {
+	c.Fai(ret.Code, ret.Msg, ret.Data)
 }
 
 func (c *Context) Fai(code int32, msg string, data any) {
 	c.kvSucFai(statusFai, code, msg, data)
 }
 
-// +++++
-func (c *Context) SucStr(msg string) {
-	c.Suc(0, msg, nil)
+// 简易的抛出异常的方式，终止执行链，返回错误
+func (c *Context) FaiPanicIf(yes bool, val any) {
+	if !yes {
+		return
+	}
+
+	switch val.(type) {
+	case string:
+		panic(cst.GFFaiString(val.(string)))
+	case int:
+		panic(cst.GFFaiInt(val.(int)))
+	case error:
+		panic(cst.GFError(val.(error)))
+	default:
+		str := lang.ToString(val)
+		panic(cst.GFFaiString(str))
+	}
 }
 
-func (c *Context) SucKV(data KV) {
-	c.Suc(0, "", data)
+// +++++
+func (c *Context) SucMsg(msg string) {
+	c.Suc(1, msg, nil)
+}
+
+func (c *Context) SucData(data any) {
+	c.Suc(1, "", data)
+}
+
+func (c *Context) SucCode(code int32) {
+	c.Suc(code, "", nil)
+}
+
+func (c *Context) SucRet(ret *Ret) {
+	c.Suc(ret.Code, ret.Msg, ret.Data)
 }
 
 func (c *Context) Suc(code int32, msg string, data any) {
@@ -67,30 +112,14 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Abort系列函数都将终止当前 handlers 的执行
-
-func (c *Context) AbortHandlers() {
-	c.execIdx = maxRouteHandlers
-}
-
-// 自定义返回结果和状态
-func (c *Context) AbortFaiStr(msg string) {
+// 立即返回错误，跳过后面的执行链
+func (c *Context) AbortFai(code int, msg string) {
 	bytes, _ := jsonx.Marshal(KV{
 		"status": statusFai,
-		"code":   -1,
+		"code":   code,
 		"msg":    msg,
 	})
-	c.AbortDirectBytes(http.StatusOK, bytes)
-}
-
-// 强行终止处理，返回指定结果，不执行Render
-func (c *Context) AbortDirect(resStatus int, msg string) {
-	c.execIdx = maxRouteHandlers
-	_ = c.ResWrap.SendHijack(resStatus, stringx.StringToBytes(msg))
-}
-
-func (c *Context) AbortDirectBytes(resStatus int, bytes []byte) {
-	c.execIdx = maxRouteHandlers
-	_ = c.ResWrap.SendHijack(resStatus, bytes)
+	c.AbortDirect(http.StatusOK, bytes)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -115,14 +144,9 @@ func (c *Context) File(filepath string) {
 // 返回数据的接口
 // 可以自定义扩展自己需要的Render
 func (c *Context) Render(resStatus int, r render.Render) {
-	// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
-	c.mu.Lock()
-	if c.rendered {
-		logx.Warn("Double render, the call canceled.")
+	if c.tryToRender() == false {
 		return
 	}
-	c.rendered = true
-	c.mu.Unlock()
 
 	c.ResWrap.WriteHeader(resStatus)
 	// 如果指定的返回状态，不能返回数据内容。需要特殊处理
@@ -136,19 +160,48 @@ func (c *Context) Render(resStatus int, r render.Render) {
 		panic(err)
 	}
 
-	// add preSend & afterSend events by sdx on 2021.01.06
-	c.execPreSendHandlers() // 可以抛出异常，终止 Send data
+	if c.route.ptrNode.hasBeforeSend {
+		c.execBeforeSendHandlers() // 可以抛出异常，终止 Send data
+	}
 	if c.Sess != nil {
 		_ = c.Sess.Save()
 	}
 	if _, err := c.ResWrap.Send(); err != nil { // really send response data
 		panic(err)
 	}
-	c.execAfterSendHandlers()
+	if c.route.ptrNode.hasAfterSend {
+		c.execAfterSendHandlers()
+	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// bodyAllowedForStatus is a copy of http.bodyAllowedForStatus non-exported function.
+// 强行终止处理，立即返回指定结果，不执行Render
+func (c *Context) AbortDirect(resStatus int, stream any) {
+	c.execIdx = maxRouteHandlers
+	if c.tryToRender() == false {
+		return
+	}
+
+	var data []byte
+	switch stream.(type) {
+	case string:
+		data = stringx.StringToBytes(stream.(string))
+	case []byte:
+		data = stream.([]byte)
+	default:
+		str := lang.ToString(stream)
+		data = stringx.StringToBytes(str)
+	}
+	_ = c.ResWrap.SendHijack(resStatus, data)
+}
+
+func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
+	c.execIdx = maxRouteHandlers
+	if c.tryToRender() == false {
+		return
+	}
+	c.ResWrap.SendHijackRedirect(c.ReqRaw, resStatus, redirectUrl)
+}
+
 func bodyAllowedForStatus(status int) bool {
 	switch {
 	case status >= 100 && status <= 199:
@@ -158,5 +211,18 @@ func bodyAllowedForStatus(status int) bool {
 	case status == http.StatusNotModified:
 		return false
 	}
+	return true
+}
+
+// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
+func (c *Context) tryToRender() bool {
+	c.mu.Lock()
+	if c.rendered {
+		c.mu.Unlock()
+		logx.Warn("Double render, the call canceled.")
+		return false
+	}
+	c.rendered = true
+	c.mu.Unlock()
 	return true
 }

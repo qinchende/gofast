@@ -5,7 +5,6 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/tools"
-	"math"
 	"net/http"
 	"net/url"
 	"sync"
@@ -21,7 +20,7 @@ type Context struct {
 	ResWrap   *ResponseWrap
 	ReqRaw    *http.Request // request
 	Sess      SessionKeeper // Session数据，数据存储部分可以自定义
-	Params    *Params       // : 或 * 对应的参数
+	UrlParams *routeParams  // : 或 * 对应的参数
 	Pms       cst.KV        // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	Baskets   tools.Baskets // []*Basket，可以携带扩展的自定义数据
 
@@ -29,14 +28,13 @@ type Context struct {
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
 	mu         sync.RWMutex // This mutex protect Keys map
 
-	handlers  handlersNode // 匹配到的执行链标记
-	match     matchResult  // 路由匹配结果，[Params] ? 一般用于确定相应资源
-	execIdx   int8         // 执行链的索引 不能大于 127 个
-	rendered  bool         // 是否已经执行了Render
-	IsTimeout bool         // 请求是否超时了
-	RouteIdx  uint16       // router的唯一标识ID，方便区分不同的router
+	route    matchRoute   // 路由匹配结果，[UrlParams] ? 一般用于确定相应资源
+	handlers handlersNode // 匹配到的执行链标记
+	execIdx  int8         // 执行链的索引 不能大于 127 个
+	rendered bool         // 是否已经执行了Render
 
-	//PmsCarry  cst.KV        // 后台上下文传递的数据
+	IsTimeout bool   // 请求是否超时了
+	RouteIdx  uint16 // route的唯一标识ID，方便区分不同的route
 }
 
 /************************************/
@@ -44,28 +42,27 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	c.Baskets = c.Baskets[0:0]
 	//c.EnterTime = timex.Now()
 	//c.ResWrap = nil
 	//c.ReqRaw = nil
 	c.Sess = nil
-	c.Params = c.match.params
+	c.UrlParams = nil
 	c.Pms = nil
-	//c.PmsCarry = nil
+	c.Baskets = c.Baskets[0:0]
 	c.RouteIdx = 0
 	c.IsTimeout = false
 
 	// add by sdx 2021.01.06
-	c.match.ptrNode = nil
-	if c.match.params == nil {
-		c.match.params = new(Params)
+	c.route.ptrNode = nil
+	if c.route.params == nil {
+		c.route.params = new(routeParams)
 	}
-	*c.match.params = (*c.match.params)[0:0]
-	c.match.rts = false
-	c.match.allowRTS = c.myApp.RedirectTrailingSlash
+	*c.route.params = (*c.route.params)[0:0]
+	c.route.rts = false
 	//c.handlers = nil
-	c.execIdx = math.MaxInt8
+	c.execIdx = -1 // 当前不处于任何执行函数
 	c.rendered = false
+
 	c.queryCache = nil
 	c.formCache = nil
 	//c.mu = nil

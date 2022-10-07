@@ -5,10 +5,10 @@ package fst
 // 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自定义数据结构存放 所有的 路由树相关信息，全部通过数组索引的方式来访问
-// 一共 ? 字节
+// 目前是64位系统的两个字长，16字节
 type radixMiniNode struct {
 	// router index (2字节)
-	routerIdx uint16
+	routeIdx uint16
 
 	// 前缀字符（3字节）
 	matchStart uint16
@@ -27,6 +27,11 @@ type radixMiniNode struct {
 	// 节点类型 （1字节）
 	nType uint8
 	// wildChild bool // 下一个节点是否为通配符
+
+	// 因为下面这几种情况相对来说都少，预先判断，利于每次请求的执行效率
+	hasAfterMatch bool // (1字节)
+	hasBeforeSend bool // (1字节)
+	hasAfterSend  bool // (1字节)
 }
 
 // 重建生成 mini 版本的 路由树
@@ -65,7 +70,7 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	if n.leafItem != nil {
 		newMini.hdsGroupIdx = n.leafItem.group.hdsIdx     // 记录“分组”事件在 全局 事件队列中的 起始位置
 		newMini.hdsItemIdx = n.leafItem.rebuildHandlers() // 记录“节点”事件在 全局 事件队列中的 起始位置
-		newMini.routerIdx = n.leafItem.routerIdx
+		newMini.routeIdx = n.leafItem.routeIdx
 		combNodeHandlers(fstMem, newMini, true) // 构造执行链
 	}
 	// 释放掉资源
@@ -74,6 +79,20 @@ func (n *radixNode) rebuildNode(fstMem *fstMemSpace, idx uint16) {
 	// 节点类型 和 是否通配符
 	newMini.nType = n.nType
 	//newMini.wildChild = n.wildChild
+
+	if newMini.hdsGroupIdx > 0 && newMini.hdsItemIdx > 0 {
+		hdsGroup := fstMem.hdsNodes[newMini.hdsGroupIdx]
+		hdsItem := fstMem.hdsNodes[newMini.hdsItemIdx]
+		if hdsGroup.afterMatchLen > 0 || hdsItem.afterMatchLen > 0 {
+			newMini.hasAfterMatch = true
+		}
+		if hdsGroup.beforeSendLen > 0 || hdsItem.beforeSendLen > 0 {
+			newMini.hasBeforeSend = true
+		}
+		if hdsGroup.afterSendLen > 0 || hdsItem.afterSendLen > 0 {
+			newMini.hasAfterSend = true
+		}
+	}
 }
 
 // 默认特殊路径的路由执行链构造。
@@ -129,16 +148,20 @@ func combNodeHandlers(fstMem *fstMemSpace, miniNode *radixMiniNode, needGroup bo
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 重建特殊节点
-func rebuildDefaultHandlers(home *GoFast) {
-	// 第一种：如果为绑定事件的节点 (能匹配一个路由)
-	home.miniNode404 = &radixMiniNode{routerIdx: home.allRouters[1].routerIdx}
-	home.miniNode404.hdsGroupIdx = home.allRouters[1].group.hdsIdx
-	home.miniNode404.hdsItemIdx = home.allRouters[1].rebuildHandlers()
+func rebuildSpecialHandlers(home *GoFast) {
+	home.miniNodeAny = &radixMiniNode{routeIdx: home.allRoutes[0].routeIdx}
+	home.miniNodeAny.hdsGroupIdx = home.allRoutes[0].group.hdsIdx
+	home.miniNodeAny.hdsItemIdx = home.allRoutes[0].rebuildHandlers()
+	combNodeHandlers(home.fstMem, home.miniNodeAny, true)
+
+	home.miniNode404 = &radixMiniNode{routeIdx: home.allRoutes[1].routeIdx}
+	home.miniNode404.hdsGroupIdx = home.allRoutes[1].group.hdsIdx
+	home.miniNode404.hdsItemIdx = home.allRoutes[1].rebuildHandlers()
 	combNodeHandlers(home.fstMem, home.miniNode404, true)
 
-	home.miniNode405 = &radixMiniNode{routerIdx: home.allRouters[2].routerIdx}
-	home.miniNode405.hdsGroupIdx = home.allRouters[2].group.hdsIdx
-	home.miniNode405.hdsItemIdx = home.allRouters[2].rebuildHandlers()
+	home.miniNode405 = &radixMiniNode{routeIdx: home.allRoutes[2].routeIdx}
+	home.miniNode405.hdsGroupIdx = home.allRoutes[2].group.hdsIdx
+	home.miniNode405.hdsItemIdx = home.allRoutes[2].rebuildHandlers()
 	combNodeHandlers(home.fstMem, home.miniNode405, true)
 }
 
@@ -159,7 +182,8 @@ func addCtxHandlers(fstMem *fstMemSpace, hds []CtxHandler) (idxes []uint16) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// TODO: 重新生成路由树相关数据结构
+// NOTE（ENTER）: 重新生成路由树相关数据结构
+// 这里是生成数组版路由树的入口函数
 func (gft *GoFast) buildMiniRoutes() {
 	fstMem := gft.fstMem
 
@@ -169,26 +193,29 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem.treeCharsLen = 0
 	fstMem.allRadixMiniLen = 0
 	fstMem.routeGroupNum = 0
-	fstMem.routeItemNum = uint16(len(gft.allRouters) - 1) // 有404和405这两个默认节点，但是第一个节点是占位，无意义
+	fstMem.routeItemNum = uint16(len(gft.allRoutes))
 	// end
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// 合并分组事件到下一级分组当中，返回所有节点新增父级节点事件的和
-	gft.combEvents = gft.RouterGroup.routeEvents
-	parentHandlerSum := gpCombineHandlers(&gft.RouterGroup)
+	gft.combEvents = gft.RouteGroup.routeEvents
+	parentHandlerSum := gpCombineHandlers(&gft.RouteGroup)
+	gft.specialGroup.combEvents = gft.specialGroup.routeEvents
+	parentHandlerSumSpecial := gpCombineHandlers(gft.specialGroup)
 	// 合并之后，（多了多少个重复计算的事件 + 以前的所有事件个数）= 装事件数组的大小
-	fstMem.tidyHdsLen = parentHandlerSum + fstMem.allCtxHdsLen
+	fstMem.tidyHdsLen = parentHandlerSum + parentHandlerSumSpecial + fstMem.allCtxHdsLen
 	// 分配内存空间
 	allocateMemSpace(gft)
 
 	// 1. 将分组事件 转换到 新版全局数组中
-	gpRebuildHandlers(&gft.RouterGroup)
+	gpRebuildHandlers(&gft.RouteGroup)
+	gpRebuildHandlers(gft.specialGroup)
 	// 2. 重建路由树 （这里面将节点事件 转换到 新版全局数组中）
-	for _, mTree := range gft.routeTrees {
+	for _, mTree := range gft.routerTrees {
 		rebuildMethodTree(fstMem, mTree)
 	}
 	// 3. 重建特殊节点，比如 NoRoute | NoMethod
-	rebuildDefaultHandlers(gft)
+	rebuildSpecialHandlers(gft)
 
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
@@ -197,12 +224,15 @@ func (gft *GoFast) buildMiniRoutes() {
 	if gft.modeType != modeDebug {
 		fstMem.allCtxHandlers = nil
 		fstMem.allCtxHdsLen = 0
-
 		fstMem.treeCharT = nil
 
-		for _, mTree := range gft.routeTrees {
+		for _, mTree := range gft.routerTrees {
 			mTree.root = nil
 		}
+
+		// 将原始路由和分组删除
+		gft.allRoutes = nil
+		gft.RouteGroup.children = nil
 	}
 }
 
@@ -211,7 +241,7 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem := gft.fstMem
 
 	var totalNodes, nodeStrLen uint16
-	for _, mTree := range gft.routeTrees {
+	for _, mTree := range gft.routerTrees {
 		totalNodes += mTree.nodeCt
 		nodeStrLen += mTree.nodeStrLen
 	}
@@ -222,6 +252,7 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem.hdsNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
 
 	// 新的 handlers 指针数组
+	GFPanicIf(fstMem.tidyHdsLen >= maxAllHandlers, "Chains tidy handlers more than MaxUInt16.")
 	fstMem.tidyHandlers = make([]CtxHandler, fstMem.tidyHdsLen, fstMem.tidyHdsLen)
 	fstMem.tidyHdsLen = 0 // 下标重置成0，后面从这里把事件加入 tidyHandlers
 
@@ -229,7 +260,7 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem.treeCharT = make([]byte, 0, nodeStrLen)
 	fstMem.allRadixMiniNodes = make([]radixMiniNode, totalNodes, totalNodes)
 	for idx := 0; idx < len(fstMem.allRadixMiniNodes); idx++ {
-		fstMem.allRadixMiniNodes[idx].routerIdx = 0
+		fstMem.allRadixMiniNodes[idx].routeIdx = 0
 		fstMem.allRadixMiniNodes[idx].hdsGroupIdx = -1
 		fstMem.allRadixMiniNodes[idx].hdsItemIdx = -1
 	}
@@ -237,7 +268,7 @@ func allocateMemSpace(gft *GoFast) {
 
 // 合并所有路由分组的事件到下一级的分组当中
 // 返回所有节点新增加处理函数个数的和
-func gpCombineHandlers(gp *RouterGroup) uint16 {
+func gpCombineHandlers(gp *RouteGroup) uint16 {
 	// 所有分组个数
 	gp.myApp.fstMem.routeGroupNum++
 	if gp.children == nil {
@@ -247,9 +278,12 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 	for _, chGroup := range gp.children {
 		hdsCount := 0
 
+		hdsCount += len(gp.combEvents.eAfterMatchHds)
+		chGroup.combEvents.eAfterMatchHds = combineHandlers(gp.combEvents.eAfterMatchHds, chGroup.eAfterMatchHds)
+
 		// TODO: 这里要补充完整所有的事件类型
-		hdsCount += len(gp.combEvents.ePreValidHds)
-		chGroup.combEvents.ePreValidHds = combineHandlers(gp.combEvents.ePreValidHds, chGroup.ePreValidHds)
+		//hdsCount += len(gp.combEvents.ePreValidHds)
+		//chGroup.combEvents.ePreValidHds = combineHandlers(gp.combEvents.ePreValidHds, chGroup.ePreValidHds)
 
 		hdsCount += len(gp.combEvents.eBeforeHds)
 		chGroup.combEvents.eBeforeHds = combineHandlers(gp.combEvents.eBeforeHds, chGroup.eBeforeHds)
@@ -259,8 +293,8 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 		hdsCount += len(gp.combEvents.eAfterHds)
 		chGroup.combEvents.eAfterHds = append(chGroup.eAfterHds, gp.combEvents.eAfterHds...)
 
-		hdsCount += len(gp.combEvents.ePreSendHds)
-		chGroup.combEvents.ePreSendHds = append(chGroup.ePreSendHds, gp.combEvents.ePreSendHds...)
+		hdsCount += len(gp.combEvents.eBeforeSendHds)
+		chGroup.combEvents.eBeforeSendHds = append(chGroup.eBeforeSendHds, gp.combEvents.eBeforeSendHds...)
 
 		hdsCount += len(gp.combEvents.eAfterSendHds)
 		chGroup.combEvents.eAfterSendHds = append(chGroup.eAfterSendHds, gp.combEvents.eAfterSendHds...)
@@ -272,7 +306,7 @@ func gpCombineHandlers(gp *RouterGroup) uint16 {
 }
 
 // 将分组事件 转换到 新版全局数组中
-func gpRebuildHandlers(gp *RouterGroup) {
+func gpRebuildHandlers(gp *RouteGroup) {
 	// 每一个分组的事件都去注册
 	gp.rebuildHandlers()
 	if gp.children == nil {
@@ -286,7 +320,7 @@ func gpRebuildHandlers(gp *RouterGroup) {
 // 第一套 分开方案
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 为每个最后一级的分组，将 routeEvent 变成内存占用更小的 handlersNode
-func (gp *RouterGroup) rebuildHandlers() {
+func (gp *RouteGroup) rebuildHandlers() {
 	fstMem := gp.myApp.fstMem
 	setNewNode(fstMem, &gp.combEvents)
 
@@ -307,14 +341,16 @@ func (ri *RouteItem) rebuildHandlers() (idx int16) {
 func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 	node := &fstMem.hdsNodes[fstMem.hdsNodesLen]
 
+	node.afterMatchLen, node.afterMatchIdx = tidyEventHandlers(fstMem, &re.eAfterMatchHds)
+
 	// 获取所有的 handlers (执行链)
 	node.hdsLen, node.hdsIdx = tidyEventHandlers(fstMem, &re.eHds)
 	node.beforeLen, node.beforeIdx = tidyEventHandlers(fstMem, &re.eBeforeHds)
 	node.afterLen, node.afterIdx = tidyEventHandlers(fstMem, &re.eAfterHds)
 
 	// 装饰器
-	node.validLen, node.validIdx = tidyEventHandlers(fstMem, &re.ePreValidHds)
-	node.preSendLen, node.preSendIdx = tidyEventHandlers(fstMem, &re.ePreSendHds)
+	//node.validLen, node.validIdx = tidyEventHandlers(fstMem, &re.ePreValidHds)
+	node.beforeSendLen, node.beforeSendIdx = tidyEventHandlers(fstMem, &re.eBeforeSendHds)
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(fstMem, &re.eAfterSendHds)
 }
 
@@ -330,39 +366,6 @@ func tidyEventHandlers(fstMem *fstMemSpace, hds *[]uint16) (ct uint8, startIdx u
 	}
 	return
 }
-
-//// 第二套 合并 方案
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func (ri *RouteItem) combineHandlers() (idx uint16) {
-//	node := &fstMem.hdsNodesPlan2[fstMem.hdsNodesPlan2Len]
-//	gp := ri.group
-//
-//	node.startIdx = fstMem.tidyHdsLen
-//	node.hdsLen += tidyEventHandlersMini(&gp.ePreValidHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.ePreValidHds)
-//	node.hdsLen += tidyEventHandlersMini(&gp.eBeforeHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.eBeforeHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.eHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.eAfterHds)
-//	node.hdsLen += tidyEventHandlersMini(&gp.eAfterHds)
-//	node.hdsLen += tidyEventHandlersMini(&ri.ePreSendHds)
-//	node.hdsLen += tidyEventHandlersMini(&gp.ePreSendHds)
-//	//node.hdsLen += tidyEventHandlersMini(&ri.eResponseHds)
-//	//node.hdsLen += tidyEventHandlersMini(&gp.eResponseHds)
-//
-//	idx = fstMem.hdsNodesPlan2Len
-//	fstMem.hdsNodesPlan2Len++
-//	return
-//}
-//
-//func tidyEventHandlersMini(hds *[]uint16) (ct uint8) {
-//	ct = uint8(len(*hds))
-//	for i := uint8(0); i < ct; i++ {
-//		fstMem.tidyHandlers[fstMem.tidyHdsLen] = fstMem.allCtxHandlers[(*hds)[i]]
-//		fstMem.tidyHdsLen++
-//	}
-//	return
-//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 合并两个 事件数组 到一个新的数组

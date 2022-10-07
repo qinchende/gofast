@@ -3,7 +3,7 @@ package sdx
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/sdx/gate"
-	mid2 "github.com/qinchende/gofast/sdx/mid"
+	"github.com/qinchende/gofast/sdx/mid"
 )
 
 // 第一级：
@@ -11,8 +11,8 @@ import (
 // GoFast提供默认的全套拦截器，开启微服务治理
 // 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
 func DefGlobalFits(app *fst.GoFast) *fst.GoFast {
-	app.UseGlobalFit(mid2.FitMaxConnections(app.FitMaxConnections))     // 最大同时接收请求数量
-	app.UseGlobalFit(mid2.FitMaxContentLength(app.FitMaxContentLength)) // 最大的请求头限制，默认32MB
+	app.UseGlobalFit(mid.FitMaxConnections(app.FitMaxConnections))     // 最大同时接收请求数量
+	app.UseGlobalFit(mid.FitMaxContentLength(app.FitMaxContentLength)) // 请求头限制，最大32MB（但这是对所有请求的限制）
 	// gft.UseGlobalFit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
 	return app
 }
@@ -28,19 +28,19 @@ func DefGlobalHandlers(app *fst.GoFast) *fst.GoFast {
 		rtLength := app.RouteLength()
 
 		reqKeeper.InitKeeper(rtLength)
-		mid2.RConfigs.Reordering(app, rtLength)
+		mid.RAttrsList.Reordering(app, rtLength)
 	})
 
 	//app.Before(mid.Tracing)                        // 链路追踪，在日志打印之前执行，日志才会体现出标记
-	app.Before(mid2.Logger)             // 所有请求写日志，根据配置输出日志样式
-	app.Before(mid2.Breaker(reqKeeper)) // 自适应熔断：针对不同route，启动熔断机制（主要保护下游资源不被挤兑）
+	app.Before(mid.Logger)             // 所有请求写日志，根据配置输出日志样式
+	app.Before(mid.Breaker(reqKeeper)) // 自适应熔断：针对不同route，启动熔断机制（主要保护下游资源不被挤兑）
 	//app.Before(mid.LoadShedding(reqKeeper))        // 自适应降载：（判断CPU和最大并发数）（主要保护自己不跑爆）
-	app.Before(mid2.Timeout(app.SdxEnableTimeout)) // 超时自动返回，后台处理继续，默认3000毫秒
-	app.Before(mid2.Recovery)                      // @@@@@ 截获所有异常 @@@@@
-	app.Before(mid2.HandlerTime(reqKeeper))        // 请求处理耗时统计
-	app.Before(mid2.Prometheus)                    // 适合 prometheus 的统计信息
-	app.Before(mid2.MaxContentLength)              // 最大的请求头限制，默认32MB（这个可以单独限制不同的路径）
-	app.Before(mid2.Gunzip)                        // 自动 gunzip 解压缩（前面的处理都完成了再解压缩）
+	app.Before(mid.Timeout(app.SdxEnableTimeout)) // 超时自动返回，后台处理继续，默认3000毫秒
+	app.Before(mid.Recovery)                      // @@@@@ 截获所有异常 @@@@@
+	app.Before(mid.HandlerTime(reqKeeper))        // 请求处理耗时统计
+	app.Before(mid.Prometheus)                    // 适合 prometheus 的统计信息
+	app.Before(mid.MaxContentLength)              // 最大的请求头限制，默认32MB（这个可以单独限制不同的路径）
+	app.Before(mid.Gunzip)                        // 自动 gunzip 解压缩（前面的处理都完成了再解压缩）
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
 	// app.Fit(mid.JwtAuthorize(app.FitJwtSecret))

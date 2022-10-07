@@ -1,44 +1,12 @@
 package orm
 
 import (
+	"fmt"
+	"github.com/qinchende/gofast/skill/hash"
 	"reflect"
 	"sync"
+	"time"
 )
-
-// 表结构体Schema, 限制表最多127列（用int8计数）
-type ModelSchema struct {
-	pkgPath  string
-	fullName string
-	name     string
-	attrs    ModelAttrs // 实体类型的相关控制属性
-
-	columns      []string        // column_name
-	fieldsKV     map[string]int8 // field_name index
-	columnsKV    map[string]int8 // column_name index
-	fieldsIndex  [][]int         // reflect fields index
-	primaryIndex int8            // 主键字段原始索引位置
-	updatedIndex int8            // 更新字段原始索引位置，没有则为-1
-
-	insertSQL string // 全字段insert（将来会建立通用缓存中心，这里暂时这样用）
-	updateSQL string // 全字段update
-	deleteSQL string // delete
-	selectSQL string // select
-}
-
-// GoFast ORM Model need some attributes.
-type ModelAttrs struct {
-	TableName string // 数据库表名称
-	CacheAll  bool   // 是否缓存所有记录
-	ExpireS   uint32 // 过期时间（秒）默认7天
-
-	// 内部状态标记
-	hashValue   uint64 // 本结构体的哈希值
-	cacheKeyFmt string // 行记录缓存的Key前缀
-}
-
-//func (ms *ModelSchema) ColumnsLen() int8 {
-//	return int8(len(ms.columns))
-//}
 
 func (ms *ModelSchema) TableName() string {
 	return ms.attrs.TableName
@@ -52,8 +20,21 @@ func (ms *ModelSchema) CachePreFix() string {
 	return ms.attrs.cacheKeyFmt
 }
 
+func (ms *ModelSchema) CacheLineKey(dbName, id any) string {
+	return fmt.Sprintf(ms.attrs.cacheKeyFmt, dbName, id)
+}
+
+func (ms *ModelSchema) CacheSqlKey(sql string) string {
+	return "Gf#Pet#" + hash.Md5HexString(sql)
+}
+
 func (ms *ModelSchema) ExpireS() uint32 {
 	return ms.attrs.ExpireS
+}
+
+// 可以考虑加上随机 5% 左右的偏差，防止将来缓存统一过期导致缓存雪崩
+func (ms *ModelSchema) ExpireDuration() time.Duration {
+	return time.Duration(ms.attrs.ExpireS) * time.Second
 }
 
 func (ms *ModelSchema) FieldsKV() map[string]int8 {
@@ -74,6 +55,10 @@ func (ms *ModelSchema) UpdatedIndex() int8 {
 
 func (ms *ModelSchema) PrimaryIndex() int8 {
 	return ms.primaryIndex
+}
+
+func (ms *ModelSchema) AutoIndex() int8 {
+	return ms.autoIndex
 }
 
 func (ms *ModelSchema) InsertSQL(fn func(*ModelSchema) string) string {

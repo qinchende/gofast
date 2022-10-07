@@ -4,20 +4,20 @@ package fst
 
 // 获取所在节点的Path |
 func (gft *GoFast) FullPath(idx uint16) string {
-	if gft.allRouters[idx] != nil {
-		return gft.allRouters[idx].fullPath
+	if gft.allRoutes[idx] != nil {
+		return gft.allRoutes[idx].fullPath
 	} else {
 		return ""
 	}
 }
 
 func (gft *GoFast) RouteLength() uint16 {
-	return uint16(len(gft.allRouters))
+	return uint16(len(gft.allRoutes))
 }
 
 func (c *Context) FullPath() string {
-	if c.match.ptrNode != nil {
-		return c.myApp.allRouters[c.match.ptrNode.routerIdx].fullPath
+	if c.route.ptrNode != nil {
+		return c.myApp.allRoutes[c.route.ptrNode.routeIdx].fullPath
 	} else {
 		return ""
 	}
@@ -25,10 +25,10 @@ func (c *Context) FullPath() string {
 
 // 获取当前路由节点
 func (c *Context) CurrRoute() *RouteItem {
-	if c.RouteIdx <= 0 || c.RouteIdx >= uint16(len(c.myApp.allRouters)) {
+	if c.RouteIdx <= 0 || c.RouteIdx >= uint16(len(c.myApp.allRoutes)) {
 		return nil
 	}
-	return c.myApp.allRouters[c.RouteIdx]
+	return c.myApp.allRoutes[c.RouteIdx]
 }
 
 func (ri *RouteItem) FullPath() string {
@@ -37,8 +37,8 @@ func (ri *RouteItem) FullPath() string {
 
 //func (c *Context) RouteIndex() int16 {
 //	var nodeIdx int16 = -1
-//	if c != nil && c.match.ptrNode != nil {
-//		nodeIdx = c.match.ptrNode.routerIdx
+//	if c != nil && c.route.ptrNode != nil {
+//		nodeIdx = c.route.ptrNode.routeIdx
 //	}
 //	return nodeIdx
 //}

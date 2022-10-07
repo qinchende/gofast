@@ -24,7 +24,7 @@ func initGoFastServer() {
 	addRoutes(func(url string) {
 		myApp.Handle(http.MethodGet, url, func(c *fst.Context) {})
 	})
-	myApp.BuildRouters()
+	myApp.BuildRoutes()
 }
 
 func BenchmarkGoFastWebRouter(b *testing.B) {

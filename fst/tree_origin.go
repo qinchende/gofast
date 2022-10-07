@@ -158,7 +158,7 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 		return
 	}
 
-	// 2.3.2 到这里 seg 和 n.match 肯定一样
+	// 2.3.2 到这里 seg 和 n.route 肯定一样
 	// 如果当前节点已经被匹配过，就证明重复了，需要报错
 	if n.leafItem != nil {
 		panic(spf("此路由：%s 已经存在", n.match))

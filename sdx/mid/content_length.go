@@ -30,7 +30,7 @@ func FitMaxContentLength(limit int64) fst.FitFunc {
 
 // 限制当前路径的请求最大数据长度
 func MaxContentLength(c *fst.Context) {
-	rt := RConfigs[c.RouteIdx]
+	rt := RAttrsList[c.RouteIdx]
 	if rt.MaxLen <= 0 {
 		return
 	}

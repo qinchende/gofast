@@ -2,6 +2,8 @@ package orm
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/hash"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strings"
@@ -18,17 +20,17 @@ func SchemaOfType(rTyp reflect.Type) *ModelSchema {
 
 // 结构体中属性的数据库字段名称合集
 func SchemaValues(obj any) (*ModelSchema, []any) {
-	mSchema := Schema(obj)
+	sm := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
-	values := make([]any, len(mSchema.columns))
+	values := make([]any, len(sm.columns))
 	structValues(&values, &vIndex, obj)
 
-	return mSchema, values
+	return sm, values
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 反射提取结构体的值（支持嵌套递归）
+// 反射提取结构体的值（支持内联递归）
 func structValues(values *[]any, nextIndex *int8, obj any) {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 
@@ -50,6 +52,11 @@ func structValues(values *[]any, nextIndex *int8, obj any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的ORM Schema元数据
 func fetchSchema(rTyp reflect.Type) *ModelSchema {
+	eTyp := rTyp.Elem()
+	if eTyp.Kind() == reflect.Slice {
+		rTyp = eTyp.Elem()
+	}
+
 	for rTyp.Kind() == reflect.Ptr {
 		rTyp = rTyp.Elem()
 	}
@@ -67,24 +74,35 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
 			}
-			panic(fmt.Errorf("target type must be structs; but got %T", rTyp))
+			panic(fmt.Errorf("target item type must be structs; but got %T", rTyp))
 		}
 
 		// primary, updated
-		mFields := [2]string{}
+		mFields := [3]string{}
 		rootIdx := make([]int, 0)
 		fDB, fStruct, fIndexes := structFields(rTyp, rootIdx, &mFields)
 		if mFields[0] == "" {
-			mFields[0] = dbDefPrimaryKeyName
+			mFields[0] = dbDefAutoIncKeyName
 		}
 		if mFields[1] == "" {
-			mFields[1] = dbDefUpdatedKeyName
+			mFields[1] = dbDefPrimaryKeyName
+		}
+		if mFields[2] == "" {
+			mFields[2] = dbDefUpdatedKeyName
 		}
 
+		// 0. 自增的索引位置 ++++++++++
+		var autoIndex = -1
+		for idx, f := range fStruct {
+			if f == mFields[0] {
+				autoIndex = idx
+				break
+			}
+		}
 		// 1. 主键的索引位置 ++++++++++
 		var priIndex = -1
 		for idx, f := range fStruct {
-			if f == mFields[0] {
+			if f == mFields[1] {
 				priIndex = idx
 				break
 			}
@@ -92,13 +110,10 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if priIndex == -1 {
 			panic(fmt.Errorf("%T, model has no primary key", rTyp)) // 不能没有主键
 		}
-		//if rVal.FieldByName(mFields[0]).Kind() != reflect.Uint {
-		//	panic("primary key must uint") // 主键必须是 uint 类型
-		//}
 		// 2. updated 的索引位置
 		var updateIndex = -1
 		for idx, f := range fStruct {
-			if f == mFields[1] {
+			if f == mFields[2] {
 				updateIndex = idx
 				break
 			}
@@ -118,7 +133,9 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if mdAttrs.TableName == "" {
 			mdAttrs.TableName = stringx.Camel2Snake(rTyp.Name())
 		}
-		mdAttrs.cacheKeyFmt = "Gf#Line#%s#" + mdAttrs.TableName + "#%v"
+		mdAttrs.hashNumber = hash.Hash(lang.StringToBytes(strings.Join(fDB, ",")))
+		hashStr := lang.ToString(mdAttrs.hashNumber)
+		mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + mFields[1] + "#%v"
 
 		// 收缩切片
 		fIndexesNew := make([][]int, len(fIndexes))
@@ -136,6 +153,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 			fieldsKV:     make(map[string]int8, len(fStruct)),
 			columnsKV:    make(map[string]int8, len(fStruct)),
 			fieldsIndex:  fIndexesNew,
+			autoIndex:    int8(autoIndex),
 			primaryIndex: int8(priIndex),
 			updatedIndex: int8(updateIndex),
 		}
@@ -152,7 +170,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]string, []string, [][]int) {
+func structFields(rTyp reflect.Type, parentIdx []int, mFields *[3]string) ([]string, []string, [][]int) {
 	if rTyp.Kind() != reflect.Struct {
 		panic(fmt.Errorf("%T is not like struct", rTyp))
 	}
@@ -192,18 +210,25 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]str
 
 		// 2. 确定结构体字段名称
 		fFields = append(fFields, fi.Name)
-		// 查找 primary
+		// 查找 auto
 		if mFields[0] == "" {
 			dbc := fi.Tag.Get(dbConfigTag)
-			if strings.HasSuffix(dbc, dbPrimaryKeyFlag) {
+			if strings.HasSuffix(dbc, dbAutoIncKeyFlag) {
 				mFields[0] = fi.Name
 			}
 		}
-		// 查找 updated
+		// 查找 primary
 		if mFields[1] == "" {
 			dbc := fi.Tag.Get(dbConfigTag)
-			if strings.HasSuffix(dbc, dbUpdatedKeyFlag) {
+			if strings.HasSuffix(dbc, dbPrimaryKeyFlag) {
 				mFields[1] = fi.Name
+			}
+		}
+		// 查找 updated
+		if mFields[2] == "" {
+			dbc := fi.Tag.Get(dbConfigTag)
+			if strings.HasSuffix(dbc, dbUpdatedKeyFlag) {
+				mFields[2] = fi.Name
 			}
 		}
 
@@ -213,7 +238,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[2]string) ([]str
 		cIdx = append(cIdx, i)
 		fIndexes = append(fIndexes, cIdx)
 	}
-	return fColumns, fFields, fIndexes
+	return fColumns, fFields, fIndexes // 结构体的字段别名，字段名，顺序索引位置
 }
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
