@@ -10,16 +10,16 @@ import (
 // NOTE：Fit系列是全局的，针对所有请求起作用，而且不区分路由，这个时候还根本没有开始匹配路由。
 // GoFast提供默认的全套拦截器，开启微服务治理
 // 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
-func DefGlobalFits(app *fst.GoFast) *fst.GoFast {
-	app.UseGlobalFit(mid.FitMaxConnections(app.FitMaxConnections))     // 最大同时接收请求数量
-	app.UseGlobalFit(mid.FitMaxContentLength(app.FitMaxContentLength)) // 请求头限制，最大32MB（但这是对所有请求的限制）
+func DefHttpHandlers(app *fst.GoFast) *fst.GoFast {
+	app.UseHttpHandler(mid.HttpMaxConnections(app.FitMaxConnections))     // 最大同时接收请求数量
+	app.UseHttpHandler(mid.HttpMaxContentLength(app.FitMaxContentLength)) // 请求头限制，最大32MB（但这是对所有请求的限制）
 	// gft.UseGlobalFit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
 	return app
 }
 
 // 第二级：
 // 带上下文 gofast.fst.Context 的执行链
-func DefGlobalHandlers(app *fst.GoFast) *fst.GoFast {
+func DefContextHandlers(app *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
 	reqKeeper := gate.CreateReqKeeper(app.ProjectName(), app.FullPath)
 	// 因为Routes的数量只能在加载完所有路由之后才知道
@@ -43,7 +43,7 @@ func DefGlobalHandlers(app *fst.GoFast) *fst.GoFast {
 	app.Before(mid.Gunzip)                        // 自动 gunzip 解压缩（前面的处理都完成了再解压缩）
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
-	// app.Fit(mid.JwtAuthorize(app.FitJwtSecret))
+	//app.Fit(mid.JwtAuthorize(app.FitJwtSecret))
 	return app
 }
 

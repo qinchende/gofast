@@ -94,7 +94,7 @@ func (c *Context) Suc(code int32, msg string, data any) {
 }
 
 func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
-	jsonData := KV{
+	jsonData := cst.KV{
 		"status": status,
 		"code":   code,
 		"msg":    msg,
@@ -114,7 +114,7 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 // Abort系列函数都将终止当前 handlers 的执行
 // 立即返回错误，跳过后面的执行链
 func (c *Context) AbortFai(code int, msg string) {
-	bytes, _ := jsonx.Marshal(KV{
+	bytes, _ := jsonx.Marshal(cst.KV{
 		"status": statusFai,
 		"code":   code,
 		"msg":    msg,

@@ -2,6 +2,7 @@ package sdx
 
 import (
 	"github.com/qinchende/gofast/connx/gfrds"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 )
 
@@ -45,7 +46,7 @@ func SetupSession(ss *SessionDB) {
 // 默认将使用 Redis 存放 session 信息
 // TODO: 注意，这个实现是非线程安全的
 type CtxSession struct {
-	values     fst.KV // map[string]interface{}
+	values     cst.KV // map[string]interface{}
 	guid       string // redis session key
 	token      string // Sid
 	tokenIsNew bool   // Sid is new
@@ -55,7 +56,7 @@ type CtxSession struct {
 // CtxSession 需要实现 sessionKeeper 所有接口
 var _ fst.SessionKeeper = &CtxSession{}
 
-func (ss *CtxSession) GetValues() fst.KV {
+func (ss *CtxSession) GetValues() cst.KV {
 	return ss.values
 }
 
@@ -71,7 +72,7 @@ func (ss *CtxSession) Set(key string, val any) {
 	ss.values[key] = val
 }
 
-func (ss *CtxSession) SetKV(kvs fst.KV) {
+func (ss *CtxSession) SetKV(kvs cst.KV) {
 	ss.saved = false
 	//if ss.values == nil {
 	//	logx.InfoF("%#v", ss)

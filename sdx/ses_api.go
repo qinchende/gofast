@@ -1,6 +1,7 @@
 package sdx
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 )
 
@@ -42,7 +43,7 @@ func SessBuilder(c *fst.Context) {
 	if ss.guid == "" {
 		ss.rebuildToken(c)
 	} else {
-		ss.values = make(fst.KV)
+		ss.values = make(cst.KV)
 		if err := ss.loadSessionFromRedis(c); err != nil {
 			c.AddMsgBasket(err.Error())
 			c.AbortFai(110, "加载 Session 数据失败。")

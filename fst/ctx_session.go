@@ -2,11 +2,13 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+import "github.com/qinchende/gofast/cst"
+
 type SessionKeeper interface {
-	GetValues() KV
+	GetValues() cst.KV
 	Get(string) any
 	Set(string, any)
-	SetKV(KV)
+	SetKV(cst.KV)
 	Del(string)
 	Save() error
 	Saved() bool
