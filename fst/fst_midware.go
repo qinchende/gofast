@@ -10,19 +10,19 @@ func (gft *GoFast) UseGlobal(inject injectFunc) *GoFast {
 }
 
 // 添加单个全局拦截器
-func (gft *GoFast) UseGlobalFit(hds FitFunc) *GoFast {
+func (gft *GoFast) UseHttpHandler(hds HttpHandler) *GoFast {
 	if hds != nil {
-		gft.fitHandlers = append(gft.fitHandlers, hds)
-		GFPanicIf(uint8(len(gft.fitHandlers)) >= maxFits, "Fit handlers more the 255 error.")
+		gft.httpHandlers = append(gft.httpHandlers, hds)
+		GFPanicIf(uint8(len(gft.httpHandlers)) >= maxHttpHandlers, "Http handlers more the 255 error.")
 	}
 	return gft
 }
 
 // 将下一级 context 的处理函数，加入fitHandlers 执行链的最后面
-func (gft *GoFast) bindContextFit(handler http.HandlerFunc) {
+func (gft *GoFast) bindContextHandler(handler http.HandlerFunc) {
 	// 倒序加入
-	for i := len(gft.fitHandlers) - 1; i >= 0; i-- {
-		handler = gft.fitHandlers[i](handler)
+	for i := len(gft.httpHandlers) - 1; i >= 0; i-- {
+		handler = gft.httpHandlers[i](handler)
 	}
-	gft.fitEnter = handler
+	gft.httpEnter = handler
 }

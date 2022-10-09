@@ -27,8 +27,8 @@ type GoFast struct {
 	readyOnce sync.Once    // WebServer初始化只能执行一次
 
 	// 第一级 handlers
-	fitHandlers []FitFunc        // 全局中间件处理函数，incoming request handlers
-	fitEnter    http.HandlerFunc // fit系列中间件函数的入口，请求进入之后第一个接收函数
+	httpHandlers []HttpHandler    // 全局中间件处理函数，incoming request handlers
+	httpEnter    http.HandlerFunc // fit系列中间件函数的入口，请求进入之后第一个接收函数
 	// 第二级 handlers (根路由组相关属性)
 	*HomeRouter // 根路由组（Root Group）
 }
@@ -143,7 +143,7 @@ func (gft *GoFast) initHomeRouter() {
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 开始依次执行全局拦截器，开始是第一级的fits系列
 	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
-	gft.fitEnter(w, r)
+	gft.httpEnter(w, r)
 }
 
 // 这里是第二级执行链
@@ -238,9 +238,9 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 func (gft *GoFast) BuildRoutes() {
 	gft.readyOnce.Do(func() {
 		gft.initDefaultHandlers()
-		// TODO: 下面可以加入框架默认的Fits，用户自定义的fit只能在这些之前执行。
-		// 这必须是最后一个Fit函数，由此进入下一级的 handlers
-		gft.bindContextFit(gft.serveHTTPWithCtx)
+		// 下面可以加入框架默认的httpHandler，用户自定义的httpHandler只能在这些之前执行。
+		// 这必须是最后一个httpHandler函数，由此进入下一级的 handlers
+		gft.bindContextHandler(gft.serveHTTPWithCtx)
 	})
 	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
 	gft.buildAllRoutes()

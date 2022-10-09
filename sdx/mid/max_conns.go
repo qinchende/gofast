@@ -10,7 +10,7 @@ import (
 )
 
 // 限制最大并发连接数，相当于做一个请求资源数量连接池
-func FitMaxConnections(limit int32) fst.FitFunc {
+func HttpMaxConnections(limit int32) fst.HttpHandler {
 	// 并发数不做限制
 	if limit <= 0 {
 		return nil

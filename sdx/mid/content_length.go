@@ -8,7 +8,7 @@ import (
 )
 
 // 全局判断所有请求类型的最大长度
-func FitMaxContentLength(limit int64) fst.FitFunc {
+func HttpMaxContentLength(limit int64) fst.HttpHandler {
 	// limit <= 0 意味着根本不检查ContentLength的限制
 	if limit <= 0 {
 		return nil
