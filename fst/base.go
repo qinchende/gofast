@@ -26,15 +26,11 @@ type (
 )
 
 const (
-	gftSupportMinGoVer float64 = 1.18 // 支持的最小GO版本是 1.18 and later
-	//BodyBytesKey     = "_qinchende/gofast/bodybyteskey" // 记录POST提交时 body 的字节流，方便后期复用
-	maxCtxBaskets    int    = 8              // 请求上下文能携带的最大扩展数据项
-	maxHttpHandlers  uint8  = math.MaxUint8  // 最多多少个全局拦截器
-	maxRouteHandlers int8   = math.MaxInt8   // 单路由最多中间件函数数量
-	maxAllHandlers   uint16 = math.MaxUint16 // 全局所有路由节点的所有中间件函数最大总和
-	//routePathMaxLen    uint8 = 255      // 路由字符串最长长度
-	//routeMaxHandlers   uint8 = 255      // 路由 handlers 最大长度
-	//defMultipartMemory int64 = 32 << 20 // 32 MB
+	gftSupportMinGoVer float64 = 1.18           // 支持的最小GO版本是 1.18 and later
+	maxCtxBaskets      int     = 8              // 请求上下文能携带的最大扩展数据项
+	maxHttpHandlers    uint8   = math.MaxUint8  // 最多多少个全局拦截器
+	maxRouteHandlers   int8    = math.MaxInt8   // 单路由最多中间件函数数量
+	maxAllHandlers     uint16  = math.MaxUint16 // 全局所有路由节点的所有中间件函数最大总和
 )
 
 const (
@@ -45,8 +41,7 @@ const (
 )
 
 var (
-	spf = fmt.Sprintf
-	//mimePlain      = []string{cst.MIMEPlain}
+	spf            = fmt.Sprintf
 	default404Body = []byte("404 (page not found)")
 	default405Body = []byte("405 (method not allowed)")
 )

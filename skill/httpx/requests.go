@@ -12,11 +12,11 @@ import (
 )
 
 func Do(req *http.Request) (*http.Response, error) {
-	return http.DefaultClient.Do(req)
+	return myClient.Do(req)
 }
 
 func DoGetKV(req *http.Request) (cst.KV, error) {
-	return ParseJsonResponse(http.DefaultClient.Do(req))
+	return ParseJsonResponse(myClient.Do(req))
 }
 
 func NewRequest(pet *RequestPet) (*http.Request, error) {
@@ -36,7 +36,7 @@ func DoRequestCtx(ctx context.Context, pet *RequestPet) (*http.Response, error) 
 	if req, err := buildRequest(ctx, pet); err != nil {
 		return nil, err
 	} else {
-		return http.DefaultClient.Do(req)
+		return PetClient(pet).Do(req)
 	}
 }
 
