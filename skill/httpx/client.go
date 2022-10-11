@@ -5,7 +5,7 @@ import (
 	"net/http"
 )
 
-type Client struct {
+type HttpClient struct {
 	http.Client
 }
 
@@ -19,22 +19,21 @@ type RequestPet struct {
 	BodyFormat int8      // body数据的格式，比如 json|url-encoding|xml
 }
 
-var myClient = &Client{}                            // 框架默认client对象
-var myTransports = make(map[string]*http.Transport) // 当前所有的代理实例
+var myClient = &HttpClient{} // 框架默认client对象
 
-func PetClient(pet *RequestPet) *Client {
+func ClientByPet(pet *RequestPet) *HttpClient {
 	if pet.ProxyUrl == "" {
 		return myClient
 	}
-	t := &Client{}
+	t := &HttpClient{}
 	t.Transport = getTransport(pet.ProxyUrl)
 	return t
 }
 
-func (cli *Client) Do(req *http.Request) (*http.Response, error) {
-	return cli.Do(req)
+func (cli *HttpClient) Do(req *http.Request) (*http.Response, error) {
+	return cli.Client.Do(req)
 }
 
-func (cli *Client) DoGetKV(req *http.Request) (cst.KV, error) {
-	return ParseJsonResponse(cli.Do(req))
+func (cli *HttpClient) DoGetKV(req *http.Request) (cst.KV, error) {
+	return parseJsonResponse(cli.Client.Do(req))
 }

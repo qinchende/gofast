@@ -16,7 +16,7 @@ func Do(req *http.Request) (*http.Response, error) {
 }
 
 func DoGetKV(req *http.Request) (cst.KV, error) {
-	return ParseJsonResponse(myClient.Do(req))
+	return parseJsonResponse(myClient.Do(req))
 }
 
 func NewRequest(pet *RequestPet) (*http.Request, error) {
@@ -36,7 +36,7 @@ func DoRequestCtx(ctx context.Context, pet *RequestPet) (*http.Response, error) 
 	if req, err := buildRequest(ctx, pet); err != nil {
 		return nil, err
 	} else {
-		return PetClient(pet).Do(req)
+		return ClientByPet(pet).Do(req)
 	}
 }
 
@@ -46,7 +46,7 @@ func DoRequestGetKV(pet *RequestPet) (cst.KV, error) {
 
 func DoRequestGetKVCtx(ctx context.Context, pet *RequestPet) (cst.KV, error) {
 	// TODO：根据不同的 content-type 解析数据到 cst.KV 形式
-	return ParseJsonResponse(DoRequestCtx(ctx, pet))
+	return parseJsonResponse(DoRequestCtx(ctx, pet))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

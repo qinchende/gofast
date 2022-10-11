@@ -37,7 +37,7 @@ func (*attrsList) Reordering(app *fst.GoFast, rtLen uint16) {
 	// 设置默认值
 	var defAttrs RAttrs
 	defAttrs.MaxLen = 0
-	defAttrs.Timeout = int32(app.SdxDefTimeout)
+	defAttrs.Timeout = int32(app.SdxConfig.DefTimeoutMS)
 	//defAttrs.MaxReq = 1000000
 	//defAttrs.BreakRate = 1.5
 
