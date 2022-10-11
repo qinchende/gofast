@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/sysx"
 )
@@ -13,6 +14,7 @@ type GfConfig struct {
 	AppName     string `v:"required"`
 	ListenAddr  string `v:"def=0.0.0.0:8099,route=ipv4:port"`    // 监听ip:port
 	RunningMode string `v:"def=product,enum=debug|test|product"` // 当前模式[debug|test|product]
+	//LogType     string `v:"def=json,enum=json|sdx"`              // 日志类型
 
 	// 配置主体Web框架控制参数
 	BeforeShutdownMS      int64  `v:"def=1000"`      // 退出server之前等待的毫秒，等待清理释放资源
@@ -29,32 +31,16 @@ type GfConfig struct {
 	ApplyUrlParamsToPms   bool   `v:"def=true"`      // 将UrlParams解析的参数自动加入Pms
 	PrintRouteTrees       bool   `v:"def=false"`     // 是否打印出当前路由数
 
-	// sdx 实现模块的配置参数
-	NeedSysCheck        bool   `v:"def=true"`                        // 是否启动CPU使用情况的定时检查工作
-	NeedSysPrint        bool   `v:"def=true"`                        // 定时打印系统检查日志
-	SdxEnableTimeout    bool   `v:"def=true"`                        // 默认启动超时拦截
-	SdxDefTimeout       int64  `v:"def=3000"`                        // 每次请求的超时时间（单位：毫秒）
-	FitMaxContentLength int64  `v:"def=33554432"`                    // 最大请求字节数，32MB（33554432），传0不限制
-	FitMaxConnections   int32  `v:"def=1000000,range=[0:100000000]"` // 最大同时请求数，默认100万同时进入，传0不限制
-	FitJwtSecret        string `v:""`                                // JWT认证的秘钥
-	FitLogType          string `v:"def=json,enum=json|sdx"`          // 日志类型
+	SdxConfig cst.SdxConfig // middleware configs
 
 	modeType int8 `v:""` // 内部记录状态
-	//HTMLRender             render.HTMLRender `cnf:",NA"`
 	//EnableRouteMonitor bool `cnf:",def=true"` // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
 }
 
 func (gft *GoFast) initServerConfig() {
-	//if gft.MaxMultipartMemory == 0 {
-	//	gft.MaxMultipartMemory = defMultipartMemory
-	//}
-	//if gft.FitMaxReqContentLen == 0 {
-	//	gft.FitMaxReqContentLen = defMultipartMemory
-	//}
-
 	// 是否启动CPU检查
-	if gft.NeedSysCheck {
-		sysx.StartSysCheck(gft.NeedSysPrint)
+	if gft.SdxConfig.NeedSysCheck {
+		sysx.StartSysCheck(gft.SdxConfig.NeedSysPrint)
 	}
 	gft.SetMode(gft.RunningMode)
 }

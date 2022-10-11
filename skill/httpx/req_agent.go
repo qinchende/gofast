@@ -6,6 +6,8 @@ import (
 	"net/url"
 )
 
+var myTransports = make(map[string]*http.Transport) // 当前所有的代理实例
+
 func getTransport(proxyUrl string) *http.Transport {
 	if proxyUrl == "" {
 		return nil
