@@ -221,7 +221,7 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem.treeChars = string(fstMem.treeCharT)
 
 	// TODO: 释放掉原始树的资源，后面不可以根据这些树结构构造路由了。
-	if gft.modeType != modeDebug {
+	if !gft.IsDebugging() {
 		fstMem.allCtxHandlers = nil
 		fstMem.allCtxHdsLen = 0
 		fstMem.treeCharT = nil

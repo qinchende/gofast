@@ -13,7 +13,7 @@ import (
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 	if c.ReqRaw.MultipartForm == nil {
-		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartBytes); err != nil {
+		if err := c.ReqRaw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes); err != nil {
 			return nil, err
 		}
 	}
@@ -27,7 +27,7 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 
 // MultipartForm is the parsed multipart form, including file uploads.
 func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartBytes)
+	err := c.ReqRaw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes)
 	return c.ReqRaw.MultipartForm, err
 }
 
@@ -53,7 +53,7 @@ func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
-	if c.myApp.ForwardedByClientIP {
+	if c.myApp.WebConfig.ForwardedByClientIP {
 		clientIP := c.requestHeader("X-Forwarded-For")
 		clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
 		if clientIP == "" {

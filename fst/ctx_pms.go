@@ -62,7 +62,7 @@ func (c *Context) ParseRequestData() error {
 	}
 
 	// 将UrlParams加入参数字典
-	if c.myApp.ApplyUrlParamsToPms && c.UrlParams != nil {
+	if c.myApp.WebConfig.ApplyUrlParamsToPms && c.UrlParams != nil {
 		for _, param := range *c.UrlParams {
 			c.Pms[param.Key] = param.Value
 		}
@@ -167,7 +167,7 @@ func (c *Context) QueryMap2(key string) (map[string]string, bool) {
 // 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
 func (c *Context) ParseForm() {
 	if c.formCache == nil {
-		if err := c.ReqRaw.ParseMultipartForm(c.myApp.MaxMultipartBytes); err != nil && err != http.ErrNotMultipart {
+		if err := c.ReqRaw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes); err != nil && err != http.ErrNotMultipart {
 			logx.DebugF("error on parse multipart form array: %v", err)
 		}
 		c.formCache = c.ReqRaw.PostForm

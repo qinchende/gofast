@@ -19,10 +19,10 @@ func specialHandler(resStatus int, defaultMessage []byte) CtxHandler {
 
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
-	if gft.DefNoRouteHandler && len(gft.allRoutes[1].eHds) == 0 {
+	if gft.WebConfig.DefNoRouteHandler && len(gft.allRoutes[1].eHds) == 0 {
 		gft.Reg404(specialHandler(http.StatusNotFound, default404Body))
 	}
-	if gft.DefNotAllowedHandler && len(gft.allRoutes[2].eHds) == 0 {
+	if gft.WebConfig.DefNotAllowedHandler && len(gft.allRoutes[2].eHds) == 0 {
 		gft.Reg405(specialHandler(http.StatusMethodNotAllowed, default405Body))
 	}
 }

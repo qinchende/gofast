@@ -17,7 +17,7 @@ func (gft *GoFast) buildAllRoutes() {
 	}
 
 	// 打印底层构造的路由树
-	if gft.PrintRouteTrees {
+	if gft.WebConfig.PrintRouteTrees {
 		gft.printRouteTrees()
 	}
 	// 这里开始完整的重建整个路由树的数据结构
@@ -27,7 +27,7 @@ func (gft *GoFast) buildAllRoutes() {
 // 注册每一条的路由，生成 原始的 Radix 树
 func (gft *GoFast) regRouteItem(ri *RouteItem) {
 	// Debug模式下打印新添加的路由
-	if gft.PrintRouteTrees {
+	if gft.WebConfig.PrintRouteTrees {
 		debugPrintRoute(gft, ri)
 	}
 

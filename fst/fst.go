@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
+	"github.com/qinchende/gofast/skill/sysx"
 	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"net/http"
@@ -58,7 +59,7 @@ type HomeRouter struct {
 // 记住：使用之前一定要先调用 ReadyToListen方法。
 func Default() *GoFast {
 	app := CreateServer(&GfConfig{
-		RunningMode: ProductMode,
+		RunMode: ProductMode,
 	})
 	return app
 }
@@ -76,6 +77,14 @@ func CreateServer(cfg *GfConfig) *GoFast {
 	app.initServerConfig()
 	app.initHomeRouter()
 	return app
+}
+
+func (gft *GoFast) initServerConfig() {
+	// 是否启动CPU检查
+	if gft.SdxConfig.NeedSysCheck {
+		sysx.StartSysCheck(gft.SdxConfig.NeedSysPrint)
+	}
+	gft.SetMode(gft.RunMode)
 }
 
 // 初始化根路由树变量
@@ -166,13 +175,13 @@ func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 func (gft *GoFast) handleHTTPRequest(c *Context) {
 	reqPath := c.ReqRaw.URL.Path
 	unescape := false
-	if gft.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
+	if gft.WebConfig.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
 		reqPath = c.ReqRaw.URL.RawPath
-		unescape = gft.UnescapePathValues
+		unescape = gft.WebConfig.UnescapePathValues
 	}
 
 	// 是否需要规范请求过来的URL，默认不需要
-	if gft.RemoveExtraSlash {
+	if gft.WebConfig.RemoveExtraSlash {
 		reqPath = httpx.CleanPath(reqPath)
 	}
 
@@ -202,7 +211,10 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 		// 支持重定向 && c.ReqRaw.Method != CONNECT && reqPath != [home index]
 		if c.route.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
-			redirectTrailingSlash(c) // redirect handlers
+			// TODO：需要重定向的跳转，先执行特殊中间件
+			c.route.ptrNode = gft.miniNodeAny // after match error handlers
+			c.execHandlers()                  // match handlers
+			redirectTrailingSlash(c)          // redirect handlers
 			return
 		}
 	}
@@ -211,7 +223,7 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 如果需要查找非本Method中的路由匹配，就尝试去找。
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
-	if gft.CheckOtherMethodRoute {
+	if gft.WebConfig.CheckOtherMethodRoute {
 		for _, tree := range gft.routerTrees {
 			if tree.method == c.ReqRaw.Method || tree.miniRoot == nil {
 				continue

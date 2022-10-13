@@ -6,20 +6,7 @@ import (
 	"github.com/qinchende/gofast/sdx/mid"
 )
 
-// 第一级：
-// NOTE：Fit系列是全局的，针对所有请求起作用，而且不区分路由，这个时候还根本没有开始匹配路由。
-// GoFast提供默认的全套拦截器，开启微服务治理
-// 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
-func DefHttpHandlers(app *fst.GoFast) *fst.GoFast {
-	app.UseHttpHandler(mid.HttpMaxConnections(app.SdxConfig.MaxConnections))     // 最大同时接收请求数量
-	app.UseHttpHandler(mid.HttpMaxContentLength(app.SdxConfig.MaxContentLength)) // 请求头限制，最大32MB（但这是对所有请求的限制）
-	// gft.UseGlobalFit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
-	return app
-}
-
-// 第二级：
-// 带上下文 gofast.fst.Context 的执行链
-func DefContextHandlers(app *fst.GoFast) *fst.GoFast {
+func DefHandlers(app *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
 	reqKeeper := gate.CreateReqKeeper(app.ProjectName(), app.FullPath)
 	// 因为Routes的数量只能在加载完所有路由之后才知道
@@ -31,6 +18,17 @@ func DefContextHandlers(app *fst.GoFast) *fst.GoFast {
 		mid.RAttrsList.Reordering(app, rtLength)
 	})
 
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	// 第一级：HttpHandlers
+	// NOTE：Fit系列是全局的，针对所有请求起作用，而且不区分路由，这个时候还根本没有开始匹配路由。
+	// GoFast提供默认的全套拦截器，开启微服务治理
+	// 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
+	app.UseHttpHandler(mid.HttpMaxConnections(app.SdxConfig.MaxConnections))     // 最大同时接收请求数量
+	app.UseHttpHandler(mid.HttpMaxContentLength(app.SdxConfig.MaxContentLength)) // 请求头限制，最大32MB（但这是对所有请求的限制）
+	// gft.UseGlobalFit(mid.CpuMetric(nil))                        // cpu 统计 | 熔断
+
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
 	//app.Before(mid.Tracing)                        // 链路追踪，在日志打印之前执行，日志才会体现出标记
 	app.Before(mid.Logger)             // 所有请求写日志，根据配置输出日志样式
 	app.Before(mid.Breaker(reqKeeper)) // 自适应熔断：针对不同route，启动熔断机制（主要保护下游资源不被挤兑）
