@@ -192,8 +192,8 @@ func (gft *GoFast) buildMiniRoutes() {
 	fstMem.hdsNodesLen = 0
 	fstMem.treeCharsLen = 0
 	fstMem.allRadixMiniLen = 0
-	fstMem.routeGroupNum = 0
-	fstMem.routeItemNum = uint16(len(gft.allRoutes))
+	fstMem.routeGroupLen = 0
+	fstMem.routeItemLen = uint16(len(gft.allRoutes))
 	// end
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -220,6 +220,9 @@ func (gft *GoFast) buildMiniRoutes() {
 	// 将临时字符串byte数组 一次性转换成 string
 	fstMem.treeChars = string(fstMem.treeCharT)
 
+	// 所有路由节点URL
+	gft.allPaths = gft.RoutePaths()
+
 	// TODO: 释放掉原始树的资源，后面不可以根据这些树结构构造路由了。
 	if !gft.IsDebugging() {
 		fstMem.allCtxHandlers = nil
@@ -231,7 +234,7 @@ func (gft *GoFast) buildMiniRoutes() {
 		}
 
 		// 将原始路由和分组删除
-		gft.allRoutes = nil
+		gft.allRoutes = nil // allRoutes 不能清除，否则重要信息有丢失
 		gft.RouteGroup.children = nil
 	}
 }
@@ -248,7 +251,7 @@ func allocateMemSpace(gft *GoFast) {
 
 	// 第一种：处理函数节点空间
 	// 所有承载事件处理函数的Node个数（包括Group 和 Item）
-	hdsNodesCt := fstMem.routeGroupNum + fstMem.routeItemNum
+	hdsNodesCt := fstMem.routeGroupLen + fstMem.routeItemLen
 	fstMem.hdsNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
 
 	// 新的 handlers 指针数组
@@ -270,7 +273,7 @@ func allocateMemSpace(gft *GoFast) {
 // 返回所有节点新增加处理函数个数的和
 func gpCombineHandlers(gp *RouteGroup) uint16 {
 	// 所有分组个数
-	gp.myApp.fstMem.routeGroupNum++
+	gp.myApp.fstMem.routeGroupLen++
 	if gp.children == nil {
 		return gp.parentHdsLen
 	}

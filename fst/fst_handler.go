@@ -8,22 +8,13 @@ import (
 	"path"
 )
 
-// 特殊函数处理
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 系统默认错误处理函数，可以设置 code 和 message.
-func specialHandler(resStatus int, defaultMessage []byte) CtxHandler {
-	return func(c *Context) {
-		c.AbortDirect(resStatus, defaultMessage)
-	}
-}
-
 // 如果没有配置，添加默认的处理函数
 func (gft *GoFast) initDefaultHandlers() {
-	if gft.WebConfig.DefNoRouteHandler && len(gft.allRoutes[1].eHds) == 0 {
-		gft.Reg404(specialHandler(http.StatusNotFound, default404Body))
+	if len(gft.allRoutes[1].eHds) == 0 {
+		gft.Reg404(func(c *Context) { c.AbortDirect(http.StatusNotFound, "404 (Not Found)") })
 	}
-	if gft.WebConfig.DefNotAllowedHandler && len(gft.allRoutes[2].eHds) == 0 {
-		gft.Reg405(specialHandler(http.StatusMethodNotAllowed, default405Body))
+	if len(gft.allRoutes[2].eHds) == 0 {
+		gft.Reg405(func(c *Context) { c.AbortDirect(http.StatusMethodNotAllowed, "405 (Method Not Allowed)") })
 	}
 }
 

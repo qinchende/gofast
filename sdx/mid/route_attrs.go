@@ -28,7 +28,7 @@ func (ras *RAttrs) SetRouteIndex(routeIdx uint16) {
 // 对当前配置项，按照route索引顺序排序
 func (*attrsList) Reordering(app *fst.GoFast, rtLen uint16) {
 	old := RAttrsList
-	RAttrsList = make(attrsList, rtLen, rtLen)
+	RAttrsList = make(attrsList, rtLen)
 	for i := 0; i < len(old); i++ {
 		it := old[i]
 		RAttrsList[it.RIndex] = it

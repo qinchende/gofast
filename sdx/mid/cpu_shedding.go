@@ -16,7 +16,7 @@ import (
 // 1. cpu 是否过载。利用率 > 95%
 // 2. 请求大量熔断，最好不分路由的普遍发生熔断。
 func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
-	if kp == nil || sysx.CpuChecked == false {
+	if kp == nil || sysx.CpuMonitor == false {
 		return nil
 	}
 
@@ -25,7 +25,7 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 
 		shedding, err := kp.Shedding.Allow()
 		if err != nil {
-			kp.CounterAddDrop(c.RouteIdx)
+			kp.CounterDrop(c.RouteIdx)
 			kp.SheddingStat.Drop()
 
 			logx.ErrorF("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())

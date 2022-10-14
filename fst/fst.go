@@ -38,7 +38,8 @@ type GoFast struct {
 type HomeRouter struct {
 	RouteGroup              // HomeRouter 本身就是一个路由分组
 	ctxPool    sync.Pool    // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
-	allRoutes  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树
+	allRoutes  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树（）
+	allPaths   []string     // 相应的路由URL
 
 	// 有三个特殊 RouteItem： 1. any 2. noRoute  3. noMethod
 	// 这三个节点不参与构建路由树
@@ -80,9 +81,9 @@ func CreateServer(cfg *GfConfig) *GoFast {
 }
 
 func (gft *GoFast) initServerConfig() {
-	// 是否启动CPU检查
-	if gft.SdxConfig.NeedSysCheck {
-		sysx.StartSysCheck(gft.SdxConfig.NeedSysPrint)
+	// 是否启动硬件资源检测
+	if gft.SdxConfig.SysMonitor {
+		sysx.StartSysMonitor(gft.SdxConfig.SysStatePrint)
 	}
 	gft.SetMode(gft.RunMode)
 }
@@ -129,18 +130,6 @@ func (gft *GoFast) initHomeRouter() {
 		routeIdx: 2,
 	})
 	gft.fstMem = &fstMemSpace{myApp: gft}
-
-	//// TODO: 这里可以加入对全局路由的中间件函数（这里是已经匹配过路由的中间件）
-	//// TODO: 因为Server初始化之后就执行了这里，所以这里的中间件在客户自定义中间件之前
-	//// 加入路由的访问性能统计，但是这里还没有匹配路由，无法准确分路由统计
-	//if gft.EnableRouteMonitor {
-	//	// 初始化全局的keeper变量
-	//	door.InitKeeper(gft.FullPath)
-	//
-	//	// 加入全局路由的中间件
-	//	gft.Before(theFirstBeforeHandler)
-	//	gft.After(theLastAfterHandler)
-	//}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

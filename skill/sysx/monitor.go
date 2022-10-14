@@ -17,25 +17,24 @@ const (
 )
 
 var (
-	ckLook     sync.Mutex
-	CpuChecked bool // CPU 资源利用率监控是否启用
-
+	CpuMonitor     bool    // CPU 资源利用率监控是否启用
 	CpuCurUsage    float64 // CPU 最近3秒内的平均利用率
 	CpuSmoothUsage float64 // CPU 最近一段时间利用率
 
+	ckLook       sync.Mutex
 	cpuStatStep  []cpu.TimesStat
 	cpuStatPrint []cpu.TimesStat
 )
 
 // 启动CPU和内存统计
-func StartSysCheck(print bool) {
+func StartSysMonitor(print bool) {
 	// 此方法不能重复执行，
 	ckLook.Lock()
-	if CpuChecked {
+	if CpuMonitor {
 		ckLook.Unlock()
 		return
 	}
-	CpuChecked = true
+	CpuMonitor = true
 	ckLook.Unlock()
 
 	//// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++三方包CPU测试
@@ -74,6 +73,7 @@ func StartSysCheck(print bool) {
 					CpuSmoothUsage = CpuSmoothUsage*(1-beta) + CpuCurUsage*beta
 				})
 			case <-printTicker.C: // 60秒打印一次
+				// 启用CPU利用率的统计，但并不意味要打印状态信息
 				if print {
 					cpuStatPrintLast := cpuStatPrint
 					cpuStatPrint, _ = cpu.Times(false)

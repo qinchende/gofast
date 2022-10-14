@@ -23,7 +23,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		// 有错误信息返回，证明本次请求被熔断，接下来：
 		// 1. 本次记入丢弃请求统计  2. 打印错误信息  3. 返回服务器出错
 		if err != nil {
-			kp.CounterAddDrop(c.RouteIdx)
+			kp.CounterDrop(c.RouteIdx)
 
 			logx.ErrorF("[http] break, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
 			c.AbortDirect(http.StatusServiceUnavailable, "Break!!!")
