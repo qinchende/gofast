@@ -17,8 +17,8 @@ type fstMemSpace struct {
 	tidyHandlers []CtxHandler
 	tidyHdsLen   uint16
 
-	routeGroupNum uint16 // 所有分组个数，网站根目录就是第一个分组
-	routeItemNum  uint16 // 所有路由节点的个数，1个路由匹配就是一个ItemNode
+	routeGroupLen uint16 // 所有分组个数，网站根目录就是第一个分组
+	routeItemLen  uint16 // 所有路由节点的个数，1个路由匹配就是一个ItemNode
 
 	// 将路由树节点中的前缀字符 拼接 成一个大的字符串，以后所有路由查找都在这个字符串中
 	treeCharT    []byte

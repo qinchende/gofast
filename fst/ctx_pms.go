@@ -32,7 +32,7 @@ func (c *Context) Param(key string) string {
 // 框架每次都将请求所携带的相关数据解析之后加入统一的变量c.Pms中，这样对开发人员来说只需要关注c.Pms中有无自己想要的数据，
 // 至于数据是通过什么形式提交上来的并不那么重要。
 // 最常见的就是GET请求URL上的参数，POST请求中req.Body携带的信息
-func (c *Context) ParseRequestData() error {
+func (c *Context) BuildPms() error {
 	// 防止重复解析
 	if c.Pms != nil {
 		return nil

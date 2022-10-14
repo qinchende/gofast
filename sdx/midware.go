@@ -6,16 +6,13 @@ import (
 	"github.com/qinchende/gofast/sdx/mid"
 )
 
-func DefHandlers(app *fst.GoFast) *fst.GoFast {
+func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
-	reqKeeper := gate.CreateReqKeeper(app.ProjectName(), app.FullPath)
-	// 因为Routes的数量只能在加载完所有路由之后才知道
-	// 所以这里选择延时构造所有Breakers
+	reqKeeper := gate.CreateReqKeeper(app.ProjectName(), app.RoutePaths())
+	// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {
-		rtLength := app.RouteLength()
-
-		reqKeeper.InitKeeper(rtLength)
-		mid.RAttrsList.Reordering(app, rtLength)
+		reqKeeper.InitKeeper(app.RouteLen())
+		mid.RAttrsList.Reordering(app, app.RouteLen())
 	})
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -42,6 +39,13 @@ func DefHandlers(app *fst.GoFast) *fst.GoFast {
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
 	//app.Fit(mid.JwtAuthorize(app.FitJwtSecret))
+
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	// 特殊路由的处理链（中间件）
+	// 正确匹配路由之外的情况，比如特殊的404,504等路由处理链
+	if app.SdxConfig.UseSpecialHandlers {
+		app.SpecialBefore(mid.LoggerMini)
+	}
 	return app
 }
 

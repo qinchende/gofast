@@ -11,25 +11,11 @@ import (
 	"strconv"
 )
 
-// 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
-type RequestKeeper struct {
-	// 访问量统计 Counter
-	bucket  *reqContainer
-	counter *executors.IntervalExecutor
-
-	// 熔断器
-	Breakers []breaker.Breaker
-
-	// 降载组件
-	Shedding     load.Shedder
-	SheddingStat *sheddingStat
-}
-
-func CreateReqKeeper(name string, fp FuncGetPath) *RequestKeeper {
+func CreateReqKeeper(name string, paths []string) *RequestKeeper {
 	reqC := &reqContainer{
-		name:    name,
-		pid:     os.Getpid(),
-		getPath: fp,
+		pid:      os.Getpid(),
+		name:     name,
+		allPaths: paths,
 	}
 
 	return &RequestKeeper{
@@ -50,7 +36,7 @@ func (rk *RequestKeeper) InitKeeper(rtLen uint16) {
 	}
 
 	// 有个前提是 CPU 的监控必须启动
-	if sysx.CpuChecked {
+	if sysx.CpuMonitor {
 		// 初始化 降载 组件
 		rk.SheddingStat = createSheddingStat()  // 降载信息打印
 		rk.Shedding = load.NewAdaptiveShedder() // 降载统计分析
@@ -64,8 +50,7 @@ func (rk *RequestKeeper) CounterAdd(item ReqItem) {
 	rk.counter.Add(item)
 }
 
-// 添加一次被丢弃的请求，只需要标记本次
-func (rk *RequestKeeper) CounterAddDrop(idx uint16) {
+func (rk *RequestKeeper) CounterDrop(idx uint16) {
 	rk.counter.Add(ReqItem{
 		RouteIdx: idx,
 		Drop:     true,

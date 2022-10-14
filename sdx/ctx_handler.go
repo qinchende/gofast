@@ -1,11 +1,9 @@
 package sdx
 
-import (
-	"github.com/qinchende/gofast/fst"
-)
+import "github.com/qinchende/gofast/fst"
 
 func PmsParser(c *fst.Context) {
-	if err := c.ParseRequestData(); err != nil {
+	if err := c.BuildPms(); err != nil {
 		c.AbortFai(0, "PmsParser error: "+err.Error())
 	}
 }

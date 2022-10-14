@@ -11,8 +11,6 @@ import (
 var LogInterval = time.Minute
 
 type (
-	FuncGetPath func(id uint16) string // 获取当前请求对应的路径
-
 	// 每个请求需要消耗 2个字长 16字节的空间
 	ReqItem struct {
 		LossTime time.Duration // 单次请求耗时
@@ -35,9 +33,9 @@ type (
 
 	// 存放所有请求的处理时间，作为统计的容器
 	reqContainer struct {
-		getPath FuncGetPath
-		name    string
-		pid     int
+		allPaths []string
+		name     string
+		pid      int
 
 		currReqs  []ReqItem
 		sumRoutes []routeSum
@@ -122,6 +120,6 @@ func (rc *reqContainer) logPrint() {
 		}
 
 		logx.StatF("%s | suc: %d, drop: %d, qps: %.1f/s ave: %.1fms, max: %.1fms",
-			rc.getPath(uint16(idx)), route.accepts, route.drops, qps, aveTime, float32(route.maxLoss/time.Millisecond))
+			rc.allPaths[idx], route.accepts, route.drops, qps, aveTime, float32(route.maxLoss/time.Millisecond))
 	}
 }
