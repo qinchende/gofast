@@ -1,4 +1,4 @@
-package executors
+package exec
 
 import (
 	"github.com/qinchende/gofast/skill/gmp"
@@ -28,7 +28,7 @@ type (
 	}
 
 	// 管理周期执行的实体对象
-	IntervalExecutor struct {
+	Interval struct {
 		commander   chan any
 		confirmChan chan lang.PlaceholderType
 		interval    time.Duration
@@ -43,11 +43,11 @@ type (
 )
 
 // 初始化一个周期执行的实体对象
-func NewIntervalExecutor(interval time.Duration, container ItemContainer) *IntervalExecutor {
-	executor := &IntervalExecutor{
+func NewInterval(interval time.Duration, container ItemContainer) *Interval {
+	executor := &Interval{
 		// buffer 1 to let the caller go quickly
-		commander:   make(chan any, 1),
-		confirmChan: make(chan struct{}),
+		commander:   make(chan any, 1),   // 长度为1的有缓冲通道
+		confirmChan: make(chan struct{}), // 无缓冲通道
 		interval:    interval,
 		container:   container,
 		newTicker: func(d time.Duration) timex.Ticker {
@@ -61,7 +61,7 @@ func NewIntervalExecutor(interval time.Duration, container ItemContainer) *Inter
 	return executor
 }
 
-func (pe *IntervalExecutor) Add(item any) {
+func (pe *Interval) Add(item any) {
 	// 外界可以强制刷新日志，并将values传入可执行函数
 	if values, ok := pe.addAndCheck(item); ok {
 		pe.commander <- values
@@ -70,7 +70,7 @@ func (pe *IntervalExecutor) Add(item any) {
 }
 
 // 执行一次定时任务。
-func (pe *IntervalExecutor) Flush() bool {
+func (pe *Interval) Flush() bool {
 	pe.enterExecution()
 	return pe.executeTasks(func() any {
 		pe.lock.Lock()
@@ -79,13 +79,13 @@ func (pe *IntervalExecutor) Flush() bool {
 	}())
 }
 
-func (pe *IntervalExecutor) Sync(fn func()) {
+func (pe *Interval) Sync(fn func()) {
 	pe.lock.Lock()
 	defer pe.lock.Unlock()
 	fn()
 }
 
-func (pe *IntervalExecutor) Wait() {
+func (pe *Interval) Wait() {
 	pe.Flush()
 	pe.wgBarrier.Guard(func() {
 		pe.waitGroup.Wait()
@@ -93,7 +93,7 @@ func (pe *IntervalExecutor) Wait() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (pe *IntervalExecutor) addAndCheck(item any) (any, bool) {
+func (pe *Interval) addAndCheck(item any) (any, bool) {
 	pe.lock.Lock()
 	defer func() {
 		if !pe.isRunning {
@@ -114,7 +114,7 @@ func (pe *IntervalExecutor) addAndCheck(item any) (any, bool) {
 }
 
 // 后台启动新的协程运行周期任务
-func (pe *IntervalExecutor) loopFlush() {
+func (pe *Interval) loopFlush() {
 	gmp.GoSafe(func() {
 		// flush before quit goroutine to avoid missing items
 		defer pe.Flush()
@@ -152,7 +152,7 @@ func (pe *IntervalExecutor) loopFlush() {
 }
 
 // 一定次数循环发现没有新任务，自动退出定时循环
-func (pe *IntervalExecutor) quitLoop(last time.Duration) (stop bool) {
+func (pe *Interval) quitLoop(last time.Duration) (stop bool) {
 	if timex.Since(last) <= pe.interval*idleRound {
 		return
 	}
@@ -170,17 +170,17 @@ func (pe *IntervalExecutor) quitLoop(last time.Duration) (stop bool) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-func (pe *IntervalExecutor) doneExecution() {
+func (pe *Interval) doneExecution() {
 	pe.waitGroup.Done()
 }
 
-func (pe *IntervalExecutor) enterExecution() {
+func (pe *Interval) enterExecution() {
 	pe.wgBarrier.Guard(func() {
 		pe.waitGroup.Add(1)
 	})
 }
 
-func (pe *IntervalExecutor) executeTasks(items any) bool {
+func (pe *Interval) executeTasks(items any) bool {
 	defer pe.doneExecution()
 	ok := pe.hasTasks(items)
 	if ok {
@@ -189,7 +189,7 @@ func (pe *IntervalExecutor) executeTasks(items any) bool {
 	return ok
 }
 
-func (pe *IntervalExecutor) hasTasks(items any) bool {
+func (pe *Interval) hasTasks(items any) bool {
 	if items == nil {
 		return false
 	}

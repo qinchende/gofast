@@ -1,4 +1,4 @@
-package stringx
+package lang
 
 type node struct {
 	children map[rune]*node

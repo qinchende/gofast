@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/fs"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 	"io"
 	"log"
@@ -169,7 +168,7 @@ func (rl *RotateLogger) Writeln(str string) (err error) {
 		_, err = rl.Write(bytes)
 		return
 	}
-	_, err = rl.Write(stringx.StringToBytes(str))
+	_, err = rl.Write(lang.StringToBytes(str))
 	return
 }
 
@@ -186,7 +185,7 @@ func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
 	if str[len(str)-1] != '\n' {
 		sb.WriteByte('\n')
 	}
-	_, err = rl.Write(stringx.StringToBytes(sb.String()))
+	_, err = rl.Write(lang.StringToBytes(sb.String()))
 	return
 }
 

@@ -28,7 +28,8 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 			kp.CounterDrop(c.RouteIdx)
 			kp.SheddingStat.Drop()
 
-			logx.ErrorF("[http] load shedding, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
+			r := c.ReqRaw
+			logx.ErrorF("[http] load shedding, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
 			c.AbortDirect(http.StatusServiceUnavailable, "LoadShedding!!!")
 			return
 		}
@@ -44,6 +45,41 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 
 		// 执行后面的处理函数
 		c.Next()
+	}
+}
+
+func HttpLoadShedding(kp *gate.RequestKeeper) fst.HttpHandler {
+	if kp == nil || sysx.CpuMonitor == false {
+		return nil
+	}
+
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			kp.SheddingStat.Total()
+			shedding, err := kp.Shedding.Allow()
+			if err != nil {
+				// TODO: kp.CounterDrop(c.RouteIdx)
+				kp.CounterDrop(0)
+				kp.SheddingStat.Drop()
+				logx.ErrorF("[http] load shedding, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
+				w.WriteHeader(http.StatusServiceUnavailable)
+				return
+			}
+
+			// 包裹ResponseWriter
+			cw := &httpx.ResponseWriterWrapCode{Writer: w}
+			defer func() {
+				if cw.Code == http.StatusServiceUnavailable {
+					shedding.Fail()
+				} else {
+					kp.SheddingStat.Pass()
+					shedding.Pass()
+				}
+			}()
+
+			// 执行后面的处理函数
+			next(cw, r)
+		}
 	}
 }
 

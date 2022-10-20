@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-func (gft *GoFast) RouteLen() uint16 {
+func (gft *GoFast) RoutesLen() uint16 {
 	return uint16(len(gft.allRoutes))
 }
 

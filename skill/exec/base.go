@@ -1,4 +1,4 @@
-package executors
+package exec
 
 import "time"
 

@@ -1,4 +1,4 @@
-package threading
+package gmp
 
 import (
 	"github.com/qinchende/gofast/logx"

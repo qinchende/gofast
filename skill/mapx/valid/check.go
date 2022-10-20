@@ -3,7 +3,7 @@ package valid
 import (
 	"errors"
 	"fmt"
-	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"regexp"
 )
@@ -38,7 +38,7 @@ func ValidateField(fValue reflect.Value, fOpts *FieldOpts) error {
 			}
 		}
 		// 检查是否符合枚举
-		if fOpts.Enum != nil && !stringx.Contains(fOpts.Enum, str) {
+		if fOpts.Enum != nil && !lang.Contains(fOpts.Enum, str) {
 			return fmt.Errorf(`value "%s" not in "%v"`, str, fOpts.Enum)
 		}
 		// 否则常见的正则表达式

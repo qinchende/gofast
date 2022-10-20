@@ -22,11 +22,13 @@ type WebConfig struct {
 // 闪电侠实现的中间件控制参数
 type SdxConfig struct {
 	JwtSecret          string `v:""`                                // JWT认证的秘钥
-	DefTimeoutMS       int64  `v:"def=3000"`                        // 每次请求的超时时间（单位：毫秒）
 	MaxContentLength   int64  `v:"def=33554432"`                    // 最大请求字节数，32MB（33554432），传0不限制
 	MaxConnections     int32  `v:"def=1000000,range=[0:100000000]"` // 最大同时请求数，默认100万同时进入，传0不限制
 	UseSpecialHandlers bool   `v:"def=true"`                        // 是否启用默认的特殊路由中间件
 	SysMonitor         bool   `v:"def=true"`                        // 是否启动CPU使用情况的定时检查工作
 	SysStatePrint      bool   `v:"def=true"`                        // 定时打印系统检查日志
-	EnableTimeout      bool   `v:"def=true"`                        // 默认启动超时拦截
+
+	EnableTrack   bool  `v:"def=false"` // 启动链路追踪
+	EnableTimeout bool  `v:"def=true"`  // 启动超时拦截
+	DefTimeoutMS  int64 `v:"def=3000"`  // 默认请求超时时间（单位：毫秒）
 }

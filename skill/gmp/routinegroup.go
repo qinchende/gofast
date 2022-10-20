@@ -1,4 +1,4 @@
-package threading
+package gmp
 
 import "sync"
 

@@ -2,48 +2,46 @@
 // Use of this source code is governed by a MIT license
 package mid
 
-import "github.com/qinchende/gofast/fst"
+import (
+	"github.com/qinchende/gofast/cst"
+)
 
 type (
-	RAttrs struct {
-		RIndex  uint16 // 此路由在路由数组中的索引值
-		MaxLen  int64  `v:"def=0"` // 最大请求字节数，32MB（def=33554432）
-		Timeout int32  `v:"def=0"` // 超时时间毫秒，默认去全局的超时时间
+	Attrs struct {
+		RIndex    uint16 `v:""` // 索引位置
+		MaxLen    int64  `v:""` // 最大请求长度，0不限制
+		TimeoutMS int32  `v:""` // 超时时间毫秒
 
 		//MaxReq    int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量 (对单个请求不支持这个参数，这个是由自适应降载逻辑自动判断的)
 		//BreakRate float32 `cnf:",def=3000,range=[0:600000]"` // google sre算法K值敏感度，K 越小越容易丢请求，推荐 1.5-2 之间 （这个算法目前底层写死1.5，基本上通用了，不必每个路由单独设置）
 	}
-	attrsList []*RAttrs // 高级功能：每项路由可选配置，精准控制
+	allAttrs []*Attrs // 高级功能：每项路由可选配置，精准控制
 )
 
-var (
-	RAttrsList attrsList // 所有配置项汇总
-)
+var AllAttrs allAttrs // 所有配置项汇总
 
-func (ras *RAttrs) SetRouteIndex(routeIdx uint16) {
+func (ras *Attrs) SetRouteIndex(routeIdx uint16) {
 	ras.RIndex = routeIdx
-	RAttrsList = append(RAttrsList, ras)
+	AllAttrs = append(AllAttrs, ras)
 }
 
-// 对当前配置项，按照route索引顺序排序
-func (*attrsList) Reordering(app *fst.GoFast, rtLen uint16) {
-	old := RAttrsList
-	RAttrsList = make(attrsList, rtLen)
-	for i := 0; i < len(old); i++ {
-		it := old[i]
-		RAttrsList[it.RIndex] = it
+// 构建所有路由的属性数组。没有指定的就用默认值填充。
+func (*allAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
+	old := AllAttrs
+	AllAttrs = make(allAttrs, routesLen)
+	for _, it := range old {
+		AllAttrs[it.RIndex] = it
 	}
 
-	// 设置默认值
-	var defAttrs RAttrs
-	defAttrs.MaxLen = 0
-	defAttrs.Timeout = int32(app.SdxConfig.DefTimeoutMS)
-	//defAttrs.MaxReq = 1000000
-	//defAttrs.BreakRate = 1.5
-
-	for i := 0; i < len(RAttrsList); i++ {
-		if RAttrsList[i] == nil {
-			RAttrsList[i] = &defAttrs
+	defAttrs := Attrs{
+		MaxLen:    0,
+		TimeoutMS: int32(cnf.DefTimeoutMS),
+		//MaxReq:    1000000,
+		//BreakRate: 1.5,
+	}
+	for idx, it := range AllAttrs {
+		if it == nil {
+			AllAttrs[idx] = &defAttrs
 		}
 	}
 }

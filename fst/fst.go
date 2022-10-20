@@ -48,8 +48,9 @@ type HomeRouter struct {
 	miniNode404  *radixMiniNode
 	miniNode405  *radixMiniNode
 
-	// 虽然支持 RESTFUL 路由规范，但 GET 和 POST 是一等公民。
-	// 绝大部分应用Get和Post路由居多，我们能尽快匹配就不需要无用的Method比较选择的过程
+	// 虽然支持 RESTFUL 路由规范，但本框架 GET 和 POST 是一等公民
+	// 绝大部分应用Get和Post请求居多，我们能尽快匹配就不需要无用的Method比较选择的过程
+	//（我主张不要过分强调restful风格，这本身就是个鸡肋概念，没有完全解决问题，反而带来思想负担，引发无用争辩）。
 	routerTrees methodTrees
 
 	// 主要以数组结构的形式，存储了 Routes & Handlers
