@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/mapx/valid"
-	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strconv"
 	"strings"
@@ -230,13 +230,13 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 		}
 		return sdxSetStringArray(dst, vs)
 	case reflect.Map:
-		return jsonx.Unmarshal(dst.Addr().Interface(), stringx.StringToBytes(src))
+		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
 			return sdxSetTime(dst, src)
 		}
-		return jsonx.Unmarshal(dst.Addr().Interface(), stringx.StringToBytes(src))
+		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
 	default:
 		return errors.New("unknown type")
 	}

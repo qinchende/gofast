@@ -3,7 +3,7 @@ package sqlx
 import (
 	"fmt"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"strings"
@@ -37,7 +37,7 @@ func insertSql(mss *orm.ModelSchema) string {
 			bVal[ct] = '?'
 			ct++
 		}
-		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ms.TableName(), sBuf.String(), stringx.BytesToString(bVal))
+		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ms.TableName(), sBuf.String(), lang.BytesToString(bVal))
 	})
 }
 

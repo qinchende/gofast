@@ -1,4 +1,4 @@
-package executors
+package exec
 
 import "time"
 
@@ -7,8 +7,8 @@ const defaultChunkSize = 1024 * 1024 // 1M
 type (
 	ChunkOption func(options *chunkOptions)
 
-	ChunkExecutor struct {
-		executor  *IntervalExecutor
+	Chunk struct {
+		executor  *Interval
 		container *chunkContainer
 	}
 
@@ -18,7 +18,7 @@ type (
 	}
 )
 
-func NewChunkExecutor(execute Execute, opts ...ChunkOption) *ChunkExecutor {
+func NewChunk(execute Execute, opts ...ChunkOption) *Chunk {
 	options := newChunkOptions()
 	for _, opt := range opts {
 		opt(&options)
@@ -28,15 +28,15 @@ func NewChunkExecutor(execute Execute, opts ...ChunkOption) *ChunkExecutor {
 		execute:      execute,
 		maxChunkSize: options.chunkSize,
 	}
-	executor := &ChunkExecutor{
-		executor:  NewIntervalExecutor(options.flushInterval, container),
+	executor := &Chunk{
+		executor:  NewInterval(options.flushInterval, container),
 		container: container,
 	}
 
 	return executor
 }
 
-func (ce *ChunkExecutor) Add(task any, size int) error {
+func (ce *Chunk) Add(task any, size int) error {
 	ce.executor.Add(chunk{
 		val:  task,
 		size: size,
@@ -44,11 +44,11 @@ func (ce *ChunkExecutor) Add(task any, size int) error {
 	return nil
 }
 
-func (ce *ChunkExecutor) Flush() {
+func (ce *Chunk) Flush() {
 	ce.executor.Flush()
 }
 
-func (ce *ChunkExecutor) Wait() {
+func (ce *Chunk) Wait() {
 	ce.executor.Wait()
 }
 

@@ -8,10 +8,9 @@ import (
 	"bytes"
 	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"html/template"
 	"net/http"
-
-	"github.com/qinchende/gofast/skill/stringx"
 )
 
 var jsonContentType = []string{"application/json; charset=utf-8"}
@@ -104,9 +103,9 @@ func (r SecureJSON) Write(w http.ResponseWriter) error {
 		return err
 	}
 	// if the jsonBytes is array values
-	if bytes.HasPrefix(jsonBytes, stringx.StringToBytes("[")) && bytes.HasSuffix(jsonBytes,
-		stringx.StringToBytes("]")) {
-		_, err = w.Write(stringx.StringToBytes(r.Prefix))
+	if bytes.HasPrefix(jsonBytes, lang.StringToBytes("[")) && bytes.HasSuffix(jsonBytes,
+		lang.StringToBytes("]")) {
+		_, err = w.Write(lang.StringToBytes(r.Prefix))
 		if err != nil {
 			return err
 		}
@@ -134,11 +133,11 @@ func (r JsonpJSON) Write(w http.ResponseWriter) (err error) {
 	}
 
 	callback := template.JSEscapeString(r.Callback)
-	_, err = w.Write(stringx.StringToBytes(callback))
+	_, err = w.Write(lang.StringToBytes(callback))
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(stringx.StringToBytes("("))
+	_, err = w.Write(lang.StringToBytes("("))
 	if err != nil {
 		return err
 	}
@@ -146,7 +145,7 @@ func (r JsonpJSON) Write(w http.ResponseWriter) (err error) {
 	if err != nil {
 		return err
 	}
-	_, err = w.Write(stringx.StringToBytes(");"))
+	_, err = w.Write(lang.StringToBytes(");"))
 	if err != nil {
 		return err
 	}
@@ -168,7 +167,7 @@ func (r AsciiJSON) Write(w http.ResponseWriter) (err error) {
 	}
 
 	var buffer bytes.Buffer
-	for _, r := range stringx.BytesToString(ret) {
+	for _, r := range lang.BytesToString(ret) {
 		cvt := string(r)
 		if r >= 128 {
 			cvt = fmt.Sprintf("\\u%04x", int64(r))

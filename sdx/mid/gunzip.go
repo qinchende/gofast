@@ -11,7 +11,7 @@ import (
 )
 
 func Gunzip(c *fst.Context) {
-	if strings.Contains(c.ReqRaw.Header.Get(cst.HeaderContentEncoding), "gzip") {
+	if strings.Contains(c.GetHeader(cst.HeaderContentEncoding), "gzip") {
 		reader, err := gzip.NewReader(c.ReqRaw.Body)
 		if err != nil {
 			c.AbortDirect(http.StatusBadRequest, "Can't unzip body!!!")

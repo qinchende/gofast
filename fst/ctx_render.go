@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/stringx"
 	"net/http"
 )
 
@@ -184,12 +183,12 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 	var data []byte
 	switch stream.(type) {
 	case string:
-		data = stringx.StringToBytes(stream.(string))
+		data = lang.StringToBytes(stream.(string))
 	case []byte:
 		data = stream.([]byte)
 	default:
 		str := lang.ToString(stream)
-		data = stringx.StringToBytes(str)
+		data = lang.StringToBytes(str)
 	}
 	_ = c.ResWrap.SendHijack(resStatus, data)
 }

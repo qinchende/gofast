@@ -4,34 +4,48 @@ package gate
 
 import (
 	"github.com/qinchende/gofast/skill/breaker"
-	"github.com/qinchende/gofast/skill/executors"
+	"github.com/qinchende/gofast/skill/exec"
 	"github.com/qinchende/gofast/skill/load"
 	"github.com/qinchende/gofast/skill/sysx"
 	"os"
 	"strconv"
 )
 
-func CreateReqKeeper(name string, paths []string) *RequestKeeper {
+// 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
+type RequestKeeper struct {
+	// 访问量统计 Counter
+	bucket  *reqContainer
+	counter *exec.Interval
+
+	// 熔断
+	Breakers []breaker.Breaker
+
+	// 降载
+	Shedding     load.Shedder
+	SheddingStat *sheddingStat
+}
+
+func NewReqKeeper(name string, paths []string) *RequestKeeper {
 	reqC := &reqContainer{
-		pid:      os.Getpid(),
-		name:     name,
-		allPaths: paths,
+		pid:   os.Getpid(),
+		name:  name,
+		paths: paths,
 	}
 
 	return &RequestKeeper{
-		counter: executors.NewIntervalExecutor(LogInterval, reqC),
+		counter: exec.NewInterval(LogInterval, reqC),
 		bucket:  reqC,
 	}
 }
 
 // 每项路由都有自己单独的熔断器，熔断器采用滑动窗口限流算法
-func (rk *RequestKeeper) InitKeeper(rtLen uint16) {
+func (rk *RequestKeeper) InitKeeper(routesLen uint16) {
 	// 初始化整个路由统计结构
-	rk.bucket.sumRoutes = make([]routeSum, rtLen, rtLen)
+	rk.bucket.sumRoutes = make([]routeSum, routesLen)
 
-	// rk.container.
-	rk.Breakers = make([]breaker.Breaker, 0, rtLen)
-	for i := 0; i < int(rtLen); i++ {
+	// 初始化所有Breaker
+	rk.Breakers = make([]breaker.Breaker, 0, routesLen)
+	for i := 0; i < int(routesLen); i++ {
 		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
 	}
 
@@ -46,12 +60,12 @@ func (rk *RequestKeeper) InitKeeper(rtLen uint16) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加一次请求项目
-func (rk *RequestKeeper) CounterAdd(item ReqItem) {
+func (rk *RequestKeeper) CounterAdd(item OneReq) {
 	rk.counter.Add(item)
 }
 
 func (rk *RequestKeeper) CounterDrop(idx uint16) {
-	rk.counter.Add(ReqItem{
+	rk.counter.Add(OneReq{
 		RouteIdx: idx,
 		Drop:     true,
 	})

@@ -1,9 +1,7 @@
-package stringx
+package lang
 
 import (
 	"errors"
-
-	"github.com/qinchende/gofast/skill/lang"
 )
 
 var (
@@ -113,13 +111,13 @@ func TakeWithPriority(fns ...func() string) string {
 }
 
 func Union(first, second []string) []string {
-	set := make(map[string]lang.PlaceholderType)
+	set := make(map[string]PlaceholderType)
 
 	for _, each := range first {
-		set[each] = lang.Placeholder
+		set[each] = Placeholder
 	}
 	for _, each := range second {
-		set[each] = lang.Placeholder
+		set[each] = Placeholder
 	}
 
 	merged := make([]string, 0, len(set))

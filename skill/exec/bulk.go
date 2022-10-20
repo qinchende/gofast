@@ -1,4 +1,4 @@
-package executors
+package exec
 
 import "time"
 
@@ -7,8 +7,8 @@ const defaultBulkTasks = 1000
 type (
 	BulkOption func(options *bulkOptions)
 
-	BulkExecutor struct {
-		executor  *IntervalExecutor
+	Bulk struct {
+		executor  *Interval
 		container *bulkContainer
 	}
 
@@ -18,7 +18,7 @@ type (
 	}
 )
 
-func NewBulkExecutor(execute Execute, opts ...BulkOption) *BulkExecutor {
+func NewBulk(execute Execute, opts ...BulkOption) *Bulk {
 	options := newBulkOptions()
 	for _, opt := range opts {
 		opt(&options)
@@ -28,24 +28,24 @@ func NewBulkExecutor(execute Execute, opts ...BulkOption) *BulkExecutor {
 		execute:  execute,
 		maxTasks: options.cachedTasks,
 	}
-	executor := &BulkExecutor{
-		executor:  NewIntervalExecutor(options.flushInterval, container),
+	executor := &Bulk{
+		executor:  NewInterval(options.flushInterval, container),
 		container: container,
 	}
 
 	return executor
 }
 
-func (be *BulkExecutor) Add(task any) error {
+func (be *Bulk) Add(task any) error {
 	be.executor.Add(task)
 	return nil
 }
 
-func (be *BulkExecutor) Flush() {
+func (be *Bulk) Flush() {
 	be.executor.Flush()
 }
 
-func (be *BulkExecutor) Wait() {
+func (be *Bulk) Wait() {
 	be.executor.Wait()
 }
 

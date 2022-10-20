@@ -30,17 +30,24 @@ import (
 //}
 
 // 启动链路追踪
-func Tracing(ctx *fst.Context) {
-	carrier, err := trace.Extract(trace.HttpFormat, ctx.ReqRaw.Header)
-	// ErrInvalidCarrier means no trace id was set in http header
-	if err != nil && err != trace.ErrInvalidCarrier {
-		logx.Error(err.Error())
+
+func Tracing(useTracing bool) fst.CtxHandler {
+	if useTracing == false {
+		return nil
 	}
 
-	newCtx, span := trace.StartServerSpan(ctx.ReqRaw.Context(), carrier, host.Hostname(), ctx.ReqRaw.RequestURI)
-	defer span.Finish()
-	ctx.ReqRaw = ctx.ReqRaw.WithContext(newCtx)
+	return func(c *fst.Context) {
+		carrier, err := trace.Extract(trace.HttpFormat, c.ReqRaw.Header)
+		// ErrInvalidCarrier means no trace id was set in http header
+		if err != nil && err != trace.ErrInvalidCarrier {
+			logx.Error(err.Error())
+		}
 
-	// 有 defer ，这里的 ctx.Next() 有意义
-	ctx.Next()
+		newCtx, span := trace.StartServerSpan(c.ReqRaw.Context(), carrier, host.Hostname(), c.ReqRaw.RequestURI)
+		defer span.Finish()
+		c.ReqRaw = c.ReqRaw.WithContext(newCtx)
+
+		// 有 defer ，这里的 ctx.Next() 有意义
+		c.Next()
+	}
 }

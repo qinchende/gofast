@@ -1,7 +1,6 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
 //go:build linux
-// +build linux
 
 package breaker
 
@@ -15,7 +14,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/qinchende/gofast/skill/executors"
 	"github.com/qinchende/gofast/skill/proc"
 	"github.com/qinchende/gofast/skill/timex"
 )
@@ -29,7 +27,7 @@ const (
 var (
 	reporter     = logx.Info
 	lock         sync.RWMutex
-	lessExecutor = executors.NewLessExecutor(time.Minute * 5)
+	lessExecutor = exec.NewLessExecutor(time.Minute * 5)
 	dropped      int32
 	clusterName  = proc.Env(clusterNameKey)
 )

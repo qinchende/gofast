@@ -12,7 +12,7 @@ var LogInterval = time.Minute
 
 type (
 	// 每个请求需要消耗 2个字长 16字节的空间
-	ReqItem struct {
+	OneReq struct {
 		LossTime time.Duration // 单次请求耗时
 		RouteIdx uint16        // 当前请求对应路由树节点的index，这用来单独统计不同route
 		Drop     bool          // 是否是一个被丢弃的请求（熔断或者资源超限拒绝处理）
@@ -20,24 +20,23 @@ type (
 
 	// 包裹一层，用于在定时任务器中传递对象
 	deliverItems struct {
-		reqs []ReqItem
+		reqs []OneReq
 	}
 
-	// 2个字节
 	routeSum struct {
 		sumTime time.Duration
+		maxLoss time.Duration
 		accepts uint32
 		drops   uint32
-		maxLoss time.Duration
 	}
 
 	// 存放所有请求的处理时间，作为统计的容器
 	reqContainer struct {
-		allPaths []string
-		name     string
-		pid      int
+		paths []string
+		name  string
+		pid   int
 
-		currReqs  []ReqItem
+		currReqs  []OneReq
 		sumRoutes []routeSum
 	}
 )
@@ -57,7 +56,7 @@ func (rc *reqContainer) resetSum() {
 // 如果这里返回true，意味着要立刻刷新当前所有统计数据，这个开关用户自定义输出日志
 // 一般这里都应该返回 false
 func (rc *reqContainer) AddItem(v any) bool {
-	if item, ok := v.(ReqItem); ok {
+	if item, ok := v.(OneReq); ok {
 		rc.currReqs = append(rc.currReqs, item)
 	}
 	return false
@@ -77,8 +76,8 @@ func (rc *reqContainer) RemoveAll() any {
 // 执行统计输出
 func (rc *reqContainer) Execute(items any) {
 	// 这里不需要断言判断类型转换的真假，因为结果是上面 RemoveAll 返回的
-	ret := items.(deliverItems)
-	reqs := ret.reqs
+	ret := items.([]OneReq)
+	reqs := ret
 	rc.resetSum()
 
 	// 用一次循环，分别统计不同route的访问情况
@@ -120,6 +119,6 @@ func (rc *reqContainer) logPrint() {
 		}
 
 		logx.StatF("%s | suc: %d, drop: %d, qps: %.1f/s ave: %.1fms, max: %.1fms",
-			rc.allPaths[idx], route.accepts, route.drops, qps, aveTime, float32(route.maxLoss/time.Millisecond))
+			rc.paths[idx], route.accepts, route.drops, qps, aveTime, float32(route.maxLoss/time.Millisecond))
 	}
 }

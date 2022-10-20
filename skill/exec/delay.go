@@ -1,27 +1,26 @@
-package executors
+package exec
 
 import (
+	"github.com/qinchende/gofast/skill/gmp"
 	"sync"
 	"time"
-
-	"github.com/qinchende/gofast/skill/threading"
 )
 
-type DelayExecutor struct {
+type Delay struct {
 	fn        func()
 	delay     time.Duration
 	triggered bool
 	lock      sync.Mutex
 }
 
-func NewDelayExecutor(fn func(), delay time.Duration) *DelayExecutor {
-	return &DelayExecutor{
+func NewDelay(fn func(), delay time.Duration) *Delay {
+	return &Delay{
 		fn:    fn,
 		delay: delay,
 	}
 }
 
-func (de *DelayExecutor) Trigger() {
+func (de *Delay) Trigger() {
 	de.lock.Lock()
 	defer de.lock.Unlock()
 
@@ -30,7 +29,7 @@ func (de *DelayExecutor) Trigger() {
 	}
 
 	de.triggered = true
-	threading.GoSafe(func() {
+	gmp.GoSafe(func() {
 		timer := time.NewTimer(de.delay)
 		defer timer.Stop()
 		<-timer.C

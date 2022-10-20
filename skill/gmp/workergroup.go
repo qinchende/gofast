@@ -1,4 +1,4 @@
-package threading
+package gmp
 
 type WorkerGroup struct {
 	job     func()

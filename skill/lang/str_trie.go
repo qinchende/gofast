@@ -1,6 +1,4 @@
-package stringx
-
-import "github.com/qinchende/gofast/skill/lang"
+package lang
 
 const defaultMask = '*'
 
@@ -67,9 +65,9 @@ func (n *trieNode) FindKeywords(text string) []string {
 }
 
 func (n *trieNode) collectKeywords(chars []rune, scopes []scope) []string {
-	set := make(map[string]lang.PlaceholderType)
+	set := make(map[string]PlaceholderType)
 	for _, v := range scopes {
-		set[string(chars[v.start:v.stop])] = lang.Placeholder
+		set[string(chars[v.start:v.stop])] = Placeholder
 	}
 
 	var i int

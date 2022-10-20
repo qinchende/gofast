@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/hash"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/stringx"
 	"reflect"
 	"strings"
 	"time"
@@ -131,7 +130,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 			mdAttrs = &ModelAttrs{}
 		}
 		if mdAttrs.TableName == "" {
-			mdAttrs.TableName = stringx.Camel2Snake(rTyp.Name())
+			mdAttrs.TableName = lang.Camel2Snake(rTyp.Name())
 		}
 		mdAttrs.hashNumber = hash.Hash(lang.StringToBytes(strings.Join(fDB, ",")))
 		hashStr := lang.ToString(mdAttrs.hashNumber)
@@ -204,7 +203,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[3]string) ([]str
 			dbf = fi.Tag.Get(dbColumnNameTag2)
 		}
 		if dbf == "" {
-			dbf = stringx.Camel2Snake(fi.Name)
+			dbf = lang.Camel2Snake(fi.Name)
 		}
 		fColumns = append(fColumns, dbf)
 

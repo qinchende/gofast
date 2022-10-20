@@ -3,11 +3,11 @@ package trace
 import (
 	"context"
 	"fmt"
+	"github.com/qinchende/gofast/skill/lang"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 	"github.com/qinchende/gofast/skill/trace/tracespec"
 )
@@ -31,13 +31,13 @@ type Span struct {
 }
 
 func newServerSpan(carrier Carrier, serviceName, operationName string) tracespec.Trace {
-	traceId := stringx.TakeWithPriority(func() string {
+	traceId := lang.TakeWithPriority(func() string {
 		if carrier != nil {
 			return carrier.Get(traceIdKey)
 		}
 		return ""
-	}, stringx.RandId)
-	spanId := stringx.TakeWithPriority(func() string {
+	}, lang.RandId)
+	spanId := lang.TakeWithPriority(func() string {
 		if carrier != nil {
 			return carrier.Get(spanIdKey)
 		}

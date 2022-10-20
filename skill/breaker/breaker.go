@@ -3,12 +3,12 @@ package breaker
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/skill/lang"
 	"strings"
 	"sync"
 
 	"github.com/qinchende/gofast/skill/mathx"
 	"github.com/qinchende/gofast/skill/proc"
-	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/skill/timex"
 )
 
@@ -102,7 +102,7 @@ func NewBreaker(opts ...Option) Breaker {
 		opt(&b)
 	}
 	if len(b.name) == 0 {
-		b.name = stringx.Rand()
+		b.name = lang.Rand()
 	}
 	b.throttle = newLoggedThrottle(b.name, newGoogleBreaker())
 

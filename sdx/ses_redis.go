@@ -3,7 +3,7 @@ package sdx
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/stringx"
+	"github.com/qinchende/gofast/skill/lang"
 	"time"
 )
 
@@ -14,7 +14,7 @@ func (ss *CtxSession) loadSessionFromRedis(c *fst.Context) error {
 	if str == "" || err != nil {
 		str = "{}"
 	}
-	return jsonx.Unmarshal(&ss.values, stringx.StringToBytes(str))
+	return jsonx.Unmarshal(&ss.values, lang.StringToBytes(str))
 }
 
 // 保存到 redis

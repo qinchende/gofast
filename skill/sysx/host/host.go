@@ -1,9 +1,8 @@
 package host
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"os"
-
-	"github.com/qinchende/gofast/skill/stringx"
 )
 
 var hostname string
@@ -12,7 +11,7 @@ func init() {
 	var err error
 	hostname, err = os.Hostname()
 	if err != nil {
-		hostname = stringx.RandId()
+		hostname = lang.RandId()
 	}
 }
 

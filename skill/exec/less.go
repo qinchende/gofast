@@ -1,4 +1,4 @@
-package executors
+package exec
 
 import (
 	"time"
@@ -7,19 +7,19 @@ import (
 	"github.com/qinchende/gofast/skill/timex"
 )
 
-type LessExecutor struct {
+type Less struct {
 	threshold time.Duration
 	lastTime  *syncx.AtomicDuration
 }
 
-func NewLessExecutor(threshold time.Duration) *LessExecutor {
-	return &LessExecutor{
+func NewLess(threshold time.Duration) *Less {
+	return &Less{
 		threshold: threshold,
 		lastTime:  syncx.NewAtomicDuration(),
 	}
 }
 
-func (le *LessExecutor) DoOrDiscard(execute func()) bool {
+func (le *Less) DoOrDiscard(execute func()) bool {
 	now := timex.Now()
 	lastTime := le.lastTime.Load()
 	if lastTime == 0 || lastTime+le.threshold < now {

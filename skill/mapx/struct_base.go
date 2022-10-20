@@ -2,8 +2,8 @@ package mapx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/mapx/valid"
-	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"sync"
@@ -162,7 +162,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]str
 			col = fi.Tag.Get(fieldNameTag2)
 		}
 		if col == "" {
-			col = stringx.Camel2Snake(fi.Name)
+			col = lang.Camel2Snake(fi.Name)
 		}
 		fColumns = append(fColumns, col)
 
