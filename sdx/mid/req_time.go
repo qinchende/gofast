@@ -10,17 +10,17 @@ import (
 
 // ++++++++++++++++++++++ add by cd.net 2021.10.14
 // 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
-func ExecTime(kp *gate.RequestKeeper) fst.CtxHandler {
+func TimeMetric(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
 
 	return func(c *fst.Context) {
+		defer func() {
+			// 统计耗时
+			kp.AddNormal(c.RouteIdx, timex.Since(c.EnterTime))
+		}()
+
 		c.Next()
-		// 执行完所有处理之后统计耗时
-		kp.CounterAdd(gate.OneReq{
-			RouteIdx: c.RouteIdx,
-			LossTime: timex.Since(c.EnterTime),
-		})
 	}
 }
