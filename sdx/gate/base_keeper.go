@@ -6,9 +6,9 @@ import (
 	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/exec"
 	"github.com/qinchende/gofast/skill/load"
-	"github.com/qinchende/gofast/skill/sysx"
 	"os"
 	"strconv"
+	"time"
 )
 
 // 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
@@ -16,6 +16,7 @@ type RequestKeeper struct {
 	// 访问量统计 Counter
 	bucket  *reqContainer
 	counter *exec.Interval
+	started bool
 
 	// 熔断
 	Breakers []breaker.Breaker
@@ -25,11 +26,10 @@ type RequestKeeper struct {
 	SheddingStat *sheddingStat
 }
 
-func NewReqKeeper(name string, paths []string) *RequestKeeper {
+func NewReqKeeper(name string) *RequestKeeper {
 	reqC := &reqContainer{
-		pid:   os.Getpid(),
-		name:  name,
-		paths: paths,
+		pid:  os.Getpid(),
+		name: name,
 	}
 
 	return &RequestKeeper{
@@ -38,10 +38,17 @@ func NewReqKeeper(name string, paths []string) *RequestKeeper {
 	}
 }
 
-// 每项路由都有自己单独的熔断器，熔断器采用滑动窗口限流算法
-func (rk *RequestKeeper) InitKeeper(routesLen uint16) {
+// 开启监控
+func (rk *RequestKeeper) StartWorking(routePaths []string) {
+	if rk.started == true {
+		return
+	}
+	rk.started = true
+
 	// 初始化整个路由统计结构
+	routesLen := len(routePaths)
 	rk.bucket.sumRoutes = make([]routeSum, routesLen)
+	rk.bucket.paths = routePaths
 
 	// 初始化所有Breaker
 	rk.Breakers = make([]breaker.Breaker, 0, routesLen)
@@ -49,24 +56,24 @@ func (rk *RequestKeeper) InitKeeper(routesLen uint16) {
 		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
 	}
 
-	// 有个前提是 CPU 的监控必须启动
-	if sysx.CpuMonitor {
-		// 初始化 降载 组件
-		rk.SheddingStat = createSheddingStat()  // 降载信息打印
-		rk.Shedding = load.NewAdaptiveShedder() // 降载统计分析
-		// rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
-	}
+	//if sysx.MonitorStarted {
+	//	rk.SheddingStat = createSheddingStat()  // 降载信息打印
+	//	rk.Shedding = load.NewAdaptiveShedder() // 降载统计分析
+	//	// rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
+	//}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加一次请求项目
-func (rk *RequestKeeper) CounterAdd(item OneReq) {
-	rk.counter.Add(item)
+// 只有熔断，或者降载发生的时候，才算是一个drop请求
+func (rk *RequestKeeper) AddOne(it OneReq) {
+	rk.counter.Add(it)
 }
 
-func (rk *RequestKeeper) CounterDrop(idx uint16) {
-	rk.counter.Add(OneReq{
-		RouteIdx: idx,
-		Drop:     true,
-	})
+func (rk *RequestKeeper) AddNormal(idx uint16, dur time.Duration) {
+	rk.counter.Add(OneReq{RouteIdx: idx, LossTime: dur})
+}
+
+func (rk *RequestKeeper) AddDrop(idx uint16) {
+	rk.counter.Add(OneReq{RouteIdx: idx, Drop: true})
 }

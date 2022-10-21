@@ -76,8 +76,8 @@ func (rc *reqContainer) RemoveAll() any {
 // 执行统计输出
 func (rc *reqContainer) Execute(items any) {
 	// 这里不需要断言判断类型转换的真假，因为结果是上面 RemoveAll 返回的
-	ret := items.([]OneReq)
-	reqs := ret
+	ret := items.(deliverItems)
+	reqs := ret.reqs
 	rc.resetSum()
 
 	// 用一次循环，分别统计不同route的访问情况

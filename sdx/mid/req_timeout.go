@@ -62,15 +62,12 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 
 		// 任何一个先触发都会执行，并结束当前函数，不会两个以上都触发
 		select {
-		case pic := <-panicChan:
-			// 子G发生异常，抛出传递给上层G
+		case pic := <-panicChan: // 子G发生异常，抛出传递给上层G
 			panic(pic)
 			return
-		case <-finishChan:
-			// 正常退出
-			//log.Println("I am back.")
+		case <-finishChan: // 正常退出
 			return
-		case <-ctxTimeout.Done():
+		case <-ctxTimeout.Done(): // 超时了
 			c.IsTimeout = true
 			c.AbortDirect(http.StatusGatewayTimeout, midTimeoutBody)
 			return

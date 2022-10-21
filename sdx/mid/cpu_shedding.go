@@ -16,7 +16,7 @@ import (
 // 1. cpu 是否过载。利用率 > 95%
 // 2. 请求大量熔断，最好不分路由的普遍发生熔断。
 func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
-	if kp == nil || sysx.CpuMonitor == false {
+	if kp == nil || sysx.MonitorStarted == false {
 		return nil
 	}
 
@@ -25,7 +25,7 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 
 		shedding, err := kp.Shedding.Allow()
 		if err != nil {
-			kp.CounterDrop(c.RouteIdx)
+			kp.AddDrop(c.RouteIdx)
 			kp.SheddingStat.Drop()
 
 			r := c.ReqRaw
@@ -49,7 +49,7 @@ func LoadShedding(kp *gate.RequestKeeper) fst.CtxHandler {
 }
 
 func HttpLoadShedding(kp *gate.RequestKeeper) fst.HttpHandler {
-	if kp == nil || sysx.CpuMonitor == false {
+	if kp == nil || sysx.MonitorStarted == false {
 		return nil
 	}
 
@@ -59,7 +59,7 @@ func HttpLoadShedding(kp *gate.RequestKeeper) fst.HttpHandler {
 			shedding, err := kp.Shedding.Allow()
 			if err != nil {
 				// TODO: kp.CounterDrop(c.RouteIdx)
-				kp.CounterDrop(0)
+				kp.AddDrop(0)
 				kp.SheddingStat.Drop()
 				logx.ErrorF("[http] load shedding, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
 				w.WriteHeader(http.StatusServiceUnavailable)

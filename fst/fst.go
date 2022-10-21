@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
-	"github.com/qinchende/gofast/skill/sysx"
 	"github.com/qinchende/gofast/skill/timex"
 	"log"
 	"net/http"
@@ -82,10 +81,6 @@ func CreateServer(cfg *GfConfig) *GoFast {
 }
 
 func (gft *GoFast) initServerConfig() {
-	// 是否启动硬件资源检测
-	if gft.SdxConfig.SysMonitor {
-		sysx.StartSysMonitor(gft.SdxConfig.SysStatePrint)
-	}
 	gft.SetMode(gft.RunMode)
 }
 

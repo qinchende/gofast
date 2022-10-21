@@ -4,18 +4,19 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/sdx/gate"
 	"github.com/qinchende/gofast/sdx/mid"
+	"github.com/qinchende/gofast/skill/sysx"
 )
 
 func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	cnf := app.SdxConfig
 
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
-	reqKeeper := gate.NewReqKeeper(app.ProjectName(), app.RoutePaths())
-	// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
+	reqKeeper := gate.NewReqKeeper(app.ProjectName())
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {
-		rtLen := app.RoutesLen()
-		reqKeeper.InitKeeper(rtLen)
-		mid.AllAttrs.Rebuild(rtLen, &cnf)
+		// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
+		mid.AllAttrs.Rebuild(app.RoutesLen(), &cnf) // 所有路由配置
+		sysx.OpenSysMonitor(cnf.SysStatePrint)      // 系统资源监控
+		reqKeeper.StartWorking(app.RoutePaths())    // 警卫上岗
 	})
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -34,10 +35,10 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.Before(mid.Breaker(reqKeeper))         // 自适应熔断：不同route，不同熔断阈值
 	app.Before(mid.Timeout(cnf.EnableTimeout)) // 超时自动返回，默认3000毫秒（后台处理继续）
 	app.Before(mid.Recovery)                   // @@@ 截获所有异常，避免服务进程崩溃 @@@
-	app.Before(mid.ExecTime(reqKeeper))        // 请求处理耗时
-	app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息
-	app.Before(mid.ContentLength)              // 分路由判断请求长度
-	app.Before(mid.Gunzip)                     // 自动 gunzip 解压缩
+	app.Before(mid.TimeMetric(reqKeeper))      // 耗时统计
+	//app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息
+	//app.Before(mid.ContentLength)              // 分路由判断请求长度
+	//app.Before(mid.Gunzip)                     // 自动 gunzip 解压缩
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
 	// app.Fit(mid.JwtAuthorize(app.FitJwtSecret))

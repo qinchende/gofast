@@ -23,7 +23,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		// 有错误信息返回，证明本次请求被熔断，接下来：
 		// 1. 本次记入丢弃请求统计  2. 打印错误信息  3. 返回服务器出错
 		if err != nil {
-			kp.CounterDrop(c.RouteIdx)
+			kp.AddDrop(c.RouteIdx)
 
 			logx.ErrorF("[http] break, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
 			c.AbortDirect(http.StatusServiceUnavailable, "Break!!!")
@@ -46,42 +46,3 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		c.Next()
 	}
 }
-
-//const breakerSeparator = "://"
-
-//// 熔断器，针对不同路由统计
-//func Breaker(method, path string, metrics *stat.Metrics) func(http.Handler) http.Handler {
-//	brk := breaker.NewBreaker(breaker.WithName(strings.Join([]string{method, path}, breakerSeparator)))
-//	return func(next http.Handler) http.Handler {
-//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//			promise, err := brk.Allow()
-//			if err != nil && metrics != nil {
-//				metrics.AddDrop()
-//				logx.ErrorF("[http] dropped, %s - %s - %s",
-//					r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
-//				w.WriteHeader(http.StatusServiceUnavailable)
-//				return
-//			}
-//
-//			cw := &security.WithCodeResponseWriter{Writer: w}
-//			defer func() {
-//				if cw.Code < http.StatusInternalServerError {
-//					promise.Accept()
-//				} else {
-//					promise.Reject(fmt.Sprintf("%d %s", cw.Code, http.StatusText(cw.Code)))
-//				}
-//			}()
-//			next.ServeHTTP(cw, r)
-//		})
-//	}
-//}
-
-// 熔断器，针对不同路由统计
-//func Breaker(method, path string, metrics *stat.Metrics) func(http.Handler) http.Handler {
-//	brk := breaker.NewBreaker(breaker.WithName(strings.Join([]string{method, path}, breakerSeparator)))
-//	return func(next http.Handler) http.Handler {
-//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-//
-//		})
-//	}
-//}
