@@ -7,6 +7,7 @@ package logx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"os"
 	"runtime/debug"
 )
@@ -38,51 +39,57 @@ func ShowStat() bool {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Debug(v string) {
 	if myCnf.logLevelInt8 <= LogLevelDebug {
-		output(debugLog, v, levelDebug, true)
+		output(debugLog, levelDebug, v, true)
 	}
 }
 
 func Debugs(v ...any) {
 	if myCnf.logLevelInt8 <= LogLevelDebug {
-		output(debugLog, fmt.Sprint(v...), levelDebug, true)
+		output(debugLog, levelDebug, fmt.Sprint(v...), true)
 	}
 }
 
 func DebugF(format string, v ...any) {
 	if myCnf.logLevelInt8 <= LogLevelDebug {
-		output(debugLog, fmt.Sprintf(format, v...), levelDebug, true)
+		output(debugLog, levelDebug, fmt.Sprintf(format, v...), true)
 	}
 }
 
 func DebugDirect(v string) {
 	if myCnf.logLevelInt8 <= LogLevelDebug {
-		output(debugLog, v, levelDebug, false)
+		output(debugLog, levelDebug, v, false)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Info(v string) {
 	if myCnf.logLevelInt8 <= LogLevelInfo {
-		output(infoLog, v, levelInfo, true)
+		output(infoLog, levelInfo, v, true)
+	}
+}
+
+func InfoKV(v cst.KV) {
+	if myCnf.logLevelInt8 <= LogLevelInfo {
+		output(infoLog, levelInfo, v, true)
 	}
 }
 
 func Infos(v ...any) {
 	if myCnf.logLevelInt8 <= LogLevelInfo {
-		output(infoLog, fmt.Sprint(v...), levelInfo, true)
+		output(infoLog, levelInfo, fmt.Sprint(v...), true)
 	}
 }
 
 func InfoF(format string, v ...any) {
 	if myCnf.logLevelInt8 <= LogLevelInfo {
-		output(infoLog, fmt.Sprintf(format, v...), levelInfo, true)
+		output(infoLog, levelInfo, fmt.Sprintf(format, v...), true)
 	}
 }
 
 // 直接打印所给的数据
 func InfoDirect(v string) {
 	if myCnf.logLevelInt8 <= LogLevelInfo {
-		output(infoLog, v, levelInfo, false)
+		output(infoLog, levelInfo, v, false)
 	}
 }
 
@@ -136,37 +143,43 @@ func StackF(format string, v ...any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stat(v string) {
 	if myCnf.LogStats {
-		output(statLog, v, levelStat, true)
+		output(statLog, levelStat, v, true)
+	}
+}
+
+func StatKV(data cst.KV) {
+	if myCnf.LogStats {
+		output(statLog, levelStat, data, true)
 	}
 }
 
 func Stats(v ...any) {
 	if myCnf.LogStats {
-		output(statLog, fmt.Sprint(v...), levelStat, true)
+		output(statLog, levelStat, fmt.Sprint(v...), true)
 	}
 }
 
 func StatF(format string, v ...any) {
 	if myCnf.LogStats {
-		output(statLog, fmt.Sprintf(format, v...), levelStat, true)
+		output(statLog, levelStat, fmt.Sprintf(format, v...), true)
 	}
 }
 
 func Slow(v string) {
 	if myCnf.LogStats {
-		output(slowLog, v, levelSlow, true)
+		output(slowLog, levelSlow, v, true)
 	}
 }
 
 func Slows(v ...any) {
 	if myCnf.LogStats {
-		output(slowLog, fmt.Sprint(v...), levelSlow, true)
+		output(slowLog, levelSlow, fmt.Sprint(v...), true)
 	}
 }
 
 func SlowF(format string, v ...any) {
 	if myCnf.LogStats {
-		output(slowLog, fmt.Sprintf(format, v...), levelSlow, true)
+		output(slowLog, levelSlow, fmt.Sprintf(format, v...), true)
 	}
 }
 
@@ -174,18 +187,18 @@ func SlowF(format string, v ...any) {
 // inner call apis
 func warnSync(msg string, useStyle bool) {
 	if myCnf.logLevelInt8 <= LogLevelWarn {
-		output(warnLog, msg, levelWarn, useStyle)
+		output(warnLog, levelWarn, msg, useStyle)
 	}
 }
 
 func errorSync(msg string, callDepth int, useStyle bool) {
 	if myCnf.logLevelInt8 <= LogLevelError {
-		output(errorLog, formatWithCaller(msg, callDepth), levelError, useStyle)
+		output(errorLog, levelError, formatWithCaller(msg, callDepth), useStyle)
 	}
 }
 
 func stackSync(msg string, useStyle bool) {
 	if myCnf.logLevelInt8 <= LogLevelStack {
-		output(stackLog, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), levelStack, useStyle)
+		output(stackLog, levelStack, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), useStyle)
 	}
 }

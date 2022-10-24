@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/tools"
+	"github.com/qinchende/gofast/skill/lang"
 	"net/http"
 	"time"
 )
@@ -21,6 +22,7 @@ const (
 const (
 	LogStyleCustom int8 = iota
 	LogStyleSdx
+	LogStyleSdxJson
 	LogStyleELK
 	LogStylePrometheus
 )
@@ -29,6 +31,7 @@ const (
 const (
 	styleCustomStr     = "custom" // 自定义
 	styleSdxStr        = "sdx"
+	styleSdxJson       = "sdx-json"
 	styleELKStr        = "elk"
 	stylePrometheusStr = "prometheus"
 )
@@ -40,6 +43,8 @@ func initStyle(c *LogConfig) error {
 		c.logStyleInt8 = LogStyleCustom
 	case styleSdxStr:
 		c.logStyleInt8 = LogStyleSdx
+	case styleSdxJson:
+		c.logStyleInt8 = LogStyleSdxJson
 	case styleELKStr:
 		c.logStyleInt8 = LogStyleELK
 	case stylePrometheusStr:
@@ -65,7 +70,7 @@ type ReqLogEntity struct {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要到这个方法进行输出
-func output(w WriterCloser, info string, logLevel string, useStyle bool) {
+func output(w WriterCloser, logLevel string, data any, useStyle bool) {
 	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
 	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
 	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
@@ -74,18 +79,20 @@ func output(w WriterCloser, info string, logLevel string, useStyle bool) {
 	if useStyle == true {
 		switch myCnf.logStyleInt8 {
 		case LogStyleCustom:
-			outputCustomStyle(w, info, logLevel)
+			outputCustomStyle(w, logLevel, data)
 		case LogStyleSdx:
-			outputSdxStyle(w, info, logLevel)
+			outputSdxStyle(w, logLevel, data)
+		case LogStyleSdxJson:
+			outputSdxJsonStyle(w, logLevel, data)
 		case LogStyleELK:
-			outputElkStyle(w, info, logLevel)
+			outputElkStyle(w, logLevel, data)
 		case LogStylePrometheus:
-			outputPrometheusStyle(w, info, logLevel)
+			outputPrometheusStyle(w, logLevel, data)
 		default:
-			outputDirectString(w, info)
+			outputDirectString(w, lang.ToString(data))
 		}
 	} else {
-		outputDirectString(w, info)
+		outputDirectString(w, lang.ToString(data))
 	}
 }
 
@@ -95,6 +102,8 @@ func RequestsLog(p *ReqLogEntity, flag int8) {
 	case LogStyleCustom:
 		InfoDirect(buildCustomReqLog(p, flag))
 	case LogStyleSdx:
+		InfoDirect(buildSdxReqLog(p, flag))
+	case LogStyleSdxJson:
 		InfoDirect(buildSdxReqLog(p, flag))
 	case LogStyleELK:
 		InfoDirect(buildElkReqLog(p, flag))

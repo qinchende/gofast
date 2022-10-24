@@ -21,76 +21,12 @@ const (
 var ErrServiceUnavailable = errors.New("circuit breaker is open")
 
 type (
-	// Acceptable is the func to check if the error can be accepted.
-	Acceptable func(err error) bool
-
-	// A Breaker represents a circuit breaker.
-	Breaker interface {
-		// Name returns the name of the Breaker.
-		Name() string
-
-		// Allow checks if the request is allowed.
-		// If allowed, a promise will be returned, the caller needs to call promise.Accept()
-		// on success, or call promise.Reject() on failure.
-		// If not allow, ErrServiceUnavailable will be returned.
-		Allow() (Promise, error)
-
-		// Do runs the given request if the Breaker accepts it.
-		// Do returns an error instantly if the Breaker rejects the request.
-		// If a panic occurs in the request, the Breaker handles it as an error
-		// and causes the same panic again.
-		Do(req func() error) error
-
-		// DoWithAcceptable runs the given request if the Breaker accepts it.
-		// DoWithAcceptable returns an error instantly if the Breaker rejects the request.
-		// If a panic occurs in the request, the Breaker handles it as an error
-		// and causes the same panic again.
-		// acceptable checks if it's a successful call, even if the err is not nil.
-		DoWithAcceptable(req func() error, acceptable Acceptable) error
-
-		// DoWithFallback runs the given request if the Breaker accepts it.
-		// DoWithFallback runs the fallback if the Breaker rejects the request.
-		// If a panic occurs in the request, the Breaker handles it as an error
-		// and causes the same panic again.
-		DoWithFallback(req func() error, fallback func(err error) error) error
-
-		// DoWithFallbackAcceptable runs the given request if the Breaker accepts it.
-		// DoWithFallbackAcceptable runs the fallback if the Breaker rejects the request.
-		// If a panic occurs in the request, the Breaker handles it as an error
-		// and causes the same panic again.
-		// acceptable checks if it's a successful call, even if the err is not nil.
-		DoWithFallbackAcceptable(req func() error, fallback func(err error) error, acceptable Acceptable) error
-	}
-
 	// Option defines the method to customize a Breaker.
 	Option func(breaker *circuitBreaker)
-
-	// Promise interface defines the callbacks that returned by Breaker.Allow.
-	Promise interface {
-		// Accept tells the Breaker that the call is successful.
-		Accept()
-		// Reject tells the Breaker that the call is failed.
-		Reject(reason string)
-	}
-
-	internalPromise interface {
-		Accept()
-		Reject()
-	}
 
 	circuitBreaker struct {
 		name string
 		throttle
-	}
-
-	internalThrottle interface {
-		allow() (internalPromise, error)
-		doReq(req func() error, fallback func(err error) error, acceptable Acceptable) error
-	}
-
-	throttle interface {
-		allow() (Promise, error)
-		doReq(req func() error, fallback func(err error) error, acceptable Acceptable) error
 	}
 )
 
@@ -147,20 +83,20 @@ func defaultAcceptable(err error) bool {
 
 type loggedThrottle struct {
 	name string
-	internalThrottle
+	bkThrottle
 	errWin *errorWindow
 }
 
-func newLoggedThrottle(name string, t internalThrottle) loggedThrottle {
+func newLoggedThrottle(name string, t bkThrottle) loggedThrottle {
 	return loggedThrottle{
-		name:             name,
-		internalThrottle: t,
-		errWin:           new(errorWindow),
+		name:       name,
+		bkThrottle: t,
+		errWin:     new(errorWindow),
 	}
 }
 
 func (lt loggedThrottle) allow() (Promise, error) {
-	promise, err := lt.internalThrottle.allow()
+	promise, err := lt.bkThrottle.allow()
 	return promiseWithReason{
 		promise: promise,
 		errWin:  lt.errWin,
@@ -168,7 +104,7 @@ func (lt loggedThrottle) allow() (Promise, error) {
 }
 
 func (lt loggedThrottle) doReq(req func() error, fallback func(err error) error, acceptable Acceptable) error {
-	return lt.logError(lt.internalThrottle.doReq(req, fallback, func(err error) bool {
+	return lt.logError(lt.bkThrottle.doReq(req, fallback, func(err error) bool {
 		accept := acceptable(err)
 		if !accept {
 			lt.errWin.add(err.Error())
@@ -217,7 +153,7 @@ func (ew *errorWindow) String() string {
 }
 
 type promiseWithReason struct {
-	promise internalPromise
+	promise bkPromise
 	errWin  *errorWindow
 }
 

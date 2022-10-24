@@ -6,6 +6,3 @@ package breaker
 
 func Report(string) {
 }
-
-func SetReporter(func(string)) {
-}

@@ -6,14 +6,15 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/fst/tools"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/timex"
 	"strconv"
 	"strings"
 	"time"
 )
 
-func outputSdxStyle(w WriterCloser, info, logLevel string) {
-	// fmt.Sprint("[", getTimestampMini(), "][", logLevelInt8, "]: ", info)
+func outputSdxStyle(w WriterCloser, logLevel string, data any) {
+	info := lang.ToString(data)
 	sb := strings.Builder{}
 	sb.Grow(len(info) + 26)
 	sb.WriteByte('[')

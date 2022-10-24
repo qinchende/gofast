@@ -12,14 +12,14 @@ type logElkEntry struct {
 	Timestamp string `json:"@timestamp"`
 	Level     string `json:"lv"`
 	Duration  string `json:"duration,omitempty"`
-	Content   string `json:"ct"`
+	Content   any    `json:"ct"`
 }
 
-func outputElkStyle(w WriterCloser, info, logLevel string) {
-	logWrap := logPrometheusEntry{
+func outputElkStyle(w WriterCloser, logLevel string, data any) {
+	logWrap := logElkEntry{
 		Timestamp: timex.Time().Format(timeFormat),
 		Level:     logLevel,
-		Content:   info,
+		Content:   data,
 	}
 	if content, err := jsonx.Marshal(logWrap); err != nil {
 		outputDirectString(w, err.Error())
