@@ -50,7 +50,7 @@ func (rk *RequestKeeper) StartWorking(routePaths []string) {
 	rk.bucket.sumRoutes = make([]routeSum, routesLen)
 	rk.bucket.paths = routePaths
 
-	// 初始化所有Breaker
+	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
 	rk.Breakers = make([]breaker.Breaker, 0, routesLen)
 	for i := 0; i < int(routesLen); i++ {
 		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
@@ -66,9 +66,9 @@ func (rk *RequestKeeper) StartWorking(routePaths []string) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加一次请求项目
 // 只有熔断，或者降载发生的时候，才算是一个drop请求
-func (rk *RequestKeeper) AddOne(it OneReq) {
-	rk.counter.Add(it)
-}
+//func (rk *RequestKeeper) AddOne(it OneReq) {
+//	rk.counter.Add(it)
+//}
 
 func (rk *RequestKeeper) AddNormal(idx uint16, dur time.Duration) {
 	rk.counter.Add(OneReq{RouteIdx: idx, LossTime: dur})

@@ -52,7 +52,7 @@ func (gBrk *googleBreaker) accept() error {
 	return nil
 }
 
-func (gBrk *googleBreaker) allow() (internalPromise, error) {
+func (gBrk *googleBreaker) allow() (bkPromise, error) {
 	if err := gBrk.accept(); err != nil {
 		return nil, err
 	}

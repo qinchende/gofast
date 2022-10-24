@@ -12,14 +12,14 @@ type logPrometheusEntry struct {
 	Timestamp string `json:"@timestamp"`
 	Level     string `json:"lv"`
 	Duration  string `json:"duration,omitempty"`
-	Content   string `json:"ct"`
+	Content   any    `json:"ct"`
 }
 
-func outputPrometheusStyle(w WriterCloser, info, logLevel string) {
+func outputPrometheusStyle(w WriterCloser, logLevel string, data any) {
 	logWrap := logPrometheusEntry{
 		Timestamp: timex.Time().Format(timeFormat),
 		Level:     logLevel,
-		Content:   info,
+		Content:   data,
 	}
 	if content, err := jsonx.Marshal(logWrap); err != nil {
 		outputDirectString(w, err.Error())

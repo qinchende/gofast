@@ -3,11 +3,11 @@
 package logx
 
 // 如果采用Custom模式，必须外部指定下面这两个方法
-var CustomOutputFunc func(info, logLevel string) string
+var CustomOutputFunc func(logLevel string, data any) string
 var CustomReqLogFunc func(p *ReqLogEntity, flag int8) string
 
-func outputCustomStyle(w WriterCloser, info, logLevel string) {
-	outputDirectString(w, CustomOutputFunc(info, logLevel))
+func outputCustomStyle(w WriterCloser, logLevel string, data any) {
+	outputDirectString(w, CustomOutputFunc(logLevel, data))
 }
 
 func buildCustomReqLog(p *ReqLogEntity, flag int8) string {

@@ -19,7 +19,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 
 	return func(c *fst.Context) {
 		// 检查是否允许本次访问通过，主要是滑动窗口判断是否达到熔断条件
-		breaker, err := kp.Breakers[c.RouteIdx].Allow()
+		promise, err := kp.Breakers[c.RouteIdx].Allow()
 		// 有错误信息返回，证明本次请求被熔断，接下来：
 		// 1. 本次记入丢弃请求统计  2. 打印错误信息  3. 返回服务器出错
 		if err != nil {
@@ -35,10 +35,10 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 			status := c.ResWrap.Status()
 			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是拒绝服务
 			if status < http.StatusInternalServerError {
-				breaker.Accept() // 熔断器记录为一次正常请求
+				promise.Accept() // 熔断器记录为一次正常请求
 			} else {
 				// 熔断器记录一次异常返回，错误多了会触发入口熔断的。
-				breaker.Reject(fmt.Sprintf("%d %s", status, http.StatusText(status)))
+				promise.Reject(fmt.Sprintf("%d %s", status, http.StatusText(status)))
 			}
 		}()
 

@@ -1,13 +1,13 @@
 package sysx
 
 import (
-	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/gmp"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/sysx/cpux"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"runtime"
-	"strconv"
 	"sync"
 	"time"
 )
@@ -65,49 +65,56 @@ func OpenSysMonitor(print bool) {
 				if print {
 					cpuStatPrintLast := cpuStatPrint
 					cpuStatPrint, _ = cpu.Times(false)
-					printUsage(cpux.BusyPercent(cpuStatPrintLast[0], cpuStatPrint[0]))
+					printSysResourceStatus(cpux.BusyPercent(cpuStatPrintLast[0], cpuStatPrint[0]))
 				}
 			}
 		}
 	}()
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 打印系统资源的使用情况统计
-func printUsage(cpuAvaUsage float64) {
+//const resJsonStr = `{"CPU":[%.2f,%.2f],"Mem":[%.1f,%.1f,%.1f],"Gor":%d,"GC":%d}`
+func printSysResourceStatus(cpuAvaUsage float64) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	logx.StatF("CPU: [%.2f, %.2f], Mem: [%.1fMB, %.1fMB, %.1fMB], Gor: %d, GC: %d",
-		CpuSmoothUsage, cpuAvaUsage, bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys), runtime.NumGoroutine(), m.NumGC)
+	logx.StatKV(cst.KV{
+		"CPU": [2]float64{lang.Round64(CpuSmoothUsage, 2), lang.Round64(cpuAvaUsage, 2)},
+		"Mem": [3]float32{bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys)},
+		"Gor": runtime.NumGoroutine(),
+		"GC":  m.NumGC,
+	})
 }
 
 // 字节 到 MB 的转换.
 func bToMb(b uint64) float32 {
-	return float32(b) / 1024 / 1024
+	return lang.Round32(float32(b)/1024/1024, 2)
 }
 
-func testPsutil() {
-	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++三方包CPU测试
-	// 打印CPU基础信息
-	//infos, _ := cpu.Info()
-	//logx.Info(infos)
-
-	// 利用第三方包计算CPU的占用情况
-	totalPercent, _ := cpu.Percent(3*time.Second, false)
-	perPercents, _ := cpu.Percent(3*time.Second, true)
-
-	decimalPlace2(totalPercent)
-	decimalPlace2(perPercents)
-	logx.InfoF("CPU-Usage -> total: %v, per: %v", totalPercent, perPercents)
-	// ==++ NED
-}
-
-// 切片中每个值都保留2位小数
-func decimalPlace2(arr []float64) {
-	for idx := range arr {
-		arr[idx], _ = strconv.ParseFloat(fmt.Sprintf("%.2f", arr[idx]), 64)
-	}
-}
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func testPsutil() {
+//	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++三方包CPU测试
+//	// 打印CPU基础信息
+//	//infos, _ := cpu.Info()
+//	//logx.Info(infos)
+//
+//	// 利用第三方包计算CPU的占用情况
+//	totalPercent, _ := cpu.Percent(3*time.Second, false)
+//	perPercents, _ := cpu.Percent(3*time.Second, true)
+//
+//	decimalPlace2(totalPercent)
+//	decimalPlace2(perPercents)
+//	logx.InfoF("CPU-Usage -> total: %v, per: %v", totalPercent, perPercents)
+//	// ==++ NED
+//}
+//
+//// 切片中每个值都保留2位小数
+//func decimalPlace2(arr []float64) {
+//	for idx := range arr {
+//		arr[idx], _ = strconv.ParseFloat(fmt.Sprintf("%.2f", arr[idx]), 64)
+//	}
+//}
 
 //// CPU当前统计周期内使用率
 //func CpuCurUsage() float32 {
