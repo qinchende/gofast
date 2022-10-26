@@ -11,30 +11,25 @@ import (
 	"time"
 )
 
+// 固定分钟作为统计周期
+const CountInterval = time.Minute
+
 // 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
 type RequestKeeper struct {
-	// 访问量统计 Counter
-	bucket  *reqContainer
-	counter *exec.Interval
-	started bool
+	started bool           // 是否开始运行了
+	bucket  *reqBucket     //
+	counter *exec.Interval // 循环计数器
 
-	// 熔断
-	Breakers []breaker.Breaker
-
-	// 降载
+	Breakers     []breaker.Breaker // 不同路径的熔断统计器
 	Shedding     load.Shedder
 	SheddingStat *sheddingStat
 }
 
 func NewReqKeeper(name string) *RequestKeeper {
-	reqC := &reqContainer{
-		pid:  os.Getpid(),
-		name: name,
-	}
-
+	bkt := &reqBucket{pid: os.Getpid(), name: name}
 	return &RequestKeeper{
-		counter: exec.NewInterval(LogInterval, reqC),
-		bucket:  reqC,
+		counter: exec.NewInterval(CountInterval, bkt),
+		bucket:  bkt,
 	}
 }
 
@@ -47,7 +42,7 @@ func (rk *RequestKeeper) StartWorking(routePaths []string) {
 
 	// 初始化整个路由统计结构
 	routesLen := len(routePaths)
-	rk.bucket.sumRoutes = make([]routeSum, routesLen)
+	rk.bucket.routes = make([]routeCounter, routesLen)
 	rk.bucket.paths = routePaths
 
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
@@ -66,14 +61,16 @@ func (rk *RequestKeeper) StartWorking(routePaths []string) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 添加一次请求项目
 // 只有熔断，或者降载发生的时候，才算是一个drop请求
-//func (rk *RequestKeeper) AddOne(it OneReq) {
+//func (rk *RequestKeeper) AddOne(it oneReq) {
 //	rk.counter.Add(it)
 //}
 
-func (rk *RequestKeeper) AddNormal(idx uint16, dur time.Duration) {
-	rk.counter.Add(OneReq{RouteIdx: idx, LossTime: dur})
+// 统计一个通过的请求
+func (rk *RequestKeeper) CountPass(idx uint16, ms int32) {
+	rk.counter.Add(oneReq{routeIdx: idx, takeTimeMS: ms})
 }
 
-func (rk *RequestKeeper) AddDrop(idx uint16) {
-	rk.counter.Add(OneReq{RouteIdx: idx, Drop: true})
+// 统计一个被丢弃的请求
+func (rk *RequestKeeper) CountDrop(idx uint16) {
+	rk.counter.Add(oneReq{routeIdx: idx, isDrop: true})
 }

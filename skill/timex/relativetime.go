@@ -18,6 +18,16 @@ func Since(d time.Duration) time.Duration {
 	return time.Since(initTime) - d
 }
 
+// 时间差毫秒
+func SinceMS(d time.Duration) time.Duration {
+	return (time.Since(initTime) - d) / time.Millisecond
+}
+
+// 时间差秒
+func SinceS(d time.Duration) time.Duration {
+	return (time.Since(initTime) - d) / time.Second
+}
+
 // 当前时间的真实值 time.Time 类型
 func Time() time.Time {
 	//return initTime.Add(Now())

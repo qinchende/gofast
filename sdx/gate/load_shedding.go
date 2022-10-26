@@ -3,11 +3,7 @@
 package gate
 
 import (
-	"github.com/qinchende/gofast/skill/sysx"
 	"sync/atomic"
-	"time"
-
-	"github.com/qinchende/gofast/logx"
 )
 
 type (
@@ -53,27 +49,5 @@ func (s *sheddingStat) reset() sheddingStat {
 		total: atomic.SwapInt64(&s.total, 0),
 		pass:  atomic.SwapInt64(&s.pass, 0),
 		drop:  atomic.SwapInt64(&s.drop, 0),
-	}
-}
-
-// 单独的协程运行这个定时任务。启动定时日志输出
-func (s *sheddingStat) run() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-
-	// 定时器，每分钟执行一次，死循环
-	for range ticker.C {
-		st := s.reset()
-		if st.total == 0 && st.pass == 0 && st.drop == 0 {
-			continue
-		}
-		cpu := sysx.CpuSmoothUsage
-		logx.StatF("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
-
-		//if st.drop == 0 {
-		//	logx.Statf("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
-		//} else {
-		//	logx.ErrorF("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
-		//}
 	}
 }
