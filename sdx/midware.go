@@ -14,9 +14,9 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	reqKeeper := gate.NewReqKeeper(app.ProjectName())
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {
 		// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
-		mid.AllAttrs.Rebuild(app.RoutesLen(), &cnf) // 所有路由配置
-		sysx.OpenSysMonitor(cnf.SysStatePrint)      // 系统资源监控
-		reqKeeper.StartWorking(app.RoutePaths())    // 警卫上岗
+		mid.AllAttrs.Rebuild(app.RoutesLen(), &cnf)        // 所有路由配置
+		sysx.OpenSysMonitor(cnf.SysStatePrint)             // 系统资源监控
+		reqKeeper.StartWorking(app.RoutePathsWithMethod()) // 警卫上岗
 	})
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -48,7 +48,8 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	// 特殊路由的处理链
 	// 正确匹配路由之外的情况，比如特殊的404,504等路由处理链
 	if cnf.UseSpecialHandlers {
-		app.SpecialBefore(mid.LoggerMini)
+		app.SpecialBefore(mid.LoggerMini)            // 特殊路径的日志
+		app.SpecialBefore(mid.TimeMetric(reqKeeper)) // 耗时统计
 	}
 	return app
 }

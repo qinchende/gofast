@@ -68,7 +68,7 @@ func ToString2(v any) (s string, err error) {
 	case fmt.Stringer:
 		s = vt.String()
 	default:
-		s = fmt.Sprint(v)
+		s = fmt.Sprintf("%+v", v)
 	}
 	return
 }

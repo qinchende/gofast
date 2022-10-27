@@ -8,22 +8,15 @@ import (
 	"github.com/qinchende/gofast/skill/timex"
 	"reflect"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
 const idleRound = 10
 
 type (
-	// A type that satisfies executors.ItemContainer can be used as the underlying
-	// container that used to do periodical executions.
-	ItemContainer interface {
-		// AddItem adds the task into the container.
-		// Returns true if the container needs to be flushed after the addition.
+	TaskContainer interface {
 		AddItem(item any) bool
-		// Execute handles the collected items by the container when flushing.
 		Execute(items any)
-		// RemoveAll removes the contained items, and return them.
 		RemoveAll() any
 	}
 
@@ -32,117 +25,116 @@ type (
 		commander   chan any
 		confirmChan chan lang.PlaceholderType
 		interval    time.Duration
-		container   ItemContainer
+		container   TaskContainer
 		waitGroup   sync.WaitGroup
 		wgBarrier   syncx.Barrier // avoid race condition on waitGroup when calling wg.Add/Done/Wait(...)
-		inflight    int32
-		isRunning   bool
-		newTicker   func(duration time.Duration) timex.Ticker
+		newTicker   func(d time.Duration) timex.Ticker
 		lock        sync.Mutex
+		isRunning   bool
 	}
 )
 
 // 初始化一个周期执行的实体对象
-func NewInterval(interval time.Duration, container ItemContainer) *Interval {
-	executor := &Interval{
+func NewInterval(dur time.Duration, box TaskContainer) *Interval {
+	run := &Interval{
 		// buffer 1 to let the caller go quickly
 		commander:   make(chan any, 1),   // 长度为1的有缓冲通道
 		confirmChan: make(chan struct{}), // 无缓冲通道
-		interval:    interval,
-		container:   container,
+		interval:    dur,
+		container:   box,
 		newTicker: func(d time.Duration) timex.Ticker {
 			return timex.NewTicker(d)
 		},
 	}
-	proc.AddShutdownListener(func() {
-		executor.Flush()
-	})
 
-	return executor
+	// 程序退出时要执行一次
+	proc.AddShutdownListener(func() {
+		run.Flush()
+	})
+	return run
 }
 
-func (pe *Interval) Add(item any) {
+func (run *Interval) Add(item any) {
 	// 外界可以强制刷新日志，并将values传入可执行函数
-	if values, ok := pe.addAndCheck(item); ok {
-		pe.commander <- values
-		<-pe.confirmChan
+	if values, ok := run.addAndCheck(item); ok {
+		run.commander <- values
+		<-run.confirmChan
 	}
 }
 
 // 执行一次定时任务。
-func (pe *Interval) Flush() bool {
-	pe.enterExecution()
-	return pe.executeTasks(func() any {
-		pe.lock.Lock()
-		defer pe.lock.Unlock()
-		return pe.container.RemoveAll()
+func (run *Interval) Flush() bool {
+	run.enterExecution()
+	return run.executeTasks(func() any {
+		run.lock.Lock()
+		defer run.lock.Unlock()
+		return run.container.RemoveAll()
 	}())
 }
 
-func (pe *Interval) Sync(fn func()) {
-	pe.lock.Lock()
-	defer pe.lock.Unlock()
+func (run *Interval) Sync(fn func()) {
+	run.lock.Lock()
+	defer run.lock.Unlock()
 	fn()
 }
 
-func (pe *Interval) Wait() {
-	pe.Flush()
-	pe.wgBarrier.Guard(func() {
-		pe.waitGroup.Wait()
+func (run *Interval) Wait() {
+	run.Flush()
+	run.wgBarrier.Guard(func() {
+		run.waitGroup.Wait()
 	})
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (pe *Interval) addAndCheck(item any) (any, bool) {
-	pe.lock.Lock()
+func (run *Interval) addAndCheck(item any) (any, bool) {
+	run.lock.Lock()
 	defer func() {
-		if !pe.isRunning {
-			pe.isRunning = true
-			// defer to unlock quickly
-			defer pe.loopFlush()
+		if run.isRunning == false {
+			run.isRunning = true
+			defer run.raiseLoopFlush()
 		}
-		pe.lock.Unlock()
+		run.lock.Unlock()
 	}()
 
 	// 外部容器可以试图返回 true，这样能立刻执行统计请求。
-	if pe.container.AddItem(item) {
-		atomic.AddInt32(&pe.inflight, 1)
-		return pe.container.RemoveAll(), true
+	if run.container.AddItem(item) {
+		return run.container.RemoveAll(), true
 	}
 
 	return nil, false
 }
 
 // 后台启动新的协程运行周期任务
-func (pe *Interval) loopFlush() {
+func (run *Interval) raiseLoopFlush() {
 	gmp.GoSafe(func() {
 		// flush before quit goroutine to avoid missing items
-		defer pe.Flush()
+		defer run.Flush()
 
 		// 新建一个计时器，固定周期触发
-		ticker := pe.newTicker(pe.interval)
+		ticker := run.newTicker(run.interval)
 		defer ticker.Stop()
 
 		// 外部命令立即输出
-		var commanded bool
+		var active bool
 		last := timex.Now()
 		// 开启死循环循环检测。手动指令，或者定时任务 都可以输出统计结果
 		for {
 			select {
-			case values := <-pe.commander:
-				commanded = true
-				atomic.AddInt32(&pe.inflight, -1)
-				pe.enterExecution()
-				pe.confirmChan <- lang.Placeholder
-				pe.executeTasks(values)
+			case values := <-run.commander: // 主动触发执行
+				active = true
+				run.enterExecution()
+				run.confirmChan <- lang.Placeholder
+				run.executeTasks(values)
 				last = timex.Now()
-			case <-ticker.Chan():
-				// 如果上面手动输出一次，那么本次自动输出将轮空
-				if commanded {
-					commanded = false
-				} else if pe.Flush() {
+			case <-ticker.Chan(): // 定时执行
+				// 如果上面主动输出一次，那么本次自动输出将轮空
+				if active {
+					active = false
+					continue
+				}
+				if run.Flush() {
 					last = timex.Now()
-				} else if pe.quitLoop(last) {
+				} else if run.quitLoop(last) {
 					return
 				}
 			}
@@ -151,45 +143,56 @@ func (pe *Interval) loopFlush() {
 	})
 }
 
-// 一定次数循环发现没有新任务，自动退出定时循环
-func (pe *Interval) quitLoop(last time.Duration) (stop bool) {
-	if timex.Since(last) <= pe.interval*idleRound {
-		return
+// 一定循环次数之后发现没有新任务，自动退出定时循环。下次自动循环由添加新任务时再唤起
+func (run *Interval) quitLoop(last time.Duration) (stop bool) {
+	if timex.Since(last) <= run.interval*idleRound {
+		return false
 	}
 
-	// checking pe.inflight and setting pe.guarded should be locked together
-	pe.lock.Lock()
-	if atomic.LoadInt32(&pe.inflight) == 0 {
-		pe.isRunning = false
-		stop = true
-	}
-	pe.lock.Unlock()
+	run.lock.Lock()
+	run.isRunning = false
+	run.lock.Unlock()
 
-	return
+	return true
 }
+
+//// 下面这个是go-zero的写法，我认为有Bug。当自动执行任务的协程执行这个准备退出时，突然来了一项任务，inflight的值将不再是0，
+//// 而这里也不会把isRunning设置成false，程序永远也无法启动loopFlush()函数了。
+//func (run *Interval) quitLoop(last time.Duration) (stop bool) {
+//	if timex.Since(last) <= run.interval*idleRound {
+//		return false
+//	}
+//	// checking run.inflight and setting run.guarded should be locked together
+//	run.lock.Lock()
+//	if atomic.LoadInt32(&run.inflight) == 0 {
+//		run.isRunning = false
+//	}
+//	run.lock.Unlock()
+//	return true
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-func (pe *Interval) doneExecution() {
-	pe.waitGroup.Done()
+func (run *Interval) doneExecution() {
+	run.waitGroup.Done()
 }
 
-func (pe *Interval) enterExecution() {
-	pe.wgBarrier.Guard(func() {
-		pe.waitGroup.Add(1)
+func (run *Interval) enterExecution() {
+	run.wgBarrier.Guard(func() {
+		run.waitGroup.Add(1)
 	})
 }
 
-func (pe *Interval) executeTasks(items any) bool {
-	defer pe.doneExecution()
-	ok := pe.hasTasks(items)
+func (run *Interval) executeTasks(items any) bool {
+	defer run.doneExecution()
+	ok := run.hasTasks(items)
 	if ok {
-		pe.container.Execute(items)
+		run.container.Execute(items)
 	}
 	return ok
 }
 
-func (pe *Interval) hasTasks(items any) bool {
+func (run *Interval) hasTasks(items any) bool {
 	if items == nil {
 		return false
 	}

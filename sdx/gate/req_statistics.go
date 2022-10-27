@@ -29,7 +29,7 @@ type (
 )
 
 // 重置统计相关参数
-func (rb *reqBucket) reset() {
+func (rb *reqBucket) resetRouteCounters() {
 	for i := 0; i < len(rb.routes); i++ {
 		rb.routes[i].totalTimeMS = 0
 		rb.routes[i].accepts = 0
@@ -61,20 +61,16 @@ func (rb *reqBucket) RemoveAll() any {
 // 执行统计输出
 func (rb *reqBucket) Execute(items any) {
 	// 这里不需要断言判断类型转换的真假，因为结果是上面 RemoveAll 返回的
-	//reqs := items.([]oneReq)
-
-	//rtsAll := &rb.routes[0]
-	for _, req := range rb.reqs {
+	// 只能取 items 的值，不能取rb.reqs，因为这个已经清空了
+	reqs := items.([]oneReq)
+	for _, req := range reqs {
 		route := &rb.routes[req.routeIdx]
 		if req.isDrop {
-			//rtsAll.drops++
 			route.drops++
 			continue
 		}
 
-		//rtsAll.accepts++
 		route.accepts++
-		//rtsAll.totalTimeMS += int64(req.takeTimeMS)
 		route.totalTimeMS += int64(req.takeTimeMS)
 		if req.takeTimeMS > route.maxTimeMS {
 			route.maxTimeMS = req.takeTimeMS
@@ -82,5 +78,5 @@ func (rb *reqBucket) Execute(items any) {
 	}
 
 	rb.logPrint()
-	rb.reset()
+	rb.resetRouteCounters()
 }

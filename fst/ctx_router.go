@@ -14,6 +14,14 @@ func (gft *GoFast) RoutePaths() []string {
 	return allPaths
 }
 
+func (gft *GoFast) RoutePathsWithMethod() []string {
+	allPaths := make([]string, len(gft.allRoutes))
+	for i := 0; i < len(allPaths); i++ {
+		allPaths[i] = gft.allRoutes[i].method + "@" + gft.allRoutes[i].fullPath
+	}
+	return allPaths
+}
+
 // 获取相应路由节点完整URL
 func (gft *GoFast) FullPath(idx uint16) string {
 	if idx < 0 || int(idx) >= len(gft.allPaths) {
@@ -29,15 +37,3 @@ func (c *Context) FullPath() string {
 		return ""
 	}
 }
-
-//
-//func (ri *RouteItem) FullPath() string {
-//	return ri.fullPath
-//}
-
-//func (c *Context) CurrRoute() *RouteItem {
-//	if c.RouteIdx <= 0 || c.RouteIdx >= uint16(len(c.myApp.allRoutes)) {
-//		return nil
-//	}
-//	return c.myApp.allRoutes[c.RouteIdx]
-//}
