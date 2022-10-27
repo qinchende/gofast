@@ -1,27 +1,32 @@
 package gate
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/sysx"
 	"time"
 )
 
-// 打印每个路由的请求数据。
-// TODO: 其实每项路由分钟级的日志应该是收集起来，放入数据库，可视化展示和分析
+// 每分钟统计接口地址访问情况，打印日志
 func (rb *reqBucket) logPrint() {
 	for idx, route := range rb.routes {
-		if idx != 0 && route.accepts == 0 && route.drops == 0 {
+		if route.accepts == 0 && route.drops == 0 {
 			continue
 		}
 
 		qps := float32(route.accepts) / float32(CountInterval/time.Second)
-		var aveTime float32
+		var aveTimeMS float32
 		if route.accepts > 0 {
-			aveTime = float32(route.totalTimeMS) / float32(route.accepts)
+			aveTimeMS = float32(route.totalTimeMS) / float32(route.accepts)
 		}
 
-		logx.StatF("%s | suc: %d, drop: %d, qps: %.1f/s ave: %.1fms, max: %.1fms",
-			rb.paths[idx], route.accepts, route.drops, qps, aveTime, float32(route.maxTimeMS))
+		logx.StatKV(cst.KV{
+			"typ": logx.LogStatRouteReq.Type,
+			"pth": rb.paths[idx],
+			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
+			"val": [5]any{route.accepts, route.drops, lang.Round32(qps, 2), lang.Round32(aveTimeMS, 2), route.maxTimeMS},
+		})
 	}
 }
 
@@ -36,13 +41,11 @@ func (s *sheddingStat) run() {
 		if st.total == 0 && st.pass == 0 && st.drop == 0 {
 			continue
 		}
-		cpu := sysx.CpuSmoothUsage
-		logx.StatF("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
 
-		//if st.drop == 0 {
-		//	logx.Statf("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
-		//} else {
-		//	logx.ErrorF("down-1m | cpu: %d, total: %d, pass: %d, drop: %d", cpu, st.total, st.pass, st.drop)
-		//}
+		logx.StatKV(cst.KV{
+			"typ": logx.LogStatCpuUsage.Type,
+			//"fls": [5]string{"cpu", "total", "pass", "drop"},
+			"val": []any{sysx.CpuSmoothUsage, st.total, st.pass, st.drop},
+		})
 	}
 }

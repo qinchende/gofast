@@ -80,10 +80,14 @@ func printSysResourceStatus(cpuAvaUsage float64) {
 	runtime.ReadMemStats(&m)
 
 	logx.StatKV(cst.KV{
-		"CPU": [2]float64{lang.Round64(CpuSmoothUsage, 2), lang.Round64(cpuAvaUsage, 2)},
-		"Mem": [3]float32{bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys)},
-		"Gor": runtime.NumGoroutine(),
-		"GC":  m.NumGC,
+		"typ": logx.LogStatSysMonitor.Type,
+		//"fls": []string{"cpu", "mem", "gor", "gc"},
+		"val": []any{
+			[2]float64{lang.Round64(CpuSmoothUsage, 2), lang.Round64(cpuAvaUsage, 2)},
+			[3]float32{bToMb(m.Alloc), bToMb(m.TotalAlloc), bToMb(m.Sys)},
+			runtime.NumGoroutine(),
+			m.NumGC,
+		},
 	})
 }
 

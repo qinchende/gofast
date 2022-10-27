@@ -110,18 +110,21 @@ func (gft *GoFast) initHomeRouter() {
 	// 默认为空的节点
 	gft.allRoutes = append(gft.allRoutes, &RouteItem{
 		group:    gft.specialGroup,
+		method:   "NA",
 		fullPath: "*",
 		routeIdx: 0,
 	})
 	// 404 Default Route
 	gft.allRoutes = append(gft.allRoutes, &RouteItem{
 		group:    gft.specialGroup,
+		method:   "NA",
 		fullPath: "/404",
 		routeIdx: 1,
 	})
 	// 405 Default Route
 	gft.allRoutes = append(gft.allRoutes, &RouteItem{
 		group:    gft.specialGroup,
+		method:   "NA",
 		fullPath: "/405",
 		routeIdx: 2,
 	})

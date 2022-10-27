@@ -30,8 +30,7 @@ type (
 	}
 )
 
-// NewBreaker returns a Breaker object.
-// opts can be used to customize the Breaker.
+// NewBreaker returns a Breaker object. opts can be used to customize the Breaker.
 func NewBreaker(opts ...Option) Breaker {
 	var b circuitBreaker
 	for _, opt := range opts {
