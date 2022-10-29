@@ -3,8 +3,8 @@
 package gate
 
 import (
-	"github.com/qinchende/gofast/skill/breaker"
 	"github.com/qinchende/gofast/skill/exec"
+	"github.com/qinchende/gofast/skill/fuse"
 	"github.com/qinchende/gofast/skill/load"
 	"os"
 	"strconv"
@@ -20,7 +20,7 @@ type RequestKeeper struct {
 	bucket  *reqBucket     //
 	counter *exec.Interval // 循环计数器
 
-	Breakers     []breaker.Breaker // 不同路径的熔断统计器
+	Breakers     []fuse.Breaker // 不同路径的熔断统计器
 	Shedding     load.Shedder
 	SheddingStat *sheddingStat
 }
@@ -46,9 +46,9 @@ func (rk *RequestKeeper) StartWorking(routePaths []string) {
 	rk.bucket.paths = routePaths
 
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
-	rk.Breakers = make([]breaker.Breaker, 0, routesLen)
-	for i := 0; i < int(routesLen); i++ {
-		rk.Breakers = append(rk.Breakers, breaker.NewBreaker(breaker.WithName(strconv.Itoa(i))))
+	rk.Breakers = make([]fuse.Breaker, routesLen)
+	for i := 0; i < routesLen; i++ {
+		rk.Breakers[i] = fuse.NewBreaker(strconv.Itoa(i))
 	}
 
 	//if sysx.MonitorStarted {

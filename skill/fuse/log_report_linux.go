@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 //go:build linux
 
-package breaker
+package fuse
 
 import (
 	"flag"

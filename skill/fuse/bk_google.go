@@ -1,7 +1,7 @@
-package breaker
+package fuse
 
 import (
-	"github.com/qinchende/gofast/skill/collection"
+	"github.com/qinchende/gofast/skill/collect"
 	"github.com/qinchende/gofast/skill/mathx"
 	"math"
 	"time"
@@ -19,13 +19,13 @@ const (
 // see Client-Side Throttling section in https://landing.google.com/sre/sre-book/chapters/handling-overload/
 type googleBreaker struct {
 	k    float64
-	rWin *collection.RollingWindowSdx
+	rWin *collect.RollingWindowSdx
 	prob *mathx.Proba
 }
 
 func newGoogleBreaker() *googleBreaker {
 	bucketDuration := time.Duration(int64(window) / int64(buckets))
-	rWin := collection.NewRollingWindowSdx(buckets, bucketDuration)
+	rWin := collect.NewRollingWindowSdx(buckets, bucketDuration)
 	return &googleBreaker{
 		rWin: rWin,
 		k:    k,
@@ -71,26 +71,26 @@ func (gBrk *googleBreaker) doReq(req func() error, fallback func(err error) erro
 
 	defer func() {
 		if e := recover(); e != nil {
-			gBrk.markFailure()
+			gBrk.markFai()
 			panic(e)
 		}
 	}()
 
 	err := req()
 	if acceptable(err) {
-		gBrk.markSuccess()
+		gBrk.markSuc()
 	} else {
-		gBrk.markFailure()
+		gBrk.markFai()
 	}
 
 	return err
 }
 
-func (gBrk *googleBreaker) markSuccess() {
+func (gBrk *googleBreaker) markSuc() {
 	gBrk.rWin.Add(1)
 }
 
-func (gBrk *googleBreaker) markFailure() {
+func (gBrk *googleBreaker) markFai() {
 	gBrk.rWin.Add(0)
 }
 
@@ -115,9 +115,9 @@ type googlePromise struct {
 }
 
 func (gPromise googlePromise) Accept() {
-	gPromise.brk.markSuccess()
+	gPromise.brk.markSuc()
 }
 
 func (gPromise googlePromise) Reject() {
-	gPromise.brk.markFailure()
+	gPromise.brk.markFai()
 }
