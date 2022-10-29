@@ -2,6 +2,9 @@
 // Use of this source code is governed by a MIT license
 package gate
 
+// 请求数据增长20%
+const reqsGrowsRate = 1.2
+
 type (
 	// 每个请求需要消耗 7 字节（一段时间内请求一般都很多，要省内存）
 	oneReq struct {
@@ -23,8 +26,9 @@ type (
 		name  string
 		pid   int
 
-		reqs   []oneReq
-		routes []routeCounter
+		lastReqsLen int
+		reqs        []oneReq
+		routes      []routeCounter
 	}
 )
 
@@ -53,8 +57,11 @@ func (rb *reqBucket) AddItem(v any) bool {
 // 返回当前容器中的所有数据，同时重置容器
 func (rb *reqBucket) RemoveAll() any {
 	defer func() {
-		rb.reqs = nil
+		// 初始化长度为上次数量的倍数 reqsGrowsRate，防止中途频繁扩容的开销
+		//rb.reqs = nil
+		rb.reqs = make([]oneReq, 0, int(float64(rb.lastReqsLen)*reqsGrowsRate))
 	}()
+	rb.lastReqsLen = len(rb.reqs)
 	return rb.reqs
 }
 

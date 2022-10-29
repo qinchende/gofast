@@ -3,16 +3,15 @@ package load
 import (
 	"errors"
 	"fmt"
-	"github.com/qinchende/gofast/skill/breaker"
+	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/collect"
+	"github.com/qinchende/gofast/skill/fuse"
+	"github.com/qinchende/gofast/skill/syncx"
 	"github.com/qinchende/gofast/skill/sysx"
+	"github.com/qinchende/gofast/skill/timex"
 	"math"
 	"sync/atomic"
 	"time"
-
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/collection"
-	"github.com/qinchende/gofast/skill/syncx"
-	"github.com/qinchende/gofast/skill/timex"
 )
 
 const (
@@ -71,8 +70,8 @@ type (
 		avgFlyingLock   syncx.SpinLock
 		dropTime        *syncx.AtomicDuration
 		droppedRecently *syncx.AtomicBool
-		passCounter     *collection.RollingWindow
-		rtCounter       *collection.RollingWindow
+		passCounter     *collect.RollingWindow
+		rtCounter       *collect.RollingWindow
 	}
 )
 
@@ -102,10 +101,10 @@ func NewAdaptiveShedder(opts ...ShedderOption) Shedder {
 		windows:         int64(time.Second / bucketDuration),
 		dropTime:        syncx.NewAtomicDuration(),
 		droppedRecently: syncx.NewAtomicBool(),
-		passCounter: collection.NewRollingWindow(options.buckets, bucketDuration,
-			collection.IgnoreCurrentBucket()),
-		rtCounter: collection.NewRollingWindow(options.buckets, bucketDuration,
-			collection.IgnoreCurrentBucket()),
+		passCounter: collect.NewRollingWindow(options.buckets, bucketDuration,
+			collect.IgnoreCurrentBucket()),
+		rtCounter: collect.NewRollingWindow(options.buckets, bucketDuration,
+			collect.IgnoreCurrentBucket()),
 	}
 }
 
@@ -159,7 +158,7 @@ func (as *adaptiveShedder) maxFlight() int64 {
 func (as *adaptiveShedder) maxPass() int64 {
 	var result float64 = 1
 
-	as.passCounter.Reduce(func(b *collection.Bucket) {
+	as.passCounter.Reduce(func(b *collect.Bucket) {
 		if b.Sum > result {
 			result = b.Sum
 		}
@@ -171,7 +170,7 @@ func (as *adaptiveShedder) maxPass() int64 {
 func (as *adaptiveShedder) minRt() float64 {
 	result := defaultMinRt
 
-	as.rtCounter.Reduce(func(b *collection.Bucket) {
+	as.rtCounter.Reduce(func(b *collect.Bucket) {
 		if b.Count <= 0 {
 			return
 		}
@@ -196,7 +195,7 @@ func (as *adaptiveShedder) shouldDrop() bool {
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
 				sysx.CpuSmoothUsage, as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
 			logx.Error(msg)
-			breaker.Report(msg)
+			fuse.Report(msg)
 			return true
 		}
 	}

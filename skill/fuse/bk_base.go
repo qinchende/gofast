@@ -1,4 +1,4 @@
-package breaker
+package fuse
 
 type (
 	// Acceptable is the func to check if the error can be accepted.

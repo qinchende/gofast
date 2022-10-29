@@ -36,9 +36,9 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.Before(mid.Timeout(cnf.EnableTimeout)) // 超时自动返回，默认3000毫秒（后台处理继续）
 	app.Before(mid.Recovery)                   // @@@ 截获所有异常，避免服务进程崩溃 @@@
 	app.Before(mid.TimeMetric(reqKeeper))      // 耗时统计
-	//app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息
-	//app.Before(mid.ContentLength)              // 分路由判断请求长度
-	//app.Before(mid.Gunzip)                     // 自动 gunzip 解压缩
+	app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息
+	app.Before(mid.ContentLength)              // 分路由判断请求长度
+	app.Before(mid.Gunzip)                     // 自动 gunzip 解压缩
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
 	// app.Fit(mid.JwtAuthorize(app.FitJwtSecret))
