@@ -2,8 +2,10 @@
 // Use of this source code is governed by a MIT license
 package gate
 
+import "sync"
+
 // 请求数据增长20%
-const reqsGrowsRate = 1.2
+const reqsGrowsRate = 0.2
 
 type (
 	// 每个请求需要消耗 7 字节（一段时间内请求一般都很多，要省内存）
@@ -21,14 +23,25 @@ type (
 		drops       uint32
 	}
 
+	otherCounter struct {
+		lock  sync.Mutex
+		total uint64
+	}
+
 	reqBucket struct {
-		paths []string
-		name  string
-		pid   int
+		name string
+		pid  int
 
 		lastReqsLen int
 		reqs        []oneReq
-		routes      []routeCounter
+
+		// API访问统计
+		paths  []string
+		routes []routeCounter
+
+		// 其它计数器
+		otherPaths []string
+		others     []otherCounter
 	}
 )
 
@@ -59,17 +72,32 @@ func (rb *reqBucket) RemoveAll() any {
 	defer func() {
 		// 初始化长度为上次数量的倍数 reqsGrowsRate，防止中途频繁扩容的开销
 		//rb.reqs = nil
-		rb.reqs = make([]oneReq, 0, int(float64(rb.lastReqsLen)*reqsGrowsRate))
+		if len(rb.reqs) > 0 || cap(rb.reqs) == 0 {
+			rb.reqs = make([]oneReq, 0, int(float64(rb.lastReqsLen+1)*(1+reqsGrowsRate)))
+		}
 	}()
 	rb.lastReqsLen = len(rb.reqs)
+
+	// 特殊情况也需要统计
+	if len(rb.reqs) == 0 && len(rb.others) > 0 && rb.others[0].total > 0 {
+		rb.reqs = append(rb.reqs, oneReq{routeIdx: 0, isDrop: true, takeTimeMS: -1})
+	}
 	return rb.reqs
 }
 
 // 执行统计输出
 func (rb *reqBucket) Execute(items any) {
+	defer func() {
+		rb.logPrintOthers()
+		rb.logPrintRoutes()
+		rb.resetRouteCounters()
+	}()
+
 	// 这里不需要断言判断类型转换的真假，因为结果是上面 RemoveAll 返回的
 	// 只能取 items 的值，不能取rb.reqs，因为这个已经清空了
 	reqs := items.([]oneReq)
+	//first := rb.reqs[0] // 至少有一个，否则不会触发
+
 	for _, req := range reqs {
 		route := &rb.routes[req.routeIdx]
 		if req.isDrop {
@@ -83,7 +111,4 @@ func (rb *reqBucket) Execute(items any) {
 			route.maxTimeMS = req.takeTimeMS
 		}
 	}
-
-	rb.logPrint()
-	rb.resetRouteCounters()
 }
