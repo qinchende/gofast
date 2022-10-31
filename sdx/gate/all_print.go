@@ -8,9 +8,32 @@ import (
 	"time"
 )
 
+func (rb *reqBucket) logPrintOthers() {
+	total := uint64(0)
+	for idx := 0; idx < len(rb.others); idx++ {
+		tc := &rb.others[idx]
+
+		tc.lock.Lock()
+		total = tc.total
+		tc.total = 0
+		tc.lock.Unlock()
+
+		if total <= 0 {
+			continue
+		}
+		logx.StatKV(cst.KV{
+			"typ": logx.LogStatRouteReq.Type,
+			"pth": "GlobalCount" + lang.ToString(idx+1),
+			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
+			"val": [5]any{total, 0, 0.00, 0.00, 0},
+		})
+	}
+}
+
 // 每分钟统计接口地址访问情况，打印日志
-func (rb *reqBucket) logPrint() {
-	for idx, route := range rb.routes {
+func (rb *reqBucket) logPrintRoutes() {
+	for idx := 0; idx < len(rb.routes); idx++ {
+		route := &rb.routes[idx]
 		if route.accepts == 0 && route.drops == 0 {
 			continue
 		}

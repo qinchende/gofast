@@ -14,9 +14,9 @@ type Counter struct {
 }
 
 func (ct *Counter) TryBorrow() bool {
+	ct.mu.Lock()
 	defer ct.mu.Unlock()
 
-	ct.mu.Lock()
 	if ct.Curr+1 > ct.Max {
 		return false
 	} else {
@@ -26,9 +26,9 @@ func (ct *Counter) TryBorrow() bool {
 }
 
 func (ct *Counter) Return() error {
+	ct.mu.Lock()
 	defer ct.mu.Unlock()
 
-	ct.mu.Lock()
 	ct.Curr--
 	if ct.Curr < 0 {
 		ct.Curr = 0

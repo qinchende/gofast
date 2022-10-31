@@ -5,6 +5,7 @@ package mid
 import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/sdx/gate"
 	"github.com/qinchende/gofast/skill/syncx"
 	"net/http"
 )
@@ -32,5 +33,40 @@ func HttpMaxConnections(limit int32) fst.HttpHandler {
 				w.WriteHeader(http.StatusServiceUnavailable)
 			}
 		}
+	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 访问计数
+func httpAccessCount(kp *gate.RequestKeeper, pos int8) fst.HttpHandler {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			kp.CountTotal(pos)
+			next(w, r)
+		}
+	}
+}
+
+func HttpAccessCount1(kp *gate.RequestKeeper) fst.HttpHandler {
+	return httpAccessCount(kp, 0)
+}
+
+func HttpAccessCount2(kp *gate.RequestKeeper) fst.HttpHandler {
+	return httpAccessCount(kp, 1)
+}
+
+//
+//func HttpAccessCount3(kp *gate.RequestKeeper) fst.HttpHandler {
+//	return httpAccessCount(kp, 2)
+//}
+
+func AccessCount3(kp *gate.RequestKeeper) fst.CtxHandler {
+	if kp == nil {
+		return nil
+	}
+
+	return func(c *fst.Context) {
+		kp.CountTotal(2)
+		c.Next()
 	}
 }

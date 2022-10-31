@@ -24,12 +24,15 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	// NOTE：Fit系列是全局的，针对所有请求起作用，而且不区分路由，这个时候还根本没有开始匹配路由。
 	// GoFast提供默认的全套拦截器，开启微服务治理
 	// 请求按照先后顺序依次执行这些拦截器，顺序不可随意改变
+	app.UseHttpHandler(mid.HttpAccessCount1(reqKeeper))                // 访问计数1
 	app.UseHttpHandler(mid.HttpMaxConnections(cnf.MaxConnections))     // 最大同时接收请求数量
 	app.UseHttpHandler(mid.HttpMaxContentLength(cnf.MaxContentLength)) // 请求头最大限制
 	app.UseHttpHandler(mid.HttpLoadShedding(reqKeeper))                // 资源使用统计，超限就降载
+	app.UseHttpHandler(mid.HttpAccessCount2(reqKeeper))                // 访问计数2
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
+	app.Before(mid.AccessCount3(reqKeeper))    // 正确匹配路由的请求数
 	app.Before(mid.Tracing(cnf.EnableTrack))   // 链路追踪
 	app.Before(mid.Logger)                     // 请求日志
 	app.Before(mid.Breaker(reqKeeper))         // 自适应熔断：不同route，不同熔断阈值

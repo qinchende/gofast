@@ -33,7 +33,7 @@ func NewReqKeeper(name string) *RequestKeeper {
 	}
 }
 
-// 开启监控
+// 开启监控统计
 func (rk *RequestKeeper) StartWorking(routePaths []string) {
 	if rk.started == true {
 		return
@@ -73,4 +73,13 @@ func (rk *RequestKeeper) CountPass(idx uint16, ms int32) {
 // 统计一个被丢弃的请求
 func (rk *RequestKeeper) CountDrop(idx uint16) {
 	rk.counter.Add(oneReq{routeIdx: idx, isDrop: true})
+}
+
+// 添加其它统计项
+func (rk *RequestKeeper) CountTotal(pos int8) {
+	ct := &rk.bucket.others[pos]
+
+	ct.lock.Lock()
+	defer ct.lock.Unlock()
+	ct.total++
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/qinchende/gofast/skill/gmp"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/proc"
-	"github.com/qinchende/gofast/skill/syncx"
 	"github.com/qinchende/gofast/skill/timex"
 	"reflect"
 	"sync"
@@ -22,24 +21,24 @@ type (
 
 	// 管理周期执行的实体对象
 	Interval struct {
-		commander   chan any
+		messenger   chan any
 		confirmChan chan lang.PlaceholderType
 		interval    time.Duration
 		container   TaskContainer
-		waitGroup   sync.WaitGroup
-		wgBarrier   syncx.Barrier // avoid race condition on waitGroup when calling wg.Add/Done/Wait(...)
 		newTicker   func(d time.Duration) timex.Ticker
-		lock        sync.Mutex
-		isRunning   bool
+
+		waitGroup sync.WaitGroup
+		wgLock    sync.Mutex
+		lock      sync.Mutex
+		isRunning bool
 	}
 )
 
 // 初始化一个周期执行的实体对象
 func NewInterval(dur time.Duration, box TaskContainer) *Interval {
 	run := &Interval{
-		// buffer 1 to let the caller go quickly
-		commander:   make(chan any, 1),   // 长度为1的有缓冲通道
-		confirmChan: make(chan struct{}), // 无缓冲通道
+		messenger:   make(chan any, 1),               // 长度为1的有缓冲通道(buffer 1 to let the caller go quickly)
+		confirmChan: make(chan lang.PlaceholderType), // 无缓冲通道
 		interval:    dur,
 		container:   box,
 		newTicker: func(d time.Duration) timex.Ticker {
@@ -55,9 +54,9 @@ func NewInterval(dur time.Duration, box TaskContainer) *Interval {
 }
 
 func (run *Interval) Add(item any) {
-	// 外界可以强制刷新日志，并将values传入可执行函数
 	if values, ok := run.addAndCheck(item); ok {
-		run.commander <- values
+		// ok == true -> 强制刷新日志
+		run.messenger <- values
 		<-run.confirmChan
 	}
 }
@@ -80,9 +79,10 @@ func (run *Interval) Sync(fn func()) {
 
 func (run *Interval) Wait() {
 	run.Flush()
-	run.wgBarrier.Guard(func() {
-		run.waitGroup.Wait()
-	})
+
+	run.wgLock.Lock()
+	defer run.wgLock.Unlock()
+	run.waitGroup.Wait()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -120,7 +120,7 @@ func (run *Interval) raiseLoopFlush() {
 		// 开启死循环循环检测。手动指令，或者定时任务 都可以输出统计结果
 		for {
 			select {
-			case values := <-run.commander: // 主动触发执行
+			case values := <-run.messenger: // 主动触发执行
 				active = true
 				run.enterExecution()
 				run.confirmChan <- lang.Placeholder
@@ -139,7 +139,6 @@ func (run *Interval) raiseLoopFlush() {
 				}
 			}
 		}
-		// +++++++++++++++++++++++++++++++++++++++++++++++++++++
 	})
 }
 
@@ -178,9 +177,9 @@ func (run *Interval) doneExecution() {
 }
 
 func (run *Interval) enterExecution() {
-	run.wgBarrier.Guard(func() {
-		run.waitGroup.Add(1)
-	})
+	run.wgLock.Lock()
+	defer run.wgLock.Unlock()
+	run.waitGroup.Add(1)
 }
 
 func (run *Interval) executeTasks(items any) bool {
