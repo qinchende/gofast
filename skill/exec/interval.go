@@ -13,6 +13,7 @@ import (
 const idleRound = 10
 
 type (
+	// 外部可以自定义装载各种任务的容器，实现这些方法之后，就能赋予周期执行的特性
 	TaskContainer interface {
 		AddItem(item any) bool
 		Execute(items any)
@@ -29,7 +30,7 @@ type (
 
 		waitGroup sync.WaitGroup
 		wgLock    sync.Mutex
-		lock      sync.Mutex
+		runLock   sync.Mutex
 		isRunning bool
 	}
 )
@@ -65,15 +66,15 @@ func (run *Interval) Add(item any) {
 func (run *Interval) Flush() bool {
 	run.enterExecution()
 	return run.executeTasks(func() any {
-		run.lock.Lock()
-		defer run.lock.Unlock()
+		run.runLock.Lock()
+		defer run.runLock.Unlock()
 		return run.container.RemoveAll()
 	}())
 }
 
 func (run *Interval) Sync(fn func()) {
-	run.lock.Lock()
-	defer run.lock.Unlock()
+	run.runLock.Lock()
+	defer run.runLock.Unlock()
 	fn()
 }
 
@@ -87,13 +88,13 @@ func (run *Interval) Wait() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (run *Interval) addAndCheck(item any) (any, bool) {
-	run.lock.Lock()
+	run.runLock.Lock()
 	defer func() {
 		if run.isRunning == false {
 			run.isRunning = true
 			defer run.raiseLoopFlush()
 		}
-		run.lock.Unlock()
+		run.runLock.Unlock()
 	}()
 
 	// 外部容器可以试图返回 true，这样能立刻执行统计请求。
@@ -148,9 +149,9 @@ func (run *Interval) quitLoop(last time.Duration) (stop bool) {
 		return false
 	}
 
-	run.lock.Lock()
+	run.runLock.Lock()
 	run.isRunning = false
-	run.lock.Unlock()
+	run.runLock.Unlock()
 
 	return true
 }
@@ -162,11 +163,11 @@ func (run *Interval) quitLoop(last time.Duration) (stop bool) {
 //		return false
 //	}
 //	// checking run.inflight and setting run.guarded should be locked together
-//	run.lock.Lock()
+//	run.runLock.Lock()
 //	if atomic.LoadInt32(&run.inflight) == 0 {
 //		run.isRunning = false
 //	}
-//	run.lock.Unlock()
+//	run.runLock.Unlock()
 //	return true
 //}
 

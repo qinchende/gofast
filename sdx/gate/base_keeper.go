@@ -8,6 +8,7 @@ import (
 	"github.com/qinchende/gofast/skill/load"
 	"os"
 	"strconv"
+	"sync/atomic"
 	"time"
 )
 
@@ -34,7 +35,7 @@ func NewReqKeeper(name string) *RequestKeeper {
 }
 
 // 开启监控统计
-func (rk *RequestKeeper) StartWorking(routePaths []string) {
+func (rk *RequestKeeper) StartWorking(routePaths, otherPaths []string) {
 	if rk.started == true {
 		return
 	}
@@ -44,6 +45,14 @@ func (rk *RequestKeeper) StartWorking(routePaths []string) {
 	routesLen := len(routePaths)
 	rk.bucket.routes = make([]routeCounter, routesLen)
 	rk.bucket.paths = routePaths
+
+	// 其它统计
+	spcLen := len(otherPaths)
+	rk.bucket.others = make([]*uint64, spcLen)
+	for i := 0; i < spcLen; i++ {
+		rk.bucket.others[i] = new(uint64)
+	}
+	rk.bucket.otherPaths = otherPaths
 
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
 	rk.Breakers = make([]fuse.Breaker, routesLen)
@@ -76,10 +85,6 @@ func (rk *RequestKeeper) CountDrop(idx uint16) {
 }
 
 // 添加其它统计项
-func (rk *RequestKeeper) CountTotal(pos int8) {
-	ct := &rk.bucket.others[pos]
-
-	ct.lock.Lock()
-	defer ct.lock.Unlock()
-	ct.total++
+func (rk *RequestKeeper) JustCount(pos uint16) {
+	atomic.AddUint64(rk.bucket.others[pos], 1)
 }

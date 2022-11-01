@@ -22,6 +22,20 @@ func (gft *GoFast) RoutePathsWithMethod() []string {
 	return allPaths
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// special
+func (gft *GoFast) SpecialRoutesLen() uint16 {
+	return gft.specialLen
+}
+func (gft *GoFast) SpecialRoutePaths() []string {
+	paths := make([]string, gft.specialLen)
+	for i := 0; i < len(paths); i++ {
+		paths[i] = gft.allRoutes[i].fullPath
+	}
+	return paths
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 获取相应路由节点完整URL
 func (gft *GoFast) FullPath(idx uint16) string {
 	if idx < 0 || int(idx) >= len(gft.allPaths) {
