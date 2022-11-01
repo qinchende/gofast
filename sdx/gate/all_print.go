@@ -5,25 +5,26 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/sysx"
+	"sync/atomic"
 	"time"
 )
+
+const specialRouteMethod = "NA@"
 
 func (rb *reqBucket) logPrintOthers() {
 	total := uint64(0)
 	for idx := 0; idx < len(rb.others); idx++ {
-		tc := &rb.others[idx]
+		tc := rb.others[idx]
 
-		tc.lock.Lock()
-		total = tc.total
-		tc.total = 0
-		tc.lock.Unlock()
+		total = atomic.LoadUint64(tc)
+		atomic.StoreUint64(tc, 0)
 
 		if total <= 0 {
 			continue
 		}
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatRouteReq.Type,
-			"pth": "GlobalCount" + lang.ToString(idx+1),
+			"pth": specialRouteMethod + lang.ToString(idx+1),
 			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
 			"val": [5]any{total, 0, 0.00, 0.00, 0},
 		})

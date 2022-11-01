@@ -2,15 +2,13 @@
 // Use of this source code is governed by a MIT license
 package gate
 
-import "sync"
-
 // 请求数据增长20%
 const reqsGrowsRate = 0.2
 
 type (
 	// 每个请求需要消耗 7 字节（一段时间内请求一般都很多，要省内存）
 	oneReq struct {
-		takeTimeMS int32  // 单次请求耗时
+		takeTimeMS int32  // 单次请求耗时毫秒
 		routeIdx   uint16 // 当前请求对应路由树节点的index，这用来单独统计不同route
 		isDrop     bool   // 是否是一个被丢弃的请求（熔断或者资源超限拒绝处理）
 	}
@@ -21,11 +19,6 @@ type (
 		maxTimeMS   int32
 		accepts     uint32
 		drops       uint32
-	}
-
-	otherCounter struct {
-		lock  sync.Mutex
-		total uint64
 	}
 
 	reqBucket struct {
@@ -41,7 +34,7 @@ type (
 
 		// 其它计数器
 		otherPaths []string
-		others     []otherCounter
+		others     []*uint64
 	}
 )
 
@@ -79,7 +72,7 @@ func (rb *reqBucket) RemoveAll() any {
 	rb.lastReqsLen = len(rb.reqs)
 
 	// 特殊情况也需要统计
-	if len(rb.reqs) == 0 && len(rb.others) > 0 && rb.others[0].total > 0 {
+	if len(rb.reqs) == 0 && len(rb.others) > 0 && *rb.others[0] > 0 {
 		rb.reqs = append(rb.reqs, oneReq{routeIdx: 0, isDrop: true, takeTimeMS: -1})
 	}
 	return rb.reqs

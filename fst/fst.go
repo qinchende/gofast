@@ -36,7 +36,6 @@ type GoFast struct {
 // 站点根目录是一个特殊的路由分组，所有其他分组都是他的子孙节点
 type HomeRouter struct {
 	RouteGroup              // HomeRouter 本身就是一个路由分组
-	ctxPool    sync.Pool    // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
 	allRoutes  []*RouteItem // 记录当前Server所有的路由信息，方便后期重构路由树（）
 	allPaths   []string     // 相应的路由URL
 
@@ -46,14 +45,15 @@ type HomeRouter struct {
 	miniNodeAny  *radixMiniNode
 	miniNode404  *radixMiniNode
 	miniNode405  *radixMiniNode
+	specialLen   uint16
 
 	// 虽然支持 RESTFUL 路由规范，但本框架 GET 和 POST 是一等公民
 	// 绝大部分应用Get和Post请求居多，我们能尽快匹配就不需要无用的Method比较选择的过程
 	//（我主张不要过分强调restful风格，这本身就是个鸡肋概念，没有完全解决问题，反而带来思想负担，引发无用争辩）。
 	routerTrees methodTrees
 
-	// 主要以数组结构的形式，存储了 Routes & Handlers
-	fstMem *fstMemSpace
+	ctxPool sync.Pool    // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
+	fstMem  *fstMemSpace // 主要以数组结构的形式，存储了 Routes & Handlers
 }
 
 // 一个快速创建Server的函数，使用默认配置参数，方便调用。
@@ -101,34 +101,25 @@ func (gft *GoFast) initHomeRouter() {
 		myApp:  gft,
 		hdsIdx: -1,
 	}
+	gft.specialLen = 3
+	gft.allRoutes = make([]*RouteItem, gft.specialLen)
+	gft.addSpecialRoute(0, "/any") // 默认为空的节点
+	gft.addSpecialRoute(1, "/404") // 404 Default Route
+	gft.addSpecialRoute(2, "/405") // 405 Default Route
 
 	gft.ctxPool.New = func() any {
 		return &Context{myApp: gft, ResWrap: &ResponseWrap{}}
 	}
-
-	gft.allRoutes = make([]*RouteItem, 0, 3)
-	// 默认为空的节点
-	gft.allRoutes = append(gft.allRoutes, &RouteItem{
-		group:    gft.specialGroup,
-		method:   "NA",
-		fullPath: "*",
-		routeIdx: 0,
-	})
-	// 404 Default Route
-	gft.allRoutes = append(gft.allRoutes, &RouteItem{
-		group:    gft.specialGroup,
-		method:   "NA",
-		fullPath: "/404",
-		routeIdx: 1,
-	})
-	// 405 Default Route
-	gft.allRoutes = append(gft.allRoutes, &RouteItem{
-		group:    gft.specialGroup,
-		method:   "NA",
-		fullPath: "/405",
-		routeIdx: 2,
-	})
 	gft.fstMem = &fstMemSpace{myApp: gft}
+}
+
+func (gft *GoFast) addSpecialRoute(idx uint16, path string) {
+	gft.allRoutes[idx] = &RouteItem{
+		group:    gft.specialGroup,
+		method:   "NA",
+		fullPath: path,
+		routeIdx: idx,
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -38,35 +38,32 @@ func HttpMaxConnections(limit int32) fst.HttpHandler {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 访问计数
-func httpAccessCount(kp *gate.RequestKeeper, pos int8) fst.HttpHandler {
+func HttpReqCountPos(kp *gate.RequestKeeper, pos uint16) fst.HttpHandler {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			kp.CountTotal(pos)
+			kp.JustCount(pos)
 			next(w, r)
 		}
 	}
 }
-
-func HttpAccessCount1(kp *gate.RequestKeeper) fst.HttpHandler {
-	return httpAccessCount(kp, 0)
-}
-
-func HttpAccessCount2(kp *gate.RequestKeeper) fst.HttpHandler {
-	return httpAccessCount(kp, 1)
-}
-
-//
-//func HttpAccessCount3(kp *gate.RequestKeeper) fst.HttpHandler {
-//	return httpAccessCount(kp, 2)
-//}
-
-func AccessCount3(kp *gate.RequestKeeper) fst.CtxHandler {
+func ReqCount(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
 
 	return func(c *fst.Context) {
-		kp.CountTotal(2)
+		kp.JustCount(c.RouteIdx)
+		c.Next()
+	}
+}
+
+func ReqCountPos(kp *gate.RequestKeeper, idx uint16) fst.CtxHandler {
+	if kp == nil {
+		return nil
+	}
+
+	return func(c *fst.Context) {
+		kp.JustCount(idx)
 		c.Next()
 	}
 }
