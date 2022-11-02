@@ -56,7 +56,7 @@ func NewInterval(dur time.Duration, box TaskContainer) *Interval {
 
 func (run *Interval) Add(item any) {
 	if values, ok := run.addAndCheck(item); ok {
-		// ok == true -> 强制刷新日志
+		// ok == true -> 主动执行任务
 		run.messenger <- values
 		<-run.confirmChan
 	}
@@ -96,12 +96,10 @@ func (run *Interval) addAndCheck(item any) (any, bool) {
 		}
 		run.runLock.Unlock()
 	}()
-
 	// 外部容器可以试图返回 true，这样能立刻执行统计请求。
 	if run.container.AddItem(item) {
 		return run.container.RemoveAll(), true
 	}
-
 	return nil, false
 }
 

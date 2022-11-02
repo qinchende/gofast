@@ -42,10 +42,10 @@ type HomeRouter struct {
 	// 有三个特殊 RouteItem： 1. any 2. noRoute  3. noMethod
 	// 这三个节点不参与构建路由树
 	specialGroup *RouteGroup // 特殊路由分组
+	speRoutesLen uint16
 	miniNodeAny  *radixMiniNode
 	miniNode404  *radixMiniNode
 	miniNode405  *radixMiniNode
-	specialLen   uint16
 
 	// 虽然支持 RESTFUL 路由规范，但本框架 GET 和 POST 是一等公民
 	// 绝大部分应用Get和Post请求居多，我们能尽快匹配就不需要无用的Method比较选择的过程
@@ -101,8 +101,8 @@ func (gft *GoFast) initHomeRouter() {
 		myApp:  gft,
 		hdsIdx: -1,
 	}
-	gft.specialLen = 3
-	gft.allRoutes = make([]*RouteItem, gft.specialLen)
+	gft.speRoutesLen = 3
+	gft.allRoutes = make([]*RouteItem, gft.speRoutesLen)
 	gft.addSpecialRoute(0, "/any") // 默认为空的节点
 	gft.addSpecialRoute(1, "/404") // 404 Default Route
 	gft.addSpecialRoute(2, "/405") // 405 Default Route

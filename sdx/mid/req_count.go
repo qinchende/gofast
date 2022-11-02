@@ -41,18 +41,19 @@ func HttpMaxConnections(limit int32) fst.HttpHandler {
 func HttpReqCountPos(kp *gate.RequestKeeper, pos uint16) fst.HttpHandler {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
-			kp.JustCount(pos)
+			kp.CountExtras(pos)
 			next(w, r)
 		}
 	}
 }
+
 func ReqCount(kp *gate.RequestKeeper) fst.CtxHandler {
 	if kp == nil {
 		return nil
 	}
 
 	return func(c *fst.Context) {
-		kp.JustCount(c.RouteIdx)
+		kp.CountExtras(c.RouteIdx)
 		c.Next()
 	}
 }
@@ -63,7 +64,7 @@ func ReqCountPos(kp *gate.RequestKeeper, idx uint16) fst.CtxHandler {
 	}
 
 	return func(c *fst.Context) {
-		kp.JustCount(idx)
+		kp.CountExtras(idx)
 		c.Next()
 	}
 }
