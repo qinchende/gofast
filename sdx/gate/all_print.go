@@ -13,8 +13,8 @@ const specialRouteMethod = "NA@"
 
 func (rb *reqBucket) logPrintOthers() {
 	total := uint64(0)
-	for idx := 0; idx < len(rb.others); idx++ {
-		tc := rb.others[idx]
+	for idx := 0; idx < len(rb.extras); idx++ {
+		tc := rb.extras[idx]
 
 		total = atomic.LoadUint64(tc)
 		atomic.StoreUint64(tc, 0)
@@ -24,7 +24,7 @@ func (rb *reqBucket) logPrintOthers() {
 		}
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatRouteReq.Type,
-			"pth": specialRouteMethod + lang.ToString(idx+1),
+			"pth": specialRouteMethod + rb.extraPaths[idx],
 			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
 			"val": [5]any{total, 0, 0.00, 0.00, 0},
 		})

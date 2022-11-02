@@ -25,10 +25,11 @@ func (gft *GoFast) RoutePathsWithMethod() []string {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // special
 func (gft *GoFast) SpecialRoutesLen() uint16 {
-	return gft.specialLen
+	return gft.speRoutesLen
 }
+
 func (gft *GoFast) SpecialRoutePaths() []string {
-	paths := make([]string, gft.specialLen)
+	paths := make([]string, gft.speRoutesLen)
 	for i := 0; i < len(paths); i++ {
 		paths[i] = gft.allRoutes[i].fullPath
 	}

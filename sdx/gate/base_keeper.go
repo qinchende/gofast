@@ -35,7 +35,7 @@ func NewReqKeeper(name string) *RequestKeeper {
 }
 
 // 开启监控统计
-func (rk *RequestKeeper) StartWorking(routePaths, otherPaths []string) {
+func (rk *RequestKeeper) StartWorking(routePaths, extraPaths []string) {
 	if rk.started == true {
 		return
 	}
@@ -47,12 +47,12 @@ func (rk *RequestKeeper) StartWorking(routePaths, otherPaths []string) {
 	rk.bucket.paths = routePaths
 
 	// 其它统计
-	spcLen := len(otherPaths)
-	rk.bucket.others = make([]*uint64, spcLen)
+	spcLen := len(extraPaths)
+	rk.bucket.extras = make([]*uint64, spcLen)
 	for i := 0; i < spcLen; i++ {
-		rk.bucket.others[i] = new(uint64)
+		rk.bucket.extras[i] = new(uint64)
 	}
-	rk.bucket.otherPaths = otherPaths
+	rk.bucket.extraPaths = extraPaths
 
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
 	rk.Breakers = make([]fuse.Breaker, routesLen)
@@ -75,16 +75,16 @@ func (rk *RequestKeeper) StartWorking(routePaths, otherPaths []string) {
 //}
 
 // 统计一个通过的请求
-func (rk *RequestKeeper) CountPass(idx uint16, ms int32) {
+func (rk *RequestKeeper) CountRoutePass(idx uint16, ms int32) {
 	rk.counter.Add(oneReq{routeIdx: idx, takeTimeMS: ms})
 }
 
 // 统计一个被丢弃的请求
-func (rk *RequestKeeper) CountDrop(idx uint16) {
+func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
 	rk.counter.Add(oneReq{routeIdx: idx, isDrop: true})
 }
 
 // 添加其它统计项
-func (rk *RequestKeeper) JustCount(pos uint16) {
-	atomic.AddUint64(rk.bucket.others[pos], 1)
+func (rk *RequestKeeper) CountExtras(pos uint16) {
+	atomic.AddUint64(rk.bucket.extras[pos], 1)
 }

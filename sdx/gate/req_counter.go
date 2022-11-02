@@ -6,19 +6,19 @@ package gate
 const reqsGrowsRate = 0.2
 
 type (
-	// 每个请求需要消耗 7 字节（一段时间内请求一般都很多，要省内存）
+	// 每个请求需要消耗 7 字节（1字长）（一段时间内请求一般都很多，要省内存）
 	oneReq struct {
 		takeTimeMS int32  // 单次请求耗时毫秒
 		routeIdx   uint16 // 当前请求对应路由树节点的index，这用来单独统计不同route
 		isDrop     bool   // 是否是一个被丢弃的请求（熔断或者资源超限拒绝处理）
 	}
 
-	// 每个route消耗 20 字节
+	// 每个route消耗 20 字节（3字长）
 	routeCounter struct {
-		totalTimeMS int64
-		maxTimeMS   int32
-		accepts     uint32
-		drops       uint32
+		maxTimeMS   int32  // 正常请求最长耗时
+		totalTimeMS int64  // 正常请求总共耗时
+		accepts     uint32 // 正常处理的请求数
+		drops       uint32 // 丢弃的请求数
 	}
 
 	reqBucket struct {
@@ -33,8 +33,8 @@ type (
 		routes []routeCounter
 
 		// 其它计数器
-		otherPaths []string
-		others     []*uint64
+		extraPaths []string
+		extras     []*uint64
 	}
 )
 
@@ -49,7 +49,7 @@ func (rb *reqBucket) resetRouteCounters() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 实现 exec.Interval 接口方法，方便这个集装箱进行定时统计
+// 实现 exec.Interval 接口方法，方便对所有请求进行定时统计
 
 // 如果这里返回true，意味着要立刻刷新当前所有统计数据，这个开关用户自定义输出日志
 // 一般这里都应该返回 false
@@ -72,7 +72,7 @@ func (rb *reqBucket) RemoveAll() any {
 	rb.lastReqsLen = len(rb.reqs)
 
 	// 特殊情况也需要统计
-	if len(rb.reqs) == 0 && len(rb.others) > 0 && *rb.others[0] > 0 {
+	if len(rb.reqs) == 0 && len(rb.extras) > 0 && *rb.extras[0] > 0 {
 		rb.reqs = append(rb.reqs, oneReq{routeIdx: 0, isDrop: true, takeTimeMS: -1})
 	}
 	return rb.reqs
