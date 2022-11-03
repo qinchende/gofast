@@ -86,5 +86,8 @@ func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
 
 // 添加其它统计项
 func (rk *RequestKeeper) CountExtras(pos uint16) {
-	atomic.AddUint64(rk.bucket.extras[pos], 1)
+	rk.counter.AddByFunc(func(item any) (any, bool) {
+		atomic.AddUint64(rk.bucket.extras[pos], 1)
+		return nil, false
+	}, nil)
 }

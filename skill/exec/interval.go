@@ -7,31 +7,34 @@ import (
 	"github.com/qinchende/gofast/skill/timex"
 	"reflect"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
 const idleRound = 10
 
+type AddFunc func(item any) (any, bool)
+
 type (
 	// 外部可以自定义装载各种任务的容器，实现这些方法之后，就能赋予周期执行的特性
 	TaskContainer interface {
-		AddItem(item any) bool
-		Execute(items any)
+		AddItem(item any) bool // 返回true，立即触发任务执行
 		RemoveAll() any
+		Execute(items any)
 	}
 
 	// 管理周期执行的实体对象
 	Interval struct {
+		container   TaskContainer
+		interval    time.Duration
+		newTicker   func(d time.Duration) timex.Ticker
 		messenger   chan any
 		confirmChan chan lang.PlaceholderType
-		interval    time.Duration
-		container   TaskContainer
-		newTicker   func(d time.Duration) timex.Ticker
+		inflight    int32
+		execWG      sync.WaitGroup
 
-		waitGroup sync.WaitGroup
-		wgLock    sync.Mutex
-		runLock   sync.Mutex
 		isRunning bool
+		runLock   sync.Mutex
 	}
 )
 
@@ -54,76 +57,77 @@ func NewInterval(dur time.Duration, box TaskContainer) *Interval {
 	return run
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 执行一次定时任务。
+// 返回是否真的有任务被执行过了
+// 请调用者自己保证 RemoveAll 函数并发安全
+func (run *Interval) Flush() (hasTasks bool) {
+	run.enterExecution()
+	return run.executeTasks(run.container.RemoveAll())
+}
+
+// 请调用者自己保证AddItem函数并发安全
 func (run *Interval) Add(item any) {
-	if values, ok := run.addAndCheck(item); ok {
-		// ok == true -> 主动执行任务
-		run.messenger <- values
+	run.checkLoop()
+	ok := run.container.AddItem(item)
+	run.checkLoop()
+
+	// ok == true -> 立即主动执行任务
+	if ok {
+		atomic.AddInt32(&run.inflight, 1)
+		run.messenger <- run.container.RemoveAll()
 		<-run.confirmChan
 	}
 }
 
-// 执行一次定时任务。
-func (run *Interval) Flush() bool {
-	run.enterExecution()
-	return run.executeTasks(func() any {
-		run.runLock.Lock()
-		defer run.runLock.Unlock()
-		return run.container.RemoveAll()
-	}())
-}
+// 请调用者自己保证fc函数并发安全
+func (run *Interval) AddByFunc(fc AddFunc, item any) {
+	run.checkLoop()
+	items, ok := fc(item)
+	run.checkLoop()
 
-func (run *Interval) Sync(fn func()) {
-	run.runLock.Lock()
-	defer run.runLock.Unlock()
-	fn()
-}
-
-func (run *Interval) Wait() {
-	run.Flush()
-
-	run.wgLock.Lock()
-	defer run.wgLock.Unlock()
-	run.waitGroup.Wait()
+	// ok == true -> 立即主动执行任务
+	if ok {
+		atomic.AddInt32(&run.inflight, 1)
+		run.messenger <- items
+		<-run.confirmChan
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (run *Interval) addAndCheck(item any) (any, bool) {
-	run.runLock.Lock()
-	defer func() {
-		if run.isRunning == false {
-			run.isRunning = true
-			defer run.raiseLoopFlush()
-		}
-		run.runLock.Unlock()
-	}()
-	// 外部容器可以试图返回 true，这样能立刻执行统计请求。
-	if run.container.AddItem(item) {
-		return run.container.RemoveAll(), true
+// 有增加任务的动作，就要想办法激活循环检测
+func (run *Interval) checkLoop() {
+	if run.isRunning == false {
+		run.raiseLoop()
 	}
-	return nil, false
 }
 
 // 后台启动新的协程运行周期任务
-func (run *Interval) raiseLoopFlush() {
+func (run *Interval) raiseLoop() {
+	run.runLock.Lock()
+	if run.isRunning {
+		run.runLock.Unlock()
+		return
+	}
+	run.isRunning = true
+	run.runLock.Unlock()
+
 	gmp.GoSafe(func() {
-		// flush before quit goroutine to avoid missing items
-		defer run.Flush()
+		defer run.Flush()                     // flush before quit goroutine to avoid missing items
+		ticker := run.newTicker(run.interval) // 定时器
+		defer ticker.Stop()                   // 退出定时器
 
-		// 新建一个计时器，固定周期触发
-		ticker := run.newTicker(run.interval)
-		defer ticker.Stop()
-
-		// 外部命令立即输出
-		var active bool
+		var active bool // 外部命令立即输出
 		last := timex.Now()
 		// 开启死循环循环检测。手动指令，或者定时任务 都可以输出统计结果
 		for {
 			select {
-			case values := <-run.messenger: // 主动触发执行
+			case items := <-run.messenger: // 主动触发执行
 				active = true
+				atomic.AddInt32(&run.inflight, -1)
 				run.enterExecution()
 				run.confirmChan <- lang.Placeholder
-				run.executeTasks(values)
+				run.executeTasks(items)
 				last = timex.Now()
 			case <-ticker.Chan(): // 定时执行
 				// 如果上面主动输出一次，那么本次自动输出将轮空
@@ -141,53 +145,40 @@ func (run *Interval) raiseLoopFlush() {
 	})
 }
 
-// 一定循环次数之后发现没有新任务，自动退出定时循环。下次自动循环由添加新任务时再唤起
+// 而这里也不会把 guarded 设置成false，程序永远也无法启动 backgroundFlush()函数了。
 func (run *Interval) quitLoop(last time.Duration) (stop bool) {
 	if timex.Since(last) <= run.interval*idleRound {
-		return false
+		return
 	}
 
 	run.runLock.Lock()
-	run.isRunning = false
+	if atomic.LoadInt32(&run.inflight) == 0 {
+		run.isRunning = false
+		stop = true
+	}
 	run.runLock.Unlock()
 
-	return true
+	return
 }
 
-//// 下面这个是go-zero的写法，我认为有Bug。当自动执行任务的协程执行这个准备退出时，突然来了一项任务，inflight的值将不再是0，
-//// 而这里也不会把isRunning设置成false，程序永远也无法启动loopFlush()函数了。
-//func (run *Interval) quitLoop(last time.Duration) (stop bool) {
-//	if timex.Since(last) <= run.interval*idleRound {
-//		return false
-//	}
-//	// checking run.inflight and setting run.guarded should be locked together
-//	run.runLock.Lock()
-//	if atomic.LoadInt32(&run.inflight) == 0 {
-//		run.isRunning = false
-//	}
-//	run.runLock.Unlock()
-//	return true
-//}
-
+// 执行体的安全控制
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-func (run *Interval) doneExecution() {
-	run.waitGroup.Done()
+func (run *Interval) Wait() {
+	run.Flush()
+	run.execWG.Wait()
 }
 
 func (run *Interval) enterExecution() {
-	run.wgLock.Lock()
-	defer run.wgLock.Unlock()
-	run.waitGroup.Add(1)
+	run.execWG.Add(1)
 }
 
-func (run *Interval) executeTasks(items any) bool {
-	defer run.doneExecution()
-	ok := run.hasTasks(items)
-	if ok {
+func (run *Interval) executeTasks(items any) (hasTasks bool) {
+	defer run.execWG.Done()
+	hasTasks = run.hasTasks(items)
+	if hasTasks {
 		run.container.Execute(items)
 	}
-	return ok
+	return
 }
 
 func (run *Interval) hasTasks(items any) bool {

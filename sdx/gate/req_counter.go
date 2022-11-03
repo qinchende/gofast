@@ -60,6 +60,13 @@ func (rb *reqBucket) AddItem(v any) bool {
 	return false
 }
 
+//func (rb *reqBucket) AddItemByFunc(fc exec.AddFunc, v any) (any, bool) {
+//	//if req, ok := v.(oneReq); ok {
+//	//	rb.reqs = append(rb.reqs, req)
+//	//}
+//	return fc(v)
+//}
+
 // 返回当前容器中的所有数据，同时重置容器
 func (rb *reqBucket) RemoveAll() any {
 	defer func() {
