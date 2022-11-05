@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/skill/load"
 	"os"
 	"strconv"
-	"sync/atomic"
 	"time"
 )
 
@@ -17,9 +16,8 @@ const CountInterval = time.Minute
 
 // 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
 type RequestKeeper struct {
-	started bool           // 是否开始运行了
-	bucket  *reqBucket     //
-	counter *exec.Interval // 循环计数器
+	bucket  *reqBucket           // 请求统计器
+	counter *exec.IntervalUnsafe // 定时打印统计数据
 
 	Breakers     []fuse.Breaker // 不同路径的熔断统计器
 	Shedding     load.Shedder
@@ -29,31 +27,18 @@ type RequestKeeper struct {
 func NewReqKeeper(name string) *RequestKeeper {
 	bkt := &reqBucket{pid: os.Getpid(), name: name}
 	return &RequestKeeper{
-		counter: exec.NewInterval(CountInterval, bkt),
+		counter: exec.NewIntervalUnsafe(CountInterval, bkt),
 		bucket:  bkt,
 	}
 }
 
 // 开启监控统计
-func (rk *RequestKeeper) StartWorking(routePaths, extraPaths []string) {
-	if rk.started == true {
-		return
-	}
-	rk.started = true
+func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
+	rk.bucket.paths = routePaths      // 初始化整个路由统计结构
+	rk.bucket.extraPaths = extraPaths // 其它统计
+	rk.bucket.initCounters()
 
-	// 初始化整个路由统计结构
 	routesLen := len(routePaths)
-	rk.bucket.routes = make([]routeCounter, routesLen)
-	rk.bucket.paths = routePaths
-
-	// 其它统计
-	spcLen := len(extraPaths)
-	rk.bucket.extras = make([]*uint64, spcLen)
-	for i := 0; i < spcLen; i++ {
-		rk.bucket.extras[i] = new(uint64)
-	}
-	rk.bucket.extraPaths = extraPaths
-
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
 	rk.Breakers = make([]fuse.Breaker, routesLen)
 	for i := 0; i < routesLen; i++ {
@@ -65,29 +50,4 @@ func (rk *RequestKeeper) StartWorking(routePaths, extraPaths []string) {
 	//	rk.Shedding = load.NewAdaptiveShedder() // 降载统计分析
 	//	// rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
 	//}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 添加一次请求项目
-// 只有熔断，或者降载发生的时候，才算是一个drop请求
-//func (rk *RequestKeeper) AddOne(it oneReq) {
-//	rk.counter.Add(it)
-//}
-
-// 统计一个通过的请求
-func (rk *RequestKeeper) CountRoutePass(idx uint16, ms int32) {
-	rk.counter.Add(oneReq{routeIdx: idx, takeTimeMS: ms})
-}
-
-// 统计一个被丢弃的请求
-func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
-	rk.counter.Add(oneReq{routeIdx: idx, isDrop: true})
-}
-
-// 添加其它统计项
-func (rk *RequestKeeper) CountExtras(pos uint16) {
-	rk.counter.AddByFunc(func(item any) (any, bool) {
-		atomic.AddUint64(rk.bucket.extras[pos], 1)
-		return nil, false
-	}, nil)
 }

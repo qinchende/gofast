@@ -5,21 +5,16 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/sysx"
-	"sync/atomic"
 	"time"
 )
 
 const specialRouteMethod = "NA@"
 
-func (rb *reqBucket) logPrintOthers() {
-	total := uint64(0)
-	for idx := 0; idx < len(rb.extras); idx++ {
-		tc := rb.extras[idx]
-
-		total = atomic.LoadUint64(tc)
-		atomic.StoreUint64(tc, 0)
-
-		if total <= 0 {
+func (rb *reqBucket) logPrintReqCounter(data *printData) {
+	// 输出扩展统计
+	for idx := 0; idx < len(data.extras); idx++ {
+		total := data.extras[idx]
+		if total == 0 {
 			continue
 		}
 		logx.StatKV(cst.KV{
@@ -29,12 +24,10 @@ func (rb *reqBucket) logPrintOthers() {
 			"val": [5]any{total, 0, 0.00, 0.00, 0},
 		})
 	}
-}
 
-// 每分钟统计接口地址访问情况，打印日志
-func (rb *reqBucket) logPrintRoutes() {
-	for idx := 0; idx < len(rb.routes); idx++ {
-		route := &rb.routes[idx]
+	// 输出路由统计
+	for idx := 0; idx < len(data.routes); idx++ {
+		route := &data.routes[idx]
 		if route.accepts == 0 && route.drops == 0 {
 			continue
 		}

@@ -18,7 +18,7 @@ func TimeMetric(kp *gate.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		defer func() {
 			// 统计耗时
-			kp.CountRoutePass(c.RouteIdx, int32(timex.SinceMS(c.EnterTime)))
+			kp.CountRoutePass2(c.RouteIdx, int32(timex.SinceMS(c.EnterTime)))
 		}()
 
 		c.Next()

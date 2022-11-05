@@ -47,24 +47,16 @@ func HttpReqCountPos(kp *gate.RequestKeeper, pos uint16) fst.HttpHandler {
 	}
 }
 
-func ReqCount(kp *gate.RequestKeeper) fst.CtxHandler {
-	if kp == nil {
-		return nil
-	}
-
+func ReqCountPos(kp *gate.RequestKeeper, idx uint16) fst.CtxHandler {
 	return func(c *fst.Context) {
-		kp.CountExtras(c.RouteIdx)
+		kp.CountExtras(idx)
 		c.Next()
 	}
 }
 
-func ReqCountPos(kp *gate.RequestKeeper, idx uint16) fst.CtxHandler {
-	if kp == nil {
-		return nil
-	}
-
+func ReqCount(kp *gate.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
-		kp.CountExtras(idx)
+		kp.CountRoutePass(c.RouteIdx)
 		c.Next()
 	}
 }

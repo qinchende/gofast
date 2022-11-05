@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const idleRound = 10
+const idleRound = 2
 
 type AddFunc func(item any) (any, bool)
 
@@ -31,16 +31,17 @@ type (
 		messenger   chan any
 		confirmChan chan lang.PlaceholderType
 		inflight    int32
-		execWG      sync.WaitGroup
+
+		taskLock sync.Mutex
+		execWG   sync.WaitGroup
 
 		isRunning bool
 		runLock   sync.Mutex
 	}
 )
 
-// 初始化一个周期执行的实体对象
-func NewInterval(dur time.Duration, box TaskContainer) *Interval {
-	run := &Interval{
+func createInterval(dur time.Duration, box TaskContainer) *Interval {
+	return &Interval{
 		messenger:   make(chan any, 1),               // 长度为1的有缓冲通道(buffer 1 to let the caller go quickly)
 		confirmChan: make(chan lang.PlaceholderType), // 无缓冲通道
 		interval:    dur,
@@ -49,7 +50,11 @@ func NewInterval(dur time.Duration, box TaskContainer) *Interval {
 			return timex.NewTicker(d)
 		},
 	}
+}
 
+// 初始化一个周期执行的实体对象
+func NewInterval(dur time.Duration, box TaskContainer) *Interval {
+	run := createInterval(dur, box)
 	// 程序退出时要执行一次
 	proc.AddShutdownListener(func() {
 		run.Flush()
@@ -63,19 +68,32 @@ func NewInterval(dur time.Duration, box TaskContainer) *Interval {
 // 请调用者自己保证 RemoveAll 函数并发安全
 func (run *Interval) Flush() (hasTasks bool) {
 	run.enterExecution()
-	return run.executeTasks(run.container.RemoveAll())
+
+	run.taskLock.Lock()
+	items := run.container.RemoveAll()
+	run.taskLock.Unlock()
+
+	return run.executeTasks(items)
 }
 
 // 请调用者自己保证AddItem函数并发安全
 func (run *Interval) Add(item any) {
 	run.checkLoop()
+
+	run.taskLock.Lock()
 	ok := run.container.AddItem(item)
+	run.taskLock.Unlock()
+
 	run.checkLoop()
 
 	// ok == true -> 立即主动执行任务
 	if ok {
+		run.taskLock.Lock()
+		items := run.container.RemoveAll()
+		run.taskLock.Unlock()
+
 		atomic.AddInt32(&run.inflight, 1)
-		run.messenger <- run.container.RemoveAll()
+		run.messenger <- items
 		<-run.confirmChan
 	}
 }
@@ -83,7 +101,11 @@ func (run *Interval) Add(item any) {
 // 请调用者自己保证fc函数并发安全
 func (run *Interval) AddByFunc(fc AddFunc, item any) {
 	run.checkLoop()
+
+	run.taskLock.Lock()
 	items, ok := fc(item)
+	run.taskLock.Unlock()
+
 	run.checkLoop()
 
 	// ok == true -> 立即主动执行任务
