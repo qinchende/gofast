@@ -34,9 +34,10 @@ func NewReqKeeper(name string) *RequestKeeper {
 
 // 开启监控统计
 func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
-	rk.bucket.paths = routePaths      // 初始化整个路由统计结构
-	rk.bucket.extraPaths = extraPaths // 其它统计
-	rk.bucket.initCounters()
+	rk.bucket.paths = routePaths                             // 初始化整个路由统计结构
+	rk.bucket.routes = make([]routeCounter, len(routePaths)) // 初始化整个路由统计结构
+	rk.bucket.extraPaths = extraPaths                        // 其它统计
+	rk.bucket.extras = make([]extraCounter, len(extraPaths)) // 其它统计
 
 	routesLen := len(routePaths)
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
