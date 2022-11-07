@@ -17,7 +17,7 @@ func HttpMaxConnections(limit int32) fst.HttpHandler {
 		return nil
 	}
 
-	latch := syncx.Counter{Max: limit}
+	latch := syncx.LazyCounter{Max: limit}
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			if latch.TryBorrow() {
@@ -28,9 +28,8 @@ func HttpMaxConnections(limit int32) fst.HttpHandler {
 				}()
 				next(w, r)
 			} else {
-				logx.ErrorF("curr request %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
-				// 返回客户端服务器错误
-				w.WriteHeader(http.StatusServiceUnavailable)
+				logx.ErrorF("req %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
+				w.WriteHeader(http.StatusServiceUnavailable) // 返回客户端服务器错误
 			}
 		}
 	}

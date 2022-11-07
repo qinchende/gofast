@@ -13,15 +13,15 @@ const specialRouteMethod = "NA@"
 func (rb *reqBucket) logPrintReqCounter(data *printData) {
 	// 输出扩展统计
 	for idx := 0; idx < len(data.extras); idx++ {
-		total := data.extras[idx]
-		if total == 0 {
+		extra := &data.extras[idx]
+		if extra.total == 0 {
 			continue
 		}
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatRouteReq.Type,
 			"pth": specialRouteMethod + rb.extraPaths[idx],
 			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
-			"val": [5]any{total, 0, 0.00, 0.00, 0},
+			"val": [5]any{extra.total, 0, 0.00, 0.00, 0},
 		})
 	}
 

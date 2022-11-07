@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-const idleRound = 2
+const idleRound = 10
 
 type AddFunc func(item any) (any, bool)
 
@@ -118,6 +118,7 @@ func (run *Interval) AddByFunc(fc AddFunc, item any) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 有增加任务的动作，就要想办法激活循环检测
+// 因为这个没有加锁运行，所以在添加任务的时候要前后都检测一次。
 func (run *Interval) checkLoop() {
 	if run.isRunning == false {
 		run.raiseLoop()
