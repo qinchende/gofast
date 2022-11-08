@@ -14,18 +14,18 @@ var (
 )
 
 func (c *Context) Set(key string, value any) {
-	c.mu.Lock()
+	c.rwLock.Lock()
 	if c.Pms == nil {
 		c.Pms = make(cst.KV)
 	}
 	c.Pms[key] = value
-	c.mu.Unlock()
+	c.rwLock.Unlock()
 }
 
 func (c *Context) Get(key string) (value any, exists bool) {
-	c.mu.RLock()
+	c.rwLock.RLock()
 	value, exists = c.Pms[key]
-	c.mu.RUnlock()
+	c.rwLock.RUnlock()
 	return
 }
 

@@ -175,10 +175,10 @@ func (c *Context) Render(resStatus int, r render.Render) {
 
 // 强行终止处理，立即返回指定结果，不执行Render
 func (c *Context) AbortDirect(resStatus int, stream any) {
-	c.execIdx = maxRouteHandlers
 	if c.tryToRender() == false {
 		return
 	}
+	c.execIdx = maxRouteHandlers
 
 	var data []byte
 	switch stream.(type) {
@@ -194,10 +194,10 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 }
 
 func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
-	c.execIdx = maxRouteHandlers
 	if c.tryToRender() == false {
 		return
 	}
+	c.execIdx = maxRouteHandlers
 	c.ResWrap.SendHijackRedirect(c.ReqRaw, resStatus, redirectUrl)
 }
 
@@ -215,13 +215,13 @@ func bodyAllowedForStatus(status int) bool {
 
 // NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 func (c *Context) tryToRender() bool {
-	c.mu.Lock()
+	c.rwLock.Lock()
 	if c.rendered {
-		c.mu.Unlock()
+		c.rwLock.Unlock()
 		logx.Warn("Double render, the call canceled.")
 		return false
 	}
 	c.rendered = true
-	c.mu.Unlock()
+	c.rwLock.Unlock()
 	return true
 }

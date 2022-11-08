@@ -7,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/skill/sysx"
 )
 
+// GoFast default handlers chain
 func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	cnf := app.SdxConfig
 
@@ -18,7 +19,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 		sysx.OpenSysMonitor(cnf.SysStatePrint)      // 系统资源监控
 
 		routePaths := app.RoutePathsWithMethod()
-		extraPaths := []string{"Income", "LoadShedding", "RouteMatched"}
+		extraPaths := []string{"AllRequest", "LoadShedding", "RouteMatched"}
 		reqKeeper.InitAndRun(routePaths, extraPaths) // 警卫上岗
 	})
 
@@ -42,7 +43,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.Before(mid.Recovery)                   // @@@ 截获所有异常，避免服务进程崩溃 @@@
 	app.Before(mid.TimeMetric(reqKeeper))      // 耗时统计
 	app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息
-	app.Before(mid.ContentLength)              // 分路由判断请求长度
+	app.Before(mid.MaxContentLength)           // 分路由判断请求长度
 	app.Before(mid.Gunzip)                     // 自动 gunzip 解压缩
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
@@ -59,8 +60,8 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	return app
 }
 
-// ++++++++++++++++++++++++++++++++++ go-zero default handler chains
-//  chain := alice.New(
+// ++++++++++++++++++++++++++++++++++ go-zero default handlers chain
+//  hds := alice.New(
 //  handler.TracingHandler,
 //  s.getLogHandler(),
 //  handler.MaxConns(s.conf.MaxConns),
@@ -73,9 +74,9 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 //  handler.MaxBytesHandler(s.conf.MaxBytes),
 //  handler.GunzipHandler,
 //  )
-//  chain = s.appendAuthHandler(fr, chain, verifier)
+//  hds = s.appendAuthHandler(fr, hds, verifier)
 //
 //  for _, middleware := range s.middlewares {
-//  chain = chain.Append(convertMiddleware(middleware))
+//  hds = chain.Append(convertMiddleware(middleware))
 //  }
 //  handle := chain.ThenFunc(route.Handler)

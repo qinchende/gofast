@@ -29,7 +29,7 @@ func HttpMaxContentLength(limit int64) fst.HttpHandler {
 }
 
 // 限制当前路径的请求最大数据长度
-func ContentLength(c *fst.Context) {
+func MaxContentLength(c *fst.Context) {
 	rt := AllAttrs[c.RouteIdx]
 	if rt.MaxLen <= 0 {
 		return

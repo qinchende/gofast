@@ -26,7 +26,7 @@ type Context struct {
 
 	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
-	mu         sync.RWMutex // This mutex protect Keys map
+	rwLock     sync.RWMutex // This mutex protect Keys map
 
 	route    matchRoute   // 路由匹配结果，[UrlParams] ? 一般用于确定相应资源
 	handlers handlersNode // 匹配到的执行链标记
