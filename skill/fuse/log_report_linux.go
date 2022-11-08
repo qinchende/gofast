@@ -19,15 +19,15 @@ import (
 )
 
 const (
-	clusterNameKey = "CLUSTER_NAME"
-	testEnv        = "test.v"
-	timeFormat     = "2006-01-02 15:04:05"
+	clusterNameKey  = "CLUSTER_NAME"
+	testEnv         = "test.v"
+	printTimeFormat = "2006-01-02 15:04:05"
 )
 
 var (
 	reporter     = logx.Info
 	lock         sync.RWMutex
-	lessExecutor = exec.NewLessExecutor(time.Minute * 5)
+	lessExecutor = exec.NewLess(time.Minute * 5)
 	dropped      int32
 	clusterName  = proc.Env(clusterNameKey)
 )
@@ -45,18 +45,18 @@ func Report(msg string) {
 
 	if fn != nil {
 		reported := lessExecutor.DoOrDiscard(func() {
-			var builder strings.Builder
-			fmt.Fprintf(&builder, "%s\n", timex.Time().Format(timeFormat))
+			var sb strings.Builder
+			fmt.Fprintf(&sb, "%s\n", timex.Time().Format(printTimeFormat))
 			if len(clusterName) > 0 {
-				fmt.Fprintf(&builder, "cluster: %s\n", clusterName)
+				fmt.Fprintf(&sb, "cluster: %s\n", clusterName)
 			}
-			fmt.Fprintf(&builder, "host: %s\n", host.Hostname())
+			fmt.Fprintf(&sb, "host: %s\n", host.Hostname())
 			dp := atomic.SwapInt32(&dropped, 0)
 			if dp > 0 {
-				fmt.Fprintf(&builder, "dropped: %d\n", dp)
+				fmt.Fprintf(&sb, "dropped: %d\n", dp)
 			}
-			builder.WriteString(strings.TrimSpace(msg))
-			fn(builder.String())
+			sb.WriteString(strings.TrimSpace(msg))
+			fn(sb.String())
 		})
 		if !reported {
 			atomic.AddInt32(&dropped, 1)

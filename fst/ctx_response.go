@@ -21,8 +21,7 @@ const (
 // 实现接口 ResponseWriter
 type ResponseWrap struct {
 	http.ResponseWriter
-
-	mu        sync.Mutex
+	respLock  sync.Mutex
 	status    int
 	dataBuf   *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
 	committed bool
@@ -44,8 +43,8 @@ func (w *ResponseWrap) Header() http.Header {
 // Gin: 只会改变这里的w.status值，而不会改变response给客户端的状态了。（这没有多大意义，GoFast做出改变）
 // GoFast: 没有提交之前可以无限次的改变，最终返回最后一次设置的值
 func (w *ResponseWrap) WriteHeader(newStatus int) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.respLock.Lock()
+	defer w.respLock.Unlock()
 
 	if w.committed {
 		logx.WarnF("Response status %d committed, the status %d is useless.", w.status, newStatus)
@@ -62,8 +61,8 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 // 问题1: 是否要避免 double render?
 // 答：目前不需要管这个事，调用多少次Write，就往返回流写入多少数据。double render是前段业务逻辑的问题，开发应该主动避免。
 func (w *ResponseWrap) Write(data []byte) (n int, err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.respLock.Lock()
+	defer w.respLock.Unlock()
 
 	if w.committed {
 		logx.Warn(errAlreadyRendered + "Can't Write.")
@@ -74,8 +73,8 @@ func (w *ResponseWrap) Write(data []byte) (n int, err error) {
 }
 
 func (w *ResponseWrap) WriteString(s string) (n int, err error) {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.respLock.Lock()
+	defer w.respLock.Unlock()
 
 	if w.committed {
 		logx.Warn(errAlreadyRendered + "Can't WriteString.")
@@ -102,8 +101,8 @@ func (w *ResponseWrap) WrittenData() []byte {
 
 // 重置返回结果（没有最终response的情况下，可以重置返回内容）
 func (w *ResponseWrap) Flush() bool {
-	w.mu.Lock()
-	defer w.mu.Unlock()
+	w.respLock.Lock()
+	defer w.respLock.Unlock()
 
 	if w.committed {
 		logx.Warn(errAlreadyRendered + "Can't Flush.")
@@ -117,15 +116,15 @@ func (w *ResponseWrap) Flush() bool {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Render才会真的往返回通道写数据，Render只执行一次
 func (w *ResponseWrap) Send() (n int, err error) {
-	w.mu.Lock()
+	w.respLock.Lock()
 	// 不允许 double render
 	if w.committed {
 		logx.Warn(errAlreadyRendered + "Can't Send.")
-		w.mu.Unlock()
+		w.respLock.Unlock()
 		return 0, nil
 	}
 	w.committed = true
-	w.mu.Unlock()
+	w.respLock.Unlock()
 
 	if w.status == defaultStatus {
 		w.status = http.StatusOK
@@ -138,15 +137,15 @@ func (w *ResponseWrap) Send() (n int, err error) {
 // 这个主要用于严重错误的时候，特殊状态的返回
 // 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
 func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
-	w.mu.Lock()
+	w.respLock.Lock()
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
-		w.mu.Unlock()
+		w.respLock.Unlock()
 		logx.Warn(errAlreadyRendered + "Can't Hijack.")
 		return 0
 	}
 	w.committed = true
-	w.mu.Unlock()
+	w.respLock.Unlock()
 
 	// 打劫成功，强制改写返回结果
 	w.status = resStatus
@@ -163,15 +162,15 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 
 // 强制跳转
 func (w *ResponseWrap) SendHijackRedirect(req *http.Request, resStatus int, redirectUrl string) {
-	w.mu.Lock()
+	w.respLock.Lock()
 	// 已经render，无法打劫，啥也不做
 	if w.committed {
-		w.mu.Unlock()
+		w.respLock.Unlock()
 		logx.Warn(errAlreadyRendered + "Can't Hijack.")
 		return
 	}
 	w.committed = true
-	w.mu.Unlock()
+	w.respLock.Unlock()
 
 	// 打劫成功，强制改写返回结果
 	w.status = resStatus
