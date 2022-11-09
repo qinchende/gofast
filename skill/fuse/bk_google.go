@@ -1,9 +1,6 @@
 package fuse
 
 import (
-	"fmt"
-	"github.com/qinchende/gofast/skill/proc"
-
 	"github.com/qinchende/gofast/skill/collect"
 	"github.com/qinchende/gofast/skill/mathx"
 	"math"
@@ -14,61 +11,43 @@ const (
 	window     = time.Second * 10 // 10秒钟是一个完整的窗口周期
 	buckets    = 40               // 本周期分成40个桶, 那么每个桶占用250ms, 1秒钟分布4个桶。（这个粒度还是比较通用的）
 	k          = 1.5              // 熔断算法中的敏感系数
-	protection = 5                // 最小请求个数，窗口期请求总数<=本请求数，即使都出错也不熔断
+	protection = 0                // 最小请求个数，窗口期请求总数<=本请求数，即使都出错也不熔断
 )
-
-// 用于回调成功或者失败
-type googlePromise struct {
-	gtl *googleThrottle
-}
-
-func (p googlePromise) Accept() {
-	p.gtl.markSuc()
-}
-
-func (p googlePromise) Reject(reason string) {
-	p.gtl.errWin.add(reason)
-	p.gtl.markFai()
-}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // googleThrottle is a netflixBreaker pattern from google.
 // see Client-Side Throttling section in https://landing.google.com/sre/sre-book/chapters/handling-overload/
 type googleThrottle struct {
-	name   string
-	k      float64
-	rWin   *collect.RollingWindowSdx
-	may    *mathx.Maybe
-	errWin *errorWindow
+	k    float64
+	rWin *collect.RollingWindowSdx
+	may  *mathx.Maybe
 }
 
-func newGoogleThrottle(name string) *googleThrottle {
+func newGoogleThrottle() *googleThrottle {
 	dur := time.Duration(int64(window) / int64(buckets))
-	rWin := collect.NewRollingWindowSdx(buckets, dur)
 
 	return &googleThrottle{
-		name: name,
 		k:    k,
-		rWin: rWin,
+		rWin: collect.NewRollingWindowSdx(buckets, dur),
 		may:  mathx.NewMaybe(),
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (gtl *googleThrottle) allow() (Promise, error) {
-	err := gtl.accept()
-	if err != nil {
-		return nil, gtl.logError(err)
+func (gtl *googleThrottle) allow() error {
+	if err := gtl.accept(); err != nil {
+		return err
 	}
-	return googlePromise{gtl: gtl}, nil
+	return nil
 }
 
-func (gtl *googleThrottle) doReq(req funcReq, fallback funcFallback, acceptable Acceptable) error {
+// 降级逻辑
+func (gtl *googleThrottle) doReq(req funcReq, fb funcFallback, cpt funcAcceptable) error {
 	if err := gtl.accept(); err != nil {
-		if fallback != nil {
-			return gtl.logError(fallback(err))
+		if fb != nil {
+			return fb(err)
 		}
-		return gtl.logError(err)
+		return err
 	}
 
 	defer func() {
@@ -79,13 +58,13 @@ func (gtl *googleThrottle) doReq(req funcReq, fallback funcFallback, acceptable 
 	}()
 
 	err := req()
-	if acceptable(err) {
+	if cpt(err) {
 		gtl.markSuc()
 	} else {
 		gtl.markFai()
 	}
 
-	return gtl.logError(err)
+	return err
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -114,14 +93,6 @@ func (gtl *googleThrottle) accept() error {
 		return ErrServiceUnavailable
 	}
 	return nil
-}
-
-func (gtl *googleThrottle) logError(err error) error {
-	if err == ErrServiceUnavailable {
-		Report(fmt.Sprintf("proc(%s/%d), callee: %s, breaker is open and requests dropped\nlast errors:\n%s",
-			proc.ProcessName(), proc.Pid(), gtl.name, gtl.errWin))
-	}
-	return err
 }
 
 //func (gtl *googleThrottle) history() (accepts, total int64) {

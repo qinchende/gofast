@@ -11,7 +11,7 @@ import (
 func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	cnf := app.SdxConfig
 
-	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流熔断，定时日志）
+	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流降载熔断，定时日志）
 	reqKeeper := gate.NewReqKeeper(app.ProjectName())
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {
 		// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
@@ -20,7 +20,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 
 		routePaths := app.RoutePathsWithMethod()
 		extraPaths := []string{"AllRequest", "LoadShedding", "RouteMatched"}
-		reqKeeper.InitAndRun(routePaths, extraPaths) // 警卫上岗
+		reqKeeper.InitAndRun(routePaths, extraPaths) // 看守上岗
 	})
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -38,7 +38,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.Before(mid.ReqCountPos(reqKeeper, 2))  // 正确匹配路由的请求数
 	app.Before(mid.Tracing(cnf.EnableTrack))   // 链路追踪
 	app.Before(mid.Logger)                     // 请求日志
-	app.Before(mid.Breaker(reqKeeper))         // 自适应熔断：不同route，不同熔断阈值
+	app.Before(mid.Breaker(reqKeeper))         // 自适应熔断
 	app.Before(mid.Timeout(cnf.EnableTimeout)) // 超时自动返回，默认3000毫秒（后台处理继续）
 	app.Before(mid.Recovery)                   // @@@ 截获所有异常，避免服务进程崩溃 @@@
 	app.Before(mid.TimeMetric(reqKeeper))      // 耗时统计

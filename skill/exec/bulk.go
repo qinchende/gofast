@@ -18,7 +18,7 @@ type (
 	}
 )
 
-func NewBulk(execute Execute, opts ...BulkOption) *Bulk {
+func NewBulk(execute FuncExecute, opts ...BulkOption) *Bulk {
 	options := newBulkOptions()
 	for _, opt := range opts {
 		opt(&options)
@@ -70,7 +70,7 @@ func newBulkOptions() bulkOptions {
 
 type bulkContainer struct {
 	tasks    []any
-	execute  Execute
+	execute  FuncExecute
 	maxTasks int
 }
 

@@ -3,9 +3,9 @@ package load
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/collect"
-	"github.com/qinchende/gofast/skill/fuse"
 	"github.com/qinchende/gofast/skill/syncx"
 	"github.com/qinchende/gofast/skill/sysx"
 	"github.com/qinchende/gofast/skill/timex"
@@ -195,7 +195,7 @@ func (as *adaptiveShedder) shouldDrop() bool {
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
 				sysx.CpuSmoothUsage, as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
 			logx.Error(msg)
-			fuse.Report(msg)
+			logx.InfoReport(cst.KV{msg: msg})
 			return true
 		}
 	}

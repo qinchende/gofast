@@ -18,7 +18,7 @@ type (
 	}
 )
 
-func NewChunk(execute Execute, opts ...ChunkOption) *Chunk {
+func NewChunk(execute FuncExecute, opts ...ChunkOption) *Chunk {
 	options := newChunkOptions()
 	for _, opt := range opts {
 		opt(&options)
@@ -73,7 +73,7 @@ func newChunkOptions() chunkOptions {
 
 type chunkContainer struct {
 	tasks        []any
-	execute      Execute
+	execute      FuncExecute
 	size         int
 	maxChunkSize int
 }

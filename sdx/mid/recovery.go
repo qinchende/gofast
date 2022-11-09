@@ -15,7 +15,7 @@ import (
 func Recovery(c *fst.Context) {
 	defer func() {
 		if pic := recover(); pic != nil {
-			// TODO: 异常分类: 1.模拟返回错误信息 2.模拟返回错误编码 3.主动的error异常 4.非预测性的系统异常
+			// 异常分类: 1.模拟返回错误信息 2.模拟返回错误编码 3.主动的error异常 4.非预测性的系统异常
 			switch info := pic.(type) {
 			case cst.GFFaiString:
 				c.AbortFai(0, string(info))
@@ -24,6 +24,7 @@ func Recovery(c *fst.Context) {
 			case cst.GFError:
 				c.AbortFai(0, fmt.Sprint("GFError: ", info))
 			default:
+				// TODO-important: 非预期的异常，将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架panic）
 				logx.Stacks(c.ReqRaw)
 				logx.StackF("%s", debug.Stack())
 				c.AbortDirect(http.StatusInternalServerError, fmt.Sprint("panic: ", info))

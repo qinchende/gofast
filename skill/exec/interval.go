@@ -13,9 +13,10 @@ import (
 
 const idleRound = 10
 
-type AddFunc func(item any) (any, bool)
-
+// 间隔定时执行器（间隔执行某些任务，长时间没任务就退出执行器。有新任务自动启动）
 type (
+	AddFunc func(item any) (any, bool)
+
 	// 外部可以自定义装载各种任务的容器，实现这些方法之后，就能赋予周期执行的特性
 	TaskContainer interface {
 		AddItem(item any) bool // 返回true，立即触发任务执行

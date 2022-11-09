@@ -42,7 +42,7 @@ func NewRollingWindowSdx(size int, interval time.Duration) *RollingWindowSdx {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 返回当前滑动窗口值
-func (rw *RollingWindowSdx) CurrWinValue() (float64, int64) {
+func (rw *RollingWindowSdx) CurrWinValue() (accepts float64, total int64) {
 	rw.lock.RLock()
 	defer rw.lock.RUnlock()
 

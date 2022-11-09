@@ -3,11 +3,8 @@
 package mid
 
 import (
-	"fmt"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/sdx/gate"
-	"github.com/qinchende/gofast/skill/httpx"
 	"net/http"
 )
 
@@ -19,14 +16,16 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 
 	return func(c *fst.Context) {
 		// 检查是否允许本次访问通过，主要是滑动窗口判断是否达到熔断条件
-		promise, err := kp.Breakers[c.RouteIdx].Allow()
+		brk := kp.Breakers[c.RouteIdx]
+		err := brk.Allow()
 		// 有错误信息返回，证明本次请求被熔断，接下来：
 		// 1. 本次记入丢弃请求统计  2. 打印错误信息  3. 返回服务器出错
 		if err != nil {
 			kp.CountRouteDrop(c.RouteIdx)
-
-			logx.ErrorF("[http] break, %s - %s - %s", c.ReqRaw.RequestURI, httpx.GetRemoteAddr(c.ReqRaw), c.ReqRaw.UserAgent())
-			c.AbortDirect(http.StatusServiceUnavailable, "Break!!!")
+			// 有可能会连续疯狂的熔断，确认要打印所有信息吗？这里先不打印
+			//r := c.ReqRaw
+			//logx.ErrorF("[http] break, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
+			c.AbortDirect(http.StatusServiceUnavailable, "Fusing")
 			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
 			return
 		}
@@ -35,10 +34,9 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 			status := c.ResWrap.Status()
 			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是拒绝服务
 			if status < http.StatusInternalServerError {
-				promise.Accept() // 熔断器记录为一次正常请求
+				brk.Accept() // 一次正常请求
 			} else {
-				// 熔断器记录一次异常返回，错误多了会触发入口熔断的。
-				promise.Reject(fmt.Sprintf("%d %s", status, http.StatusText(status)))
+				brk.Reject(http.StatusText(status)) // 一次异常返回
 			}
 		}()
 
