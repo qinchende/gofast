@@ -12,6 +12,7 @@ import (
 )
 
 func HttpLoadShedding(kp *gate.RequestKeeper, pos uint16) fst.HttpHandler {
+	// 前提是必须启动系统资源自动监控
 	if kp == nil || sysx.MonitorStarted == false {
 		return nil
 	}

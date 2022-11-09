@@ -40,19 +40,3 @@ func (ew *errorWindow) String() string {
 
 	return strings.Join(reasons, "\n")
 }
-
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// 包了一个自定义的 reason 对象
-//type myPromise struct {
-//	promise promiseNoReason
-//	errWin  *errorWindow
-//}
-//
-//func (p myPromise) Accept() {
-//	p.promise.Accept()
-//}
-//
-//func (p myPromise) Reject(reason string) {
-//	p.errWin.add(reason)
-//	p.promise.Reject()
-//}

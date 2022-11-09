@@ -11,13 +11,10 @@ import (
 // ++++++++++++++++++++++ add by cd.net 2021.10.14
 // 总说：定时统计（间隔60秒）系统资源利用情况 | 请求处理相应性能 | 请求量 等
 func TimeMetric(kp *gate.RequestKeeper) fst.CtxHandler {
-	if kp == nil {
-		return nil
-	}
-
 	return func(c *fst.Context) {
 		defer func() {
-			kp.CountRoutePass2(c.RouteIdx, int32(timex.SinceMS(c.EnterTime))) // 统计耗时
+			// 无论是否panic，在统计访问量的模块，本次都算一次正常触达请求，并统计耗时
+			kp.CountRoutePass2(c.RouteIdx, int32(timex.SinceMS(c.EnterTime)))
 		}()
 
 		c.Next()

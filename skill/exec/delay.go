@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// 延时执行器（某个任务必须在指定延时之后才执行）
 type Delay struct {
 	fn        func()
 	delay     time.Duration

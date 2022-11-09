@@ -62,7 +62,7 @@ func (s *sheddingStat) run() {
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatCpuUsage.Type,
 			//"fls": [5]string{"cpu", "total", "pass", "drop"},
-			"val": []any{sysx.CpuSmoothUsage, st.total, st.pass, st.drop},
+			"val": [4]any{sysx.CpuSmoothUsage, st.total, st.pass, st.drop},
 		})
 	}
 }

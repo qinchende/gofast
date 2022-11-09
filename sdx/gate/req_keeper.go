@@ -7,7 +7,6 @@ import (
 	"github.com/qinchende/gofast/skill/fuse"
 	"github.com/qinchende/gofast/skill/load"
 	"os"
-	"strconv"
 	"time"
 )
 
@@ -43,7 +42,7 @@ func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
 	rk.Breakers = make([]fuse.Breaker, routesLen)
 	for i := 0; i < routesLen; i++ {
-		rk.Breakers[i] = fuse.NewBreaker(strconv.Itoa(i))
+		rk.Breakers[i] = fuse.NewGBreaker(rk.bucket.name+"#"+routePaths[i], true)
 	}
 
 	//if sysx.MonitorStarted {
