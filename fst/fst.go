@@ -145,7 +145,7 @@ func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c.reset()
 	gft.handleHTTPRequest(c)
 	// 超时引发的对象不能放回缓存池
-	if !c.IsTimeout {
+	if !c.ResWrap.isTimeout {
 		gft.ctxPool.Put(c)
 	}
 }

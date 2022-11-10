@@ -179,18 +179,7 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 		return
 	}
 	c.execIdx = maxRouteHandlers
-
-	var data []byte
-	switch stream.(type) {
-	case string:
-		data = lang.StringToBytes(stream.(string))
-	case []byte:
-		data = stream.([]byte)
-	default:
-		str := lang.ToString(stream)
-		data = lang.StringToBytes(str)
-	}
-	_ = c.ResWrap.SendHijack(resStatus, data)
+	_ = c.ResWrap.SendHijack(resStatus, lang.ToBytes(stream))
 }
 
 func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
@@ -201,6 +190,12 @@ func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
 	c.ResWrap.SendHijackRedirect(c.ReqRaw, resStatus, redirectUrl)
 }
 
+// 这个是为超时返回准备的特殊方法，一般不要使用
+func (c *Context) ReturnTimeout(resStatus int, hint any) {
+	c.ResWrap.sendByTimeoutGoroutine(resStatus, lang.ToBytes(hint))
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func bodyAllowedForStatus(status int) bool {
 	switch {
 	case status >= 100 && status <= 199:

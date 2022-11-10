@@ -26,15 +26,14 @@ type Context struct {
 
 	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
-	rwLock     sync.RWMutex // This mutex protect Keys map
+	rwLock     sync.RWMutex // This mutex protect context
 
 	route    matchRoute   // 路由匹配结果，[UrlParams] ? 一般用于确定相应资源
 	handlers handlersNode // 匹配到的执行链标记
 	execIdx  int8         // 执行链的索引 不能大于 127 个
 	rendered bool         // 是否已经执行了Render
 
-	IsTimeout bool   // 请求是否超时了
-	RouteIdx  uint16 // route的唯一标识ID，方便区分不同的route
+	RouteIdx uint16 // route的唯一标识ID，方便区分不同的route
 }
 
 /************************************/
@@ -50,7 +49,6 @@ func (c *Context) reset() {
 	c.Pms = nil
 	c.Baskets = c.Baskets[0:0]
 	c.RouteIdx = 0
-	c.IsTimeout = false
 
 	// add by sdx 2021.01.06
 	c.route.ptrNode = nil

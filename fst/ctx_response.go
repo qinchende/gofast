@@ -5,6 +5,7 @@ package fst
 import (
 	"bytes"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/lang"
 	"net/http"
 	"sync"
 )
@@ -14,7 +15,7 @@ import (
 // var errAlreadyRendered = errors.New("ResponseWrap: already send")
 const (
 	defaultStatus      = 0
-	errAlreadyRendered = "ResponseWrap: already committed. "
+	errAlreadyRendered = "ResWarp: already committed. "
 )
 
 // 自定义 ResponseWriter, 对标准库的一层包裹处理，需要对返回的数据做缓存，做到更灵活的控制。
@@ -25,18 +26,20 @@ type ResponseWrap struct {
 	status    int
 	dataBuf   *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
 	committed bool
+	isTimeout bool
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (w *ResponseWrap) Reset(res http.ResponseWriter) {
 	w.committed = false
+	w.isTimeout = false
 	w.ResponseWriter = res
 	w.status = defaultStatus
 	w.dataBuf = new(bytes.Buffer)
 }
 
 // TODO：这是个问题，如何重置已经被写入的 Header 值
-func (w *ResponseWrap) Header() http.Header {
+func (w *ResponseWrap) HeaderValues() http.Header {
 	return w.ResponseWriter.Header()
 }
 
@@ -47,7 +50,9 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 	defer w.respLock.Unlock()
 
 	if w.committed {
-		logx.WarnF("Response status %d committed, the status %d is useless.", w.status, newStatus)
+		if !w.isTimeout {
+			logx.WarnF("%sCan't WriteHeader from %d to %d.", errAlreadyRendered, w.status, newStatus)
+		}
 		return
 	}
 
@@ -65,7 +70,9 @@ func (w *ResponseWrap) Write(data []byte) (n int, err error) {
 	defer w.respLock.Unlock()
 
 	if w.committed {
-		logx.Warn(errAlreadyRendered + "Can't Write.")
+		if !w.isTimeout {
+			logx.Warn(errAlreadyRendered + "Can't Write.")
+		}
 		return 0, nil
 	}
 	n, err = w.dataBuf.Write(data)
@@ -77,7 +84,9 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 	defer w.respLock.Unlock()
 
 	if w.committed {
-		logx.Warn(errAlreadyRendered + "Can't WriteString.")
+		if !w.isTimeout {
+			logx.Warn(errAlreadyRendered + "Can't WriteString.")
+		}
 		return 0, nil
 	}
 	n, err = w.dataBuf.WriteString(s)
@@ -89,10 +98,10 @@ func (w *ResponseWrap) Status() int {
 	return w.status
 }
 
-// 数据长度
-func (w *ResponseWrap) DataSize() int {
-	return w.dataBuf.Len()
-}
+//// 数据长度
+//func (w *ResponseWrap) DataSize() int {
+//	return w.dataBuf.Len()
+//}
 
 // 当前已写的数据内容
 func (w *ResponseWrap) WrittenData() []byte {
@@ -105,7 +114,9 @@ func (w *ResponseWrap) Flush() bool {
 	defer w.respLock.Unlock()
 
 	if w.committed {
-		logx.Warn(errAlreadyRendered + "Can't Flush.")
+		if !w.isTimeout {
+			logx.Warn(errAlreadyRendered + "Can't Flush.")
+		}
 		return false
 	}
 	w.status = defaultStatus
@@ -116,66 +127,85 @@ func (w *ResponseWrap) Flush() bool {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Render才会真的往返回通道写数据，Render只执行一次
 func (w *ResponseWrap) Send() (n int, err error) {
-	w.respLock.Lock()
-	// 不允许 double render
-	if w.committed {
-		logx.Warn(errAlreadyRendered + "Can't Send.")
-		w.respLock.Unlock()
-		return 0, nil
+	if w.tryToCommit("Can't Send.") == false {
+		return
 	}
-	w.committed = true
-	w.respLock.Unlock()
-
 	if w.status == defaultStatus {
 		w.status = http.StatusOK
 	}
-	w.ResponseWriter.WriteHeader(w.status)
-	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
+	n, err = w.realFinalSend()
+	w.respLock.Unlock()
+
+	if err != nil {
+		logx.StackF("realSend error: %s", err)
+	}
 	return
 }
 
 // 这个主要用于严重错误的时候，特殊状态的返回
 // 如果还没有render，强制返回服务器错误，中断其它返回。否则啥也不做。
 func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
-	w.respLock.Lock()
-	// 已经render，无法打劫，啥也不做
-	if w.committed {
-		w.respLock.Unlock()
-		logx.Warn(errAlreadyRendered + "Can't Hijack.")
-		return 0
+	if w.tryToCommit("Can't Hijack.") == false {
+		return
 	}
-	w.committed = true
+	w.resetResponse(resStatus, data)
+	n, err := w.realFinalSend()
 	w.respLock.Unlock()
 
-	// 打劫成功，强制改写返回结果
-	w.status = resStatus
-	w.dataBuf.Reset()
-	_, _ = w.dataBuf.Write(data)
-
-	w.ResponseWriter.WriteHeader(w.status)
-	n, err := w.ResponseWriter.Write(w.dataBuf.Bytes())
 	if err != nil {
-		logx.StackF("SendHijack ResponseWriter error: %s", err)
+		logx.StackF("realSend error: %s", err)
 	}
 	return
 }
 
 // 强制跳转
 func (w *ResponseWrap) SendHijackRedirect(req *http.Request, resStatus int, redirectUrl string) {
-	w.respLock.Lock()
-	// 已经render，无法打劫，啥也不做
-	if w.committed {
-		w.respLock.Unlock()
-		logx.Warn(errAlreadyRendered + "Can't Hijack.")
+	if w.tryToCommit("Can't Hijack Redirect.") == false {
 		return
 	}
-	w.committed = true
+	w.resetResponse(resStatus, lang.ToBytes(redirectUrl))
+	http.Redirect(w, req, redirectUrl, resStatus)
+	w.respLock.Unlock()
+}
+
+// 超时协程调用
+func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) {
+	w.isTimeout = true
+	if w.tryToCommit("Can't Send by timeout goroutine.") == false {
+		return
+	}
+	w.resetResponse(resStatus, data)
+	_, err := w.realFinalSend()
 	w.respLock.Unlock()
 
-	// 打劫成功，强制改写返回结果
+	if err != nil {
+		logx.StackF("realSend error: %s", err)
+	}
+}
+
+// 打劫成功，强制改写返回结果
+func (w *ResponseWrap) resetResponse(resStatus int, data []byte) {
 	w.status = resStatus
 	w.dataBuf.Reset()
-	_, _ = w.dataBuf.WriteString(redirectUrl)
+	_, _ = w.dataBuf.Write(data)
+}
 
-	http.Redirect(w, req, redirectUrl, resStatus)
+func (w *ResponseWrap) realFinalSend() (n int, err error) {
+	w.ResponseWriter.WriteHeader(w.status)
+	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
+	return
+}
+
+// NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
+func (w *ResponseWrap) tryToCommit(tip string) bool {
+	w.respLock.Lock()
+	if w.committed {
+		w.respLock.Unlock()
+		if !w.isTimeout {
+			logx.Warn(errAlreadyRendered + tip)
+		}
+		return false
+	}
+	w.committed = true
+	return true // 此时没有解锁，需要在调用外部解锁
 }
