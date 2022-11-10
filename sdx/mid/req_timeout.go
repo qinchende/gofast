@@ -68,8 +68,7 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 		case <-finishChan: // 正常退出
 			return
 		case <-ctxTimeout.Done(): // 超时了
-			c.IsTimeout = true
-			c.AbortDirect(http.StatusGatewayTimeout, midTimeoutBody)
+			c.ReturnTimeout(http.StatusGatewayTimeout, midTimeoutBody)
 			return
 		}
 	}
