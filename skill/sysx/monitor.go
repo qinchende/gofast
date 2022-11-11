@@ -30,14 +30,13 @@ var (
 
 // 启动系统资源统计
 func OpenSysMonitor(print bool) {
-	// 此方法不能重复执行，
 	ckLook.Lock()
+	defer ckLook.Unlock()
+
 	if MonitorStarted {
-		ckLook.Unlock()
 		return
 	}
 	MonitorStarted = true
-	ckLook.Unlock()
 
 	go func() {
 		cpuTicker := time.NewTicker(cpuRefreshInterval)

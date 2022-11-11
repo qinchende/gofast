@@ -1,4 +1,4 @@
-package load
+package fuse
 
 import (
 	"io"

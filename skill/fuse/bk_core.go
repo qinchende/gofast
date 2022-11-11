@@ -1,7 +1,6 @@
 package fuse
 
 import (
-	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/exec"
@@ -35,39 +34,40 @@ func NewGBreaker(name string, showLog bool) Breaker {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (cb *autoBreaker) Name() string {
-	return cb.name
+func (ab *autoBreaker) Name() string {
+	return ab.name
 }
 
-func (cb *autoBreaker) Allow() error {
-	return cb.logError(cb.throttle.allow())
+func (ab *autoBreaker) Accept() {
+	ab.throttle.markSuc()
 }
 
-func (cb *autoBreaker) Accept() {
-	cb.throttle.markSuc()
-}
-
-func (cb *autoBreaker) Reject(reason string) {
+func (ab *autoBreaker) Reject(reason string) {
 	if reason != "" {
-		cb.errWin.add(reason)
+		ab.errWin.add(reason)
 	}
-	cb.throttle.markFai()
+	ab.throttle.markFai()
 }
 
-func (cb *autoBreaker) Do(req funcReq) error {
-	return cb.logError(cb.throttle.doReq(req, nil, defAcceptable))
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (ab *autoBreaker) Allow() error {
+	return ab.logError(ab.throttle.allow())
 }
 
-func (cb *autoBreaker) DoWithAcceptable(req funcReq, cpt funcAcceptable) error {
-	return cb.logError(cb.throttle.doReq(req, nil, cpt))
+func (ab *autoBreaker) Do(req funcReq) error {
+	return ab.logError(ab.throttle.doReq(req, nil, defAcceptable))
 }
 
-func (cb *autoBreaker) DoWithFallback(req funcReq, fb funcFallback) error {
-	return cb.logError(cb.throttle.doReq(req, fb, defAcceptable))
+func (ab *autoBreaker) DoWithAcceptable(req funcReq, cpt funcAcceptable) error {
+	return ab.logError(ab.throttle.doReq(req, nil, cpt))
 }
 
-func (cb *autoBreaker) DoWithFallbackAcceptable(req funcReq, fb funcFallback, cpt funcAcceptable) error {
-	return cb.logError(cb.throttle.doReq(req, fb, cpt))
+func (ab *autoBreaker) DoWithFallback(req funcReq, fb funcFallback) error {
+	return ab.logError(ab.throttle.doReq(req, fb, defAcceptable))
+}
+
+func (ab *autoBreaker) DoWithFallbackAcceptable(req funcReq, fb funcFallback, cpt funcAcceptable) error {
+	return ab.logError(ab.throttle.doReq(req, fb, cpt))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -76,16 +76,18 @@ func defAcceptable(err error) bool {
 	return err == nil
 }
 
-func (cb *autoBreaker) logError(err error) error {
-	if cb.showLog && err != nil {
-		cb.reduceLog.DoOrNot(func(skip int32) {
+func (ab *autoBreaker) logError(err error) error {
+	if ab.showLog && err != nil {
+		ab.reduceLog.DoOrNot(func(skip int32) {
 			if err != ErrServiceUnavailable {
 				return
 			}
 			logx.InfoReport(cst.KV{
-				"msg": fmt.Sprintf("proc(%s/%d), callee: %s, breaker is open and requests dropped\nlast errors:\n%s",
-					proc.ProcessName(), proc.Pid(), cb.name, cb.errWin),
-				"skip": skip,
+				"typ":    logx.LogStatBreakerOpen.Type,
+				"proc":   proc.ProcessName() + "/" + lang.ToString(proc.Pid()),
+				"callee": ab.name,
+				"skip":   skip,
+				"msg":    ab.errWin.Errors(),
 			})
 		})
 	}

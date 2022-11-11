@@ -5,7 +5,6 @@ package gate
 import (
 	"github.com/qinchende/gofast/skill/exec"
 	"github.com/qinchende/gofast/skill/fuse"
-	"github.com/qinchende/gofast/skill/load"
 	"os"
 	"time"
 )
@@ -19,7 +18,7 @@ type RequestKeeper struct {
 	counter *exec.IntervalUnsafe // 定时打印统计数据
 
 	Breakers     []fuse.Breaker // 不同路径的熔断统计器
-	Shedding     load.Shedder
+	Shedding     fuse.Shedder   // 降载，服务器资源超限
 	SheddingStat *sheddingStat
 }
 
