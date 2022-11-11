@@ -18,10 +18,10 @@ func NewMaybe() *Maybe {
 	}
 }
 
-// 一个随机数小于pb
-func (p *Maybe) TrueOnMaybe(pb float64) (truth bool) {
+// 取一个 (0, 1) 之间的随机数，判断是否小于ratio。 ratio值越大，返回TRUE的概率越大
+func (p *Maybe) TrueOnMaybe(ratio float64) (truth bool) {
 	p.lock.Lock()
-	truth = p.r.Float64() < pb
+	truth = p.r.Float64() < ratio
 	p.lock.Unlock()
 	return
 }

@@ -12,21 +12,46 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
-// var errAlreadyRendered = errors.New("ResponseWrap: already send")
 const (
 	defaultStatus      = 0
 	errAlreadyRendered = "ResWarp: already committed. "
 )
 
+type ResData struct {
+	dataBuf *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
+	status  int16         // HttpStatus
+}
+
 // 自定义 ResponseWriter, 对标准库的一层包裹处理，需要对返回的数据做缓存，做到更灵活的控制。
 // 实现接口 ResponseWriter
 type ResponseWrap struct {
 	http.ResponseWriter
-	respLock  sync.Mutex
-	status    int
-	dataBuf   *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
+	respLock sync.Mutex
+	ResData
 	committed bool
 	isTimeout bool
+
+	// TODO: 如果isTimeout，主线程执行的返回结果将被放入这个对象中
+	// extRespData *ResData
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (w *ResponseWrap) HeaderValues() http.Header {
+	return w.ResponseWriter.Header()
+}
+
+func (w *ResponseWrap) Status() int {
+	return int(w.status)
+}
+
+// 数据长度
+func (w *ResponseWrap) DataSize() int {
+	return w.dataBuf.Len()
+}
+
+// 当前已写的数据内容
+func (w *ResponseWrap) WrittenData() []byte {
+	return w.dataBuf.Bytes()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -36,11 +61,23 @@ func (w *ResponseWrap) Reset(res http.ResponseWriter) {
 	w.ResponseWriter = res
 	w.status = defaultStatus
 	w.dataBuf = new(bytes.Buffer)
+	//w.extRespData = nil
 }
 
-// TODO：这是个问题，如何重置已经被写入的 Header 值
-func (w *ResponseWrap) HeaderValues() http.Header {
-	return w.ResponseWriter.Header()
+// 重置返回结果（没有最终response的情况下，可以重置返回内容）
+func (w *ResponseWrap) Flush() bool {
+	w.respLock.Lock()
+	defer w.respLock.Unlock()
+
+	if w.committed {
+		if !w.isTimeout {
+			logx.Warn(errAlreadyRendered + "Can't Flush.")
+		}
+		return false
+	}
+	w.status = defaultStatus
+	w.dataBuf.Reset()
+	return true
 }
 
 // Gin: 只会改变这里的w.status值，而不会改变response给客户端的状态了。（这没有多大意义，GoFast做出改变）
@@ -56,10 +93,10 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 		return
 	}
 
-	if w.status != newStatus && w.status != defaultStatus {
+	if w.status != int16(newStatus) && w.status != defaultStatus {
 		logx.WarnF("Response status already %d, but now change to %d.", w.status, newStatus)
 	}
-	w.status = newStatus
+	w.status = int16(newStatus)
 }
 
 // 最后都要通过这个函数Render所有数据
@@ -91,37 +128,6 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 	}
 	n, err = w.dataBuf.WriteString(s)
 	return
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (w *ResponseWrap) Status() int {
-	return w.status
-}
-
-//// 数据长度
-//func (w *ResponseWrap) DataSize() int {
-//	return w.dataBuf.Len()
-//}
-
-// 当前已写的数据内容
-func (w *ResponseWrap) WrittenData() []byte {
-	return w.dataBuf.Bytes()
-}
-
-// 重置返回结果（没有最终response的情况下，可以重置返回内容）
-func (w *ResponseWrap) Flush() bool {
-	w.respLock.Lock()
-	defer w.respLock.Unlock()
-
-	if w.committed {
-		if !w.isTimeout {
-			logx.Warn(errAlreadyRendered + "Can't Flush.")
-		}
-		return false
-	}
-	w.status = defaultStatus
-	w.dataBuf.Reset()
-	return true
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -185,13 +191,13 @@ func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) {
 
 // 打劫成功，强制改写返回结果
 func (w *ResponseWrap) resetResponse(resStatus int, data []byte) {
-	w.status = resStatus
+	w.status = int16(resStatus)
 	w.dataBuf.Reset()
 	_, _ = w.dataBuf.Write(data)
 }
 
 func (w *ResponseWrap) realFinalSend() (n int, err error) {
-	w.ResponseWriter.WriteHeader(w.status)
+	w.ResponseWriter.WriteHeader(int(w.status))
 	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
 	return
 }

@@ -11,18 +11,20 @@ import (
 )
 
 // 超时之后的返回内容
-var midTimeoutBody = "<html><head><title>Timeout</title></head><body><h1>Timeout</h1></body></html>"
+//var midTimeoutBody = "<html><head><title>Timeout</title></head><body><h1>Timeout</h1></body></html>"
+var midTimeoutBody = "<html>Timeout</html>"
 
-// 方式一：标准库
-func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		if duration > 0 {
-			return http.TimeoutHandler(next, duration, midTimeoutBody)
-		} else {
-			return next
-		}
-	}
-}
+//// 方式一：标准库
+// 这种方式有个问题
+//func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
+//	return func(next http.Handler) http.Handler {
+//		if duration > 0 {
+//			return http.TimeoutHandler(next, duration, midTimeoutBody)
+//		} else {
+//			return next
+//		}
+//	}
+//}
 
 // 方式二：设置请求处理的超时时间，单位是毫秒
 // TODO：注意下面的注释
@@ -58,6 +60,7 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 			c.Next()
 			// 执行完成之后通知 主协程，我做完了，你可以退出了
 			close(finishChan)
+			logx.Info("finishChan. now exits")
 		}()
 
 		// 任何一个先触发都会执行，并结束当前函数，不会两个以上都触发
