@@ -15,14 +15,12 @@ import (
 )
 
 const (
-	defaultBuckets = 50
-	defaultWindow  = time.Second * 5
-	// using 1000m notation, 900m is like 80%, keep it as var for unit test
-	defaultCpuThreshold = 900
+	defaultBuckets      = 50
+	defaultWindow       = time.Second * 5
+	defaultCpuThreshold = 900 // using 1000m notation, 900m is like 80%, keep it as var for unit test
 	defaultMinRt        = float64(time.Second / time.Millisecond)
-	// moving average hyperparameter beta for calculating requests on the fly
-	flyingBeta      = 0.9
-	coolOffDuration = time.Second // 冷却期默认为1秒
+	flyingBeta          = 0.9         // moving average hyperparameter beta for calculating requests on the fly
+	coolOffDuration     = time.Second // 冷却期默认为1秒
 )
 
 var (
@@ -45,9 +43,9 @@ func Disable() {
 // NewAdaptiveShedder returns an adaptive shedder.
 // opts can be used to customize the Shedder.
 func NewAdaptiveShedder(opts ...ShedderOption) Shedder {
-	if !enabled.True() {
-		return newNopShedder()
-	}
+	//if !enabled.True() {
+	//	return newNopShedder()
+	//}
 
 	options := shedderOptions{
 		window:       defaultWindow,
