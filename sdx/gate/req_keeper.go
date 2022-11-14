@@ -5,6 +5,7 @@ package gate
 import (
 	"github.com/qinchende/gofast/skill/exec"
 	"github.com/qinchende/gofast/skill/fuse"
+	"github.com/qinchende/gofast/skill/sysx"
 	"os"
 	"time"
 )
@@ -44,9 +45,9 @@ func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
 		rk.Breakers[i] = fuse.NewGBreaker(rk.bucket.name+"#"+routePaths[i], true)
 	}
 
-	//if sysx.MonitorStarted {
-	//	rk.SheddingStat = createSheddingStat()  // 降载信息打印
-	//	rk.Shedding = load.NewAdaptiveShedder() // 降载统计分析
-	//	// rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
-	//}
+	if sysx.MonitorStarted {
+		rk.SheddingStat = createSheddingStat()  // 降载信息打印
+		rk.Shedding = fuse.NewAdaptiveShedder() // 降载统计分析
+		// rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
+	}
 }

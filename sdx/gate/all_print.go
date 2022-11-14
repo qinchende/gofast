@@ -48,7 +48,7 @@ func (rb *reqBucket) logPrintReqCounter(data *printData) {
 }
 
 // 单独的协程运行这个定时任务。启动定时日志输出
-func (s *sheddingStat) run() {
+func (s *sheddingStat) logPrintCpuShedding() {
 	ticker := time.NewTicker(time.Minute)
 	defer ticker.Stop()
 

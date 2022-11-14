@@ -24,7 +24,7 @@ type (
 // NewSheddingStat returns a SheddingStat.
 func createSheddingStat() *sheddingStat {
 	st := &sheddingStat{}
-	go st.run()
+	go st.logPrintCpuShedding()
 	return st
 }
 
