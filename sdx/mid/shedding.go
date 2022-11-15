@@ -10,6 +10,21 @@ import (
 	"net/http"
 )
 
+func HttpHighMemProtect(kp *gate.RequestKeeper, pos uint16) fst.HttpHandler {
+	// 前提是必须启动系统资源自动监控
+	if kp == nil || sysx.MonitorStarted == false {
+		return nil
+	}
+
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+
+			// 执行后面的处理函数
+			next(w, r)
+		}
+	}
+}
+
 // 自适应降载，主要是CPU使用率和请求大量超时，主动断开请求，等待一段时间的冷却
 // 判断高负载主要取决于两个指标（必须同时满足才能降载）：
 // 1. cpu 是否过载。利用率 > 95%

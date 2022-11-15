@@ -31,7 +31,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.UseHttpHandler(mid.HttpReqCountPos(reqKeeper, 0))              // 访问计数1
 	app.UseHttpHandler(mid.HttpMaxConnections(cnf.MaxConnections))     // 最大同时处理请求数量
 	app.UseHttpHandler(mid.HttpMaxContentLength(cnf.MaxContentLength)) // 请求头最大限制
-	app.UseHttpHandler(mid.HttpHighCpuProtect(reqKeeper, 1))           // CPU过载保护
+	app.UseHttpHandler(mid.HttpHighCpuProtect(reqKeeper, 1))           // 过载保护
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
