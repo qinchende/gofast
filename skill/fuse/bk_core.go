@@ -43,9 +43,7 @@ func (ab *autoBreaker) Accept() {
 }
 
 func (ab *autoBreaker) Reject(reason string) {
-	if reason != "" {
-		ab.errWin.add(reason)
-	}
+	ab.errWin.add(reason)
 	ab.throttle.markFai()
 }
 

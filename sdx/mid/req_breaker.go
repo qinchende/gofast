@@ -25,7 +25,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 			// 有可能会连续疯狂的熔断，确认要打印所有信息吗？这里先不打印
 			//r := c.ReqRaw
 			//logx.ErrorF("[http] break, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
-			c.AbortDirect(http.StatusServiceUnavailable, "Fusing")
+			c.AbortDirect(http.StatusServiceUnavailable, midFusingBody)
 			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
 			return
 		}

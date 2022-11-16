@@ -175,10 +175,10 @@ func (w *ResponseWrap) SendHijackRedirect(req *http.Request, resStatus int, redi
 }
 
 // 超时协程调用
-func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) {
+func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) bool {
 	w.isTimeout = true
 	if w.tryToCommit("Can't Send by timeout goroutine.") == false {
-		return
+		return false
 	}
 	w.resetResponse(resStatus, data)
 	_, err := w.realFinalSend()
@@ -187,6 +187,7 @@ func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) {
 	if err != nil {
 		logx.StackF("realSend error: %s", err)
 	}
+	return true
 }
 
 // 打劫成功，强制改写返回结果

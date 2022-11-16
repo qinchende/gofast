@@ -10,10 +10,11 @@ type (
 	// 每个route消耗 28 字节（4字长）
 	routeCounter struct {
 		rtLock      sync.Mutex
-		totalTimeMS int64  // 正常请求总共耗时
-		maxTimeMS   int32  // 正常请求最长耗时
-		accepts     uint32 // 正常处理的请求数
-		drops       uint32 // 丢弃的请求数
+		totalTimeMS int64  // 进入请求总共耗时
+		maxTimeMS   int32  // 进入请求最长耗时
+		accepts     uint32 // 进入处理的请求数
+		timeouts    uint32 // 处理超时请求数
+		drops       uint32 // 熔断丢弃请求数
 	}
 
 	// 额外的计数，需要2个字长
@@ -75,10 +76,12 @@ func (rb *reqBucket) RemoveAll() any {
 		tpRoutes[i].maxTimeMS = ct.maxTimeMS
 		tpRoutes[i].totalTimeMS = ct.totalTimeMS
 		tpRoutes[i].accepts = ct.accepts
+		tpRoutes[i].timeouts = ct.timeouts
 		tpRoutes[i].drops = ct.drops
 		ct.maxTimeMS = 0
 		ct.totalTimeMS = 0
 		ct.accepts = 0
+		ct.timeouts = 0
 		ct.drops = 0
 		ct.rtLock.Unlock()
 
@@ -128,6 +131,19 @@ func (rk *RequestKeeper) CountRoutePass(idx uint16) {
 
 		ct.rtLock.Lock()
 		ct.accepts++
+		ct.rtLock.Unlock()
+
+		return nil, false
+	}, nil)
+}
+
+// 统计一个处理超时的请求
+func (rk *RequestKeeper) CountRouteTimeout(idx uint16) {
+	rk.counter.AddByFunc(func(any) (any, bool) {
+		ct := &rk.bucket.routes[idx]
+
+		ct.rtLock.Lock()
+		ct.timeouts++
 		ct.rtLock.Unlock()
 
 		return nil, false

@@ -20,29 +20,29 @@ func (rb *reqBucket) logPrintReqCounter(data *printData) {
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatRouteReq.Type,
 			"pth": specialRouteMethod + rb.extraPaths[idx],
-			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
-			"val": [5]any{extra.total, 0, 0.00, 0.00, 0},
+			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
+			"val": [6]any{extra.total, 0, 0, 0.00, 0.00, 0},
 		})
 	}
 
 	// 输出路由统计
 	for idx := 0; idx < len(data.routes); idx++ {
-		route := &data.routes[idx]
-		if route.accepts == 0 && route.drops == 0 {
+		rt := &data.routes[idx]
+		if rt.accepts == 0 && rt.drops == 0 {
 			continue
 		}
 
-		qps := float32(route.accepts) / float32(CountInterval/time.Second)
+		qps := float32(rt.accepts) / float32(CountInterval/time.Second)
 		var aveTimeMS float32
-		if route.accepts > 0 {
-			aveTimeMS = float32(route.totalTimeMS) / float32(route.accepts)
+		if rt.accepts > 0 {
+			aveTimeMS = float32(rt.totalTimeMS) / float32(rt.accepts)
 		}
 
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatRouteReq.Type,
 			"pth": rb.paths[idx],
-			//"fls": []string{"suc", "drop", "qps", "ave", "max"}
-			"val": [5]any{route.accepts, route.drops, lang.Round32(qps, 2), lang.Round32(aveTimeMS, 2), route.maxTimeMS},
+			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
+			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang.Round32(qps, 2), lang.Round32(aveTimeMS, 2), rt.maxTimeMS},
 		})
 	}
 }
