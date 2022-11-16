@@ -6,37 +6,35 @@ import (
 	"context"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/sdx/gate"
 	"net/http"
 	"time"
 )
 
-// 超时之后的返回内容
-//var midTimeoutBody = "<html><head><title>Timeout</title></head><body><h1>Timeout</h1></body></html>"
-var midTimeoutBody = "<html>Timeout</html>"
-
-//// 方式一：标准库
-// 这种方式有个问题
-//func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
-//	return func(next http.Handler) http.Handler {
-//		if duration > 0 {
-//			return http.TimeoutHandler(next, duration, midTimeoutBody)
-//		} else {
-//			return next
-//		}
-//	}
-//}
+// 方式一：标准库
+// 这种方式有个问题，大量请求其实是不会超时的，每次外面都包一层浪费资源
+func TimeoutHandler(duration time.Duration) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		if duration > 0 {
+			return http.TimeoutHandler(next, duration, midTimeoutBody)
+		} else {
+			return next
+		}
+	}
+}
 
 // 方式二：设置请求处理的超时时间，单位是毫秒
 // TODO：注意下面的注释
 // NOTE：这个只是简易的方案，存在不严谨的情况。比如返回结果render了一部分，结果G被Cancel掉了。上面的标准库处理了这个问题。
 // 方式一却自定义了 response write 加入了 输出缓存，返回结果全部好了之后才会一次性 render 给客户端。
-func Timeout(useTimeout bool) fst.CtxHandler {
+func Timeout(kp *gate.RequestKeeper, useTimeout bool) fst.CtxHandler {
 	if useTimeout == false {
 		return nil
 	}
 
 	return func(c *fst.Context) {
 		rt := AllAttrs[c.RouteIdx]
+		// 因为参数c.ReqRaw.Context()，意味着客户端请求主动断开时，会主动触发这里的ctxTimeout
 		ctxTimeout, cancelCtx := context.WithTimeout(c.ReqRaw.Context(), time.Duration(rt.TimeoutMS)*time.Millisecond)
 		defer cancelCtx()
 
@@ -60,7 +58,6 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 			c.Next()
 			// 执行完成之后通知 主协程，我做完了，你可以退出了
 			close(finishChan)
-			logx.Info("finishChan. now exits")
 		}()
 
 		// 任何一个先触发都会执行，并结束当前函数，不会两个以上都触发
@@ -71,7 +68,9 @@ func Timeout(useTimeout bool) fst.CtxHandler {
 		case <-finishChan: // 正常退出
 			return
 		case <-ctxTimeout.Done(): // 超时了
-			c.ReturnTimeout(http.StatusGatewayTimeout, midTimeoutBody)
+			if c.RenderTimeout(midTimeoutBody) {
+				kp.CountRouteTimeout(c.RouteIdx)
+			}
 			return
 		}
 	}

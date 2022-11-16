@@ -31,19 +31,19 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.UseHttpHandler(mid.HttpReqCountPos(reqKeeper, 0))              // 访问计数1
 	app.UseHttpHandler(mid.HttpMaxConnections(cnf.MaxConnections))     // 最大同时处理请求数量
 	app.UseHttpHandler(mid.HttpMaxContentLength(cnf.MaxContentLength)) // 请求头最大限制
-	app.UseHttpHandler(mid.HttpHighCpuProtect(reqKeeper, 1))           // 过载保护
+	//app.UseHttpHandler(mid.HttpHighCpuProtect(reqKeeper, 1))           // 过载保护
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
-	app.Before(mid.ReqCountPos(reqKeeper, 2))  // 正确匹配路由的请求数
-	app.Before(mid.Tracing(cnf.EnableTrack))   // 链路追踪
-	app.Before(mid.Logger)                     // 请求日志
-	app.Before(mid.Breaker(reqKeeper))         // 自适应熔断
-	app.Before(mid.Timeout(cnf.EnableTimeout)) // 超时自动返回，默认3000毫秒（后台处理继续）
-	app.Before(mid.Recovery)                   // @@@ 截获所有异常，避免服务进程崩溃 @@@
-	app.Before(mid.TimeMetric(reqKeeper))      // 耗时统计
-	app.Before(mid.MaxContentLength)           // 分路由判断请求长度
-	app.Before(mid.Gunzip)                     // 自动 gunzip 解压缩
+	app.Before(mid.ReqCountPos(reqKeeper, 2))             // 正确匹配路由的请求数
+	app.Before(mid.Tracing(cnf.EnableTrack))              // 链路追踪
+	app.Before(mid.Logger)                                // 请求日志
+	app.Before(mid.Breaker(reqKeeper))                    // 自适应熔断
+	app.Before(mid.Timeout(reqKeeper, cnf.EnableTimeout)) // 超时自动返回（请求在后台任然继续执行）
+	app.Before(mid.Recovery)                              // @@@ 截获所有异常，避免服务进程崩溃 @@@
+	app.Before(mid.TimeMetric(reqKeeper))                 // 耗时统计
+	app.Before(mid.MaxContentLength)                      // 分路由判断请求长度
+	app.Before(mid.Gunzip)                                // 自动 gunzip 解压缩
 
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
 	//app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息

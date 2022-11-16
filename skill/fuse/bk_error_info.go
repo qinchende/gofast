@@ -4,7 +4,7 @@ import (
 	"github.com/qinchende/gofast/skill/mathx"
 	"github.com/qinchende/gofast/skill/timex"
 	"strings"
-	"sync"
+	"time"
 )
 
 const (
@@ -14,18 +14,21 @@ const (
 
 // 错误信息滑动窗口
 type errorWindow struct {
-	reasons [numHistoryReasons]string
-	index   int
-	count   int
-	lock    sync.Mutex
+	reasonsTime [numHistoryReasons]time.Time
+	reasons     [numHistoryReasons]string
+	index       int
+	count       int
+	// add by cd.net on 20221116 没必要加锁，量大的时候影响性能
+	//lock        sync.Mutex
 }
 
 func (ew *errorWindow) add(reason string) {
-	ew.lock.Lock()
-	ew.reasons[ew.index] = timex.Time().Format(timeFormatReason) + reason
+	//ew.lock.Lock()
+	ew.reasonsTime[ew.index] = timex.Time()
+	ew.reasons[ew.index] = reason
 	ew.index = (ew.index + 1) % numHistoryReasons
 	ew.count = mathx.MinInt(ew.count+1, numHistoryReasons)
-	ew.lock.Unlock()
+	//ew.lock.Unlock()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -37,12 +40,13 @@ var (
 // 注意：整体上这个是非线程安全的
 func (ew *errorWindow) Errors() []string {
 	count := 0
-	ew.lock.Lock()
+	//ew.lock.Lock()
 	for i := ew.index - 1; i >= ew.index-ew.count; i-- {
-		tmpReasonMem[count] = ew.reasons[(i+numHistoryReasons)%numHistoryReasons]
+		idx := (i + numHistoryReasons) % numHistoryReasons
+		tmpReasonMem[count] = ew.reasonsTime[idx].Format(timeFormatReason) + ew.reasons[idx]
 		count++
 	}
-	ew.lock.Unlock()
+	//ew.lock.Unlock()
 
 	tmpReasons = tmpReasonMem[0:count]
 	defer func() {
