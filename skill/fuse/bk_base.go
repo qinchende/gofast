@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package fuse
 
 import "errors"
@@ -32,7 +34,7 @@ type (
 	throttle interface {
 		allow() error
 		doReq(req funcReq, fb funcFallback, cpt funcAcceptable) error
-		markSuc()
-		markFai()
+		markSuc(val float64)
+		markFai(val float64)
 	}
 )

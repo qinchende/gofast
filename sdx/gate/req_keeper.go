@@ -15,8 +15,8 @@ const CountInterval = time.Minute
 
 // 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
 type RequestKeeper struct {
-	bucket  *reqBucket           // 请求统计器
-	counter *exec.IntervalUnsafe // 定时打印统计数据
+	counter *reqCounter          // 请求统计器
+	execute *exec.IntervalUnsafe // 定时打印统计数据
 
 	Breakers     []fuse.Breaker // 不同路径的熔断统计器
 	Shedding     fuse.Shedder   // 降载，服务器资源超限
@@ -24,25 +24,25 @@ type RequestKeeper struct {
 }
 
 func NewReqKeeper(name string) *RequestKeeper {
-	bkt := &reqBucket{pid: os.Getpid(), name: name}
+	ct := &reqCounter{pid: os.Getpid(), name: name}
 	return &RequestKeeper{
-		counter: exec.NewIntervalUnsafe(CountInterval, bkt),
-		bucket:  bkt,
+		execute: exec.NewIntervalUnsafe(CountInterval, ct),
+		counter: ct,
 	}
 }
 
 // 开启监控统计
 func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
-	rk.bucket.paths = routePaths                             // 初始化整个路由统计结构
-	rk.bucket.routes = make([]routeCounter, len(routePaths)) // 初始化整个路由统计结构
-	rk.bucket.extraPaths = extraPaths                        // 其它统计
-	rk.bucket.extras = make([]extraCounter, len(extraPaths)) // 其它统计
+	rk.counter.paths = routePaths                             // 初始化整个路由统计结构
+	rk.counter.routes = make([]routeCounter, len(routePaths)) // 初始化整个路由统计结构
+	rk.counter.extraPaths = extraPaths                        // 其它统计
+	rk.counter.extras = make([]extraCounter, len(extraPaths)) // 其它统计
 
 	routesLen := len(routePaths)
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
 	rk.Breakers = make([]fuse.Breaker, routesLen)
 	for i := 0; i < routesLen; i++ {
-		rk.Breakers[i] = fuse.NewGBreaker(rk.bucket.name+"#"+routePaths[i], true)
+		rk.Breakers[i] = fuse.NewGBreaker(rk.counter.name+"#"+routePaths[i], true)
 	}
 
 	if sysx.MonitorStarted {
