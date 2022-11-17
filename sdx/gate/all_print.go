@@ -10,7 +10,7 @@ import (
 
 const specialRouteMethod = "NA@"
 
-func (rb *reqBucket) logPrintReqCounter(data *printData) {
+func (rb *reqCounter) logPrintReqCounter(data *printData) {
 	// 输出扩展统计
 	for idx := 0; idx < len(data.extras); idx++ {
 		extra := &data.extras[idx]

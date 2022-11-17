@@ -8,9 +8,10 @@ import (
 
 type (
 	Attrs struct {
-		RIndex    uint16 `v:""` // 索引位置
-		MaxLen    int64  `v:""` // 最大请求长度，0不限制
-		TimeoutMS int32  `v:""` // 超时时间毫秒
+		RIndex    uint16 `v:""`                       // 索引位置
+		Priority  int16  `v:"def=500,range=[0:1000]"` // 业务优先级
+		MaxLen    int64  `v:""`                       // 最大请求长度，0不限制
+		TimeoutMS int32  `v:""`                       // 超时时间毫秒
 
 		//MaxReq    int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量 (对单个请求不支持这个参数，这个是由自适应降载逻辑自动判断的)
 		//BreakRate float32 `cnf:",def=3000,range=[0:600000]"` // google sre算法K值敏感度，K 越小越容易丢请求，推荐 1.5-2 之间 （这个算法目前底层写死1.5，基本上通用了，不必每个路由单独设置）

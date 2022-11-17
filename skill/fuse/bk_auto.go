@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package fuse
 
 import (
@@ -39,12 +41,12 @@ func (ab *autoBreaker) Name() string {
 }
 
 func (ab *autoBreaker) Accept() {
-	ab.throttle.markSuc()
+	ab.throttle.markSuc(1)
 }
 
 func (ab *autoBreaker) Reject(reason string) {
 	ab.errWin.add(reason)
-	ab.throttle.markFai()
+	ab.throttle.markFai(0)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

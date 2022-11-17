@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package sdx
 
 import (
@@ -19,7 +21,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 		sysx.OpenSysMonitor(cnf.SysStatePrint)      // 系统资源监控
 
 		routePaths := app.RoutePathsWithMethod()
-		extraPaths := []string{"AllRequest", "LoadShedding", "RouteMatched"}
+		extraPaths := []string{"AllRequest", "RouteMatched"}
 		reqKeeper.InitAndRun(routePaths, extraPaths) // 看守上岗
 	})
 
@@ -31,14 +33,14 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.UseHttpHandler(mid.HttpReqCountPos(reqKeeper, 0))              // 访问计数1
 	app.UseHttpHandler(mid.HttpMaxConnections(cnf.MaxConnections))     // 最大同时处理请求数量
 	app.UseHttpHandler(mid.HttpMaxContentLength(cnf.MaxContentLength)) // 请求头最大限制
-	//app.UseHttpHandler(mid.HttpHighCpuProtect(reqKeeper, 1))           // 过载保护
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
-	app.Before(mid.ReqCountPos(reqKeeper, 2))             // 正确匹配路由的请求数
+	app.Before(mid.ReqCountPos(reqKeeper, 1))             // 正确匹配路由的请求数
 	app.Before(mid.Tracing(cnf.EnableTrack))              // 链路追踪
 	app.Before(mid.Logger)                                // 请求日志
 	app.Before(mid.Breaker(reqKeeper))                    // 自适应熔断
+	app.Before(mid.LoadShedding(reqKeeper))               // 过载保护，就是调整熔断阀值
 	app.Before(mid.Timeout(reqKeeper, cnf.EnableTimeout)) // 超时自动返回（请求在后台任然继续执行）
 	app.Before(mid.Recovery)                              // @@@ 截获所有异常，避免服务进程崩溃 @@@
 	app.Before(mid.TimeMetric(reqKeeper))                 // 耗时统计
@@ -48,7 +50,6 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	// 下面的这些特性恐怕都需要用到 fork 时间模式添加监控。
 	//app.Before(mid.Prometheus)                 // 适合 prometheus 的统计信息
 	// app.Fit(mid.JwtAuthorize(app.FitJwtSecret))
-	// app.Before(mid.LoadShedding(reqKeeper))        // 自适应降载：（判断CPU和最大并发数）（主要保护自己不跑爆）
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 特殊路由的处理链

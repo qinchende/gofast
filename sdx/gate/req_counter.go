@@ -23,7 +23,7 @@ type (
 		total   uint64 // 只记调用次数
 	}
 
-	reqBucket struct {
+	reqCounter struct {
 		pid  int
 		name string
 
@@ -45,12 +45,12 @@ type (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 实现 exec.Interval 接口方法，方便对所有请求进行定时统计
-func (rb *reqBucket) AddItem(v any) bool {
+func (rb *reqCounter) AddItem(v any) bool {
 	return false
 }
 
 // 返回当前容器中的所有数据，同时重置容器
-func (rb *reqBucket) RemoveAll() any {
+func (rb *reqCounter) RemoveAll() any {
 	times := uint64(0)
 	tpExtras := make([]extraCounter, len(rb.extras))
 	tpRoutes := make([]routeCounter, len(rb.routes))
@@ -102,7 +102,7 @@ func (rb *reqBucket) RemoveAll() any {
 }
 
 // 执行统计输出。这里的输入参数来自于上面 RemoveAll 的返回值
-func (rb *reqBucket) Execute(items any) {
+func (rb *reqCounter) Execute(items any) {
 	data := items.(*printData)
 	rb.logPrintReqCounter(data)
 }
@@ -110,8 +110,8 @@ func (rb *reqBucket) Execute(items any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 统计一个通过的请求
 func (rk *RequestKeeper) CountRoutePass2(idx uint16, ms int32) {
-	rk.counter.AddByFunc(func(any) (any, bool) {
-		ct := &rk.bucket.routes[idx]
+	rk.execute.AddByFunc(func(any) (any, bool) {
+		ct := &rk.counter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.accepts++
@@ -126,8 +126,8 @@ func (rk *RequestKeeper) CountRoutePass2(idx uint16, ms int32) {
 }
 
 func (rk *RequestKeeper) CountRoutePass(idx uint16) {
-	rk.counter.AddByFunc(func(any) (any, bool) {
-		ct := &rk.bucket.routes[idx]
+	rk.execute.AddByFunc(func(any) (any, bool) {
+		ct := &rk.counter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.accepts++
@@ -139,8 +139,8 @@ func (rk *RequestKeeper) CountRoutePass(idx uint16) {
 
 // 统计一个处理超时的请求
 func (rk *RequestKeeper) CountRouteTimeout(idx uint16) {
-	rk.counter.AddByFunc(func(any) (any, bool) {
-		ct := &rk.bucket.routes[idx]
+	rk.execute.AddByFunc(func(any) (any, bool) {
+		ct := &rk.counter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.timeouts++
@@ -152,8 +152,8 @@ func (rk *RequestKeeper) CountRouteTimeout(idx uint16) {
 
 // 统计一个被丢弃的请求
 func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
-	rk.counter.AddByFunc(func(any) (any, bool) {
-		ct := &rk.bucket.routes[idx]
+	rk.execute.AddByFunc(func(any) (any, bool) {
+		ct := &rk.counter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.drops++
@@ -165,8 +165,8 @@ func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
 
 // 添加其它统计项
 func (rk *RequestKeeper) CountExtras(pos uint16) {
-	rk.counter.AddByFunc(func(any) (any, bool) {
-		ct := &rk.bucket.extras[pos]
+	rk.execute.AddByFunc(func(any) (any, bool) {
+		ct := &rk.counter.extras[pos]
 
 		ct.extLock.Lock()
 		ct.total++
