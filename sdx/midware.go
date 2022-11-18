@@ -21,7 +21,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 		sysx.OpenSysMonitor(cnf.SysStatePrint)      // 系统资源监控
 
 		routePaths := app.RoutePathsWithMethod()
-		extraPaths := []string{"AllRequest", "RouteMatched"}
+		extraPaths := []string{"AllRequest", "RouteMatched", "LoadShedding"}
 		reqKeeper.InitAndRun(routePaths, extraPaths) // 看守上岗
 	})
 
@@ -40,7 +40,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	app.Before(mid.Tracing(cnf.EnableTrack))              // 链路追踪
 	app.Before(mid.Logger)                                // 请求日志
 	app.Before(mid.Breaker(reqKeeper))                    // 自适应熔断
-	app.Before(mid.LoadShedding(reqKeeper))               // 过载保护，就是调整熔断阀值
+	app.Before(mid.LoadShedding(reqKeeper, 2))            // 过载保护，同时也提升了熔断比率
 	app.Before(mid.Timeout(reqKeeper, cnf.EnableTimeout)) // 超时自动返回（请求在后台任然继续执行）
 	app.Before(mid.Recovery)                              // @@@ 截获所有异常，避免服务进程崩溃 @@@
 	app.Before(mid.TimeMetric(reqKeeper))                 // 耗时统计

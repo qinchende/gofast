@@ -1,4 +1,4 @@
-package fuse
+package drop
 
 import (
 	"github.com/qinchende/gofast/skill/collect"

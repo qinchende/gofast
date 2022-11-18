@@ -5,7 +5,6 @@ package gate
 import (
 	"github.com/qinchende/gofast/skill/exec"
 	"github.com/qinchende/gofast/skill/fuse"
-	"github.com/qinchende/gofast/skill/sysx"
 	"os"
 	"time"
 )
@@ -18,9 +17,8 @@ type RequestKeeper struct {
 	counter *reqCounter          // 请求统计器
 	execute *exec.IntervalUnsafe // 定时打印统计数据
 
-	Breakers     []fuse.Breaker // 不同路径的熔断统计器
-	Shedding     fuse.Shedder   // 降载，服务器资源超限
-	SheddingStat *sheddingStat
+	Breakers []fuse.Breaker // 不同路径的熔断统计器
+	Limiters []*Limiter     // 降载
 }
 
 func NewReqKeeper(name string) *RequestKeeper {
@@ -44,10 +42,9 @@ func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
 	for i := 0; i < routesLen; i++ {
 		rk.Breakers[i] = fuse.NewGBreaker(rk.counter.name+"#"+routePaths[i], true)
 	}
-
-	if sysx.MonitorStarted {
-		rk.SheddingStat = createSheddingStat()  // 降载信息打印
-		rk.Shedding = fuse.NewAdaptiveShedder() // 降载统计分析
-		// rk.Shedding = load.NewAdaptiveShedder(load.WithCpuThreshold(900))
+	// 初始化降载信息收集器
+	rk.Limiters = make([]*Limiter, routesLen)
+	for i := 0; i < routesLen; i++ {
+		rk.Limiters[i] = NewLimiter()
 	}
 }
