@@ -21,7 +21,7 @@ func LoadShedding(kp *gate.RequestKeeper, idx uint16) fst.CtxHandler {
 
 		if kp.Shedding(c.RouteIdx, rt.TimeoutMS) {
 			kp.CountRouteDrop(c.RouteIdx)
-			kp.CountExtras(idx)
+			kp.CountExtras(idx) // Just for debug
 			c.AbortDirect(http.StatusServiceUnavailable, midSheddingBody)
 			return
 		}

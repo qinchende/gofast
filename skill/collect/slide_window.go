@@ -17,36 +17,35 @@ type (
 		Discount(past SlideWinBucket)
 	}
 
-	// SlideWindow defines a rolling windowSdx to calculate the events in buckets with time interval.
+	// 通用滑动窗口，实现了接口SlideWinBucket的不同数据类型
 	SlideWindow struct {
-		interval      time.Duration
-		baseTime      time.Duration // 滑动窗口创建的时间作为基准时间
-		lock          sync.RWMutex
-		size          int
-		win           SlideWinBucket
-		buckets       []SlideWinBucket
-		lastReqOffset int
+		interval time.Duration
+		baseTime time.Duration // 滑动窗口创建的时间作为基准时间
+		lock     sync.RWMutex
+
+		win        SlideWinBucket   // 滑动窗口汇总后的桶数据
+		size       int              // 桶的数量
+		buckets    []SlideWinBucket // 所有桶数据
+		lastOffset int              // 上次处理偏移量
 	}
 )
 
-// NewRollingWindow returns a SlideWindow that with size buckets and time interval,
-// use opts to customize the SlideWindow.
-func NewSlideWindow(win SlideWinBucket, buckets []SlideWinBucket, interval time.Duration) *SlideWindow {
+func NewSlideWindow(win SlideWinBucket, buckets []SlideWinBucket, dur time.Duration) *SlideWindow {
 	if len(buckets) < 1 {
 		panic("size must be greater than 0")
 	}
 
 	return &SlideWindow{
-		size:     len(buckets),
 		win:      win,
+		size:     len(buckets),
 		buckets:  buckets,
-		interval: interval,
+		interval: dur,
 		baseTime: timex.Now(),
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 返回当前滑动窗口值
+// 返回当前滑动窗口汇总数据
 func (rw *SlideWindow) CurrWin() SlideWinBucket {
 	rw.lock.RLock()
 	defer rw.lock.RUnlock()
@@ -69,7 +68,7 @@ func (rw *SlideWindow) Add(v float64) {
 	bk.Add(v)
 	rw.win.Add(v)
 
-	rw.lastReqOffset = currOffset
+	rw.lastOffset = currOffset
 }
 
 // 高级添加函数，带标签
@@ -85,20 +84,20 @@ func (rw *SlideWindow) AddByFlag(v float64, flag int8) {
 	bk.AddByFlag(v, flag)
 	rw.win.AddByFlag(v, flag)
 
-	rw.lastReqOffset = currOffset
+	rw.lastOffset = currOffset
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 剔除过期的桶
 func (rw *SlideWindow) expireBuckets(currOffset int) {
-	diff := currOffset - rw.lastReqOffset
+	diff := currOffset - rw.lastOffset
 	if diff > rw.size {
 		diff = rw.size
 	}
 
 	// 当前和最后一次写入记录时间，相差的桶个数，依次将最后一次写入后面的桶全部清空
 	for i := 0; i < diff; i++ {
-		rw.expireBucket(rw.buckets[(rw.lastReqOffset+i+1)%rw.size])
+		rw.expireBucket(rw.buckets[(rw.lastOffset+i+1)%rw.size])
 	}
 }
 

@@ -32,7 +32,7 @@ func newGoogleThrottle() *googleThrottle {
 	for i := 0; i < buckets; i++ {
 		bks[i] = new(BreakBucket)
 	}
-	dur := time.Duration(int64(window) / int64(buckets))
+	dur := time.Duration(window / buckets)
 
 	return &googleThrottle{
 		k:    k,
