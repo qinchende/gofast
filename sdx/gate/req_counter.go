@@ -10,9 +10,9 @@ type (
 	// 每个route消耗 28 字节（4字长）
 	routeCounter struct {
 		rtLock      sync.Mutex
-		totalTimeMS int64  // 进入请求总共耗时
-		maxTimeMS   int32  // 进入请求最长耗时
-		accepts     uint32 // 进入处理的请求数
+		totalTimeMS int64  // 处理完成总共耗时
+		maxTimeMS   int32  // 处理完成最长耗时
+		accepts     uint32 // 进入处理的请求数 或者 处理完成的请求数
 		timeouts    uint32 // 处理超时请求数
 		drops       uint32 // 熔断丢弃请求数
 	}

@@ -68,7 +68,7 @@ func Timeout(kp *gate.RequestKeeper, useTimeout bool) fst.CtxHandler {
 		case <-finishChan: // 正常退出
 			return
 		case <-ctxTimeout.Done(): // 超时了
-			if c.RenderTimeout(midTimeoutBody) {
+			if c.RenderTimeout(http.StatusGatewayTimeout, midTimeoutBody) {
 				kp.CountRouteTimeout(c.RouteIdx)
 			}
 			return

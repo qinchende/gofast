@@ -4,7 +4,6 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/sysx"
 	"time"
 )
 
@@ -47,22 +46,22 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 	}
 }
 
-// 单独的协程运行这个定时任务。启动定时日志输出
-func (s *sheddingStat) logPrintCpuShedding() {
-	ticker := time.NewTicker(time.Minute)
-	defer ticker.Stop()
-
-	// 定时器，每分钟执行一次，死循环
-	for range ticker.C {
-		st := s.reset()
-		if st.total == 0 && st.pass == 0 && st.drop == 0 {
-			continue
-		}
-
-		logx.StatKV(cst.KV{
-			"typ": logx.LogStatCpuUsage.Type,
-			//"fls": [5]string{"cpu", "total", "pass", "drop"},
-			"val": [4]any{sysx.CpuSmoothUsage, st.total, st.pass, st.drop},
-		})
-	}
-}
+//// 单独的协程运行这个定时任务。启动定时日志输出
+//func (s *sheddingStat) logPrintCpuShedding() {
+//	ticker := time.NewTicker(time.Minute)
+//	defer ticker.Stop()
+//
+//	// 定时器，每分钟执行一次，死循环
+//	for range ticker.C {
+//		st := s.reset()
+//		if st.total == 0 && st.pass == 0 && st.drop == 0 {
+//			continue
+//		}
+//
+//		logx.StatKV(cst.KV{
+//			"typ": logx.LogStatCpuUsage.Type,
+//			//"fls": [5]string{"cpu", "total", "pass", "drop"},
+//			"val": [4]any{sysx.CpuSmoothUsage, st.total, st.pass, st.drop},
+//		})
+//	}
+//}
