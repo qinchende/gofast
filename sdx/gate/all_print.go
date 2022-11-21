@@ -3,7 +3,9 @@ package gate
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/skill/fuse"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/proc"
 	"time"
 )
 
@@ -46,22 +48,17 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 	}
 }
 
-//// 单独的协程运行这个定时任务。启动定时日志输出
-//func (s *sheddingStat) logPrintCpuShedding() {
-//	ticker := time.NewTicker(time.Minute)
-//	defer ticker.Stop()
-//
-//	// 定时器，每分钟执行一次，死循环
-//	for range ticker.C {
-//		st := s.reset()
-//		if st.total == 0 && st.pass == 0 && st.drop == 0 {
-//			continue
-//		}
-//
-//		logx.StatKV(cst.KV{
-//			"typ": logx.LogStatCpuUsage.Type,
-//			//"fls": [5]string{"cpu", "total", "pass", "drop"},
-//			"val": [4]any{sysx.CpuSmoothUsage, st.total, st.pass, st.drop},
-//		})
-//	}
-//}
+func (bk *Breaker) LogError(err error) {
+	bk.reduceLog.DoOrNot(func(skipTimes int32) {
+		if err != fuse.ErrServiceUnavailable {
+			return
+		}
+		logx.InfoReport(cst.KV{
+			"typ":    logx.LogStatBreakerOpen.Type,
+			"proc":   proc.ProcessName() + "/" + lang.ToString(proc.Pid()),
+			"callee": bk.name,
+			"skip":   skipTimes,
+			"msg":    bk.Breaker.Errors(","),
+		})
+	})
+}

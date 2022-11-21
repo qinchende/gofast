@@ -14,7 +14,9 @@ type (
 
 	// A Breaker represents a circuit breaker.
 	Breaker interface {
-		Name() string         // Name returns the name of the Breaker.
+		Name() string              // Name returns the name of the Breaker.
+		Errors(join string) string // reason
+
 		Allow() error         //
 		Accept()              // allow successful.
 		Reject(reason string) // allow failed.

@@ -4,5 +4,5 @@ package mid
 const (
 	midTimeoutBody  = "<html>Timeout!</html>"
 	midFusingBody   = "<html>Fusing!</html>"
-	midSheddingBody = "<html>LoadShedding!LoadShedding!LoadShedding!LoadShedding!LoadShedding!LoadShedding!LoadShedding!LoadShedding!LoadShedding!</html>"
+	midSheddingBody = "<html>LoadShedding!LoadShedding!LoadShedding!LoadShedding!LoadShedding!</html>"
 )

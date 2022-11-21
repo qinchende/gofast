@@ -4,7 +4,6 @@ package gate
 
 import (
 	"github.com/qinchende/gofast/skill/exec"
-	"github.com/qinchende/gofast/skill/fuse"
 	"os"
 	"time"
 )
@@ -17,8 +16,8 @@ type RequestKeeper struct {
 	counter *reqCounter          // 请求统计器
 	execute *exec.IntervalUnsafe // 定时打印统计数据
 
-	Breakers []fuse.Breaker // 不同路径的熔断统计器
-	Limiters []*Limiter     // 降载
+	Breakers []*Breaker // 不同路径的熔断统计器
+	Limiters []*Limiter // 限制器
 }
 
 func NewReqKeeper(name string) *RequestKeeper {
@@ -38,9 +37,9 @@ func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
 
 	routesLen := len(routePaths)
 	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
-	rk.Breakers = make([]fuse.Breaker, routesLen)
+	rk.Breakers = make([]*Breaker, routesLen)
 	for i := 0; i < routesLen; i++ {
-		rk.Breakers[i] = fuse.NewGBreaker(rk.counter.name+"#"+routePaths[i], true)
+		rk.Breakers[i] = NewBreaker(rk.counter.name + "#" + routePaths[i])
 	}
 	// 初始化降载信息收集器
 	rk.Limiters = make([]*Limiter, routesLen)
