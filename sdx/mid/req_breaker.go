@@ -22,6 +22,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		// 1. 本次记入丢弃请求统计  2. 打印错误信息  3. 返回服务器出错
 		if err != nil {
 			kp.CountRouteDrop(c.RouteIdx)
+			brk.LogError(err)
 			// 有可能会连续疯狂的熔断，确认要打印所有信息吗？这里先不打印
 			//r := c.ReqRaw
 			//logx.ErrorF("[http] break, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())

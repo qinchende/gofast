@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+// 这里通过接口的形式实现滑动窗口功能，不同场景下桶内数据可以自定义。
+// 但为了追求更好的性能，建议每种数据结构独立实现
 type (
 	// SlideWindow bucket
 	SlideWinBucket interface {
@@ -17,16 +19,20 @@ type (
 		Discount(past SlideWinBucket)
 	}
 
-	// 通用滑动窗口，实现了接口SlideWinBucket的不同数据类型
-	SlideWindow struct {
+	slideWindowBase struct {
 		interval time.Duration
 		baseTime time.Duration // 滑动窗口创建的时间作为基准时间
 		lock     sync.RWMutex
 
-		win        SlideWinBucket   // 滑动窗口汇总后的桶数据
-		size       int              // 桶的数量
-		buckets    []SlideWinBucket // 所有桶数据
-		lastOffset int              // 上次处理偏移量
+		size       int // 桶的数量
+		lastOffset int // 上次处理偏移量
+	}
+
+	// 通用滑动窗口，实现了接口SlideWinBucket的不同数据类型
+	SlideWindow struct {
+		*slideWindowBase
+		win     SlideWinBucket   // 滑动窗口汇总后的桶数据
+		buckets []SlideWinBucket // 所有桶数据
 	}
 )
 
@@ -36,12 +42,27 @@ func NewSlideWindow(win SlideWinBucket, buckets []SlideWinBucket, dur time.Durat
 	}
 
 	return &SlideWindow{
-		win:      win,
-		size:     len(buckets),
-		buckets:  buckets,
-		interval: dur,
-		baseTime: timex.Now(),
+		slideWindowBase: &slideWindowBase{
+			size:     len(buckets),
+			interval: dur,
+			baseTime: timex.Now(),
+		},
+		win:     win,
+		buckets: buckets,
 	}
+}
+
+// 当前时间相对基准时间的偏移
+func (rw *slideWindowBase) nowOffset() int {
+	// TODO: 随着系统运行，如果不重启，dur会越来越大，是否需要重置一下时间呢？
+	dur := timex.Since(rw.baseTime)
+
+	// 如果系统时间被修改，比如导致时间倒退，需要重置基准时间
+	if dur < 0 {
+		dur = 0
+		rw.baseTime = timex.Now()
+	}
+	return int(dur / rw.interval)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -107,15 +128,31 @@ func (rw *SlideWindow) expireBucket(b SlideWinBucket) {
 	b.Reset()
 }
 
-// 当前时间相对基准时间的偏移
-func (rw *SlideWindow) nowOffset() int {
-	// TODO: 随着系统运行，如果不重启，dur会越来越大，是否需要重置一下时间呢？
-	dur := timex.Since(rw.baseTime)
-
-	// 如果系统时间被修改，比如导致时间倒退，需要重置基准时间
-	if dur < 0 {
-		dur = 0
-		rw.baseTime = timex.Now()
-	}
-	return int(dur / rw.interval)
-}
+// Demo ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//type LimiterBucket struct {
+//	income      int64   // 新进请求数
+//	finish      int64   // 处理完返回的请求数
+//	totalTimeMS float64 // 处理总共耗时
+//}
+//
+//func (bk *LimiterBucket) Reset() {
+//	bk.income = 0
+//	bk.finish = 0
+//	bk.totalTimeMS = 0
+//}
+//
+//func (bk *LimiterBucket) Add(v float64) {
+//	bk.income++
+//}
+//
+//func (bk *LimiterBucket) AddByFlag(v float64, flag int8) {
+//	bk.finish++
+//	bk.totalTimeMS += v
+//}
+//
+//func (bk *LimiterBucket) Discount(past collect.SlideWinBucket) {
+//	pbk := past.(*LimiterBucket)
+//	bk.income -= pbk.income
+//	bk.finish -= pbk.finish
+//	bk.totalTimeMS -= pbk.totalTimeMS
+//}

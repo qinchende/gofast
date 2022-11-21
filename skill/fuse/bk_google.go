@@ -3,30 +3,21 @@
 package fuse
 
 import (
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/exec"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/proc"
-	"time"
 )
 
 type autoBreaker struct {
 	throttle
-	name      string
-	errWin    *errorWindow
-	reduceLog *exec.Reduce
-	showLog   bool
+	name    string
+	errWin  *errorWindow
+	markLog bool
 }
 
-func NewGBreaker(name string, showLog bool) Breaker {
+func NewGBreaker(name string, markLog bool) Breaker {
 	b := autoBreaker{
 		name:    name,
 		errWin:  new(errorWindow),
-		showLog: showLog,
-	}
-	if showLog {
-		b.reduceLog = exec.NewReduce(time.Second * 30)
+		markLog: markLog,
 	}
 	if len(b.name) == 0 {
 		b.name = lang.Rand()
@@ -40,17 +31,23 @@ func (ab *autoBreaker) Name() string {
 	return ab.name
 }
 
+func (ab *autoBreaker) Errors(join string) string {
+	return ab.errWin.ErrorsJoin(join)
+}
+
 func (ab *autoBreaker) Accept() {
 	ab.throttle.markValue(1)
 }
 
 func (ab *autoBreaker) Reject(reason string) {
-	ab.errWin.add(reason)
+	if ab.markLog {
+		ab.errWin.add(reason)
+	}
 	ab.throttle.markValue(0)
 }
 
 func (ab *autoBreaker) Allow() error {
-	return ab.logError(ab.throttle.allow())
+	return ab.throttle.allow()
 }
 
 func (ab *autoBreaker) AcceptValue(v float64) {
@@ -58,7 +55,9 @@ func (ab *autoBreaker) AcceptValue(v float64) {
 }
 
 func (ab *autoBreaker) RejectValue(v float64, reason string) {
-	ab.errWin.add(reason)
+	if ab.markLog {
+		ab.errWin.add(reason)
+	}
 	ab.throttle.markValue(v)
 }
 
@@ -84,21 +83,3 @@ func (ab *autoBreaker) RejectValue(v float64, reason string) {
 //func defAcceptable(err error) bool {
 //	return err == nil
 //}
-
-func (ab *autoBreaker) logError(err error) error {
-	if ab.showLog && err != nil {
-		ab.reduceLog.DoOrNot(func(skip int32) {
-			if err != ErrServiceUnavailable {
-				return
-			}
-			logx.InfoReport(cst.KV{
-				"typ":    logx.LogStatBreakerOpen.Type,
-				"proc":   proc.ProcessName() + "/" + lang.ToString(proc.Pid()),
-				"callee": ab.name,
-				"skip":   skip,
-				"msg":    ab.errWin.Errors(),
-			})
-		})
-	}
-	return err
-}
