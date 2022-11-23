@@ -10,8 +10,8 @@ import (
 type (
 	// 滑动窗口的数据结构，统计请求信息
 	bucketLimit struct {
-		income      int64 // 新进请求数
-		finish      int64 // 处理完返回的请求数
+		income      int32 // 新进请求数
+		finish      int32 // 处理完返回的请求数
 		totalTimeMS int64 // 处理总共耗时
 	}
 
@@ -24,7 +24,7 @@ type (
 	}
 )
 
-func NewSlideWindowShed(size int, dur time.Duration) *SlideWindowLimit {
+func NewSlideWindowLimit(size int, dur time.Duration) *SlideWindowLimit {
 	if size < 1 {
 		panic("size must be greater than 0")
 	}
@@ -40,7 +40,7 @@ func NewSlideWindowShed(size int, dur time.Duration) *SlideWindowLimit {
 }
 
 // 返回当前滑动窗口汇总数据
-func (rw *SlideWindowLimit) CurrWin() (int64, int64, int64) {
+func (rw *SlideWindowLimit) CurrWin() (int32, int32, int64) {
 	rw.lock.RLock()
 	defer rw.lock.RUnlock()
 

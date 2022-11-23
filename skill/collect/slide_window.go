@@ -16,7 +16,7 @@ type (
 		Reset()
 		Add(v float64)
 		AddByFlag(v float64, flag int8)
-		Discount(past SlideWinBucket)
+		WeedOut(past SlideWinBucket)
 	}
 
 	slideWindowBase struct {
@@ -124,7 +124,7 @@ func (rw *SlideWindow) expireBuckets(currOffset int) {
 
 // 这个桶过期了，需要从全局变量中剔除
 func (rw *SlideWindow) expireBucket(b SlideWinBucket) {
-	rw.win.Discount(b)
+	rw.win.WeedOut(b)
 	b.Reset()
 }
 

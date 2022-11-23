@@ -6,6 +6,10 @@ import (
 	"time"
 )
 
+const (
+	breakLogInterval = time.Second * 30
+)
+
 type Breaker struct {
 	fuse.Breaker
 	name      string
@@ -16,6 +20,6 @@ func NewBreaker(name string) *Breaker {
 	return &Breaker{
 		name:      name,
 		Breaker:   fuse.NewGBreaker(name, true),
-		reduceLog: exec.NewReduce(time.Second * 30),
+		reduceLog: exec.NewReduce(breakLogInterval),
 	}
 }
