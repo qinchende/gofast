@@ -36,16 +36,16 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
-	app.Before(mid.ReqCountPos(keeper, 1))             // 正确匹配路由的请求数
-	app.Before(mid.Tracing(cnf.EnableTrack))           // 链路追踪
-	app.Before(mid.Logger)                             // 请求日志
-	app.Before(mid.Breaker(keeper))                    // 自适应熔断
-	app.Before(mid.LoadShedding(keeper, 2))            // 过载保护，同时也提升了熔断比率
-	app.Before(mid.Timeout(keeper, cnf.EnableTimeout)) // 超时自动返回（请求在后台任然继续执行）
-	app.Before(mid.Recovery)                           // @@@ 截获所有异常，避免服务进程崩溃 @@@
-	app.Before(mid.TimeMetric(keeper))                 // 耗时统计
-	app.Before(mid.MaxContentLength)                   // 分路由判断请求长度
-	app.Before(mid.Gunzip)                             // 自动 gunzip 解压缩
+	app.Before(mid.ReqCountPos(keeper, 1))                      // 正确匹配路由的请求数
+	app.Before(mid.Tracing(cnf.EnableTrack))                    // 链路追踪
+	app.Before(mid.Logger)                                      // 请求日志
+	app.Before(mid.LoadShedding(keeper, 2, cnf.EnableShedding)) // 过载保护，同时也提升了熔断比率
+	app.Before(mid.Breaker(keeper))                             // 自适应熔断
+	app.Before(mid.Timeout(keeper, cnf.EnableTimeout))          // 超时自动返回（请求在后台任然继续执行）
+	app.Before(mid.Recovery)                                    // @@@ 截获所有异常，避免服务进程崩溃 @@@
+	app.Before(mid.TimeMetric(keeper))                          // 耗时统计
+	app.Before(mid.MaxContentLength)                            // 分路由判断请求长度
+	app.Before(mid.Gunzip)                                      // 自动 gunzip 解压缩
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 特殊路由的处理链

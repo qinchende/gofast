@@ -23,21 +23,20 @@ type RedisSessCnf struct {
 }
 
 // 参数配置，Redis实例等
-type SessionDB struct {
+type RedisSessionDB struct {
 	RedisSessCnf
 	Redis *gfrds.GfRedis
-	//isReady bool // 是否已经初始化
 }
 
 // 每个进程只有一个全局 SdxSS 配置对象
-var MySess *SessionDB
+var MySessDB *RedisSessionDB
 
 // 采用 “闪电侠” session 方案的时候需要先初始化参数
-func SetupSession(ss *SessionDB) {
-	if MySess != nil {
+func SetupSession(ss *RedisSessionDB) {
+	if MySessDB != nil {
 		return
 	}
-	MySess = ss
+	MySessDB = ss
 
 	if ss.Redis == nil {
 		ss.Redis = gfrds.NewGoRedis(&ss.RedisConn)
@@ -138,7 +137,7 @@ func (ss *CtxSession) Recreate(c *fst.Context) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *CtxSession) rebuildToken(c *fst.Context) {
-	guid, tok := genToken(MySess.Secret + c.ClientIP())
+	guid, tok := genToken(MySessDB.Secret + c.ClientIP())
 	ss.saved = true // 意味着没有设置值的时候就不需要保存了
 	ss.values = make(map[string]any)
 	ss.guid = guid
