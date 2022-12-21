@@ -49,7 +49,7 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 }
 
 func (bk *Breaker) LogError(err error) {
-	bk.reduceLog.DoOrNot(func(skipTimes int32) {
+	bk.reduceLog.DoInterval(false, func(skipTimes int32) {
 		if err != fuse.ErrServiceUnavailable {
 			return
 		}

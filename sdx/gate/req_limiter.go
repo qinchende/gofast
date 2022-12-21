@@ -38,11 +38,13 @@ func (rk *RequestKeeper) LimiterFinished(idx uint16, ms int32) {
 func (rk *RequestKeeper) LimiterAllow(idx uint16, defTimeoutMS int32) bool {
 	lt := rk.Limiters[idx]
 
-	income, finish, totalTimeMS := lt.sWin.CurrWin()
+	_, finish, totalTimeMS := lt.sWin.CurrWin()
 
 	// 平均处理时间比超时时间都大，全部降载丢弃
 	//if finish >= 5 && income > finish+3 && float64(totalTimeMS)/float64(finish) > 1.2*float64(defTimeoutMS) {
-	if finish >= 5 && income > 1 && float64(totalTimeMS)/float64(finish) > 1.2*float64(defTimeoutMS) {
+
+	// 过去5秒，处理完成至少5个请求，而且平均耗时>超时时间
+	if finish >= 5 && float64(totalTimeMS)/float64(finish) > float64(defTimeoutMS) {
 		return true
 	}
 	return false

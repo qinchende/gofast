@@ -28,14 +28,14 @@ func NewReduce(step time.Duration) *Reduce {
 }
 
 // 至少间隔一定时间才执行指定Task
-func (rd *Reduce) DoOrNot(task func(skipTimes int32)) bool {
+func (rd *Reduce) DoInterval(flush bool, task func(skipTimes int32)) bool {
 	rd.lock.Lock()
 	defer rd.lock.Unlock()
 
 	now := timex.Now()
 	lastTime := rd.lastTime.Load()
 	// 首次需要执行
-	if lastTime+rd.interval < now || lastTime == 0 {
+	if flush || lastTime+rd.interval < now || lastTime == 0 {
 		rd.lastTime.Set(now)
 		task(atomic.SwapInt32(&rd.skipTimes, 0))
 		return true

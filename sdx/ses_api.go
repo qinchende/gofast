@@ -33,11 +33,11 @@ func SessBuilder(c *fst.Context) {
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确，需要分配新的Token。
 	// 2. 过期，用当前Token重建Session记录。
-	isValid := checkToken(reqGuid, reqHmac, MySess.Secret+c.ClientIP())
+	isValid := checkToken(reqGuid, reqHmac, MySessDB.Secret+c.ClientIP())
 
 	// 按照ip计算出当前hmac，和请求中的hmac相比较，看是否相等
 	// 如果Guid验证通过
-	if isValid || MySess.MustKeepIP == false {
+	if isValid || MySessDB.MustKeepIP == false {
 		ss.guid = reqGuid
 	}
 
@@ -48,16 +48,16 @@ func SessBuilder(c *fst.Context) {
 		ss.values = make(cst.KV)
 		if err := ss.loadSessionFromRedis(c); err != nil {
 			c.AddMsgBasket(err.Error())
-			c.AbortFai(110, "加载 Session 数据失败。")
+			c.AbortFai(110, "Load session data from redis error.")
 		}
 	}
 }
 
 // 验证请求是否经过了合法认证
 func SessMustLogin(c *fst.Context) {
-	uid := c.Sess.Get(MySess.GuidField)
+	uid := c.Sess.Get(MySessDB.GuidField)
 	if uid == nil || uid == "" {
-		c.AbortFai(110, "登录验证失败。")
+		c.AbortFai(110, "User login auth error.")
 	}
 }
 
