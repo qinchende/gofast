@@ -29,8 +29,9 @@ func LoadShedding(kp *gate.RequestKeeper, idx uint16, useShedding bool) fst.CtxH
 			c.AbortDirect(http.StatusServiceUnavailable, midSheddingBody)
 			return
 		}
+		// 进入多少个请求
+		//kp.LimiterIncome(c.RouteIdx)
 
-		kp.LimiterIncome(c.RouteIdx)
 		c.Next()
 	}
 }
