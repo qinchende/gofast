@@ -8,8 +8,10 @@ import (
 )
 
 const (
-	limit_window  = time.Second * 5 // 窗口周期
-	limit_buckets = 10              // 窗口中桶的数量
+	limit_win_seconds  = 3
+	limit_win_duration = limit_win_seconds * time.Second // 窗口周期(秒)
+	limit_buckets      = limit_win_seconds * 4           // 窗口中桶的数量(250ms一个桶)
+	limit_timeout_rate = 1.1                             // 超时倍数
 )
 
 type Limiter struct {
@@ -17,7 +19,7 @@ type Limiter struct {
 }
 
 func NewLimiter() *Limiter {
-	dur := time.Duration(int64(limit_window) / int64(limit_buckets))
+	dur := time.Duration(int64(limit_win_duration) / int64(limit_buckets))
 	return &Limiter{
 		sWin: collect.NewSlideWindowLimit(limit_buckets, dur),
 	}
@@ -29,22 +31,23 @@ func (rk *RequestKeeper) LimiterIncome(idx uint16) {
 	rk.Limiters[idx].sWin.MarkIncome()
 }
 
-// 返回请求数以及耗时
-func (rk *RequestKeeper) LimiterFinished(idx uint16, ms int32) {
+// 记录请求耗时
+func (rk *RequestKeeper) LimiterFinished(idx uint16, ms int32, defMS int32) {
+	fixMS := int32(float64(defMS) * limit_timeout_rate)
+	if ms > fixMS {
+		ms = fixMS
+	}
 	rk.Limiters[idx].sWin.MarkFinish(int64(ms))
 }
 
 // 是否允许本次请求通过
-func (rk *RequestKeeper) LimiterAllow(idx uint16, defTimeoutMS int32) bool {
+func (rk *RequestKeeper) LimiterAllow(idx uint16, defMS int32) bool {
 	lt := rk.Limiters[idx]
 
 	_, finish, totalTimeMS := lt.sWin.CurrWin()
 
-	// 平均处理时间比超时时间都大，全部降载丢弃
-	//if finish >= 5 && income > finish+3 && float64(totalTimeMS)/float64(finish) > 1.2*float64(defTimeoutMS) {
-
-	// 过去5秒，处理完成至少5个请求，而且平均耗时>超时时间
-	if finish >= 5 && float64(totalTimeMS)/float64(finish) > float64(defTimeoutMS) {
+	// 过去3秒，处理完成至少3个请求，而且所有请求几乎都是超时，这个时候要降载了
+	if finish >= limit_win_seconds && float64(totalTimeMS)/float64(finish) > float64(defMS) {
 		return true
 	}
 	return false

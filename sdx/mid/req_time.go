@@ -13,9 +13,11 @@ import (
 func TimeMetric(kp *gate.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		defer func() {
+			rt := AllAttrs[c.RouteIdx]
+
 			// 无论是否panic，在统计访问量的模块，本次都算一次正常触达请求，并统计耗时
 			tm := int32(timex.SinceMS(c.EnterTime))
-			kp.LimiterFinished(c.RouteIdx, tm)
+			kp.LimiterFinished(c.RouteIdx, tm, rt.TimeoutMS)
 			kp.CountRoutePass2(c.RouteIdx, tm)
 		}()
 
