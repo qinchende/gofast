@@ -29,6 +29,7 @@ type SdxConfig struct {
 
 	EnableSpecialHandlers bool  `v:"def=true"`  // 是否启用默认的特殊路由中间件
 	EnableTrack           bool  `v:"def=false"` // 启动链路追踪
+	EnableGunzip          bool  `v:"def=false"` // 启动gunzip
 	EnableShedding        bool  `v:"def=true"`  // 启动降载限制访问
 	EnableTimeout         bool  `v:"def=true"`  // 启动超时拦截
 	DefTimeoutMS          int64 `v:"def=3000"`  // 默认请求超时时间（单位：毫秒）

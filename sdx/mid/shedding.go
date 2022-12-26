@@ -24,8 +24,8 @@ func LoadShedding(kp *gate.RequestKeeper, idx uint16, useShedding bool) fst.CtxH
 		rt := AllAttrs[c.RouteIdx]
 
 		if kp.LimiterAllow(c.RouteIdx, rt.TimeoutMS) {
+			//kp.CountExtras(idx) // Just for debug
 			kp.CountRouteDrop(c.RouteIdx)
-			kp.CountExtras(idx) // Just for debug
 			c.AbortDirect(http.StatusServiceUnavailable, midSheddingBody)
 			return
 		}

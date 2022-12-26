@@ -17,12 +17,11 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 	return func(c *fst.Context) {
 		// 检查是否允许本次访问通过，主要是滑动窗口判断是否达到熔断条件
 		brk := kp.Breakers[c.RouteIdx]
-		err := brk.Allow()
 		// 有错误信息返回，证明本次请求被熔断，接下来：
 		// 1. 本次记入丢弃请求统计  2. 打印错误信息  3. 返回服务器出错
-		if err != nil {
-			kp.CountRouteDrop(c.RouteIdx)
+		if err := brk.Allow(); err != nil {
 			brk.LogError(err)
+			kp.CountRouteDrop(c.RouteIdx)
 			// 有可能会连续疯狂的熔断，确认要打印所有信息吗？这里先不打印
 			//r := c.ReqRaw
 			//logx.ErrorF("[http] break, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())

@@ -10,13 +10,19 @@ import (
 	"strings"
 )
 
-func Gunzip(c *fst.Context) {
-	if strings.Contains(c.GetHeader(cst.HeaderContentEncoding), "gzip") {
-		reader, err := gzip.NewReader(c.ReqRaw.Body)
-		if err != nil {
-			c.AbortDirect(http.StatusBadRequest, "Can't unzip body!!!")
-			return
+func Gunzip(useGunzip bool) fst.CtxHandler {
+	if useGunzip == false {
+		return nil
+	}
+
+	return func(c *fst.Context) {
+		if strings.Contains(c.GetHeader(cst.HeaderContentEncoding), "gzip") {
+			reader, err := gzip.NewReader(c.ReqRaw.Body)
+			if err != nil {
+				c.AbortDirect(http.StatusBadRequest, "Can't unzip body!")
+				return
+			}
+			c.ReqRaw.Body = reader
 		}
-		c.ReqRaw.Body = reader
 	}
 }
