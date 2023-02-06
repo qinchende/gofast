@@ -1,17 +1,15 @@
 package collect
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/syncx"
+	"github.com/qinchende/gofast/skill/timex"
+	"github.com/stretchr/testify/assert"
 	"sort"
 	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
-
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/stringx"
-	"github.com/qinchende/gofast/skill/syncx"
-	"github.com/qinchende/gofast/skill/timex"
-	"github.com/stretchr/testify/assert"
 )
 
 const (
@@ -214,7 +212,7 @@ func TestTimingWheel_SetTimer(t *testing.T) {
 
 	for _, test := range tests {
 		test := test
-		t.Run(stringx.RandId(), func(t *testing.T) {
+		t.Run(lang.RandId(), func(t *testing.T) {
 			t.Parallel()
 
 			var count int32
@@ -295,7 +293,7 @@ func TestTimingWheel_SetAndMoveThenStart(t *testing.T) {
 
 	for _, test := range tests {
 		test := test
-		t.Run(stringx.RandId(), func(t *testing.T) {
+		t.Run(lang.RandId(), func(t *testing.T) {
 			t.Parallel()
 
 			var count int32
@@ -383,7 +381,7 @@ func TestTimingWheel_SetAndMoveTwice(t *testing.T) {
 
 	for _, test := range tests {
 		test := test
-		t.Run(stringx.RandId(), func(t *testing.T) {
+		t.Run(lang.RandId(), func(t *testing.T) {
 			t.Parallel()
 
 			var count int32
@@ -464,7 +462,7 @@ func TestTimingWheel_ElapsedAndSet(t *testing.T) {
 
 	for _, test := range tests {
 		test := test
-		t.Run(stringx.RandId(), func(t *testing.T) {
+		t.Run(lang.RandId(), func(t *testing.T) {
 			t.Parallel()
 
 			var count int32
@@ -555,7 +553,7 @@ func TestTimingWheel_ElapsedAndSetThenMove(t *testing.T) {
 
 	for _, test := range tests {
 		test := test
-		t.Run(stringx.RandId(), func(t *testing.T) {
+		t.Run(lang.RandId(), func(t *testing.T) {
 			t.Parallel()
 
 			var count int32

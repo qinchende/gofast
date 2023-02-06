@@ -4,50 +4,69 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/sysx/host"
 	"github.com/qinchende/gofast/skill/trace"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/propagation"
+	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"
+	oteltrace "go.opentelemetry.io/otel/trace"
 )
 
-//// 启动链路追踪
-//func Tracing(w *fst.GFResponse, r *http.Request) {
-//	// 先禁用这个功能
-//	if w != nil {
-//		return
-//	}
-//
-//	carrier, err := trace.Extract(trace.HttpFormat, r.Header)
-//	// ErrInvalidCarrier means no trace id was set in http header
-//	if err != nil && err != trace.ErrInvalidCarrier {
-//		logx.Error(err)
-//	}
-//
-//	ctx, span := trace.StartServerSpan(r.Context(), carrier, sysx.Hostname(), r.RequestURI)
-//	defer span.Finish()
-//	r = r.WithContext(ctx)
-//
-//	w.NextFit(r)
-//}
-
 // 启动链路追踪
-
-func Tracing(useTracing bool) fst.CtxHandler {
+func Tracing(appName string, useTracing bool) fst.CtxHandler {
 	if useTracing == false {
 		return nil
 	}
 
 	return func(c *fst.Context) {
-		carrier, err := trace.Extract(trace.HttpFormat, c.ReqRaw.Header)
-		// ErrInvalidCarrier means no trace id was set in http header
-		if err != nil && err != trace.ErrInvalidCarrier {
-			logx.Error(err.Error())
+		propagator := otel.GetTextMapPropagator()
+		tracer := otel.GetTracerProvider().Tracer(trace.TraceName)
+
+		ctx := propagator.Extract(c.ReqRaw.Context(), propagation.HeaderCarrier(c.ReqRaw.Header))
+		spanName := c.FullPath()
+		if len(spanName) == 0 {
+			spanName = c.ReqRaw.URL.Path
 		}
+		spanCtx, span := tracer.Start(
+			ctx,
+			spanName,
+			oteltrace.WithSpanKind(oteltrace.SpanKindServer),
+			oteltrace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(appName, spanName, c.ReqRaw)...),
+		)
+		defer span.End()
 
-		newCtx, span := trace.StartServerSpan(c.ReqRaw.Context(), carrier, host.Hostname(), c.ReqRaw.RequestURI)
-		defer span.Finish()
-		c.ReqRaw = c.ReqRaw.WithContext(newCtx)
+		// convenient for tracking error messages
+		propagator.Inject(spanCtx, propagation.HeaderCarrier(c.ResWrap.Header()))
+		c.ReqRaw = c.ReqRaw.WithContext(spanCtx)
 
-		// 有 defer ，这里的 ctx.Next() 有意义
 		c.Next()
 	}
 }
+
+//
+//// TracingHandler return a middleware that process the opentelemetry.
+//func TracingHandler(serviceName, path string) func(http.Handler) http.Handler {
+//	return func(next http.Handler) http.Handler {
+//		propagator := otel.GetTextMapPropagator()
+//		tracer := otel.GetTracerProvider().Tracer(trace.TraceName)
+//
+//		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+//			ctx := propagator.Extract(r.Context(), propagation.HeaderCarrier(r.Header))
+//			spanName := path
+//			if len(spanName) == 0 {
+//				spanName = r.URL.Path
+//			}
+//			spanCtx, span := tracer.Start(
+//				ctx,
+//				spanName,
+//				oteltrace.WithSpanKind(oteltrace.SpanKindServer),
+//				oteltrace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(
+//					serviceName, spanName, r)...),
+//			)
+//			defer span.End()
+//
+//			// convenient for tracking error messages
+//			propagator.Inject(spanCtx, propagation.HeaderCarrier(w.Header()))
+//			next.ServeHTTP(w, r.WithContext(spanCtx))
+//		})
+//	}
+//}

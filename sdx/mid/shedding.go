@@ -15,7 +15,7 @@ import (
 // 3. 处理超时的严重程度
 // 4. 业务优先级
 // 5. 用户优先级
-func LoadShedding(kp *gate.RequestKeeper, idx uint16, useShedding bool) fst.CtxHandler {
+func LoadShedding(kp *gate.RequestKeeper, useShedding bool, idx uint16) fst.CtxHandler {
 	if useShedding == false {
 		return nil
 	}

@@ -1,9 +1,9 @@
 package mathx
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"testing"
 
-	"github.com/qinchende/gofast/skill/stringx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -32,7 +32,7 @@ func TestMaxInt(t *testing.T) {
 
 	for _, each := range cases {
 		each := each
-		t.Run(stringx.Rand(), func(t *testing.T) {
+		t.Run(lang.Rand(), func(t *testing.T) {
 			actual := MaxInt(each.a, each.b)
 			assert.Equal(t, each.expect, actual)
 		})
@@ -63,7 +63,7 @@ func TestMinInt(t *testing.T) {
 	}
 
 	for _, each := range cases {
-		t.Run(stringx.Rand(), func(t *testing.T) {
+		t.Run(lang.Rand(), func(t *testing.T) {
 			actual := MinInt(each.a, each.b)
 			assert.Equal(t, each.expect, actual)
 		})
