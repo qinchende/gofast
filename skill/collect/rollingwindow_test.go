@@ -1,12 +1,11 @@
 package collect
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
+	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
 	"time"
-
-	"github.com/qinchende/gofast/skill/stringx"
-	"github.com/stretchr/testify/assert"
 )
 
 const duration = time.Millisecond * 50
@@ -86,7 +85,7 @@ func TestRollingWindowReduce(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(stringx.Rand(), func(t *testing.T) {
+		t.Run(lang.Rand(), func(t *testing.T) {
 			r := test.win
 			for x := 0; x < size; x++ {
 				for i := 0; i <= x; i++ {

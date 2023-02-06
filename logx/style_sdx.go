@@ -120,3 +120,9 @@ func logBaskets(bs tools.Baskets) string {
 	}
 	return buf.String()
 }
+
+//func traceInfo(ctx context.Context) string {
+//	jsonx.m
+//
+//	return jsonx.UnmarshalFromString() trace.SpanContextFromContext(ctx)
+//}

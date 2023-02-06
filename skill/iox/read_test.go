@@ -2,15 +2,14 @@ package iox
 
 import (
 	"bytes"
+	"github.com/qinchende/gofast/skill/fs"
+	"github.com/qinchende/gofast/skill/lang"
+	"github.com/stretchr/testify/assert"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
 	"time"
-
-	"github.com/qinchende/gofast/skill/fs"
-	"github.com/qinchende/gofast/skill/stringx"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestReadText(t *testing.T) {
@@ -87,7 +86,7 @@ func TestReadTextLines(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(stringx.Rand(), func(t *testing.T) {
+		t.Run(lang.Rand(), func(t *testing.T) {
 			lines, err := ReadTextLines(tmpfile, test.options...)
 			assert.Nil(t, err)
 			assert.Equal(t, test.expectLines, len(lines))

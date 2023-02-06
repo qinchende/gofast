@@ -12,9 +12,9 @@ func TestTrueOnProba(t *testing.T) {
 	const total = 100000
 	const epsilon = 0.05
 	var count int
-	p := NewProba()
+	p := NewMaybe()
 	for i := 0; i < total; i++ {
-		if p.TrueOnProba(proba) {
+		if p.TrueOnMaybe(proba) {
 			count++
 		}
 	}
