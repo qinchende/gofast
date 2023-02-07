@@ -33,6 +33,8 @@ const (
 	// 几种统计日志
 	levelStat = "stat"
 	levelSlow = "slow"
+	// 自动脚本日志
+	levelTimer = "timer"
 
 	callerInnerDepth = 3
 )

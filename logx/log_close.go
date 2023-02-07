@@ -42,6 +42,11 @@ func CloseFiles() error {
 			return err
 		}
 	}
+	if timerLog != nil {
+		if err := timerLog.Close(); err != nil {
+			return err
+		}
+	}
 
 	return nil
 }

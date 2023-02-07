@@ -183,6 +183,30 @@ func SlowF(format string, v ...any) {
 	}
 }
 
+func Script(v string) {
+	if myCnf.LogStats {
+		output(timerLog, levelTimer, v, true)
+	}
+}
+
+func ScriptKV(data cst.KV) {
+	if myCnf.LogStats {
+		output(timerLog, levelTimer, data, true)
+	}
+}
+
+func Scripts(v ...any) {
+	if myCnf.LogStats {
+		output(timerLog, levelTimer, fmt.Sprint(v...), true)
+	}
+}
+
+func ScriptF(format string, v ...any) {
+	if myCnf.LogStats {
+		output(timerLog, levelTimer, fmt.Sprintf(format, v...), true)
+	}
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // inner call apis
 func warnSync(msg string, useStyle bool) {

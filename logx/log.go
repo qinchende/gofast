@@ -19,6 +19,7 @@ var (
 	stackLog WriterCloser
 	slowLog  WriterCloser
 	statLog  WriterCloser
+	timerLog WriterCloser
 
 	initOnce sync.Once
 	myCnf    *LogConfig
@@ -80,6 +81,7 @@ func setupWithConsole(c *LogConfig) error {
 		debugLog = infoLog
 		statLog = infoLog
 		slowLog = infoLog
+		timerLog = infoLog
 		warnLog = newLogWriter(log.New(os.Stderr, "", 0))
 		errorLog = warnLog
 		stackLog = warnLog
@@ -100,6 +102,7 @@ func setupWithFiles(c *LogConfig) error {
 		stackFilePath := logFilePath(levelStack)
 		statFilePath := logFilePath(levelStat)
 		slowFilePath := logFilePath(levelSlow)
+		timerFilePath := logFilePath(levelTimer)
 
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
 		infoLog = createFileWriter(infoFilePath)
@@ -115,6 +118,7 @@ func setupWithFiles(c *LogConfig) error {
 			stackLog = infoLog
 			statLog = infoLog
 			slowLog = infoLog
+			timerLog = infoLog
 		} else if c.FileNumber == fileTwo { // split info and stat files
 			debugLog = infoLog
 			warnLog = infoLog
@@ -122,6 +126,7 @@ func setupWithFiles(c *LogConfig) error {
 			stackLog = infoLog
 			statLog = createFileWriter(statFilePath)
 			slowLog = statLog
+			timerLog = statLog
 		} else if c.FileNumber == fileThree { // split info error stat files
 			debugLog = infoLog
 			errorLog = createFileWriter(errorFilePath)
@@ -129,6 +134,7 @@ func setupWithFiles(c *LogConfig) error {
 			stackLog = errorLog
 			statLog = createFileWriter(statFilePath)
 			slowLog = statLog
+			timerLog = statLog
 		} else if c.FileNumber == fileAll { // split every files
 			debugLog = createFileWriter(debugFilePath)
 			warnLog = createFileWriter(warnFilePath)
@@ -136,6 +142,7 @@ func setupWithFiles(c *LogConfig) error {
 			stackLog = createFileWriter(stackFilePath)
 			statLog = createFileWriter(statFilePath)
 			slowLog = createFileWriter(slowFilePath)
+			timerLog = createFileWriter(timerFilePath)
 		}
 	})
 
