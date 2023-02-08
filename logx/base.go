@@ -11,30 +11,20 @@ const (
 	LogLevelStack             // LogLevelError includes [stack]
 )
 
-// 日志文件拆分成几个分别保存内容
-const (
-	fileAll   int8 = iota // 默认0：不同级别放入不同的日志文件
-	fileOne               // 1：全部放在一个日志文件info中
-	fileTwo               // 2：只分info和stat两个文件
-	fileThree             // 3：只分info和error和stat三个文件
-)
-
 const (
 	logMediumConsole = "console"
 	logMediumFile    = "file"
 	logMediumVolume  = "volume"
 
-	// 多钟不同的log分类
-	levelDebug = "debug"
-	levelInfo  = "info"
-	levelWarn  = "warn"
-	levelError = "error"
-	levelStack = "stack"
-	// 几种统计日志
-	levelStat = "stat"
-	levelSlow = "slow"
-	// 自动脚本日志
-	levelTimer = "timer"
+	// 多钟不同的log分类，参数用二进制位上标记表示是否独立日志文件。默认都会有info
+	typeInfo  = "info"  // 0
+	typeDebug = "debug" // 1
+	typeWarn  = "warn"  // 2
+	typeError = "error" // 4
+	typeStack = "stack" // 8
+	typeStat  = "stat"  // 32
+	typeSlow  = "slow"  // 64
+	typeTimer = "timer" // 128	// 定时器执行的任务日志，一般为定时脚本准备
 
 	callerInnerDepth = 3
 )
@@ -46,9 +36,9 @@ type LogConfig struct {
 	LogStyle  string `v:"def=sdx,enum=custom|sdx|sdx-json|elk|prometheus"` // 日志样式
 	LogStats  bool   `v:"def=true"`                                        // 是否打印统计信息
 
-	FileFolder string `v:""`                  // 日志文件夹路径
-	FilePrefix string `v:""`                  // 日志文件名统一前缀(默认是AppName)
-	FileNumber int8   `v:"def=2,range=[0:3]"` // 日志文件数量，默认只拆分成 info and stat (日志 + 统计)
+	FileFolder string `v:""`                    // 日志文件夹路径
+	FilePrefix string `v:""`                    // 日志文件名统一前缀(默认是AppName)
+	FileSplit  uint16 `v:"def=0,range=[0:255]"` // 日志拆分(比如32: info+stat; 64: info+timer; 160: info+stat+timer)
 
 	FileKeepDays int  `v:"def=7"`     // 日志文件保留天数
 	FileGzip     bool `v:"def=false"` // 是否Gzip压缩日志文件

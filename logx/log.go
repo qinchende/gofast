@@ -12,8 +12,8 @@ import (
 )
 
 var (
-	debugLog WriterCloser
 	infoLog  WriterCloser
+	debugLog WriterCloser
 	warnLog  WriterCloser
 	errorLog WriterCloser
 	stackLog WriterCloser
@@ -37,7 +37,7 @@ func MustSetup(cnf *LogConfig) {
 	if err := setup(myCnf); err != nil {
 		info := formatWithCaller(err.Error(), callerInnerDepth)
 		log.Println(info)
-		output(stackLog, info, levelStack, true)
+		output(stackLog, info, typeStack, true)
 		os.Exit(1)
 	}
 }
@@ -95,54 +95,47 @@ func setupWithFiles(c *LogConfig) error {
 		return errors.New("log file folder must be set")
 	}
 	initOnce.Do(func() {
-		debugFilePath := logFilePath(levelDebug)
-		infoFilePath := logFilePath(levelInfo)
-		warnFilePath := logFilePath(levelWarn)
-		errorFilePath := logFilePath(levelError)
-		stackFilePath := logFilePath(levelStack)
-		statFilePath := logFilePath(levelStat)
-		slowFilePath := logFilePath(levelSlow)
-		timerFilePath := logFilePath(levelTimer)
-
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		infoLog = createFileWriter(infoFilePath)
+		infoLog = createFile(typeInfo)
 		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
 		*os.Stdout = *infoLog.(*RotateLogger).fp
 		*os.Stderr = *os.Stdout
 		//log.SetOutput(infoLog) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
-		if c.FileNumber == fileOne { // all in info file
+		if c.FileSplit&1 != 0 {
+			debugLog = createFile(typeDebug)
+		} else {
 			debugLog = infoLog
+		}
+		if c.FileSplit&2 != 0 {
+			warnLog = createFile(typeWarn)
+		} else {
 			warnLog = infoLog
-			errorLog = infoLog
-			stackLog = infoLog
-			statLog = infoLog
-			slowLog = infoLog
-			timerLog = infoLog
-		} else if c.FileNumber == fileTwo { // split info and stat files
-			debugLog = infoLog
-			warnLog = infoLog
-			errorLog = infoLog
-			stackLog = infoLog
-			statLog = createFileWriter(statFilePath)
-			slowLog = statLog
-			timerLog = statLog
-		} else if c.FileNumber == fileThree { // split info error stat files
-			debugLog = infoLog
-			errorLog = createFileWriter(errorFilePath)
-			warnLog = errorLog
+		}
+		if c.FileSplit&4 != 0 {
+			errorLog = createFile(typeError)
+		} else {
+			errorLog = warnLog
+		}
+		if c.FileSplit&8 != 0 {
+			stackLog = createFile(typeStack)
+		} else {
 			stackLog = errorLog
-			statLog = createFileWriter(statFilePath)
+		}
+		if c.FileSplit&32 != 0 {
+			statLog = createFile(typeStat)
+		} else {
+			statLog = stackLog
+		}
+		if c.FileSplit&64 != 0 {
+			slowLog = createFile(typeSlow)
+		} else {
 			slowLog = statLog
-			timerLog = statLog
-		} else if c.FileNumber == fileAll { // split every files
-			debugLog = createFileWriter(debugFilePath)
-			warnLog = createFileWriter(warnFilePath)
-			errorLog = createFileWriter(errorFilePath)
-			stackLog = createFileWriter(stackFilePath)
-			statLog = createFileWriter(statFilePath)
-			slowLog = createFileWriter(slowFilePath)
-			timerLog = createFileWriter(timerFilePath)
+		}
+		if c.FileSplit&128 != 0 {
+			timerLog = createFile(typeTimer)
+		} else {
+			timerLog = slowLog
 		}
 	})
 
@@ -153,13 +146,17 @@ func logFilePath(logType string) string {
 	return path.Join(myCnf.FileFolder, myCnf.FilePrefix+logType+".log")
 }
 
-func createFileWriter(path string) WriterCloser {
+func createWriterFile(path string) WriterCloser {
 	rr := DefDailyRotateRule(path, backupFileDelimiter, myCnf.FileKeepDays, myCnf.FileGzip)
 	wr, err := NewRotateLogger(path, rr, myCnf.FileGzip)
 	if err != nil {
 		panic(err)
 	}
 	return wr
+}
+
+func createFile(logType string) WriterCloser {
+	return createWriterFile(logFilePath(logType))
 }
 
 // 第三种：分卷存储文件（其实也是写文件，但是更严格的分层文件夹。）
