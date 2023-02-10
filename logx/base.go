@@ -26,7 +26,7 @@ const (
 	typeSlow  = "slow"  // 64
 	typeTimer = "timer" // 128	// 定时器执行的任务日志，一般为定时脚本准备
 
-	callerInnerDepth = 3
+	callerInnerDepth = 4 // 这里的4最好别动，刚好能打印出错误发生的地方。
 )
 
 type LogConfig struct {
