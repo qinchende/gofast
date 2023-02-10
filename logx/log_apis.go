@@ -227,6 +227,6 @@ func errorSync(msg string, callDepth int, useStyle bool) {
 
 func stackSync(msg string, useStyle bool) {
 	if myCnf.logLevelInt8 <= LogLevelStack {
-		output(stackLog, typeStack, fmt.Sprintf("%s\n%s", msg, string(debug.Stack())), useStyle)
+		output(stackLog, typeStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()), useStyle)
 	}
 }

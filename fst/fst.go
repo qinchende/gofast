@@ -4,11 +4,9 @@ package fst
 
 import (
 	"context"
-	"fmt"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/timex"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -241,45 +239,54 @@ func (gft *GoFast) BuildRoutes() {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 第二步：启动端口监听
 // 说明：第一步和第二步之间，需要做所有的工作，主要就是初始化参数，设置所有的路由和处理函数
-func (gft *GoFast) Listen(addr ...string) (err error) {
+func (gft *GoFast) Listen(addr ...string) {
 	// listen接受请求之前，必须调用这个来生成最终的路由树
 	gft.BuildRoutes()
 
 	// 依次执行 onReady 事件处理函数
 	gft.execAppHandlers(gft.eReadyHds)
 
-	defer logx.Stacks(err)
 	// 只要 gft 实现了接口 ServeHTTP(ResponseWriter, *Request) 即可处理所有请求
 	if addr == nil && gft.ListenAddr != "" {
 		addr = []string{gft.ListenAddr}
 	}
 	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
 
-	// 设置关闭前等待时间
 	go func() {
-		err = gft.srv.ListenAndServe()
+		err := gft.srv.ListenAndServe()
+		logx.Error(err.Error())
+		quitSignal <- syscall.SIGABRT // 应用异常退出
 	}()
 	gft.GracefulShutdown()
+	logx.Info("Listen exit, bye...")
 	return
 }
 
 // 优雅关闭
+var quitSignal = make(chan os.Signal, 1)
+
 func (gft *GoFast) GracefulShutdown() {
-	quit := make(chan os.Signal)
 	// kill (no param) default send syscall.SIGTERM
 	// kill -2 is syscall.SIGINT
 	// kill -9 is syscall. SIGKILL but can't catch
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
-	log.Println("Shutdown Server ...")
+	// signal.Notify(quit) // 监听所有信号
+	signal.Notify(quitSignal, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM) // 监听指定信号
+	sign := <-quitSignal
+	if sign != syscall.SIGABRT {
+		logx.InfoF("Signal: %s(pid: %d), starting shutdown...", sign, os.Getpid())
+	}
 
 	// 执行 onClose 事件订阅函数
 	gft.execAppHandlers(gft.eCloseHds)
 
+	// 关闭Server
 	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.BeforeShutdownMS)*time.Millisecond)
 	defer cancel()
-	if err := gft.srv.Shutdown(ctx); err != nil {
-		fmt.Sprintln("Server Shutdown Error: ", err)
+	// 系统信号触发，就要主动关闭http server
+	if sign != syscall.SIGABRT {
+		if err := gft.srv.Shutdown(ctx); err != nil {
+			logx.ErrorF("Http: shutdown error: ", err)
+		}
 	}
-	<-ctx.Done()
+	<-ctx.Done() // 延迟返回，尽量让收尾工作执行完
 }
