@@ -20,7 +20,7 @@ import (
 type GoFast struct {
 	*GfConfig // 引用配置
 
-	srv       *http.Server // WebServer
+	httpSrv   *http.Server // WebServer
 	appEvents              // 应用级事件
 	readyOnce sync.Once    // WebServer初始化只能执行一次
 
@@ -250,10 +250,10 @@ func (gft *GoFast) Listen(addr ...string) {
 	if addr == nil && gft.ListenAddr != "" {
 		addr = []string{gft.ListenAddr}
 	}
-	gft.srv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
+	gft.httpSrv = &http.Server{Addr: httpx.ResolveAddress(addr), Handler: gft}
 
 	go func() {
-		err := gft.srv.ListenAndServe()
+		err := gft.httpSrv.ListenAndServe()
 		logx.Error(err.Error())
 		quitSignal <- syscall.SIGABRT // 应用异常退出
 	}()
@@ -284,7 +284,7 @@ func (gft *GoFast) GracefulShutdown() {
 	defer cancel()
 	// 系统信号触发，就要主动关闭http server
 	if sign != syscall.SIGABRT {
-		if err := gft.srv.Shutdown(ctx); err != nil {
+		if err := gft.httpSrv.Shutdown(ctx); err != nil {
 			logx.ErrorF("Http: shutdown error: ", err)
 		}
 	}
