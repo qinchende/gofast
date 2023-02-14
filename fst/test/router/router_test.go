@@ -67,7 +67,7 @@ func testRouteNotOK(method string, t *testing.T) {
 func testRouteNotOK2(method string, t *testing.T) {
 	passed := false
 	router := fst.Default()
-	router.DefNotAllowedHandler = true
+	//router.DefNotAllowedHandler = true
 	var methodRoute string
 	if method == http.MethodPost {
 		methodRoute = http.MethodGet
@@ -150,7 +150,7 @@ func TestRouteNotOK2(t *testing.T) {
 
 func TestRouteRedirectTrailingSlash(t *testing.T) {
 	router := fst.Default()
-	router.RedirectTrailingSlash = true
+	router.WebConfig.RedirectTrailingSlash = true
 	router.Get("", func(c *fst.Context) { c.String(200, "home") })
 	router.Get("/path", func(c *fst.Context) { c.String(200, "non slash") })
 	router.Get("/path2/", func(c *fst.Context) {})
@@ -198,7 +198,7 @@ func TestRouteRedirectTrailingSlash(t *testing.T) {
 	w = performRequest(router, http.MethodGet, "/path2/", header{Key: "X-Forwarded-Prefix", Value: "/api/"})
 	assert.Equal(t, 200, w.Code)
 
-	router.RedirectTrailingSlash = false
+	router.WebConfig.RedirectTrailingSlash = false
 
 	w = performRequest(router, http.MethodGet, "/path/")
 	assert.Equal(t, http.StatusNotFound, w.Code)
@@ -249,7 +249,7 @@ func TestRouteParamsByNameWithExtraSlash(t *testing.T) {
 	lastName := ""
 	wild := ""
 	router := fst.Default()
-	router.RemoveExtraSlash = true
+	router.WebConfig.RemoveExtraSlash = true
 	router.Get("/test/:name/:last_name/*wild", func(c *fst.Context) {
 		name = c.UrlParams.ByName("name")
 		lastName = c.UrlParams.ByName("last_name")
@@ -358,7 +358,7 @@ func TestRouterMiddlewareAndStatic(t *testing.T) {
 
 func TestRouteNotAllowedEnabled(t *testing.T) {
 	router := fst.Default()
-	router.DefNotAllowedHandler = true
+	//router.WebConfig.DefNotAllowedHandler = true
 	router.Post("/path", func(c *fst.Context) {})
 	router.BuildRoutes()
 
@@ -376,7 +376,7 @@ func TestRouteNotAllowedEnabled(t *testing.T) {
 
 func TestRouteNotAllowedEnabled2(t *testing.T) {
 	router := fst.Default()
-	router.DefNotAllowedHandler = true
+	//router.WebConfig.DefNotAllowedHandler = true
 	// add one methodTree to trees
 	router.Handle(http.MethodPost, "/", func(_ *fst.Context) {})
 	router.Get("/path2", func(c *fst.Context) {})
@@ -388,7 +388,7 @@ func TestRouteNotAllowedEnabled2(t *testing.T) {
 
 func TestRouteNotAllowedDisabled(t *testing.T) {
 	router := fst.Default()
-	router.DefNotAllowedHandler = false
+	//router.DefNotAllowedHandler = false
 	router.Post("/path", func(c *fst.Context) {})
 	router.BuildRoutes()
 
@@ -407,7 +407,7 @@ func TestRouteNotAllowedDisabled(t *testing.T) {
 
 func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
 	router := fst.Default()
-	router.RemoveExtraSlash = true
+	router.WebConfig.RemoveExtraSlash = true
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/", func(c *fst.Context) {})
 
@@ -431,7 +431,7 @@ func TestRouterNotFoundWithRemoveExtraSlash(t *testing.T) {
 
 func TestRouterNotFound(t *testing.T) {
 	router := fst.Default()
-	router.RedirectTrailingSlash = true
+	router.WebConfig.RedirectTrailingSlash = true
 
 	router.Get("/path", func(c *fst.Context) {})
 	router.Get("/dir/", func(c *fst.Context) {})
@@ -534,8 +534,8 @@ func TestMiddlewareCalledOnceByRouterStaticFSNotFound(t *testing.T) {
 
 func TestRouteRawPath(t *testing.T) {
 	router := fst.Default()
-	router.UseRawPath = true
-	router.UnescapePathValues = true
+	router.WebConfig.UseRawPath = true
+	router.WebConfig.UnescapePathValues = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
 		name := c.UrlParams.ByName("name")
@@ -555,8 +555,8 @@ func TestRouteRawPath(t *testing.T) {
 
 func TestRouteRawPathNoUnescape(t *testing.T) {
 	router := fst.Default()
-	router.UseRawPath = true
-	router.UnescapePathValues = false
+	router.WebConfig.UseRawPath = true
+	router.WebConfig.UnescapePathValues = false
 	//router.DisableDefNoRoute = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
