@@ -2,10 +2,13 @@ package lang
 
 import "math"
 
-var Placeholder PlaceholderType
-
 type (
 	PlaceholderType = struct{}
+)
+
+var (
+	ShareVal    PlaceholderType
+	Placeholder PlaceholderType
 )
 
 // 用泛型的方式获取一个值的地址

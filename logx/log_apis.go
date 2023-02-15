@@ -211,6 +211,12 @@ func TimerF(format string, v ...any) {
 	}
 }
 
+func TimerError(v string) {
+	if myCnf.LogStats {
+		output(errorLog, typeError, formatWithCaller(v, callerInnerDepth), true)
+	}
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // inner call apis
 func warnSync(msg string, useStyle bool) {

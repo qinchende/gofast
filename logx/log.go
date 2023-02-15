@@ -28,6 +28,7 @@ var (
 // 必须准备好日志环境，否则启动失败自动退出
 func MustSetup(cnf *LogConfig) {
 	myCnf = cnf
+
 	if len(myCnf.FilePrefix) > 0 {
 		myCnf.FilePrefix += "."
 	} else if len(myCnf.AppName) > 0 {

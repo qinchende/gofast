@@ -9,7 +9,8 @@ import (
 
 // GoFast WEB框架的配置参数
 type GfConfig struct {
-	AppName          string `v:"required"`
+	AppName          string `v:"required"`                            // 应用名称
+	ServerNo         string `v:"required"`                            // 运行终端编号
 	ListenAddr       string `v:"def=0.0.0.0:8099,route=ipv4:port"`    // 监听ip:port
 	RunMode          string `v:"def=product,enum=debug|test|product"` // 当前模式[debug|test|product]
 	BeforeShutdownMS int64  `v:"def=1000"`                            // 退出server之前等待的毫秒，等待清理释放资源
