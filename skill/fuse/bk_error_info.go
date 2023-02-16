@@ -4,7 +4,6 @@ package fuse
 
 import (
 	"github.com/qinchende/gofast/skill/mathx"
-	"github.com/qinchende/gofast/skill/timex"
 	"strings"
 	"time"
 )
@@ -26,7 +25,7 @@ type errorWindow struct {
 
 func (ew *errorWindow) add(reason string) {
 	//ew.lock.Lock()
-	ew.reasonsTime[ew.index] = timex.Time()
+	ew.reasonsTime[ew.index] = time.Now()
 	ew.reasons[ew.index] = reason
 	ew.index = (ew.index + 1) % numHistoryReasons
 	ew.count = mathx.MinInt(ew.count+1, numHistoryReasons)

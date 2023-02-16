@@ -18,7 +18,7 @@ func outputSdxStyle(w WriterCloser, logLevel string, data any) {
 	sb := strings.Builder{}
 	sb.Grow(len(info) + 26)
 	sb.WriteByte('[')
-	sb.WriteString(timex.Time().Format(timeFormatMini))
+	sb.WriteString(time.Now().Format(timeFormatMini))
 	sb.WriteString("][")
 	sb.WriteString(logLevel)
 	sb.WriteString("]: ")

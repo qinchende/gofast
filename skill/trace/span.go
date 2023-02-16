@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/qinchende/gofast/skill/timex"
 	"github.com/qinchende/gofast/skill/trace/tracespec"
 )
 
@@ -53,7 +52,7 @@ func newServerSpan(carrier Carrier, serviceName, operationName string) tracespec
 		},
 		serviceName:   serviceName,
 		operationName: operationName,
-		startTime:     timex.Time(),
+		startTime:     time.Now(),
 		flag:          serverFlag,
 	}
 }
@@ -69,7 +68,7 @@ func (s *Span) Follow(ctx context.Context, serviceName, operationName string) (c
 		},
 		serviceName:   serviceName,
 		operationName: operationName,
-		startTime:     timex.Time(),
+		startTime:     time.Now(),
 		flag:          s.flag,
 	}
 	return context.WithValue(ctx, tracespec.TracingKey, span), span
@@ -83,7 +82,7 @@ func (s *Span) Fork(ctx context.Context, serviceName, operationName string) (con
 		},
 		serviceName:   serviceName,
 		operationName: operationName,
-		startTime:     timex.Time(),
+		startTime:     time.Now(),
 		flag:          clientFlag,
 	}
 	return context.WithValue(ctx, tracespec.TracingKey, span), span
