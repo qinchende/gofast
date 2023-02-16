@@ -4,7 +4,7 @@ package logx
 
 import (
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/timex"
+	"time"
 )
 
 // 待实现
@@ -17,7 +17,7 @@ type logElkEntry struct {
 
 func outputElkStyle(w WriterCloser, logLevel string, data any) {
 	logWrap := logElkEntry{
-		Timestamp: timex.Time().Format(timeFormat),
+		Timestamp: time.Now().Format(timeFormat),
 		Level:     logLevel,
 		Content:   data,
 	}

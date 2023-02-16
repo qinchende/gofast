@@ -4,7 +4,7 @@ package logx
 
 import (
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/timex"
+	"time"
 )
 
 //type logSdxJsonEntry struct {
@@ -16,7 +16,7 @@ type logSdxJsonEntry [3]any
 
 func outputSdxJsonStyle(w WriterCloser, logLevel string, data any) {
 	logWrap := logSdxJsonEntry{
-		timex.Time().Format(timeFormatMini),
+		time.Now().Format(timeFormatMini),
 		logLevel,
 		data,
 	}
