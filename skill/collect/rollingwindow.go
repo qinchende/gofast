@@ -79,7 +79,7 @@ func (rw *RollingWindow) Add(v float64) {
 }
 
 func (rw *RollingWindow) span() int {
-	offset := int(timex.Since(rw.lastTime) / rw.interval)
+	offset := int(timex.NowDiff(rw.lastTime) / rw.interval)
 	if 0 <= offset && offset < rw.size {
 		return offset
 	}

@@ -2,6 +2,7 @@ package conf
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/mapx"
 	"io/ioutil"
 	"log"
@@ -29,7 +30,7 @@ func LoadConfig(file string, dst any) error {
 	if content, err := ioutil.ReadFile(file); err != nil {
 		return err
 	} else if loader, ok := loaders[path.Ext(file)]; ok {
-		return loader(dst, []byte(os.ExpandEnv(string(content))))
+		return loader(dst, lang.StringToBytes(os.ExpandEnv(string(content))))
 	} else {
 		return fmt.Errorf("unrecoginized file type: %s", file)
 	}

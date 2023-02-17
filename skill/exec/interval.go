@@ -171,7 +171,7 @@ func (run *Interval) raiseLoop() {
 
 // 而这里也不会把 guarded 设置成false，程序永远也无法启动 backgroundFlush()函数了。
 func (run *Interval) quitLoop(last time.Duration) (stop bool) {
-	if timex.Since(last) <= run.interval*idleRound {
+	if timex.NowDiff(last) <= run.interval*idleRound {
 		return
 	}
 

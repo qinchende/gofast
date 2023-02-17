@@ -173,7 +173,7 @@ func (as *adaptiveShedder) stillHot() bool {
 		return false
 	}
 
-	hot := timex.Since(dropTime) < coolOffDuration
+	hot := timex.NowDiff(dropTime) < coolOffDuration
 	if !hot {
 		as.droppedRecently.Set(false)
 	}
@@ -216,7 +216,7 @@ func (p *promise) Fail() {
 }
 
 func (p *promise) Pass() {
-	rt := float64(timex.Since(p.start)) / float64(time.Millisecond)
+	rt := float64(timex.NowDiff(p.start)) / float64(time.Millisecond)
 	p.shedder.addFlying(-1)
 	p.shedder.rtCounter.Add(math.Ceil(rt))
 	p.shedder.passCounter.Add(1)
