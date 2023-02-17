@@ -52,7 +52,7 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 	}
 	startTime := timex.Now()
 	ret, err := conn.stmt.ExecContext(ctx, args...)
-	dur := timex.Since(startTime)
+	dur := timex.NowDiff(startTime)
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
 	}
@@ -106,7 +106,7 @@ func (conn *StmtConn) queryContext(ctx context.Context, args ...any) (sqlRows *s
 	}
 	startTime := timex.Now()
 	sqlRows, err = conn.stmt.QueryContext(ctx, args...)
-	dur := timex.Since(startTime)
+	dur := timex.NowDiff(startTime)
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
 	}

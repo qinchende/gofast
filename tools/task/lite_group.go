@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"github.com/qinchende/gofast/connx/gfrds"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
@@ -25,10 +26,12 @@ type LiteGroup struct {
 	createdTime time.Duration
 	stopRun     chan lang.PlaceholderType
 	lock        sync.RWMutex
-	waitTimes   int64
-	lostTimes   int64
-	isRunning   bool // 是否正在运行
-	isStopping  bool // 是否正在停止任务
+
+	lastMark   string // 上次的运行标记
+	waitTimes  int64  // 等待循环次数
+	lostTimes  int64  // 无法正确获取标记数据的次数
+	isRunning  bool   // 是否正在运行
+	isStopping bool   // 是否正在停止任务
 }
 
 func NewLiteGroup(appName, serverNo, gpName string, rds *gfrds.GfRedis) *LiteGroup {
@@ -54,6 +57,9 @@ func (lite *LiteGroup) AddTask(pet *LitePet) {
 	if pet.IntervalS == 0 {
 		pet.IntervalS = DefLiteRunIntervalS
 	}
+	if pet.EndTime < pet.StartTime {
+		pet.crossDay = true
+	}
 
 	pet.group = lite
 	pet.key = LiteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task) + "." + pet.StartTime
@@ -61,10 +67,11 @@ func (lite *LiteGroup) AddTask(pet *LitePet) {
 	lite.tasks = append(lite.tasks, pet)
 }
 
-func (lite *LiteGroup) Running() {
+func (lite *LiteGroup) StartRun() {
 	// 因为在主程序中启动的协程运行，主程序不能异常退出，脚本必须安全运行
 	go func() {
 		wg := new(sync.WaitGroup)
+
 	keepAlive:
 		wg.Add(1)
 		go func() {
@@ -81,57 +88,67 @@ func (lite *LiteGroup) Running() {
 			}
 		}()
 		wg.Wait()
+
 		goto keepAlive
 	}()
 }
 
-// 任务组开始扫描运行 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 任务组开始扫描运行 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (lite *LiteGroup) scanController() {
 	// 检查争夺运行权
 	if str, err := lite.rds.Get(lite.key); err == nil && str != "" {
-		if val, err2 := jsonx.UnmarshalStringToKV(str); err2 == nil {
+		if kvs, err2 := jsonx.UnmarshalStringToKV(str); err2 == nil {
 			lite.lostTimes = 0
-			if val["ServerNo"] == lite.serverNo {
+
+			if kvs["ServerNo"] == lite.serverNo {
 				lite.waitTimes = 0
-				if val["Status"] == "1" {
-					lite.flushTime(val)
+
+				if kvs["Status"] == "1" {
 					lite.keepRunning()
+					lite.flushTime(kvs)
 				} else {
-					lite.flushStatus("1")
+					lite.flushStatus(kvs, "1")
 				}
 			} else {
-				lite.waitTimes++
 				lite.killMyself()
 
-				lst, _ := time.Parse(time.RFC3339, lang.ToString(val["Time"]))
-				diff := timex.SinceS(timex.ToDuration(&lst))
+				if lite.lastMark == str {
+					if lite.waitTimes > 0 {
+						lite.waitTimes = 0
+					}
+					lite.waitTimes--
+				} else {
+					lite.lastMark = str
+					lite.waitTimes++
+				}
 
 				// NOTE：要避免多个服务器竞争
-				if diff > DefLiteRunIntervalS*2 && lite.waitTimes > 3 {
-					lite.flushStatus("0")
+				if lite.waitTimes < -4 {
+					lite.flushStatus(kvs, "0")
 				} else {
-					logx.TimerF("I wait. %d", lite.waitTimes)
+					logx.TimerF("Run by %s, wait %d", kvs["ServerNo"], lite.waitTimes)
 				}
 			}
 		} else {
-			goto unknownFlag
+			goto lostFlag
 		}
 		return
 	}
 
-unknownFlag:
+lostFlag:
 	lite.lostTimes++
-	// TODO: 查不到redis数据或者数据解析错误，需要先关闭自己，然后试图夺取控制权
+
+	// Note: 查不到redis数据或者数据解析错误，需要先关闭自己，然后试图夺取控制权
 	if lite.lostTimes <= 1 {
-		logx.TimerF("%s. Can't check status.", lite.key)
+		logx.TimerF("%s. Can't check status. %d", lite.key, lite.lostTimes)
 		return
 	} else {
 		lite.killMyself()
 	}
-	if lite.lostTimes >= 3 {
-		lite.flushStatus("0")
+	if lite.lostTimes > 4 {
+		lite.flushStatus(nil, "0")
 	} else {
-		logx.Timer("Oh, I am ready to run...")
+		logx.TimerF("Oh, Maybe it's my turn. %d", lite.lostTimes)
 	}
 }
 
@@ -163,7 +180,10 @@ func (lite *LiteGroup) keepRunning() {
 			lite.lock.Unlock()
 		}()
 
-		// TODO: 如果定时没有处理完，又产生到时信号，会如何
+		// 防止底层执行任务时，启动协程，而这里退出时协程泄露
+		gorCtx, cancel := context.WithCancel(context.Background())
+		defer cancel() // 结束协程链
+
 		ticker := time.NewTicker(3 * time.Second)
 		defer ticker.Stop()
 
@@ -180,27 +200,29 @@ func (lite *LiteGroup) keepRunning() {
 			case <-ticker.C:
 				now := timex.Now()
 				for _, task := range lite.tasks {
-					task.runTask(now)
+					task.runTask(gorCtx, now)
 				}
 			}
 		}
 	})
 }
 
-func (lite *LiteGroup) flushStatus(status string) {
+// 设置分布式锁 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 	logx.Timer("I am try to run. set status: " + status)
 
-	kvData := cst.KV{
-		"Time":     time.Now().Format(time.RFC3339),
-		"ServerNo": lite.serverNo,
-		"Status":   status,
+	if kvs == nil {
+		kvs = cst.KV{}
 	}
-	data, _ := jsonx.Marshal(kvData)
-	_, _ = lite.rds.Set(lite.key, data, LiteStoreRunFlagExpireTTL)
+	kvs["ServerNo"] = lite.serverNo
+	kvs["Status"] = status
+
+	lite.flushTime(kvs)
 }
 
-func (lite *LiteGroup) flushTime(kvData cst.KV) {
-	kvData["Time"] = time.Now().Format(time.RFC3339)
-	data, _ := jsonx.Marshal(kvData)
-	_, _ = lite.rds.Set(lite.key, data, LiteStoreRunFlagExpireTTL)
+func (lite *LiteGroup) flushTime(kvs cst.KV) {
+	kvs["Time"] = time.Now().Format(cst.TimeFmtSaveReload)
+
+	jsonStr, _ := jsonx.Marshal(kvs)
+	_, _ = lite.rds.Set(lite.key, jsonStr, LiteStoreRunFlagExpireTTL)
 }

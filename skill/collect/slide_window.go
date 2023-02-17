@@ -55,7 +55,7 @@ func NewSlideWindow(win SlideWinBucket, buckets []SlideWinBucket, dur time.Durat
 // 当前时间相对基准时间的偏移
 func (rw *slideWindowBase) nowOffset() int {
 	// TODO: 随着系统运行，如果不重启，dur会越来越大，是否需要重置一下时间呢？
-	dur := timex.Since(rw.baseTime)
+	dur := timex.NowDiff(rw.baseTime)
 
 	// 如果系统时间被修改，比如导致时间倒退，需要重置基准时间
 	if dur < 0 {

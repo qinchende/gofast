@@ -45,7 +45,7 @@ func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) s
 	} else {
 		result, err = conn.tx.ExecContext(ctx, sqlStr, args...)
 	}
-	dur := timex.Since(startTime)
+	dur := timex.NowDiff(startTime)
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
@@ -71,7 +71,7 @@ func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) 
 	} else {
 		rows, err = conn.tx.QueryContext(ctx, sqlStr, args...)
 	}
-	dur := timex.Since(startTime)
+	dur := timex.NowDiff(startTime)
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}

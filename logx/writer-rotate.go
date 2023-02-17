@@ -305,7 +305,7 @@ func compressLogFile(file string) {
 	if err := gzipFile(file); err != nil {
 		ErrorF("compress error: %s", err)
 	} else {
-		InfoF("compressed log file: %s, took %s", file, timex.Since(start))
+		InfoF("compressed log file: %s, took %s", file, timex.NowDiff(start))
 	}
 }
 
