@@ -13,6 +13,18 @@ import (
 	"time"
 )
 
+const (
+	stateFieldServerNo  = "ServerNo"
+	stateFieldStatus    = "Status"
+	stateFieldTime      = "Time"
+	checkPowerIntervalS = 30 * time.Second
+	checkTimesBeforeRun = 4 // 夺取运行权之前的，循环检查的次数
+
+	taskLoopIntervalS  = 60 * time.Second // 循环运行任务的间隔时间second
+	taskLimitStartTime = "00:00"
+	taskLimitEndTime   = "23:59"
+)
+
 // Note: LiteGroup中的任务是支持分布式部署的。在应用多机部署的时候能满足高可用(这一点需要Redis数据库的保证)
 type LiteGroup struct {
 	appName   string
@@ -27,7 +39,7 @@ type LiteGroup struct {
 	stopRun     chan lang.PlaceholderType
 	lock        sync.RWMutex
 
-	lastMark   string // 上次的运行标记
+	lastState  string // 上次的运行标记
 	waitTimes  int64  // 等待循环次数
 	lostTimes  int64  // 无法正确获取标记数据的次数
 	isRunning  bool   // 是否正在运行
@@ -41,7 +53,7 @@ func NewLiteGroup(appName, serverNo, gpName string, rds *gfrds.GfRedis) *LiteGro
 		groupName:   gpName,
 		tasks:       make([]*LitePet, 0),
 		rds:         rds,
-		key:         LiteStoreKeyPrefix + "Group." + appName + "." + gpName,
+		key:         liteStoreKeyPrefix + "Group." + appName + "." + gpName,
 		createdTime: timex.Now(),
 		stopRun:     make(chan lang.PlaceholderType, 1),
 	}
@@ -49,20 +61,20 @@ func NewLiteGroup(appName, serverNo, gpName string, rds *gfrds.GfRedis) *LiteGro
 
 func (lite *LiteGroup) AddTask(pet *LitePet) {
 	if pet.StartTime == "" {
-		pet.StartTime = DefLitePetStartTime
+		pet.StartTime = taskLimitStartTime
 	}
 	if pet.EndTime == "" {
-		pet.EndTime = DefLitePetEndTime
+		pet.EndTime = taskLimitEndTime
 	}
 	if pet.IntervalS == 0 {
-		pet.IntervalS = DefLiteRunIntervalS
+		pet.IntervalS = taskLoopIntervalS
 	}
 	if pet.EndTime < pet.StartTime {
 		pet.crossDay = true
 	}
 
 	pet.group = lite
-	pet.key = LiteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task) + "." + pet.StartTime
+	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task) + "." + pet.StartTime
 
 	lite.tasks = append(lite.tasks, pet)
 }
@@ -84,7 +96,7 @@ func (lite *LiteGroup) StartRun() {
 			time.Sleep(3 * time.Second) // 启动3秒之后再检查
 			for {
 				lite.scanController()
-				time.Sleep(DefLiteRunIntervalS / 2 * time.Second)
+				time.Sleep(checkPowerIntervalS)
 			}
 		}()
 		wg.Wait()
@@ -100,10 +112,10 @@ func (lite *LiteGroup) scanController() {
 		if kvs, err2 := jsonx.UnmarshalStringToKV(str); err2 == nil {
 			lite.lostTimes = 0
 
-			if kvs["ServerNo"] == lite.serverNo {
+			if kvs[stateFieldServerNo] == lite.serverNo {
 				lite.waitTimes = 0
 
-				if kvs["Status"] == "1" {
+				if kvs[stateFieldStatus] == "1" {
 					lite.keepRunning()
 					lite.flushTime(kvs)
 				} else {
@@ -112,21 +124,21 @@ func (lite *LiteGroup) scanController() {
 			} else {
 				lite.killMyself()
 
-				if lite.lastMark == str {
+				if lite.lastState == str {
 					if lite.waitTimes > 0 {
 						lite.waitTimes = 0
 					}
 					lite.waitTimes--
 				} else {
-					lite.lastMark = str
+					lite.lastState = str
 					lite.waitTimes++
 				}
 
 				// NOTE：要避免多个服务器竞争
-				if lite.waitTimes < -4 {
+				if lite.waitTimes < -checkTimesBeforeRun {
 					lite.flushStatus(kvs, "0")
 				} else {
-					logx.TimerF("Run by %s, wait %d", kvs["ServerNo"], lite.waitTimes)
+					logx.TimerF("Run by %s, wait %d", kvs[stateFieldServerNo], lite.waitTimes)
 				}
 			}
 		} else {
@@ -145,7 +157,7 @@ lostFlag:
 	} else {
 		lite.killMyself()
 	}
-	if lite.lostTimes > 4 {
+	if lite.lostTimes > checkTimesBeforeRun {
 		lite.flushStatus(nil, "0")
 	} else {
 		logx.TimerF("Oh, Maybe it's my turn. %d", lite.lostTimes)
@@ -214,15 +226,15 @@ func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 	if kvs == nil {
 		kvs = cst.KV{}
 	}
-	kvs["ServerNo"] = lite.serverNo
-	kvs["Status"] = status
+	kvs[stateFieldServerNo] = lite.serverNo
+	kvs[stateFieldStatus] = status
 
 	lite.flushTime(kvs)
 }
 
 func (lite *LiteGroup) flushTime(kvs cst.KV) {
-	kvs["Time"] = time.Now().Format(cst.TimeFmtSaveReload)
+	kvs[stateFieldTime] = time.Now().Format(cst.TimeFmtSaveReload)
 
 	jsonStr, _ := jsonx.Marshal(kvs)
-	_, _ = lite.rds.Set(lite.key, jsonStr, LiteStoreRunFlagExpireTTL)
+	_, _ = lite.rds.Set(lite.key, jsonStr, liteStoreRunFlagExpireTTL)
 }

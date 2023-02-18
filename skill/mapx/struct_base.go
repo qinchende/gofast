@@ -3,7 +3,7 @@ package mapx
 import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/mapx/valid"
+	"github.com/qinchende/gofast/skill/valid"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"sync"

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/mapx/valid"
+	"github.com/qinchende/gofast/skill/valid"
 	"reflect"
 )
 
@@ -14,12 +14,12 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 	if kvs == nil || len(kvs) == 0 {
 		return nil
 	}
-
+	
 	dstVal := reflect.Indirect(reflect.ValueOf(dest))
 	if dstVal.Kind() != reflect.Struct {
 		return fmt.Errorf("%T is not like struct", dest)
 	}
-
+	
 	sm := SchemaOfType(dstVal.Type(), applyOpts)
 	var fls []string
 	if applyOpts.FieldDirect {
@@ -28,13 +28,13 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 		fls = sm.columns
 	}
 	flsOpts := sm.fieldsOpts
-
+	
 	var err error
 	for i := 0; i < len(fls); i++ {
 		fOpt := flsOpts[i]
 		fName := fls[i]
 		sv, ok := kvs[fName]
-
+		
 		if ok {
 		} else if fOpt != nil {
 			if fOpt.Required && applyOpts.NotValid == false {
@@ -48,9 +48,9 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 		} else {
 			continue
 		}
-
+		
 		fv := sm.RefValueByIndex(&dstVal, int8(i))
-
+		
 		// 如果字段是结构体类型
 		fvType := fv.Type()
 		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
@@ -60,11 +60,11 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 			}
 			continue
 		}
-
+		
 		if err = sdxSetValue(fv, sv, fOpt, applyOpts); err != nil {
 			return err
 		}
-
+		
 		// 是否需要验证字段数据的合法性
 		if !applyOpts.NotValid && fOpt != nil {
 			if err = valid.ValidateField(fv, fOpt); err != nil {
@@ -79,7 +79,7 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions) error {
 	dstV := reflect.Indirect(reflect.ValueOf(dst))
 	srcV := reflect.Indirect(reflect.ValueOf(src))
-
+	
 	var err error
 	if srcV.Kind() == reflect.String {
 		var srcNew []any
@@ -90,17 +90,17 @@ func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions)
 		src = srcNew
 		srcV = reflect.Indirect(reflect.ValueOf(src))
 	}
-
+	
 	dstType := dstV.Type()
 	dstKind := dstV.Kind()
 	srcKind := dstV.Kind()
-
+	
 	switch {
 	case (dstKind == reflect.Slice || dstKind == reflect.Array) && (srcKind == reflect.Slice || srcKind == reflect.Array):
 		if dstKind == reflect.Array && dstV.Len() != srcV.Len() {
 			return errors.New("array length not match")
 		}
-
+		
 		sliceTyp, itemType, isPtr, _ := checkDestType(dst)
 		dstNew := reflect.MakeSlice(sliceTyp, srcV.Len(), srcV.Len())
 		dstV.Set(dstNew)
@@ -116,7 +116,7 @@ func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions)
 				}
 				continue
 			}
-
+			
 			if err = sdxSetValue(fv, srcV.Index(i).Interface(), fOpt, applyOpts); err != nil {
 				return err
 			}
@@ -130,11 +130,11 @@ func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions)
 	default:
 		return errors.New("only array-like value supported")
 	}
-
+	
 	// 数组不能为空
 	if !applyOpts.NotValid && fOpt != nil && fOpt.Required && dstV.Len() == 0 {
 		return fmt.Errorf("list field %s requied", dstType.String())
 	}
-
+	
 	return nil
 }
