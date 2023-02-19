@@ -7,11 +7,11 @@ import (
 	"time"
 )
 
-// 单个任务描述 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 任务项  +++++++++++++++++++++++++++++++++++++++
 type LitePet struct {
 	Task TaskFunc
 
-	StartTime string        // "00:00"
+	StartTime string        `v:"def=00:00"` // "00:00"
 	EndTime   string        // "23:59"
 	IntervalS time.Duration // 循环执行间隔s
 	crossDay  bool          // 定时任务是否可跨日运行
@@ -25,6 +25,7 @@ type LitePet struct {
 	lastTime time.Duration // 上次运行时间
 }
 
+// 判断条件，运行任务+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (pet *LitePet) runTask(gorCtx context.Context, now time.Duration) {
 	// 1. 启动只执行一次的任务
 	if pet.JustOnce {

@@ -126,9 +126,9 @@ func parseNumberRange(str string) (*numRange, error) {
 	}
 
 	return &numRange{
-		left:     left,
-		right:    right,
-		lInclude: leftInclude,
-		rInclude: rightInclude,
+		min:        left,
+		max:        right,
+		includeMin: leftInclude,
+		includeMax: rightInclude,
 	}, nil
 }

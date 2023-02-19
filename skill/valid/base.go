@@ -1,7 +1,7 @@
 package valid
 
 const (
-	attrRequired = "required" // 必选 或者 可空
+	attrRequired = "required" // 必填项
 	attrDefault  = "def"
 	attrEnum     = "enum"
 	attrRange    = "range"
@@ -16,19 +16,19 @@ const (
 
 type (
 	FieldOpts struct {
-		Range    *numRange
-		Enum     []string
-		Len      *numRange
-		Regex    string
-		Match    string
-		DefValue string
-		Required bool
+		Range    *numRange // 数值取值范围
+		Enum     []string  // 枚举值数组
+		Len      *numRange // 字符串长度范围
+		Regex    string    // 正则表达式
+		Match    string    // 匹配某个内置的格式
+		DefValue string    // 默认值
+		Required bool      // 是否必传项
 	}
 
 	numRange struct {
-		left     float64
-		right    float64
-		lInclude bool
-		rInclude bool
+		min        float64 // 最小
+		max        float64 // 最大
+		includeMin bool    // 包括最小
+		includeMax bool    // 包括最大
 	}
 )

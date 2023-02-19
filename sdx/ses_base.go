@@ -16,7 +16,7 @@ var (
 type RedisSessCnf struct {
 	RedisConn  gfrds.ConnCnf `v:"required"`                       // 用 Redis 做持久化
 	GuidField  string        `v:"def=uid"`                        // 标记当前登录用户字段是 user_id
-	Secret     string        `v:"required;def=sdx"`               // token秘钥
+	Secret     string        `v:"required,def=sdx"`               // token秘钥
 	TTL        int32         `v:"def=14400,range=[0:2000000000]"` // session有效期 默认 3600*4 秒
 	TTLNew     int32         `v:"def=180,range=[0:2000000000]"`   // 首次产生的session有效期 默认 60*3 秒
 	MustKeepIP bool          `v:"def=true"`                       // 看是否检查 token ip 地址

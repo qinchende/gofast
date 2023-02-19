@@ -10,9 +10,6 @@ const (
 	dbAutoIncKeyFlag    = "auto_field"    // 数据库自增字段tag标记
 	dbPrimaryKeyFlag    = "primary_field" // 数据库主键tag标记
 	dbUpdatedKeyFlag    = "updated_field" // 更新时间
-
-	dbColumnNameTag  = "dbf" // 数据库字段名称，对应的tag
-	dbColumnNameTag2 = "pms" // 数据库字段名称，次优先级
 )
 
 type OrmStruct interface {

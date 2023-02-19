@@ -158,9 +158,9 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]str
 
 		// 1. 查找tag，确定列名称
 		col := fi.Tag.Get(opts.FieldTag)
-		if col == "" {
-			col = fi.Tag.Get(fieldNameTag2)
-		}
+		//if col == "" {
+		//	col = fi.Tag.Get(cst.FieldTagDB)
+		//}
 		if col == "" {
 			col = lang.Camel2Snake(fi.Name)
 		}

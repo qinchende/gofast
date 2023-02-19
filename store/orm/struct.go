@@ -2,6 +2,7 @@ package orm
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/hash"
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
@@ -198,9 +199,9 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[3]string) ([]str
 		}
 
 		// 1. 查找tag，确定数据库列名称
-		dbf := fi.Tag.Get(dbColumnNameTag)
+		dbf := fi.Tag.Get(cst.FieldTagDB)
 		if dbf == "" {
-			dbf = fi.Tag.Get(dbColumnNameTag2)
+			dbf = fi.Tag.Get(cst.FieldTag)
 		}
 		if dbf == "" {
 			dbf = lang.Camel2Snake(fi.Name)

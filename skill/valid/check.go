@@ -91,11 +91,11 @@ func checkNumberRange(fv float64, nr *numRange) error {
 		return nil
 	}
 
-	if (nr.lInclude && fv < nr.left) || (!nr.lInclude && fv <= nr.left) {
+	if (nr.includeMin && fv < nr.min) || (!nr.includeMin && fv <= nr.min) {
 		return errNumberRange
 	}
 
-	if (nr.rInclude && fv > nr.right) || (!nr.rInclude && fv >= nr.right) {
+	if (nr.includeMax && fv > nr.max) || (!nr.includeMax && fv >= nr.max) {
 		return errNumberRange
 	}
 
