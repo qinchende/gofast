@@ -9,14 +9,14 @@ import (
 	"github.com/qinchende/gofast/skill/iox"
 )
 
-// PropertyError represents a configuration error message.
-type PropertyError struct {
+// ConfigKVError represents a configuration error message.
+type ConfigKVError struct {
 	error
 	message string
 }
 
-// Properties interface provides the means to access configuration.
-type Properties interface {
+// ConfigKV interface provides the means to access configuration.
+type ConfigKV interface {
 	GetString(key string) string
 	SetString(key, value string)
 	GetInt(key string) int
@@ -24,15 +24,15 @@ type Properties interface {
 	ToString() string
 }
 
-// Properties config is a key/value pair based configuration structure.
-type mapBasedProperties struct {
-	properties map[string]string
-	lock       sync.RWMutex
+// ConfigKV config is a key/value pair based configuration structure.
+type baseConfigKV struct {
+	kvs  map[string]string
+	lock sync.RWMutex
 }
 
-// Loads the properties into a properties configuration instance.
+// Loads the kvs into a kvs configuration instance.
 // Returns an error that indicates if there was a problem loading the configuration.
-func LoadProperties(filename string) (Properties, error) {
+func LoadConfigKV(filename string) (ConfigKV, error) {
 	lines, err := iox.ReadTextLines(filename, iox.WithoutBlank(), iox.OmitWithPrefix("#"))
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func LoadProperties(filename string) (Properties, error) {
 		pair := strings.Split(lines[i], "=")
 		if len(pair) != 2 {
 			// invalid property format
-			return nil, &PropertyError{
+			return nil, &ConfigKVError{
 				message: fmt.Sprintf("invalid property format: %s", pair),
 			}
 		}
@@ -53,57 +53,57 @@ func LoadProperties(filename string) (Properties, error) {
 		raw[key] = value
 	}
 
-	return &mapBasedProperties{
-		properties: raw,
+	return &baseConfigKV{
+		kvs: raw,
 	}, nil
 }
 
-func (config *mapBasedProperties) GetString(key string) string {
+func (config *baseConfigKV) GetString(key string) string {
 	config.lock.RLock()
-	ret := config.properties[key]
+	ret := config.kvs[key]
 	config.lock.RUnlock()
 
 	return ret
 }
 
-func (config *mapBasedProperties) SetString(key, value string) {
+func (config *baseConfigKV) SetString(key, value string) {
 	config.lock.Lock()
-	config.properties[key] = value
+	config.kvs[key] = value
 	config.lock.Unlock()
 }
 
-func (config *mapBasedProperties) GetInt(key string) int {
+func (config *baseConfigKV) GetInt(key string) int {
 	config.lock.RLock()
 	// default 0
-	value, _ := strconv.Atoi(config.properties[key])
+	value, _ := strconv.Atoi(config.kvs[key])
 	config.lock.RUnlock()
 
 	return value
 }
 
-func (config *mapBasedProperties) SetInt(key string, value int) {
+func (config *baseConfigKV) SetInt(key string, value int) {
 	config.lock.Lock()
-	config.properties[key] = strconv.Itoa(value)
+	config.kvs[key] = strconv.Itoa(value)
 	config.lock.Unlock()
 }
 
 // Dumps the configuration internal map into a string.
-func (config *mapBasedProperties) ToString() string {
+func (config *baseConfigKV) ToString() string {
 	config.lock.RLock()
-	ret := fmt.Sprintf("%s", config.properties)
+	ret := fmt.Sprintf("%s", config.kvs)
 	config.lock.RUnlock()
 
 	return ret
 }
 
 // Returns the error message.
-func (configError *PropertyError) Error() string {
+func (configError *ConfigKVError) Error() string {
 	return configError.message
 }
 
-// Builds a new properties configuration structure
-func NewProperties() Properties {
-	return &mapBasedProperties{
-		properties: make(map[string]string),
+// Builds a new kvs configuration structure
+func NewProperties() ConfigKV {
+	return &baseConfigKV{
+		kvs: make(map[string]string),
 	}
 }

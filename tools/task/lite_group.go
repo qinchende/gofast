@@ -219,7 +219,7 @@ func (lite *LiteGroup) keepRunning() {
 	})
 }
 
-// 设置分布式锁 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 设置分布式锁 +++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 	logx.Timer("I am try to run. set status: " + status)
 

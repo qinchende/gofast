@@ -4,12 +4,6 @@ import (
 	"github.com/qinchende/gofast/cst"
 )
 
-const (
-	fieldNameTag  = "pms" // 字段名称，对应的tag
-	fieldNameTag2 = "dbf" // 字段名称，次优先级
-	fieldValidTag = "v"   // 验证字段
-)
-
 type ApplyOptions struct {
 	FieldTag    string // 解析字段名对应的Tag标签
 	ValidTag    string // 验证合法性对应的Tag标签
@@ -23,8 +17,8 @@ type ApplyOptions struct {
 var (
 	// 应用在大量解析数据记录的场景
 	dataOptions = &ApplyOptions{
-		FieldTag:    fieldNameTag,
-		ValidTag:    fieldValidTag,
+		FieldTag:    cst.FieldTag,
+		ValidTag:    cst.FieldValidTag,
 		CacheSchema: true,
 		FieldDirect: false,
 		NotSnake:    false,
@@ -34,8 +28,8 @@ var (
 
 	// 应用在解析配置文件的场景
 	configOptions = &ApplyOptions{
-		FieldTag:    fieldNameTag,
-		ValidTag:    fieldValidTag,
+		FieldTag:    cst.FieldTag,
+		ValidTag:    cst.FieldValidTag,
 		CacheSchema: false,
 		FieldDirect: true,
 		NotSnake:    false,
