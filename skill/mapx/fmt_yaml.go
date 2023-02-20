@@ -26,14 +26,14 @@ func DecodeYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
 	}
 
 	if kv, ok := o.(map[string]any); ok {
-		return ApplyKV(dst, kv, opts)
+		return ApplyKVX(dst, kv, opts)
 	} else {
 		return errors.New("only map-like configs supported")
 	}
 }
 
 func DecodeYamlBytesOfConfig(dst any, content []byte) error {
-	return DecodeYamlBytes(dst, content, configOptions)
+	return DecodeYamlBytes(dst, content, configStructOptions)
 }
 
 // yamlUnmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.

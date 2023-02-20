@@ -8,6 +8,7 @@ import (
 	"github.com/qinchende/gofast/skill/gmp"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/skill/timex"
 	"sync"
 	"time"
@@ -20,9 +21,9 @@ const (
 	checkPowerIntervalS = 30 * time.Second
 	checkTimesBeforeRun = 4 // 夺取运行权之前的，循环检查的次数
 
-	taskLoopIntervalS  = 60 * time.Second // 循环运行任务的间隔时间second
-	taskLimitStartTime = "00:00"
-	taskLimitEndTime   = "23:59"
+	//taskLoopIntervalS  = 60 * time.Second // 循环运行任务的间隔时间second
+	//taskLimitStartTime = "00:00"
+	//taskLimitEndTime   = "23:59"
 )
 
 // Note: LiteGroup中的任务是支持分布式部署的。在应用多机部署的时候能满足高可用(这一点需要Redis数据库的保证)
@@ -60,21 +61,18 @@ func NewLiteGroup(appName, serverNo, gpName string, rds *gfrds.GfRedis) *LiteGro
 }
 
 func (lite *LiteGroup) AddTask(pet *LitePet) {
-	if pet.StartTime == "" {
-		pet.StartTime = taskLimitStartTime
+	pet.group = lite
+	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task)
+
+	if err := mapx.Optimize(pet, mapx.LikeConfig); err != nil {
+		logx.TimerError(err.Error())
+		return
 	}
-	if pet.EndTime == "" {
-		pet.EndTime = taskLimitEndTime
-	}
-	if pet.IntervalS == 0 {
-		pet.IntervalS = taskLoopIntervalS
-	}
+
 	if pet.EndTime < pet.StartTime {
 		pet.crossDay = true
 	}
-
-	pet.group = lite
-	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task) + "." + pet.StartTime
+	pet.key += "." + pet.StartTime
 
 	lite.tasks = append(lite.tasks, pet)
 }

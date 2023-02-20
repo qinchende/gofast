@@ -21,7 +21,8 @@ var regexMap = map[string]*regexp.Regexp{
 	"base64URL": regexp.MustCompile(base64URLRegexString),
 }
 
-func ValidateField(fValue reflect.Value, fOpts *FieldOpts) error {
+// 验证结构体字段值，是否符合指定规范
+func ValidateField(fValue *reflect.Value, fOpts *FieldOpts) error {
 	if fOpts == nil {
 		return nil
 	}

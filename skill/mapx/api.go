@@ -16,7 +16,7 @@ type ApplyOptions struct {
 
 var (
 	// 应用在大量解析数据记录的场景
-	dataOptions = &ApplyOptions{
+	dbStructOptions = &ApplyOptions{
 		FieldTag:    cst.FieldTag,
 		ValidTag:    cst.FieldValidTag,
 		CacheSchema: true,
@@ -27,7 +27,7 @@ var (
 	}
 
 	// 应用在解析配置文件的场景
-	configOptions = &ApplyOptions{
+	configStructOptions = &ApplyOptions{
 		FieldTag:    cst.FieldTag,
 		ValidTag:    cst.FieldValidTag,
 		CacheSchema: false,
@@ -38,23 +38,41 @@ var (
 	}
 )
 
-// cst.KV
-func ApplyKV(dst any, kvs cst.KV, opts *ApplyOptions) error {
+const (
+	LikeConfig int8 = iota
+	LikeDB
+)
+
+func ApplyKV(dst any, kvs cst.KV, like int8) error {
+	if like == LikeDB {
+		return applyKVToStruct(dst, kvs, dbStructOptions)
+	}
+	return applyKVToStruct(dst, kvs, configStructOptions)
+}
+
+func ApplyKVX(dst any, kvs cst.KV, opts *ApplyOptions) error {
 	return applyKVToStruct(dst, kvs, opts)
 }
 
-func ApplyKVOfConfig(dst any, kvs cst.KV) error {
-	return applyKVToStruct(dst, kvs, configOptions)
+func ApplySlice(dst any, src any, like int8) error {
+	if like == LikeDB {
+		return applyList(dst, src, nil, dbStructOptions)
+	}
+	return applyList(dst, src, nil, configStructOptions)
+}
+func ApplySliceX(dst any, src any, opts *ApplyOptions) error {
+	return applyList(dst, src, nil, opts)
 }
 
-func ApplyKVOfData(dst any, kvs cst.KV) error {
-	return applyKVToStruct(dst, kvs, dataOptions)
+// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func Optimize(dst any, like int8) error {
+	switch like {
+	case LikeDB:
+		return optimizeStruct(dst, dbStructOptions)
+	default:
+		return optimizeStruct(dst, configStructOptions)
+	}
 }
-
-func ApplySliceOfConfig(dst any, src any) error {
-	return applyList(dst, src, nil, configOptions)
-}
-
-func ApplySliceOfData(dst any, src any) error {
-	return applyList(dst, src, nil, dataOptions)
+func OptimizeX(dst any, opts *ApplyOptions) error {
+	return optimizeStruct(dst, opts)
 }

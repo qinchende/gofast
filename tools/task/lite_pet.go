@@ -11,25 +11,24 @@ import (
 type LitePet struct {
 	Task TaskFunc
 
-	StartTime string        `v:"def=00:00"` // "00:00"
-	EndTime   string        // "23:59"
-	IntervalS time.Duration // 循环执行间隔s
-	crossDay  bool          // 定时任务是否可跨日运行
+	StartTime string        `v:"def=00:00,len=[5:5]"` // "00:00"
+	EndTime   string        `v:"def=23:59,len=[5:5]"` // "23:59"
+	IntervalS time.Duration `v:"def=60s"`             // 循环执行间隔s
+	crossDay  bool          ``                        // 定时任务是否可跨日运行
 
-	// Note: 这种情况几乎不会用到，有被删除的可能
-	JustOnce   bool  // 是否只运行一次
-	JustDelayS int32 // 启动之后延时多少秒执行
+	JustOnce   bool          `v:""`        // 是否只运行一次
+	JustDelayS time.Duration `v:"def=60s"` // 启动之后延时多少秒执行
 
-	group    *LiteGroup    // 分组
-	key      string        // 任务运行标记数据对应的key
-	lastTime time.Duration // 上次运行时间
+	group    *LiteGroup    `v:""`            // 分组
+	key      string        `v:"len=[1:250]"` // 任务运行标记数据对应的key
+	lastTime time.Duration `v:""`            // 上次运行时间
 }
 
 // 判断条件，运行任务+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (pet *LitePet) runTask(gorCtx context.Context, now time.Duration) {
 	// 1. 启动只执行一次的任务
 	if pet.JustOnce {
-		if pet.lastTime > 0 || int32(timex.DiffS(now, pet.group.createdTime)) <= pet.JustDelayS {
+		if pet.lastTime > 0 || (now-pet.group.createdTime) <= pet.JustDelayS {
 			return
 		}
 		pet.execute(gorCtx, now)

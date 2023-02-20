@@ -1,5 +1,7 @@
 package valid
 
+import "reflect"
+
 const (
 	attrRequired = "required" // 必填项
 	attrDefault  = "def"
@@ -23,6 +25,8 @@ type (
 		Match    string    // 匹配某个内置的格式
 		DefValue string    // 默认值
 		Required bool      // 是否必传项
+
+		SField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 
 	numRange struct {

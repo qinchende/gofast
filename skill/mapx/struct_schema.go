@@ -60,6 +60,10 @@ func SchemaNoCache(obj any, opts *ApplyOptions) *GfStruct {
 	return structSchema(reflect.TypeOf(obj), opts)
 }
 
+func SchemaNoCacheOfType(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
+	return structSchema(rTyp, opts)
+}
+
 func Schema(obj any, opts *ApplyOptions) *GfStruct {
 	return fetchSchemaCache(reflect.TypeOf(obj), opts)
 }
