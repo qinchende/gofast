@@ -14,13 +14,18 @@ var (
 
 // 解析字段配置的选项参数
 func ParseOptions(field *reflect.StructField, str string) (*FieldOpts, error) {
+	//if str == "" {
+	//	return nil, nil
+	//}
+
+	// 必须要有 reflect.StructField 变量
+	var fOpts = FieldOpts{SField: field}
 	if str == "" {
-		return nil, nil
+		return &fOpts, nil
 	}
 
-	items := strings.Split(str, ",")
-	var fOpts FieldOpts
 	var err error
+	items := strings.Split(str, ",")
 	for _, segment := range items {
 		item := strings.TrimSpace(segment)
 		switch {

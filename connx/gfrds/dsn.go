@@ -16,6 +16,6 @@ func ParseDsn(connStr string) *ConnCnf {
 		kvs[item[:idx]] = item[idx+1:]
 	}
 
-	_ = mapx.ApplyKVOfConfig(rdsCnf, kvs)
+	_ = mapx.ApplyKV(rdsCnf, kvs, mapx.LikeConfig)
 	return rdsCnf
 }

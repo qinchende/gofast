@@ -15,6 +15,7 @@ import (
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
 func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions) error {
+	// 如果源值为nil，不做任何处理，也不报错
 	if src == nil {
 		return nil
 	}
@@ -23,11 +24,11 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 	switch srcT.Kind() {
 	case reflect.String:
 		if s, ok := src.(string); ok {
-			return sdxSetWithString(dst, s)
+			return sdxSetWithString(dst, s, fOpt)
 		} else if num, ok := src.(json.Number); ok {
-			return sdxSetWithString(dst, num.String())
+			return sdxSetWithString(dst, num.String(), fOpt)
 		} else {
-			return sdxSetWithString(dst, fmt.Sprint(src))
+			return sdxSetWithString(dst, fmt.Sprint(src), fOpt)
 		}
 	case reflect.Array, reflect.Slice:
 		return applyList(dst.Addr().Interface(), src, fOpt, applyOpts)
@@ -76,7 +77,7 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 	case reflect.Struct:
 		// 这个时候值可能是时间类型
 		if _, ok := dst.Interface().(time.Time); ok {
-			return sdxSetTime(dst, sdxAsString(src))
+			return sdxSetTime(dst, sdxAsString(src), fOpt.SField)
 		}
 	}
 	return nil
@@ -186,7 +187,7 @@ func sdxAsBool(src any) (any, error) {
 
 // utils
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func sdxSetWithString(dst reflect.Value, src string) error {
+func sdxSetWithString(dst reflect.Value, src string, fOpt *valid.FieldOpts) error {
 	switch dst.Kind() {
 	case reflect.Int:
 		return sdxSetInt(dst, src, 0)
@@ -199,7 +200,7 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 	case reflect.Int64:
 		switch dst.Interface().(type) {
 		case time.Duration:
-			return sdxSetTime(dst, src)
+			return sdxSetTimeDuration(dst, src)
 		}
 		return sdxSetInt(dst, src, 64)
 	case reflect.Uint:
@@ -222,19 +223,19 @@ func sdxSetWithString(dst reflect.Value, src string) error {
 		dst.SetString(src)
 	case reflect.Slice:
 		vs := []string{src}
-		return sdxSetStringSlice(dst, vs)
+		return sdxSetStringSlice(dst, vs, fOpt)
 	case reflect.Array:
 		vs := []string{src}
 		if len(vs) != dst.Len() {
 			return fmt.Errorf("%q is not valid value for %s", vs, dst.Type().String())
 		}
-		return sdxSetStringArray(dst, vs)
+		return sdxSetStringArray(dst, vs, fOpt)
 	case reflect.Map:
 		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
-			return sdxSetTime(dst, src)
+			return sdxSetTime(dst, src, fOpt.SField)
 		}
 		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
 	default:
@@ -275,43 +276,42 @@ func sdxSetFloat(dst reflect.Value, src string, bitSize int) error {
 	return err
 }
 
-func sdxSetStringArray(dst reflect.Value, items []string) error {
+func sdxSetStringArray(dst reflect.Value, items []string, fOpt *valid.FieldOpts) error {
 	for i, item := range items {
-		if err := sdxSetWithString(dst.Index(i), item); err != nil {
+		if err := sdxSetWithString(dst.Index(i), item, fOpt); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func sdxSetStringSlice(dest reflect.Value, values []string) error {
+func sdxSetStringSlice(dest reflect.Value, values []string, fOpt *valid.FieldOpts) error {
 	slice := reflect.MakeSlice(dest.Type(), len(values), len(values))
-	if err := sdxSetStringArray(slice, values); err != nil {
+	if err := sdxSetStringArray(slice, values, fOpt); err != nil {
 		return err
 	}
 	dest.Set(slice)
 	return nil
 }
 
-//func sdxSetTimeDuration(dst reflect.Value, src string) error {
-//	d, err := time.ParseDuration(src)
-//	if err != nil {
-//		return err
-//	}
-//	dst.Set(reflect.ValueOf(d))
-//	return nil
-//}
+func sdxSetTimeDuration(dst reflect.Value, src string) error {
+	d, err := time.ParseDuration(src)
+	if err != nil {
+		return err
+	}
+	dst.Set(reflect.ValueOf(d))
+	return nil
+}
 
-func sdxSetTime(dst reflect.Value, src string) error {
-	//timeFormat := field.Tag.Get("time_format")
-	//if timeFormat == "" {
-	//	timeFormat = time.RFC3339
-	//}
+func sdxSetTime(dst reflect.Value, src string, sField *reflect.StructField) error {
+	timeFormat := sField.Tag.Get("time_format")
+	if timeFormat == "" {
+		timeFormat = time.RFC3339
+	}
 
-	timeFormat := time.RFC3339
 	switch tf := strings.ToLower(timeFormat); tf {
 	case "unix", "unixnano":
-		tv, err := strconv.ParseInt(src, 10, 0)
+		tv, err := strconv.ParseInt(src, 10, 64)
 		if err != nil {
 			return err
 		}
@@ -324,7 +324,6 @@ func sdxSetTime(dst reflect.Value, src string) error {
 		t := time.Unix(tv/int64(d), tv%int64(d))
 		dst.Set(reflect.ValueOf(t))
 		return nil
-
 	}
 
 	if src == "" {
@@ -333,17 +332,17 @@ func sdxSetTime(dst reflect.Value, src string) error {
 	}
 
 	l := time.Local
-	//if isUTC, _ := strconv.ParseBool(field.Tag.Get("time_utc")); isUTC {
-	//	l = time.UTC
-	//}
-	//
-	//if locTag := field.Tag.Get("time_location"); locTag != "" {
-	//	loc, err := time.LoadLocation(locTag)
-	//	if err != nil {
-	//		return err
-	//	}
-	//	l = loc
-	//}
+	if isUTC, _ := strconv.ParseBool(sField.Tag.Get("time_utc")); isUTC {
+		l = time.UTC
+	}
+
+	if locTag := sField.Tag.Get("time_location"); locTag != "" {
+		loc, err := time.LoadLocation(locTag)
+		if err != nil {
+			return err
+		}
+		l = loc
+	}
 
 	t, err := time.ParseInLocation(timeFormat, src, l)
 	if err != nil {
@@ -352,4 +351,17 @@ func sdxSetTime(dst reflect.Value, src string) error {
 
 	dst.Set(reflect.ValueOf(t))
 	return nil
+}
+
+func isInitialValue(dst reflect.Value) bool {
+	switch dst.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return dst.Int() == 0
+	case reflect.Float64, reflect.Float32:
+		return dst.Float() == 0
+	case reflect.String:
+		return dst.String() == ""
+	}
+	return false
 }
