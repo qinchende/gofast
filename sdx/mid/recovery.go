@@ -3,7 +3,6 @@
 package mid
 
 import (
-	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/logx"
@@ -22,12 +21,12 @@ func Recovery(c *fst.Context) {
 			case cst.GFFaiInt:
 				c.AbortFai(int(info), "")
 			case cst.GFError:
-				c.AbortFai(0, fmt.Sprint("GFError: ", info))
+				c.AbortFai(0, info.Error())
 			default:
 				// TODO-important: 非预期的异常，将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架panic）
 				logx.Stacks(c.ReqRaw)
 				logx.StackF("%s", debug.Stack())
-				c.AbortDirect(http.StatusInternalServerError, fmt.Sprint("panic: ", info))
+				c.AbortDirect(http.StatusInternalServerError, info)
 			}
 		}
 	}()

@@ -75,30 +75,23 @@ func (ss *CtxSession) Set(key string, val any) {
 
 func (ss *CtxSession) SetKV(kvs cst.KV) {
 	ss.saved = false
-	//if ss.values == nil {
-	//	logx.InfoF("%#v", ss)
-	//	return
-	//}
 	for k, v := range kvs {
 		ss.values[k] = v
 	}
 }
 
-func (ss *CtxSession) Save() error {
+func (ss *CtxSession) Save() {
 	// 如果已经保存了，不会重复保存
 	if ss.saved == true {
-		return nil
+		return
 	}
-	// 调用自定义函数保存当前 session
-	_, err := ss.saveSessionToRedis()
 
-	// TODO: 如果保存失败怎么办？目前是抛异常，本次请求直接返回错误。
-	if err != nil {
+	// 调用自定义函数保存当前session。保存失败就抛异常
+	if _, err := ss.saveSessionToRedis(); err != nil {
 		fst.GFPanic("Save session error. " + err.Error())
 	} else {
 		ss.saved = true
 	}
-	return nil
 }
 
 func (ss *CtxSession) Saved() bool {
@@ -110,7 +103,7 @@ func (ss *CtxSession) Del(key string) {
 	ss.saved = false
 }
 
-func (ss *CtxSession) Expire(ttl int32) {
+func (ss *CtxSession) ExpireS(ttl int32) {
 	yn, err := ss.setSessionExpire(ttl)
 	if yn == false || err != nil {
 		fst.GFPanic("Session expire error.")
@@ -122,11 +115,13 @@ func (ss *CtxSession) SidIsNew() bool {
 }
 
 func (ss *CtxSession) Sid() string {
-	return ss.token
+	return ss.guid
 }
 
 func (ss *CtxSession) Destroy() {
-	ss.destroySession()
+	if err := ss.destroySession(); err != nil {
+		fst.GFPanic("Destroy session error. " + err.Error())
+	}
 	ss.resetSession()
 }
 

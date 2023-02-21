@@ -163,7 +163,7 @@ func (c *Context) Render(resStatus int, r render.Render) {
 		c.execBeforeSendHandlers() // 可以抛出异常，终止 Send data
 	}
 	if c.Sess != nil {
-		_ = c.Sess.Save()
+		c.Sess.Save()
 	}
 	if _, err := c.ResWrap.Send(); err != nil { // really send response data
 		panic(err)

@@ -61,6 +61,10 @@ func SessMustLogin(c *fst.Context) {
 	}
 }
 
+func SessSetUid(c *fst.Context, uid int64) {
+	c.Sess.Set(MySessDB.GuidField, uid)
+}
+
 // 销毁当前Session
 func SessDestroy(c *fst.Context) {
 	c.Sess.Destroy()
