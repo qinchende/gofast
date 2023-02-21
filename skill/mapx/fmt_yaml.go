@@ -1,25 +1,21 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package mapx
 
 import (
 	"encoding/json"
 	"errors"
+	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
-
-	"gopkg.in/yaml.v2"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func DecodeYamlReader(dst any, reader io.Reader, opts *ApplyOptions) error {
-	content, err := ioutil.ReadAll(reader)
-	if err != nil {
-		return err
-	}
-
-	return DecodeYamlBytes(dst, content, opts)
+func DecodeYamlBytes(dst any, content []byte, like int8) error {
+	return DecodeYamlBytesX(dst, content, matchOptions(like))
 }
 
-func DecodeYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
+func DecodeYamlBytesX(dst any, content []byte, opts *ApplyOptions) error {
 	var o any
 	if err := DecodeYaml(&o, content); err != nil {
 		return err
@@ -32,8 +28,16 @@ func DecodeYamlBytes(dst any, content []byte, opts *ApplyOptions) error {
 	}
 }
 
-func DecodeYamlBytesOfConfig(dst any, content []byte) error {
-	return DecodeYamlBytes(dst, content, configStructOptions)
+func DecodeYamlReader(dst any, reader io.Reader, like int8) error {
+	return DecodeYamlReaderX(dst, reader, matchOptions(like))
+}
+
+func DecodeYamlReaderX(dst any, reader io.Reader, opts *ApplyOptions) error {
+	content, err := ioutil.ReadAll(reader)
+	if err != nil {
+		return err
+	}
+	return DecodeYamlBytesX(dst, content, opts)
 }
 
 // yamlUnmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.

@@ -1,6 +1,6 @@
-package valid
-
-import "reflect"
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
+package validx
 
 const (
 	attrRequired = "required" // 必填项
@@ -17,7 +17,7 @@ const (
 )
 
 type (
-	FieldOpts struct {
+	ValidOptions struct {
 		Range    *numRange // 数值取值范围
 		Enum     []string  // 枚举值数组
 		Len      *numRange // 字符串长度范围
@@ -25,8 +25,6 @@ type (
 		Match    string    // 匹配某个内置的格式
 		DefValue string    // 默认值
 		Required bool      // 是否必传项
-
-		SField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 
 	numRange struct {

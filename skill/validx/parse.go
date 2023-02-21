@@ -1,4 +1,6 @@
-package valid
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
+package validx
 
 import (
 	"fmt"
@@ -9,61 +11,57 @@ import (
 )
 
 var (
-	fieldOptionError = "field %s has wrong valid setting"
+	fieldOptionError = "field %s valid failed."
 )
 
 // 解析字段配置的选项参数
-func ParseOptions(field *reflect.StructField, str string) (*FieldOpts, error) {
-	//if str == "" {
-	//	return nil, nil
-	//}
-
-	// 必须要有 reflect.StructField 变量
-	var fOpts = FieldOpts{SField: field}
+func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error) {
 	if str == "" {
-		return &fOpts, nil
+		return nil, nil
 	}
 
+	var vOpts = ValidOptions{}
 	var err error
+
 	items := strings.Split(str, ",")
 	for _, segment := range items {
 		item := strings.TrimSpace(segment)
 		switch {
 		case item == attrRequired:
-			fOpts.Required = true
+			vOpts.Required = true
 		default:
 			kv := strings.Split(item, equalToken)
 			if len(kv) != 2 {
-				return nil, fmt.Errorf(fieldOptionError, field.Name)
+				return nil, fmt.Errorf(fieldOptionError, sField.Name)
 			}
 
 			switch {
 			case kv[0] == attrRequired:
-				if fOpts.Required, err = strconv.ParseBool(kv[1]); err != nil {
-					return nil, fmt.Errorf(fieldOptionError, field.Name)
+				if vOpts.Required, err = strconv.ParseBool(kv[1]); err != nil {
+					return nil, fmt.Errorf(fieldOptionError, sField.Name)
 				}
 			case kv[0] == attrEnum:
-				fOpts.Enum = strings.Split(kv[1], itemSeparator)
+				vOpts.Enum = strings.Split(kv[1], itemSeparator)
 			case kv[0] == attrDefault:
-				fOpts.DefValue = strings.TrimSpace(kv[1])
-				//fOpts.DefExist = true
+				vOpts.DefValue = strings.TrimSpace(kv[1])
+				//vOpts.DefExist = true
 			case kv[0] == attrRange:
-				if fOpts.Range, err = parseNumberRange(kv[1]); err != nil {
-					return nil, fmt.Errorf(fieldOptionError, field.Name)
+				if vOpts.Range, err = parseNumberRange(kv[1]); err != nil {
+					return nil, fmt.Errorf(fieldOptionError, sField.Name)
 				}
 			case kv[0] == attrLength:
-				if fOpts.Len, err = parseNumberRange(kv[1]); err != nil {
-					return nil, fmt.Errorf(fieldOptionError, field.Name)
+				if vOpts.Len, err = parseNumberRange(kv[1]); err != nil {
+					return nil, fmt.Errorf(fieldOptionError, sField.Name)
 				}
 			case kv[0] == attrRegex:
-				fOpts.Regex = strings.TrimSpace(kv[1])
+				vOpts.Regex = strings.TrimSpace(kv[1])
 			case kv[0] == attrMatch:
-				fOpts.Match = strings.TrimSpace(kv[1])
+				vOpts.Match = strings.TrimSpace(kv[1])
 			}
 		}
 	}
 
-	return &fOpts, nil
+	return &vOpts, nil
 }
 
 // support below notations:
