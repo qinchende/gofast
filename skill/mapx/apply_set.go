@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package mapx
 
 import (
@@ -6,7 +8,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/valid"
 	"reflect"
 	"strconv"
 	"strings"
@@ -14,7 +15,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions) error {
+func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, applyOpts *ApplyOptions) error {
 	// 如果源值为nil，不做任何处理，也不报错
 	if src == nil {
 		return nil
@@ -77,7 +78,7 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *valid.FieldOpts, applyOpts *A
 	case reflect.Struct:
 		// 这个时候值可能是时间类型
 		if _, ok := dst.Interface().(time.Time); ok {
-			return sdxSetTime(dst, sdxAsString(src), fOpt.SField)
+			return sdxSetTime(dst, sdxAsString(src), fOpt.sField)
 		}
 	}
 	return nil
@@ -187,7 +188,7 @@ func sdxAsBool(src any) (any, error) {
 
 // utils
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func sdxSetWithString(dst reflect.Value, src string, fOpt *valid.FieldOpts) error {
+func sdxSetWithString(dst reflect.Value, src string, fOpt *fieldOptions) error {
 	switch dst.Kind() {
 	case reflect.Int:
 		return sdxSetInt(dst, src, 0)
@@ -235,7 +236,7 @@ func sdxSetWithString(dst reflect.Value, src string, fOpt *valid.FieldOpts) erro
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
-			return sdxSetTime(dst, src, fOpt.SField)
+			return sdxSetTime(dst, src, fOpt.sField)
 		}
 		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
 	default:
@@ -276,7 +277,7 @@ func sdxSetFloat(dst reflect.Value, src string, bitSize int) error {
 	return err
 }
 
-func sdxSetStringArray(dst reflect.Value, items []string, fOpt *valid.FieldOpts) error {
+func sdxSetStringArray(dst reflect.Value, items []string, fOpt *fieldOptions) error {
 	for i, item := range items {
 		if err := sdxSetWithString(dst.Index(i), item, fOpt); err != nil {
 			return err
@@ -285,7 +286,7 @@ func sdxSetStringArray(dst reflect.Value, items []string, fOpt *valid.FieldOpts)
 	return nil
 }
 
-func sdxSetStringSlice(dest reflect.Value, values []string, fOpt *valid.FieldOpts) error {
+func sdxSetStringSlice(dest reflect.Value, values []string, fOpt *fieldOptions) error {
 	slice := reflect.MakeSlice(dest.Type(), len(values), len(values))
 	if err := sdxSetStringArray(slice, values, fOpt); err != nil {
 		return err
@@ -304,7 +305,10 @@ func sdxSetTimeDuration(dst reflect.Value, src string) error {
 }
 
 func sdxSetTime(dst reflect.Value, src string, sField *reflect.StructField) error {
-	timeFormat := sField.Tag.Get("time_format")
+	timeFormat := ""
+	if sField != nil {
+		timeFormat = sField.Tag.Get("time_format")
+	}
 	if timeFormat == "" {
 		timeFormat = time.RFC3339
 	}
@@ -332,16 +336,18 @@ func sdxSetTime(dst reflect.Value, src string, sField *reflect.StructField) erro
 	}
 
 	l := time.Local
-	if isUTC, _ := strconv.ParseBool(sField.Tag.Get("time_utc")); isUTC {
-		l = time.UTC
-	}
-
-	if locTag := sField.Tag.Get("time_location"); locTag != "" {
-		loc, err := time.LoadLocation(locTag)
-		if err != nil {
-			return err
+	if sField != nil {
+		if isUTC, _ := strconv.ParseBool(sField.Tag.Get("time_utc")); isUTC {
+			l = time.UTC
 		}
-		l = loc
+
+		if locTag := sField.Tag.Get("time_location"); locTag != "" {
+			loc, err := time.LoadLocation(locTag)
+			if err != nil {
+				return err
+			}
+			l = loc
+		}
 	}
 
 	t, err := time.ParseInLocation(timeFormat, src, l)

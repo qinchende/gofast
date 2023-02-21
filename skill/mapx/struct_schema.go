@@ -1,9 +1,11 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package mapx
 
 import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/valid"
+	"github.com/qinchende/gofast/skill/validx"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"sync"
@@ -11,13 +13,18 @@ import (
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type GfStruct struct {
-	attrs       orm.ModelAttrs     // 实体类型的相关控制属性
-	columns     []string           // 安顺序存放的tag列名
-	columnsKV   map[string]int8    // pms_name index
-	fields      []string           // 安顺序存放的字段名
-	fieldsKV    map[string]int8    // field_name index
-	fieldsIndex [][]int            // reflect fields index
-	fieldsOpts  []*valid.FieldOpts // 字段的属性
+	attrs       orm.ModelAttrs  // 实体类型的相关控制属性
+	columns     []string        // 按顺序存放的tag列名
+	columnsKV   map[string]int8 // pms_name index
+	fields      []string        // 按顺序存放的字段名
+	fieldsKV    map[string]int8 // field_name index
+	fieldsIndex [][]int         // reflect fields index
+	fieldsOpts  []*fieldOptions // 字段的属性
+}
+
+type fieldOptions struct {
+	valid  *validx.ValidOptions // 验证
+	sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -33,43 +40,6 @@ func cacheGetSchema(typ reflect.Type) *GfStruct {
 		return ret.(*GfStruct)
 	}
 	return nil
-}
-
-func (ms *GfStruct) ValueByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ms.fieldsIndex[index]).Interface()
-}
-
-func (ms *GfStruct) AddrByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
-}
-
-func (ms *GfStruct) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Value {
-	idxArr := ms.fieldsIndex[index]
-	if len(idxArr) == 1 {
-		return rVal.Field(idxArr[0])
-	}
-	tmpVal := *rVal
-	for _, x := range idxArr {
-		tmpVal = tmpVal.Field(x)
-	}
-	return tmpVal
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func SchemaNoCache(obj any, opts *ApplyOptions) *GfStruct {
-	return structSchema(reflect.TypeOf(obj), opts)
-}
-
-func SchemaNoCacheOfType(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
-	return structSchema(rTyp, opts)
-}
-
-func Schema(obj any, opts *ApplyOptions) *GfStruct {
-	return fetchSchemaCache(reflect.TypeOf(obj), opts)
-}
-
-func SchemaOfType(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
-	return fetchSchemaCache(rTyp, opts)
 }
 
 // 提取结构体变量的Schema元数据
@@ -109,7 +79,7 @@ func structSchema(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 	copy(fFieldsNew, fFields)
 	fIndexesNew := make([][]int, len(fIndexes))
 	copy(fIndexesNew, fIndexes)
-	fOptionsNew := make([]*valid.FieldOpts, len(fOptions))
+	fOptionsNew := make([]*fieldOptions, len(fOptions))
 	copy(fOptionsNew, fOptions)
 	// 构造ORM Model元数据
 	mSchema := GfStruct{
@@ -132,7 +102,7 @@ func structSchema(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]string, []string, [][]int, []*valid.FieldOpts) {
+func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]string, []string, [][]int, []*fieldOptions) {
 	if rTyp.Kind() != reflect.Struct {
 		panic(fmt.Errorf("%T is not like struct", rTyp))
 	}
@@ -140,7 +110,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]str
 	fColumns := make([]string, 0)
 	fFields := make([]string, 0)
 	fIndexes := make([][]int, 0)
-	fOptions := make([]*valid.FieldOpts, 0)
+	fOptions := make([]*fieldOptions, 0)
 
 	for i := 0; i < rTyp.NumField(); i++ {
 		fi := rTyp.Field(i)
@@ -181,11 +151,11 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]str
 
 		// 4. options
 		optStr := fi.Tag.Get(opts.ValidTag)
-		fOpt, err := valid.ParseOptions(&fi, optStr)
+		vOpt, err := validx.ParseOptions(&fi, optStr)
 		if err != nil {
 			panic(err) // 这里针对某个struct取结构，直接抛系统异常
 		}
-		fOptions = append(fOptions, fOpt)
+		fOptions = append(fOptions, &fieldOptions{valid: vOpt, sField: &fi})
 	}
 	return fColumns, fFields, fIndexes, fOptions
 }

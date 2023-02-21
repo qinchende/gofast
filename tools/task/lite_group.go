@@ -20,10 +20,6 @@ const (
 	stateFieldTime      = "Time"
 	checkPowerIntervalS = 30 * time.Second
 	checkTimesBeforeRun = 4 // 夺取运行权之前的，循环检查的次数
-
-	//taskLoopIntervalS  = 60 * time.Second // 循环运行任务的间隔时间second
-	//taskLimitStartTime = "00:00"
-	//taskLimitEndTime   = "23:59"
 )
 
 // Note: LiteGroup中的任务是支持分布式部署的。在应用多机部署的时候能满足高可用(这一点需要Redis数据库的保证)

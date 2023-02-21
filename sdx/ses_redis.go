@@ -38,6 +38,7 @@ func (ss *CtxSession) setSessionExpire(ttl int32) (bool, error) {
 }
 
 // TODO: 这里的函数很多都没有考虑发生错误的情况
-func (ss *CtxSession) destroySession() {
-	_, _ = MySessDB.Redis.Del(sdxSessKeyPrefix + ss.guid)
+func (ss *CtxSession) destroySession() (err error) {
+	_, err = MySessDB.Redis.Del(sdxSessKeyPrefix + ss.guid)
+	return
 }

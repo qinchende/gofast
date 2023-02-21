@@ -1,3 +1,5 @@
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package mapx
 
 import (
@@ -5,12 +7,12 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/valid"
+	"github.com/qinchende/gofast/skill/validx"
 	"reflect"
 )
 
 // 只用传入的值赋值对象
-func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
+func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) (err error) {
 	if kvs == nil || len(kvs) == 0 {
 		return nil
 	}
@@ -21,33 +23,33 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 	sm := getSchema(dstVal, applyOpts)
 
 	var fls []string
-	if applyOpts.FieldDirect {
+	if applyOpts.UseFieldName {
 		fls = sm.fields
 	} else {
 		fls = sm.columns
 	}
 	flsOpts := sm.fieldsOpts
 
-	var err error
 	for i := 0; i < len(fls); i++ {
-		fOpt := flsOpts[i]
+		fOpt := flsOpts[i] // 这个肯定不为 nil
+		vOpt := fOpt.valid // 这个可能是 nil
 		fName := fls[i]
 		sv, ok := kvs[fName]
 
-		if ok {
-		} else if fOpt != nil {
-			if fOpt.Required && applyOpts.NotValid == false {
+		if ok == false {
+			if vOpt == nil {
+				continue
+			}
+			if vOpt.Required && applyOpts.UseValid {
 				return fmt.Errorf("field %s requied", fName)
-			} else if applyOpts.NotDefValue != true {
-				sv = fOpt.DefValue
+			}
+			if applyOpts.UseDefValue {
+				sv = vOpt.DefValue
 				if sv == "" {
 					continue
 				}
 			}
-		} else {
-			continue
 		}
-
 		fv := sm.RefValueByIndex(&dstVal, int8(i))
 
 		// 如果字段是结构体类型
@@ -65,8 +67,8 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 		}
 
 		// 是否需要验证字段数据的合法性
-		if !applyOpts.NotValid && fOpt != nil {
-			if err = valid.ValidateField(&fv, fOpt); err != nil {
+		if applyOpts.UseValid && vOpt != nil {
+			if err = validx.ValidateField(&fv, vOpt); err != nil {
 				return err
 			}
 		}
@@ -74,54 +76,56 @@ func applyKVToStruct(dest any, kvs cst.KV, applyOpts *ApplyOptions) error {
 	return nil
 }
 
-// src 只能是 array,slice 类型
-func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions) error {
-	dstV := reflect.Indirect(reflect.ValueOf(dst))
-	srcV := reflect.Indirect(reflect.ValueOf(src))
+// src 只能是 array, slice 类型。如果是 string ，先按照JSON格式解析成数组
+func applyList(dst any, src any, fOpt *fieldOptions, applyOpts *ApplyOptions) (err error) {
+	if fOpt == nil {
+		return fmt.Errorf("field options can't nil.")
+	}
 
-	var err error
-	if srcV.Kind() == reflect.String {
+	dstVal := reflect.Indirect(reflect.ValueOf(dst))
+	srcVal := reflect.Indirect(reflect.ValueOf(src))
+	// 如果数据源是字符串，先按照JSON解析成数组
+	if srcVal.Kind() == reflect.String {
 		var srcNew []any
-		// TODO：这种情况下只支持JSON解析，YAML是不支持的
 		if err = jsonx.UnmarshalFromString(&srcNew, src.(string)); err != nil {
 			return err
 		}
 		src = srcNew
-		srcV = reflect.Indirect(reflect.ValueOf(src))
+		srcVal = reflect.Indirect(reflect.ValueOf(src))
 	}
 
-	dstType := dstV.Type()
-	dstKind := dstV.Kind()
-	srcKind := dstV.Kind()
+	dstKind := dstVal.Kind()
+	srcKind := dstVal.Kind()
 
 	switch {
 	case (dstKind == reflect.Slice || dstKind == reflect.Array) && (srcKind == reflect.Slice || srcKind == reflect.Array):
-		if dstKind == reflect.Array && dstV.Len() != srcV.Len() {
+		// NOTE: 这里可能 dstVal.Len() > srcVal.Len() 也应该支持
+		if dstKind == reflect.Array && dstVal.Len() != srcVal.Len() {
 			return errors.New("array length not match")
 		}
 
 		sliceTyp, itemType, isPtr, _ := checkDestType(dst)
-		dstNew := reflect.MakeSlice(sliceTyp, srcV.Len(), srcV.Len())
-		dstV.Set(dstNew)
-		for i := 0; i < srcV.Len(); i++ {
-			fv := dstV.Index(i)
+		dstNew := reflect.MakeSlice(sliceTyp, srcVal.Len(), srcVal.Len())
+		dstVal.Set(dstNew)
+		for i := 0; i < srcVal.Len(); i++ {
+			fv := dstVal.Index(i)
 			if isPtr {
 				fv.Set(reflect.New(itemType))
 				fv = fv.Elem()
 			}
 			if fv.Kind() == reflect.Struct {
-				if err = applyKVToStruct(fv.Addr().Interface(), srcV.Index(i).Interface().(map[string]any), applyOpts); err != nil {
+				if err = applyKVToStruct(fv.Addr().Interface(), srcVal.Index(i).Interface().(map[string]any), applyOpts); err != nil {
 					return err
 				}
 				continue
 			}
 
-			if err = sdxSetValue(fv, srcV.Index(i).Interface(), fOpt, applyOpts); err != nil {
+			if err = sdxSetValue(fv, srcVal.Index(i).Interface(), fOpt, applyOpts); err != nil {
 				return err
 			}
 			// 是否需要验证字段数据的合法性
-			if !applyOpts.NotValid && fOpt != nil {
-				if err = valid.ValidateField(&fv, fOpt); err != nil {
+			if applyOpts.UseValid && fOpt.valid != nil {
+				if err = validx.ValidateField(&fv, fOpt.valid); err != nil {
 					return err
 				}
 			}
@@ -131,8 +135,8 @@ func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions)
 	}
 
 	// 数组不能为空
-	if !applyOpts.NotValid && fOpt != nil && fOpt.Required && dstV.Len() == 0 {
-		return fmt.Errorf("list field %s requied", dstType.String())
+	if applyOpts.UseValid && fOpt.valid != nil && fOpt.valid.Required && dstVal.Len() == 0 {
+		return fmt.Errorf("list field %s requied", dstVal.Type().String())
 	}
 
 	return nil
@@ -140,14 +144,13 @@ func applyList(dst any, src any, fOpt *valid.FieldOpts, applyOpts *ApplyOptions)
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主要用于给dest加上默认值，然后执行下字段验证
-func optimizeStruct(dst any, applyOpts *ApplyOptions) error {
+func optimizeStruct(dst any, applyOpts *ApplyOptions) (err error) {
 	dstVal := reflect.Indirect(reflect.ValueOf(dst))
 	if dstVal.Kind() != reflect.Struct {
 		return fmt.Errorf("%T is not like struct", dst)
 	}
 	sm := getSchema(dstVal, applyOpts)
 
-	var err error
 	for i := 0; i < len(sm.fields); i++ {
 		fv := sm.RefValueByIndex(&dstVal, int8(i))
 
@@ -162,17 +165,18 @@ func optimizeStruct(dst any, applyOpts *ApplyOptions) error {
 
 		// 如果字段值看上去像变量刚生成后默认初始化值，那么就加载默认信息
 		fOpt := sm.fieldsOpts[i]
-		if isInitialValue(fv) && applyOpts.NotDefValue == false {
-			if fOpt.DefValue == "" {
+		vOpt := fOpt.valid
+		if isInitialValue(fv) && applyOpts.UseDefValue && vOpt != nil {
+			if vOpt.DefValue == "" {
 				continue
 			}
-			if err = sdxSetValue(fv, fOpt.DefValue, fOpt, applyOpts); err != nil {
+			if err = sdxSetValue(fv, vOpt.DefValue, fOpt, applyOpts); err != nil {
 				return err
 			}
 		}
 		// 是否需要验证字段数据的合法性
-		if applyOpts.NotValid == false {
-			if err = valid.ValidateField(&fv, fOpt); err != nil {
+		if applyOpts.UseValid && fOpt != nil {
+			if err = validx.ValidateField(&fv, vOpt); err != nil {
 				return err
 			}
 		}
