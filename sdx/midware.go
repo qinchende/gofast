@@ -36,7 +36,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
-	app.Before(mid.ReqCountPos(keeper, 1))                      // 正确匹配路由的请求数
+	app.Before(mid.ReqCountPos(keeper, 1))                      // 正确匹+配路由的请求数
 	app.Before(mid.Tracing(app.AppName, cnf.EnableTrack))       // 链路追踪
 	app.Before(mid.Logger)                                      // 请求日志
 	app.Before(mid.Breaker(keeper))                             // 自适应熔断

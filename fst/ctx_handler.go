@@ -40,10 +40,8 @@ func (c *Context) Next() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 此时还没有执行execHandlers, c.handlers还没有赋值
 func (c *Context) execAfterMatchHandlers() {
-	//if c.route.ptrNode == nil {
-	//	return
-	//}
 	it := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
@@ -61,57 +59,50 @@ func (c *Context) execAfterMatchHandlers() {
 
 // NOTE: 下面的钩子函数不需要中断执行链。
 func (c *Context) execBeforeSendHandlers() {
-	//if c.route.ptrNode == nil {
-	//	return
-	//}
 	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
-	// 5.beforeSend
 	for gp.beforeSendLen > 0 {
-		//if c.aborted {
-		//	goto over
-		//}
 		c.myApp.fstMem.tidyHandlers[gp.beforeSendIdx](c)
 		gp.beforeSendLen--
 		gp.beforeSendIdx++
 	}
 	for it.beforeSendLen > 0 {
-		//if c.aborted {
-		//	goto over
-		//}
 		c.myApp.fstMem.tidyHandlers[it.beforeSendIdx](c)
 		it.beforeSendLen--
 		it.beforeSendIdx++
 	}
-	//over:
-	//	return
 }
 
 func (c *Context) execAfterSendHandlers() {
-	//if c.route.ptrNode == nil {
-	//	return
-	//}
 	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
 	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
 
-	// 6.afterSend
 	for it.afterSendLen > 0 {
-		//if c.aborted {
-		//	goto over
-		//}
 		c.myApp.fstMem.tidyHandlers[it.afterSendIdx](c)
 		it.afterSendLen--
 		it.afterSendIdx++
 	}
 	for gp.afterSendLen > 0 {
-		//if c.aborted {
-		//	goto over
-		//}
 		c.myApp.fstMem.tidyHandlers[gp.afterSendIdx](c)
 		gp.afterSendLen--
 		gp.afterSendIdx++
 	}
-	//over:
-	//	return
+}
+
+// 执行异常处理之前的需要调用的函数
+func (c *Context) ExecAfterPanicHandlers() {
+	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
+
+	for it.afterPanicLen > 0 {
+		c.myApp.fstMem.tidyHandlers[it.afterPanicIdx](c)
+		it.afterPanicLen--
+		it.afterPanicIdx++
+	}
+	for gp.afterPanicLen > 0 {
+		c.myApp.fstMem.tidyHandlers[gp.afterPanicIdx](c)
+		gp.afterPanicLen--
+		gp.afterPanicIdx++
+	}
 }

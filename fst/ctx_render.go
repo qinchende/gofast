@@ -13,11 +13,13 @@ import (
 
 //  返回结构体
 type Ret struct {
-	Code int32  // 返回编码
+	Code int    // 返回编码
 	Msg  string // 文本消息
 	Data any    // 携带数据体
 	Desc string // 描述，内部说明，不对外传递和显示
 }
+
+func (ret Ret) Callback() {}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
@@ -40,7 +42,7 @@ func (c *Context) FaiData(data any) {
 	c.Fai(0, "", data)
 }
 
-func (c *Context) FaiCode(code int32) {
+func (c *Context) FaiCode(code int) {
 	c.Fai(code, "", nil)
 }
 
@@ -48,7 +50,7 @@ func (c *Context) FaiRet(ret *Ret) {
 	c.Fai(ret.Code, ret.Msg, ret.Data)
 }
 
-func (c *Context) Fai(code int32, msg string, data any) {
+func (c *Context) Fai(code int, msg string, data any) {
 	c.kvSucFai(statusFai, code, msg, data)
 }
 
@@ -80,7 +82,7 @@ func (c *Context) SucData(data any) {
 	c.Suc(1, "", data)
 }
 
-func (c *Context) SucCode(code int32) {
+func (c *Context) SucCode(code int) {
 	c.Suc(code, "", nil)
 }
 
@@ -88,11 +90,11 @@ func (c *Context) SucRet(ret *Ret) {
 	c.Suc(ret.Code, ret.Msg, ret.Data)
 }
 
-func (c *Context) Suc(code int32, msg string, data any) {
+func (c *Context) Suc(code int, msg string, data any) {
 	c.kvSucFai(statusSuc, code, msg, data)
 }
 
-func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
+func (c *Context) kvSucFai(status string, code int, msg string, data any) {
 	jsonData := cst.KV{
 		"status": status,
 		"code":   code,
@@ -112,13 +114,21 @@ func (c *Context) kvSucFai(status string, code int32, msg string, data any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Abort系列函数都将终止当前 handlers 的执行
 // 立即返回错误，跳过后面的执行链
-func (c *Context) AbortFai(code int, msg string) {
-	bytes, _ := jsonx.Marshal(cst.KV{
+func (c *Context) AbortFai(code int, msg string, data any) {
+	jsonData := cst.KV{
 		"status": statusFai,
 		"code":   code,
 		"msg":    msg,
-	})
+	}
+	if data != nil {
+		jsonData["data"] = data
+	}
+	bytes, _ := jsonx.Marshal(data)
 	c.AbortDirect(http.StatusOK, bytes)
+}
+
+func (c *Context) AbortRet(ret *Ret) {
+	c.AbortFai(ret.Code, ret.Msg, ret.Data)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
