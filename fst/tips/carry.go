@@ -1,6 +1,6 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package tools
+package tips
 
 import (
 	"github.com/qinchende/gofast/cst"
@@ -8,37 +8,36 @@ import (
 	"reflect"
 )
 
-// BasketType is an unsigned int error code as defined in the GoFast spec.
 type (
-	BasketType uint //type BasketType uint
-	Basket     struct {
-		Type BasketType // 数据分类
-		Msg  string     // 描述信息
-		Meta any        // 详细数据
+	CarryType uint
+	CarryItem struct {
+		Type CarryType // 数据分类
+		Msg  string    // 描述信息
+		Meta any       // 详细数据
 	}
-	Baskets []*Basket
+	CarryList []*CarryItem
 )
 
 const (
-	BasketTypeAny BasketType = 0
+	CarryTypeAny CarryType = 0
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (b *Basket) SetType(flags BasketType) *Basket {
+func (b *CarryItem) SetType(flags CarryType) *CarryItem {
 	b.Type = flags
 	return b
 }
 
-func (b *Basket) SetMeta(data any) *Basket {
+func (b *CarryItem) SetMeta(data any) *CarryItem {
 	b.Meta = data
 	return b
 }
 
-func (b *Basket) IsType(flags BasketType) bool {
+func (b *CarryItem) IsType(flags CarryType) bool {
 	return (b.Type & flags) > 0
 }
 
-func (b *Basket) JSON() any {
+func (b *CarryItem) JSON() any {
 	hash := cst.KV{}
 	if b.Meta != nil {
 		value := reflect.ValueOf(b.Meta)
@@ -56,19 +55,19 @@ func (b *Basket) JSON() any {
 	return hash
 }
 
-func (b *Basket) MarshalJSON() ([]byte, error) {
+func (b *CarryItem) MarshalJSON() ([]byte, error) {
 	return jsonx.Marshal(b.JSON())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (bs Baskets) ByType(typ BasketType) Baskets {
+func (bs CarryList) ByType(typ CarryType) CarryList {
 	if len(bs) == 0 {
 		return nil
 	}
-	if typ == BasketTypeAny {
+	if typ == CarryTypeAny {
 		return bs
 	}
-	var bsTmp Baskets
+	var bsTmp CarryList
 	for _, b := range bs {
 		if b.IsType(typ) {
 			bsTmp = append(bsTmp, b)
@@ -77,7 +76,7 @@ func (bs Baskets) ByType(typ BasketType) Baskets {
 	return bsTmp
 }
 
-func (bs Baskets) Last() *Basket {
+func (bs CarryList) Last() *CarryItem {
 	if length := len(bs); length > 0 {
 		return bs[length-1]
 	}
@@ -85,7 +84,7 @@ func (bs Baskets) Last() *Basket {
 }
 
 // 收集所有Basket中的Msg
-func (bs Baskets) CollectMessages() []string {
+func (bs CarryList) CollectMessages() []string {
 	if len(bs) == 0 {
 		return nil
 	}
@@ -96,7 +95,7 @@ func (bs Baskets) CollectMessages() []string {
 	return msgStrings
 }
 
-func (bs Baskets) JSON() any {
+func (bs CarryList) JSON() any {
 	switch len(bs) {
 	case 0:
 		return nil
@@ -111,6 +110,6 @@ func (bs Baskets) JSON() any {
 	}
 }
 
-func (bs Baskets) MarshalJSON() ([]byte, error) {
+func (bs CarryList) MarshalJSON() ([]byte, error) {
 	return jsonx.Marshal(bs.JSON())
 }

@@ -23,7 +23,7 @@ func Logger(c *fst.Context) {
 	p.BodySize = len(p.ResData)
 
 	// 内部错误信息一般不返回给调用者，但是需要打印日志信息
-	p.MsgBaskets = c.MsgBaskets()
+	p.CarryItems = c.CarryMsgItems()
 
 	// Stop timer
 	p.TimeStamp = timex.Now()

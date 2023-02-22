@@ -302,6 +302,9 @@ func gpCombineHandlers(gp *RouteGroup) uint16 {
 		hdsCount += len(gp.combEvents.eAfterSendHds)
 		chGroup.combEvents.eAfterSendHds = append(chGroup.eAfterSendHds, gp.combEvents.eAfterSendHds...)
 
+		hdsCount += len(gp.combEvents.eAfterPanicHds)
+		chGroup.combEvents.eAfterPanicHds = append(chGroup.eAfterPanicHds, gp.combEvents.eAfterPanicHds...)
+
 		chGroup.parentHdsLen = uint16(hdsCount)
 		allChildrenHdsCount += gpCombineHandlers(chGroup)
 	}
@@ -355,6 +358,9 @@ func setNewNode(fstMem *fstMemSpace, re *routeEvents) {
 	//node.validLen, node.validIdx = tidyEventHandlers(fstMem, &re.ePreValidHds)
 	node.beforeSendLen, node.beforeSendIdx = tidyEventHandlers(fstMem, &re.eBeforeSendHds)
 	node.afterSendLen, node.afterSendIdx = tidyEventHandlers(fstMem, &re.eAfterSendHds)
+
+	// 异常处理
+	node.afterPanicLen, node.afterPanicIdx = tidyEventHandlers(fstMem, &re.eAfterPanicHds)
 }
 
 // allCtxHandlers 中无序存放的 handlers 转入 有序的 tidyHandlers 中

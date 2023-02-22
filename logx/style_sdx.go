@@ -4,7 +4,7 @@ package logx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/fst/tools"
+	"github.com/qinchende/gofast/fst/tips"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/timex"
@@ -73,7 +73,7 @@ func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
 		reqBaseParams,
 		reqParams,
 		(p.ResData)[:tLen],
-		logBaskets(p.MsgBaskets),
+		buildCarryInfos(p.CarryItems),
 	)
 }
 
@@ -100,7 +100,7 @@ func buildSdxReqLogMini(p *ReqLogEntity) string {
 }
 
 // 所有错误合并成字符串
-func logBaskets(bs tools.Baskets) string {
+func buildCarryInfos(bs tips.CarryList) string {
 	if len(bs) == 0 {
 		return ""
 	}
@@ -120,9 +120,3 @@ func logBaskets(bs tools.Baskets) string {
 	}
 	return buf.String()
 }
-
-//func traceInfo(ctx context.Context) string {
-//	jsonx.m
-//
-//	return jsonx.UnmarshalFromString() trace.SpanContextFromContext(ctx)
-//}

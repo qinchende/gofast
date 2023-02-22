@@ -47,8 +47,8 @@ func SessBuilder(c *fst.Context) {
 	} else {
 		ss.values = make(cst.KV)
 		if err := ss.loadSessionFromRedis(c); err != nil {
-			c.AddMsgBasket(err.Error())
-			c.AbortFai(110, "Load session data from redis error.")
+			c.CarryAddMsg(err.Error())
+			c.AbortFai(110, "Load session data from redis error.", nil)
 		}
 	}
 }
@@ -57,7 +57,7 @@ func SessBuilder(c *fst.Context) {
 func SessMustLogin(c *fst.Context) {
 	uid := c.Sess.Get(MySessDB.GuidField)
 	if uid == nil || uid == "" {
-		c.AbortFai(110, "User login auth error.")
+		c.AbortFai(110, "User login auth error.", nil)
 	}
 }
 

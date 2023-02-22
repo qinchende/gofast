@@ -4,25 +4,44 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/fst/tools"
+	"github.com/qinchende/gofast/fst/tips"
 	"net/http"
 	"net/url"
 	"sync"
 	"time"
 )
 
+// 异常处理逻辑的接口定义
+type (
+	PanicHandler interface {
+		Callback()
+	}
+	PanicFunc struct {
+		Func func()
+	}
+)
+
+func (pw PanicFunc) Callback() { pw.Func() }
+
+func NewPanicPet(fn func()) *PanicFunc {
+	return &PanicFunc{Func: fn}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 // Context is the most important part of GoFast. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
 	myApp *GoFast // 用于上下文
 
-	EnterTime time.Duration // 请求起始时间
-	ResWrap   *ResponseWrap
-	ReqRaw    *http.Request // request
-	Sess      SessionKeeper // Session数据，数据存储部分可以自定义
-	UrlParams *routeParams  // : 或 * 对应的参数
-	Pms       cst.KV        // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	Baskets   tools.Baskets // []*Basket，可以携带扩展的自定义数据
+	EnterTime  time.Duration  // 请求起始时间
+	ResWrap    *ResponseWrap  // 被封装后的Response
+	ReqRaw     *http.Request  // 原始 request
+	Sess       SessionKeeper  // Session数据，数据存储部分可以自定义
+	UrlParams  *routeParams   // : 或 * 对应的参数
+	Pms        cst.KV         // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
+	PanicPet   PanicHandler   // 业务逻辑异常之后的处理
+	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
 
 	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
@@ -47,7 +66,8 @@ func (c *Context) reset() {
 	c.Sess = nil
 	c.UrlParams = nil
 	c.Pms = nil
-	c.Baskets = c.Baskets[0:0]
+	c.CarryItems = c.CarryItems[0:0]
+	c.PanicPet = nil
 	c.RouteIdx = 0
 
 	// add by sdx 2021.01.06
