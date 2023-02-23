@@ -15,7 +15,7 @@ const (
 	carryTypeMsg     tips.CarryType = 1 << 2 // 传递消息
 )
 
-// 添加一项携带消息体的Basket，日志系统会打印出这些信息
+// 添加一条消息，日志系统会打印出这些传递信息
 func (c *Context) CarryAddMsg(msg string) {
 	if len(c.CarryItems) > maxCtxCarryLen {
 		logx.Error("current request context carry list is out of range.")
@@ -29,7 +29,7 @@ func (c *Context) CarryAddMsg(msg string) {
 	c.CarryItems = append(c.CarryItems, msgItem)
 }
 
-// 取出只作为消息传递的篮子
+// 取出只作为消息传递的项
 func (c *Context) CarryMsgItems() tips.CarryList {
 	return c.CarryItems.ByType(carryTypeMsg)
 }

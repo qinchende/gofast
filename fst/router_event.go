@@ -10,7 +10,6 @@ const (
 	EAfter      = "onAfter"
 	EBeforeSend = "onBeforeSend"
 	EAfterSend  = "onAfterSend"
-	EAfterPanic = "onAfterPanic"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -40,8 +39,6 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 		re.eBeforeSendHds = append(re.eBeforeSendHds, addCtxHandlers(fstMem, tHds)...)
 	case EAfterSend:
 		re.eAfterSendHds = append(re.eAfterSendHds, addCtxHandlers(fstMem, tHds)...)
-	case EAfterPanic:
-		re.eAfterPanicHds = append(re.eAfterPanicHds, addCtxHandlers(fstMem, tHds)...)
 	default:
 		panic("Event type error, can't find this type.")
 	}
@@ -94,10 +91,6 @@ func (gp *RouteGroup) AfterMatch(hds ...CtxHandler) *RouteGroup {
 	return gp.regGroupCtxHandler(EAfterMatch, hds)
 }
 
-func (gp *RouteGroup) AfterPanic(hds ...CtxHandler) *RouteGroup {
-	return gp.regGroupCtxHandler(EAfterPanic, hds)
-}
-
 // RouteItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouteItem) regItemCtxHandler(eType string, hds []CtxHandler) *RouteItem {
@@ -133,10 +126,6 @@ func (ri *RouteItem) AfterSend(hds ...CtxHandler) *RouteItem {
 // 路由匹配到之后，没等执行中间件就走这个逻辑，可以返回标记，中断后面的中间件
 func (ri *RouteItem) AfterMatch(hds ...CtxHandler) *RouteItem {
 	return ri.regItemCtxHandler(EAfterMatch, hds)
-}
-
-func (gp *RouteItem) AfterPanic(hds ...CtxHandler) *RouteItem {
-	return gp.regItemCtxHandler(EAfterPanic, hds)
 }
 
 // RouteItemAttrs

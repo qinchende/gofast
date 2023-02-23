@@ -15,7 +15,6 @@ type routeEvents struct {
 	eAfterHds      []uint16
 	eBeforeSendHds []uint16
 	eAfterSendHds  []uint16
-	eAfterPanicHds []uint16
 }
 
 type RouteGroup struct {
@@ -50,7 +49,6 @@ type handlersNode struct {
 	afterIdx      uint16
 	beforeSendIdx uint16
 	afterSendIdx  uint16
-	afterPanicIdx uint16
 
 	//validLen      uint8
 	afterMatchLen uint8
@@ -59,5 +57,4 @@ type handlersNode struct {
 	hdsLen        uint8
 	beforeSendLen uint8
 	afterSendLen  uint8
-	afterPanicLen uint8
 }

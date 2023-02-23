@@ -4,7 +4,7 @@ package mapx
 
 import "github.com/qinchende/gofast/cst"
 
-type ApplyOptions struct {
+type BindOptions struct {
 	FieldTag     string // 解析字段名对应的Tag标签
 	ValidTag     string // 验证合法性对应的Tag标签
 	CacheSchema  bool   // 是否缓存schema，提高性能
@@ -15,7 +15,7 @@ type ApplyOptions struct {
 
 var (
 	// 应用在大量解析数据记录的场景
-	dbStructOptions = &ApplyOptions{
+	dbStructOptions = &BindOptions{
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
@@ -25,7 +25,17 @@ var (
 	}
 
 	// 应用在解析配置文件的场景
-	configStructOptions = &ApplyOptions{
+	bindStructOptions = &BindOptions{
+		FieldTag:     cst.FieldTag,
+		ValidTag:     cst.FieldValidTag,
+		CacheSchema:  true,
+		UseFieldName: false,
+		UseDefValue:  true,
+		UseValid:     true,
+	}
+
+	// 应用在解析配置文件的场景
+	configStructOptions = &BindOptions{
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  false,
@@ -37,14 +47,17 @@ var (
 
 const (
 	LikeConfig int8 = iota // 采用解析配置文件的模式
-	LikeDB                 // 采用解析数据库的模式
+	LikeBind               // 采用解析数据库的模式
+	LikeLoadDB             // 采用解析数据库的模式
 )
 
 // 使用什么典型配置来解析验证数据
-func matchOptions(like int8) (ao *ApplyOptions) {
+func matchOptions(like int8) (ao *BindOptions) {
 	switch like {
-	case LikeDB:
+	case LikeLoadDB:
 		ao = dbStructOptions
+	case LikeBind:
+		ao = bindStructOptions
 	case LikeConfig:
 		ao = configStructOptions
 	default:

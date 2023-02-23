@@ -11,24 +11,6 @@ import (
 	"time"
 )
 
-// 异常处理逻辑的接口定义
-type (
-	PanicHandler interface {
-		Callback()
-	}
-	PanicFunc struct {
-		Func func()
-	}
-)
-
-func (pw PanicFunc) Callback() { pw.Func() }
-
-func NewPanicPet(fn func()) *PanicFunc {
-	return &PanicFunc{Func: fn}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 // Context is the most important part of GoFast. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {

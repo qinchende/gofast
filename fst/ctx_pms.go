@@ -15,7 +15,7 @@ import (
 // add by sdx on 20210305
 // c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
 func (c *Context) Bind(dst any) error {
-	return mapx.ApplyKV(dst, c.Pms, mapx.LikeDB)
+	return mapx.BindKV(dst, c.Pms, mapx.LikeBind)
 }
 
 // UrlParam returns the value of the URL param.

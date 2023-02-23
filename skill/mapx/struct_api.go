@@ -7,20 +7,20 @@ import (
 )
 
 // no cache
-func SchemaNoCache(obj any, opts *ApplyOptions) *GfStruct {
+func SchemaNoCache(obj any, opts *BindOptions) *GfStruct {
 	return structSchema(reflect.TypeOf(obj), opts)
 }
 
-func SchemaNoCacheOfType(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
+func SchemaNoCacheOfType(rTyp reflect.Type, opts *BindOptions) *GfStruct {
 	return structSchema(rTyp, opts)
 }
 
 // cached
-func Schema(obj any, opts *ApplyOptions) *GfStruct {
+func Schema(obj any, opts *BindOptions) *GfStruct {
 	return fetchSchemaCache(reflect.TypeOf(obj), opts)
 }
 
-func SchemaOfType(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
+func SchemaOfType(rTyp reflect.Type, opts *BindOptions) *GfStruct {
 	return fetchSchemaCache(rTyp, opts)
 }
 

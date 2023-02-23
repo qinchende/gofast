@@ -43,7 +43,7 @@ func cacheGetSchema(typ reflect.Type) *GfStruct {
 }
 
 // 提取结构体变量的Schema元数据
-func fetchSchemaCache(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
+func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *GfStruct {
 	for rTyp.Kind() == reflect.Ptr {
 		rTyp = rTyp.Elem()
 	}
@@ -56,7 +56,7 @@ func fetchSchemaCache(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 	return mSchema
 }
 
-func structSchema(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
+func structSchema(rTyp reflect.Type, opts *BindOptions) *GfStruct {
 	rootIdx := make([]int, 0)
 	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx, opts)
 
@@ -102,7 +102,7 @@ func structSchema(rTyp reflect.Type, opts *ApplyOptions) *GfStruct {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(rTyp reflect.Type, parentIdx []int, opts *ApplyOptions) ([]string, []string, [][]int, []*fieldOptions) {
+func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []*fieldOptions) {
 	if rTyp.Kind() != reflect.Struct {
 		panic(fmt.Errorf("%T is not like struct", rTyp))
 	}

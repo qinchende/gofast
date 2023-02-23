@@ -23,6 +23,26 @@ var regexMap = map[string]*regexp.Regexp{
 	"base64URL": regexp.MustCompile(base64URLRegexString),
 }
 
+func IsMobile(str string) bool {
+	return regexMap["mobile"].MatchString(str)
+}
+
+func IsEmail(str string) bool {
+	return regexMap["email"].MatchString(str)
+}
+
+func IsIPv4(str string) bool {
+	return regexMap["ipv4"].MatchString(str)
+}
+
+func IsIPv4Port(str string) bool {
+	return regexMap["ipv4:port"].MatchString(str)
+}
+
+func IsBase64(str string) bool {
+	return regexMap["base64"].MatchString(str)
+}
+
 // 验证结构体字段值，是否符合指定规范
 func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 	if vOpts == nil {

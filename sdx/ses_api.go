@@ -61,16 +61,18 @@ func SessMustLogin(c *fst.Context) {
 	}
 }
 
+// 设置当前登录账号的 uid
 func SessSetUid(c *fst.Context, uid int64) {
 	c.Sess.Set(MySessDB.GuidField, uid)
 }
 
-// 销毁当前Session
+// 销毁当前 Session
 func SessDestroy(c *fst.Context) {
 	c.Sess.Destroy()
 	c.Sess = nil
 }
 
+// 生成新的 token 信息
 func SessRecreate(c *fst.Context) {
 	ss := new(CtxSession)
 	ss.rebuildToken(c)
