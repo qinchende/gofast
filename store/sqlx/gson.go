@@ -31,7 +31,7 @@ func loadRecordFromGsonString(dest any, data string, sm *orm.ModelSchema) error 
 		recordKV[cls[j]] = values[j]
 	}
 
-	return mapx.ApplyKV(dest, recordKV, mapx.LikeDB)
+	return mapx.BindKV(dest, recordKV, mapx.LikeLoadDB)
 }
 
 func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
@@ -56,7 +56,7 @@ func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
 			recordPtr := reflect.New(recordType)
 			recordVal := reflect.Indirect(recordPtr)
 
-			if err := mapx.ApplyKV(recordVal.Addr().Interface(), recordKV, mapx.LikeDB); err != nil {
+			if err := mapx.BindKV(recordVal.Addr().Interface(), recordKV, mapx.LikeLoadDB); err != nil {
 				return err
 			}
 

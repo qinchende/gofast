@@ -90,19 +90,20 @@ func (c *Context) execAfterSendHandlers() {
 	}
 }
 
-// 执行异常处理之前的需要调用的函数
-func (c *Context) ExecAfterPanicHandlers() {
-	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
-
-	for it.afterPanicLen > 0 {
-		c.myApp.fstMem.tidyHandlers[it.afterPanicIdx](c)
-		it.afterPanicLen--
-		it.afterPanicIdx++
-	}
-	for gp.afterPanicLen > 0 {
-		c.myApp.fstMem.tidyHandlers[gp.afterPanicIdx](c)
-		gp.afterPanicLen--
-		gp.afterPanicIdx++
-	}
-}
+//
+//// 执行异常处理之前的需要调用的函数
+//func (c *Context) ExecAfterPanicHandlers() {
+//	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
+//	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
+//
+//	for it.afterPanicLen > 0 {
+//		c.myApp.fstMem.tidyHandlers[it.afterPanicIdx](c)
+//		it.afterPanicLen--
+//		it.afterPanicIdx++
+//	}
+//	for gp.afterPanicLen > 0 {
+//		c.myApp.fstMem.tidyHandlers[gp.afterPanicIdx](c)
+//		gp.afterPanicLen--
+//		gp.afterPanicIdx++
+//	}
+//}

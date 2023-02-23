@@ -15,14 +15,14 @@ func DecodeYamlBytes(dst any, content []byte, like int8) error {
 	return DecodeYamlBytesX(dst, content, matchOptions(like))
 }
 
-func DecodeYamlBytesX(dst any, content []byte, opts *ApplyOptions) error {
+func DecodeYamlBytesX(dst any, content []byte, opts *BindOptions) error {
 	var o any
 	if err := DecodeYaml(&o, content); err != nil {
 		return err
 	}
 
 	if kv, ok := o.(map[string]any); ok {
-		return ApplyKVX(dst, kv, opts)
+		return BindKVX(dst, kv, opts)
 	} else {
 		return errors.New("only map-like configs supported")
 	}
@@ -32,7 +32,7 @@ func DecodeYamlReader(dst any, reader io.Reader, like int8) error {
 	return DecodeYamlReaderX(dst, reader, matchOptions(like))
 }
 
-func DecodeYamlReaderX(dst any, reader io.Reader, opts *ApplyOptions) error {
+func DecodeYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err

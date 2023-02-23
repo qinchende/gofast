@@ -28,10 +28,10 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	return dSliceTyp, dItemType, isPtr, isKV
 }
 
-func getSchema(dstVal reflect.Value, applyOpts *ApplyOptions) *GfStruct {
-	if applyOpts.CacheSchema {
-		return SchemaOfType(dstVal.Type(), applyOpts)
+func getSchema(dstVal reflect.Value, bindQpts *BindOptions) *GfStruct {
+	if bindQpts.CacheSchema {
+		return SchemaOfType(dstVal.Type(), bindQpts)
 	} else {
-		return SchemaNoCacheOfType(dstVal.Type(), applyOpts)
+		return SchemaNoCacheOfType(dstVal.Type(), bindQpts)
 	}
 }

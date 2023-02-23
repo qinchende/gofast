@@ -83,7 +83,7 @@ func (bs CarryList) Last() *CarryItem {
 	return nil
 }
 
-// 收集所有Basket中的Msg
+// 收集 items 中的 Msg 字段
 func (bs CarryList) CollectMessages() []string {
 	if len(bs) == 0 {
 		return nil

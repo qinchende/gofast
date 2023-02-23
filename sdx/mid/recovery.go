@@ -15,8 +15,6 @@ import (
 func Recovery(c *fst.Context) {
 	defer func() {
 		if pic := recover(); pic != nil {
-			c.ExecAfterPanicHandlers() // 异常Render之前需要特殊处理的逻辑
-
 			// 可能需要重定向异常结果的返回
 			if c.PanicPet != nil {
 				switch ret := c.PanicPet.(type) {
@@ -39,8 +37,7 @@ func Recovery(c *fst.Context) {
 				c.AbortFai(0, info.Error(), nil)
 			default:
 				// TODO-important: 非预期的异常，将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架panic）
-				logx.Stacks(c.ReqRaw)
-				logx.StackF("%s", debug.Stack())
+				logx.Stacks(c.ReqRaw, debug.Stack())
 				c.AbortDirect(http.StatusInternalServerError, info)
 			}
 		}

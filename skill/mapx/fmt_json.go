@@ -12,12 +12,12 @@ func DecodeJsonBytes(dst any, content []byte, like int8) error {
 	return DecodeJsonBytesX(dst, content, matchOptions(like))
 }
 
-func DecodeJsonBytesX(dst any, content []byte, opts *ApplyOptions) error {
+func DecodeJsonBytesX(dst any, content []byte, opts *BindOptions) error {
 	var kv map[string]any
 	if err := jsonx.Unmarshal(&kv, content); err != nil {
 		return err
 	}
-	return ApplyKVX(dst, kv, opts)
+	return BindKVX(dst, kv, opts)
 }
 
 // +++ JSON Reader
@@ -25,10 +25,10 @@ func DecodeJsonReader(dst any, reader io.Reader, like int8) error {
 	return DecodeJsonReaderX(dst, reader, matchOptions(like))
 }
 
-func DecodeJsonReaderX(dst any, reader io.Reader, opts *ApplyOptions) error {
+func DecodeJsonReaderX(dst any, reader io.Reader, opts *BindOptions) error {
 	var kv map[string]any
 	if err := jsonx.UnmarshalFromReader(&kv, reader); err != nil {
 		return err
 	}
-	return ApplyKVX(dst, kv, opts)
+	return BindKVX(dst, kv, opts)
 }
