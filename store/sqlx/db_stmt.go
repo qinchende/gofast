@@ -27,12 +27,12 @@ func (conn *OrmDB) PrepareCtx(ctx context.Context, sqlStr string, readonly bool)
 		stmt, err = conn.tx.PrepareContext(ctx, sqlStr)
 	}
 
-	ErrPanic(err)
+	PanicIfErr(err)
 	return &StmtConn{ctx: ctx, stmt: stmt, sqlStr: sqlStr, readonly: readonly}
 }
 
 func (conn *StmtConn) Close() {
-	ErrPanic(conn.stmt.Close())
+	PanicIfErr(conn.stmt.Close())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -58,7 +58,7 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 	}
 
 	if err != nil {
-		ErrLog(err)
+		LogStackIfErr(err)
 		return 0
 	}
 	ct, _ := ret.RowsAffected()
@@ -75,7 +75,7 @@ func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) in
 	defer CloseSqlRows(sqlRows)
 
 	if err != nil {
-		ErrLog(err)
+		LogStackIfErr(err)
 		return 0
 	}
 
@@ -92,7 +92,7 @@ func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) i
 	defer CloseSqlRows(sqlRows)
 
 	if err != nil {
-		ErrLog(err)
+		LogStackIfErr(err)
 		return 0
 	}
 

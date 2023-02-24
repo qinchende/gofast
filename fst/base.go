@@ -4,7 +4,6 @@ package fst
 
 import (
 	"errors"
-	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"math"
@@ -32,12 +31,8 @@ const (
 	maxAllHandlers     uint16  = math.MaxUint16 // 全局所有路由节点的所有中间件函数最大总和
 )
 
-var (
-	spf = fmt.Sprintf
-)
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 主动抛异常
+// GoFast框架主动抛异常
 func GFPanicIf(yes bool, val any) {
 	if !yes {
 		return
@@ -45,7 +40,7 @@ func GFPanicIf(yes bool, val any) {
 	GFPanic(val)
 }
 
-func GFPanicErr(err error) {
+func GFPanicIfErr(err error) {
 	if err != nil {
 		panic(cst.GFError(err))
 	}
@@ -58,15 +53,13 @@ func GFPanic(val any) {
 
 	switch val.(type) {
 	case string:
-		str := val.(string)
-		if len(str) != 0 {
+		if str := val.(string); len(str) != 0 {
 			panic(cst.GFError(errors.New(str)))
 		}
 	case error:
 		panic(cst.GFError(val.(error)))
 	default:
-		str := lang.ToString(val)
-		if len(str) != 0 {
+		if str := lang.ToString(val); len(str) != 0 {
 			panic(cst.GFError(errors.New(str)))
 		}
 	}

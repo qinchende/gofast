@@ -22,8 +22,8 @@ type Context struct {
 	Sess       SessionKeeper  // Session数据，数据存储部分可以自定义
 	UrlParams  *routeParams   // : 或 * 对应的参数
 	Pms        cst.KV         // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	PanicPet   PanicHandler   // 业务逻辑异常之后的处理
 	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
+	PanicPet   PanicHandler   // 业务逻辑异常之后的处理
 
 	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.
@@ -49,8 +49,8 @@ func (c *Context) reset() {
 	c.UrlParams = nil
 	c.Pms = nil
 	c.CarryItems = c.CarryItems[0:0]
-	c.PanicPet = nil
 	c.RouteIdx = 0
+	//c.PanicPet = nil
 
 	// add by sdx 2021.01.06
 	c.route.ptrNode = nil

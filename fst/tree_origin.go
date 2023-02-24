@@ -2,6 +2,8 @@
 // Use of this source code is governed by a MIT license
 package fst
 
+import "fmt"
+
 // 目前一共 73 字节
 type radixNode struct {
 	match     string       // 16字节
@@ -17,7 +19,7 @@ type radixNode struct {
 // seg: :name
 func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *RouteItem) {
 	if seg[0] == '*' {
-		panic(spf("通配符%s已经存在，不能再注册%s", n.match, seg))
+		panic(fmt.Sprintf("通配符%s已经存在，不能再注册%s", n.match, seg))
 	}
 
 	part := seg
@@ -31,12 +33,12 @@ func (n *radixNode) matchSameWildcards(mTree *methodTree, seg string, ri *RouteI
 		}
 	}
 	if n.match != part {
-		panic(spf("通配路由 %s 和 %s 参数名称不一致\n", n.match, part))
+		panic(fmt.Sprintf("通配路由 %s 和 %s 参数名称不一致\n", n.match, part))
 	}
 	// 证明刚好完整匹配参数
 	if !hasSlash {
 		if n.leafItem != nil {
-			panic(spf("路由已经存在：%s\n", n.match))
+			panic(fmt.Sprintf("路由已经存在：%s\n", n.match))
 		}
 		n.leafItem = ri
 		return
@@ -56,7 +58,7 @@ func (n *radixNode) addWildChild(mTree *methodTree, seg string, ri *RouteItem) {
 
 	// TODO: 有可能需要加入已有的同样是模糊匹配到的节点，这个时候应该匹配
 	if n.children != nil {
-		panic(spf("已存在%s，不可能再加入%s", n.match, seg))
+		panic(fmt.Sprintf("已存在%s，不可能再加入%s", n.match, seg))
 	}
 
 	emptySub := &radixNode{}
@@ -98,7 +100,7 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 	isWildSeg := isBeginWildcard(seg)
 	// 如果当前节点已经是通配符，而加入的新路由不是 *,: 开头，报错
 	if n.nType >= param && !isWildSeg {
-		panic(spf("已存在: %s，与新加入: %s冲突\n", n.match, seg))
+		panic(fmt.Sprintf("已存在: %s，与新加入: %s冲突\n", n.match, seg))
 	}
 
 	// 1. 新来的是一个通配段
@@ -161,7 +163,7 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 	// 2.3.2 到这里 seg 和 n.route 肯定一样
 	// 如果当前节点已经被匹配过，就证明重复了，需要报错
 	if n.leafItem != nil {
-		panic(spf("此路由：%s 已经存在", n.match))
+		panic(fmt.Sprintf("此路由：%s 已经存在", n.match))
 	}
 	n.leafItem = ri
 }

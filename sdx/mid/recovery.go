@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/lang"
 	"net/http"
-	"runtime/debug"
 )
 
 // 截获异常，防止程序崩溃。
@@ -18,7 +17,7 @@ func Recovery(c *fst.Context) {
 			// 可能需要重定向异常结果的返回
 			if c.PanicPet != nil {
 				switch ret := c.PanicPet.(type) {
-				case fst.Ret: // 返回指定错误提示
+				case fst.Ret:
 					c.CarryAddMsg(lang.ToString(pic))
 					c.AbortFai(ret.Code, ret.Msg, ret.Data)
 					return
@@ -31,13 +30,14 @@ func Recovery(c *fst.Context) {
 			switch info := pic.(type) {
 			case cst.GFFaiString:
 				c.AbortFai(0, string(info), nil)
-			case cst.GFFaiInt:
-				c.AbortFai(int(info), "", nil)
 			case cst.GFError:
 				c.AbortFai(0, info.Error(), nil)
+			case cst.GFFaiInt:
+				c.AbortFai(int(info), "", nil)
 			default:
-				// TODO-important: 非预期的异常，将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架panic）
-				logx.Stacks(c.ReqRaw, debug.Stack())
+				// TODO-important: 非预期的异常，比如系统异常
+				// 将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架GFPanic）
+				logx.Stacks(c.ReqRaw.RequestURI)
 				c.AbortDirect(http.StatusInternalServerError, info)
 			}
 		}
