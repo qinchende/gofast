@@ -55,7 +55,7 @@ func (c *Context) Fai(code int, msg string, data any) {
 }
 
 // 简易的抛出异常的方式，终止执行链，返回错误
-func (c *Context) FaiPanicIf(yes bool, val any) {
+func (c *Context) PanicIf(yes bool, val any) {
 	if !yes {
 		return
 	}
@@ -63,16 +63,30 @@ func (c *Context) FaiPanicIf(yes bool, val any) {
 	switch val.(type) {
 	case string:
 		panic(cst.GFFaiString(val.(string)))
-	case int:
-		panic(cst.GFFaiInt(val.(int)))
 	case error:
 		panic(cst.GFError(val.(error)))
+	case int:
+		panic(cst.GFFaiInt(val.(int)))
 	default:
-		str := lang.ToString(val)
-		panic(cst.GFFaiString(str))
+		panic(cst.GFFaiString(lang.ToString(val)))
 	}
 }
 
+// 如果发现有错误信息，就抛异常终止handlers
+func (c *Context) PanicIfError(err error) {
+	c.PanicIf(err != nil, err)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (c *Context) IfSucFai(yn bool, sucMsg, faiMsg string) {
+	if yn {
+		c.SucMsg(sucMsg)
+	} else {
+		c.FaiMsg(faiMsg)
+	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++
 func (c *Context) SucMsg(msg string) {
 	c.Suc(1, msg, nil)
@@ -123,7 +137,7 @@ func (c *Context) AbortFai(code int, msg string, data any) {
 	if data != nil {
 		jsonData["data"] = data
 	}
-	bytes, _ := jsonx.Marshal(data)
+	bytes, _ := jsonx.Marshal(jsonData)
 	c.AbortDirect(http.StatusOK, bytes)
 }
 

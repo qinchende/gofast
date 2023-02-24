@@ -15,7 +15,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, bindQpts *BindOptions) error {
+func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, bindOpts *BindOptions) error {
 	// 如果源值为nil，不做任何处理，也不报错
 	if src == nil {
 		return nil
@@ -32,7 +32,7 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, bindQpts *BindO
 			return sdxSetWithString(dst, fmt.Sprint(src), fOpt)
 		}
 	case reflect.Array, reflect.Slice:
-		return bindList(dst.Addr().Interface(), src, fOpt, bindQpts)
+		return bindList(dst.Addr().Interface(), src, fOpt, bindOpts)
 	}
 
 	// 实体对象字段类型
@@ -71,7 +71,7 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, bindQpts *BindO
 	case reflect.Slice, reflect.Array:
 		// TODO: 此时src肯定不是list，但有可能是未解析的字符串
 		//newSrc := []any{src}
-		return bindList(dst, src, fOpt, bindQpts)
+		return bindList(dst, src, fOpt, bindOpts)
 	case reflect.Map:
 		// TODO: 需要一种新的解析函数
 		return errors.New("only map-like configs supported")

@@ -115,7 +115,8 @@ func (ss *CtxSession) SidIsNew() bool {
 }
 
 func (ss *CtxSession) Sid() string {
-	return ss.guid
+	// Note: 要的是SessionID，必须返回ss.token,而非ss.guid
+	return ss.token
 }
 
 func (ss *CtxSession) Destroy() {

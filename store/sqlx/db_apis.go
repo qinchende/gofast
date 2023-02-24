@@ -21,7 +21,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 	ret := conn.ExecSql(insertSql(sm), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
 	ct, err := ret.RowsAffected()
-	ErrLog(err)
+	LogStackIfErr(err)
 	return ct
 }
 
@@ -133,7 +133,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.M
 
 			gr = new(gsonResult)
 			err := loadRecordsFromGsonString(pet.Target, cacheStr, gr)
-			ErrPanic(err)
+			PanicIfErr(err)
 			return gr.Ct, gr.Tt
 		}
 		gr = new(gsonResult)
@@ -168,7 +168,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.M
 	var err error
 	if gsonStr {
 		ret, err := jsonx.Marshal(gr.Gson)
-		ErrPanic(err)
+		PanicIfErr(err)
 		pet.Result.Target = lang.BytesToString(ret)
 	}
 	if ct > 0 && withCache {
@@ -177,7 +177,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, sm *orm.M
 			*cacheStr = pet.Result.Target
 		} else {
 			*cacheStr, err = jsonx.Marshal(gr.Gson)
-			ErrPanic(err)
+			PanicIfErr(err)
 		}
 		_, _ = rds.Set(pet.Cache.sqlHash, *cacheStr, time.Duration(pet.Cache.ExpireS)*time.Second)
 	}

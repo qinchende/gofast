@@ -49,7 +49,7 @@ func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) s
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	ErrPanic(err)
+	PanicIfErr(err)
 	return result
 }
 
@@ -75,7 +75,7 @@ func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) 
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	ErrPanic(err)
+	PanicIfErr(err)
 	return rows
 }
 
@@ -86,7 +86,7 @@ func (conn *OrmDB) TransBegin() *OrmDB {
 
 func (conn *OrmDB) TransCtx(ctx context.Context) *OrmDB {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	ErrPanic(err)
+	PanicIfErr(err)
 	return &OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 }
 
@@ -96,7 +96,7 @@ func (conn *OrmDB) TransFunc(fn func(newConn *OrmDB)) {
 
 func (conn *OrmDB) TransFuncCtx(ctx context.Context, fn func(newConn *OrmDB)) {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	ErrPanic(err)
+	PanicIfErr(err)
 
 	nConn := OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 	defer nConn.TransEnd()
@@ -119,5 +119,5 @@ func (conn *OrmDB) TransEnd() {
 	} else {
 		err = conn.Commit()
 	}
-	ErrLog(err) // 出现了非常严重的错误，可能连接没有释放
+	LogStackIfErr(err) // 出现了非常严重的错误，可能连接没有释放
 }

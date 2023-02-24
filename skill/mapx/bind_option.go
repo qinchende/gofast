@@ -25,7 +25,7 @@ var (
 	}
 
 	// 应用在解析配置文件的场景
-	bindStructOptions = &BindOptions{
+	inputStructOptions = &BindOptions{
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
@@ -47,7 +47,7 @@ var (
 
 const (
 	LikeConfig int8 = iota // 采用解析配置文件的模式
-	LikeBind               // 采用解析数据库的模式
+	LikeInput              // 采用解析数据库的模式
 	LikeLoadDB             // 采用解析数据库的模式
 )
 
@@ -56,8 +56,8 @@ func matchOptions(like int8) (ao *BindOptions) {
 	switch like {
 	case LikeLoadDB:
 		ao = dbStructOptions
-	case LikeBind:
-		ao = bindStructOptions
+	case LikeInput:
+		ao = inputStructOptions
 	case LikeConfig:
 		ao = configStructOptions
 	default:

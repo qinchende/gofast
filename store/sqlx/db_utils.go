@@ -10,27 +10,27 @@ import (
 )
 
 var (
-	//ErrNotMatchDestination  = errors.New("not matching destination to scan")
-	//ErrNotReadableValue     = errors.New("value not addressable or interfaceable")
+	// ErrNotMatchDestination  = errors.New("not matching destination to scan")
+	// ErrNotReadableValue     = errors.New("value not addressable or interfaceable")
 	ErrNotSettable          = errors.New("passed in variable is not settable")
 	ErrUnsupportedValueType = errors.New("unsupported unmarshal type")
 )
 
-func ErrPanic(err error) {
+func PanicIfErr(err error) {
 	if err != nil {
 		logx.Stack(err.Error())
 		panic(err)
 	}
 }
 
-func ErrLog(err error) {
+func LogStackIfErr(err error) {
 	if err != nil {
 		logx.Stack(err.Error())
 	}
 }
 
 func CloseSqlRows(rows *sql.Rows) {
-	ErrLog(rows.Close())
+	LogStackIfErr(rows.Close())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -46,7 +46,7 @@ func ScanRows(dest any, sqlRows *sql.Rows) int64 {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, sm *orm.ModelSchema) int64 {
 	ct, err := ret.RowsAffected()
-	ErrLog(err)
+	LogStackIfErr(err)
 
 	// 判断是否要删除缓存，删除缓存的逻辑要特殊处理，
 	// TODO：删除Key要有策略，比如删除之后加一个删除标记，后面设置缓存策略先查询这个标记，如果有标记就删除标记但本次不设置缓存
@@ -95,9 +95,9 @@ func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
 func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gro *gsonResultOne) int64 {
 	if !sqlRows.Next() {
 		if err := sqlRows.Err(); err != nil {
-			ErrLog(err)
+			LogStackIfErr(err)
 		} else {
-			ErrLog(sql.ErrNoRows)
+			LogStackIfErr(sql.ErrNoRows)
 		}
 		return 0
 	}
@@ -111,9 +111,9 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gro *gsonR
 		reflect.Float32, reflect.Float64,
 		reflect.String:
 		if rve.CanSet() {
-			ErrPanic(sqlRows.Scan(rve.Addr().Interface()))
+			PanicIfErr(sqlRows.Scan(rve.Addr().Interface()))
 		} else {
-			ErrPanic(ErrNotSettable)
+			PanicIfErr(ErrNotSettable)
 		}
 	case reflect.Struct:
 		dbColumns, _ := sqlRows.Columns()
@@ -131,7 +131,7 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gro *gsonR
 			}
 		}
 		err := sqlRows.Scan(fieldsAddr...)
-		ErrPanic(err)
+		PanicIfErr(err)
 
 		// 返回行记录的值
 		if gro != nil {
@@ -144,7 +144,7 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, sm *orm.ModelSchema, gro *gsonR
 			}
 		}
 	default:
-		ErrPanic(ErrUnsupportedValueType)
+		PanicIfErr(ErrUnsupportedValueType)
 	}
 	return 1
 }
@@ -184,7 +184,7 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 
 		for sqlRows.Next() {
 			err := sqlRows.Scan(valuesAddr...)
-			ErrPanic(err)
+			PanicIfErr(err)
 
 			if gr != nil {
 				values := make([]any, len(valuesAddr))
@@ -226,7 +226,7 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 			}
 
 			err := sqlRows.Scan(valuesAddr...)
-			ErrPanic(err)
+			PanicIfErr(err)
 
 			if gr != nil {
 				values := make([]any, len(valuesAddr))

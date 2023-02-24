@@ -12,18 +12,18 @@ import (
 )
 
 // 只用传入的值赋值对象
-func bindKVToStruct(dest any, kvs cst.KV, bindQpts *BindOptions) (err error) {
+func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 	if kvs == nil || len(kvs) == 0 {
 		return nil
 	}
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
+	dstVal := reflect.Indirect(reflect.ValueOf(dst))
 	if dstVal.Kind() != reflect.Struct {
-		return fmt.Errorf("%T is not like struct", dest)
+		return fmt.Errorf("%T is not like struct", dst)
 	}
-	sm := getSchema(dstVal, bindQpts)
+	sm := getSchema(dstVal, bindOpts)
 
 	var fls []string
-	if bindQpts.UseFieldName {
+	if bindOpts.UseFieldName {
 		fls = sm.fields
 	} else {
 		fls = sm.columns
@@ -40,10 +40,10 @@ func bindKVToStruct(dest any, kvs cst.KV, bindQpts *BindOptions) (err error) {
 			if vOpt == nil {
 				continue
 			}
-			if vOpt.Required && bindQpts.UseValid {
+			if vOpt.Required && bindOpts.UseValid {
 				return fmt.Errorf("field %s requied", fName)
 			}
-			if bindQpts.UseDefValue {
+			if bindOpts.UseDefValue {
 				sv = vOpt.DefValue
 				if sv == "" {
 					continue
@@ -56,18 +56,18 @@ func bindKVToStruct(dest any, kvs cst.KV, bindQpts *BindOptions) (err error) {
 		fvType := fv.Type()
 		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
 			// 如果sv 无法转换成 cst.KV 类型，将要抛出异常
-			if err = bindKVToStruct(fv.Addr().Interface(), sv.(map[string]any), bindQpts); err != nil {
+			if err = bindKVToStruct(fv.Addr().Interface(), sv.(map[string]any), bindOpts); err != nil {
 				return err
 			}
 			continue
 		}
 
-		if err = sdxSetValue(fv, sv, fOpt, bindQpts); err != nil {
+		if err = sdxSetValue(fv, sv, fOpt, bindOpts); err != nil {
 			return err
 		}
 
 		// 是否需要验证字段数据的合法性
-		if bindQpts.UseValid && vOpt != nil {
+		if bindOpts.UseValid && vOpt != nil {
 			if err = validx.ValidateField(&fv, vOpt); err != nil {
 				return err
 			}
@@ -77,7 +77,7 @@ func bindKVToStruct(dest any, kvs cst.KV, bindQpts *BindOptions) (err error) {
 }
 
 // src 只能是 array, slice 类型。如果是 string ，先按照JSON格式解析成数组
-func bindList(dst any, src any, fOpt *fieldOptions, bindQpts *BindOptions) (err error) {
+func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err error) {
 	if fOpt == nil {
 		return fmt.Errorf("field options can't nil.")
 	}
@@ -114,17 +114,17 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindQpts *BindOptions) (err 
 				fv = fv.Elem()
 			}
 			if fv.Kind() == reflect.Struct {
-				if err = bindKVToStruct(fv.Addr().Interface(), srcVal.Index(i).Interface().(map[string]any), bindQpts); err != nil {
+				if err = bindKVToStruct(fv.Addr().Interface(), srcVal.Index(i).Interface().(map[string]any), bindOpts); err != nil {
 					return err
 				}
 				continue
 			}
 
-			if err = sdxSetValue(fv, srcVal.Index(i).Interface(), fOpt, bindQpts); err != nil {
+			if err = sdxSetValue(fv, srcVal.Index(i).Interface(), fOpt, bindOpts); err != nil {
 				return err
 			}
 			// 是否需要验证字段数据的合法性
-			if bindQpts.UseValid && fOpt.valid != nil {
+			if bindOpts.UseValid && fOpt.valid != nil {
 				if err = validx.ValidateField(&fv, fOpt.valid); err != nil {
 					return err
 				}
@@ -135,7 +135,7 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindQpts *BindOptions) (err 
 	}
 
 	// 数组不能为空
-	if bindQpts.UseValid && fOpt.valid != nil && fOpt.valid.Required && dstVal.Len() == 0 {
+	if bindOpts.UseValid && fOpt.valid != nil && fOpt.valid.Required && dstVal.Len() == 0 {
 		return fmt.Errorf("list field %s requied", dstVal.Type().String())
 	}
 
@@ -143,13 +143,13 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindQpts *BindOptions) (err 
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 主要用于给dest加上默认值，然后执行下字段验证
-func optimizeStruct(dst any, bindQpts *BindOptions) (err error) {
+// 主要用于给dst加上默认值，然后执行下字段验证
+func optimizeStruct(dst any, bindOpts *BindOptions) (err error) {
 	dstVal := reflect.Indirect(reflect.ValueOf(dst))
 	if dstVal.Kind() != reflect.Struct {
 		return fmt.Errorf("%T is not like struct", dst)
 	}
-	sm := getSchema(dstVal, bindQpts)
+	sm := getSchema(dstVal, bindOpts)
 
 	for i := 0; i < len(sm.fields); i++ {
 		fv := sm.RefValueByIndex(&dstVal, int8(i))
@@ -157,7 +157,7 @@ func optimizeStruct(dst any, bindQpts *BindOptions) (err error) {
 		// 如果字段是结构体类型
 		fvType := fv.Type()
 		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
-			if err = optimizeStruct(fv.Addr().Interface(), bindQpts); err != nil {
+			if err = optimizeStruct(fv.Addr().Interface(), bindOpts); err != nil {
 				return err
 			}
 			continue
@@ -166,16 +166,16 @@ func optimizeStruct(dst any, bindQpts *BindOptions) (err error) {
 		// 如果字段值看上去像变量刚生成后默认初始化值，那么就加载默认信息
 		fOpt := sm.fieldsOpts[i]
 		vOpt := fOpt.valid
-		if isInitialValue(fv) && bindQpts.UseDefValue && vOpt != nil {
+		if isInitialValue(fv) && bindOpts.UseDefValue && vOpt != nil {
 			if vOpt.DefValue == "" {
 				continue
 			}
-			if err = sdxSetValue(fv, vOpt.DefValue, fOpt, bindQpts); err != nil {
+			if err = sdxSetValue(fv, vOpt.DefValue, fOpt, bindOpts); err != nil {
 				return err
 			}
 		}
 		// 是否需要验证字段数据的合法性
-		if bindQpts.UseValid && fOpt != nil {
+		if bindOpts.UseValid && fOpt != nil {
 			if err = validx.ValidateField(&fv, vOpt); err != nil {
 				return err
 			}
