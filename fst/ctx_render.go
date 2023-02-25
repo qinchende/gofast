@@ -54,35 +54,33 @@ func (c *Context) Fai(code int, msg string, data any) {
 	c.kvSucFai(statusFai, code, msg, data)
 }
 
-// 简易的抛出异常的方式，终止执行链，返回错误
-func (c *Context) PanicIf(yes bool, val any) {
-	if !yes {
-		return
-	}
-
-	switch val.(type) {
-	case string:
-		panic(cst.GFFaiString(val.(string)))
-	case error:
-		panic(cst.GFError(val.(error)))
-	case int:
-		panic(cst.GFFaiInt(val.(int)))
-	default:
-		panic(cst.GFFaiString(lang.ToString(val)))
-	}
-}
-
-// 如果发现有错误信息，就抛异常终止handlers
-func (c *Context) PanicIfError(err error) {
-	c.PanicIf(err != nil, err)
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (c *Context) IfSucFai(yn bool, sucMsg, faiMsg string) {
-	if yn {
-		c.SucMsg(sucMsg)
+// 自定义三目运算，返货成功或失败信息
+func (c *Context) IfSucFai(ifTrue bool, suc, fai any) {
+	if ifTrue {
+		switch suc.(type) {
+		case string:
+			c.SucMsg(suc.(string))
+		case *Ret:
+			c.SucRet(suc.(*Ret))
+		case int:
+			c.SucCode(suc.(int))
+		default:
+			c.SucData(suc)
+		}
 	} else {
-		c.FaiMsg(faiMsg)
+		switch fai.(type) {
+		case string:
+			c.FaiMsg(fai.(string))
+		case *Ret:
+			c.FaiRet(fai.(*Ret))
+		case error:
+			c.FaiErr(fai.(error))
+		case int:
+			c.FaiCode(fai.(int))
+		default:
+			c.FaiData(fai)
+		}
 	}
 }
 

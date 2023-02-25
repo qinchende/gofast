@@ -177,7 +177,7 @@ func addCtxHandlers(fstMem *fstMemSpace, hds []CtxHandler) (idxes []uint16) {
 		idxes[i] = fstMem.allCtxHdsLen + i
 	}
 	fstMem.allCtxHdsLen += hLen
-	GFPanicIf(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
+	PanicIf(fstMem.allCtxHdsLen >= maxAllHandlers, "Too many handlers more than MaxUInt16.")
 	return
 }
 
@@ -255,7 +255,7 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem.hdsNodes = make([]handlersNode, hdsNodesCt, hdsNodesCt)
 
 	// 新的 handlers 指针数组
-	GFPanicIf(fstMem.tidyHdsLen >= maxAllHandlers, "Chains tidy handlers more than MaxUInt16.")
+	PanicIf(fstMem.tidyHdsLen >= maxAllHandlers, "Chains tidy handlers more than MaxUInt16.")
 	fstMem.tidyHandlers = make([]CtxHandler, fstMem.tidyHdsLen, fstMem.tidyHdsLen)
 	fstMem.tidyHdsLen = 0 // 下标重置成0，后面从这里把事件加入 tidyHandlers
 
