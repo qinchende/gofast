@@ -4,8 +4,8 @@ type (
 	KV        map[string]any
 	WebKV     map[string]string
 	WebValues map[string][]string
-	
-	GFError     error
-	GFFaiInt    int
-	GFFaiString string
+
+	TypeError  error
+	TypeInt    int
+	TypeString string
 )

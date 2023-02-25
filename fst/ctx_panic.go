@@ -5,7 +5,7 @@ package fst
 import "github.com/qinchende/gofast/skill/lang"
 
 // 异常处理逻辑的接口定义
-type PanicHandler interface {
+type panicHandler interface {
 	Callback()
 }
 
@@ -15,9 +15,9 @@ type PanicFunc struct {
 
 func (pw PanicFunc) Callback() { pw.Func() }
 
-func NewPanicPet(fn func()) *PanicFunc {
-	return &PanicFunc{Func: fn}
-}
+//func NewPanicPet(fn func()) *PanicFunc {
+//	return &PanicFunc{Func: fn}
+//}
 
 // 取出只作为消息传递的项
 func (c *Context) PanicCatch(ret any) {

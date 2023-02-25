@@ -28,11 +28,11 @@ func Recovery(c *fst.Context) {
 
 			// 异常分类: 1.模拟返回错误信息 2.模拟返回错误编码 3.主动的error异常 4.非预测性的系统异常
 			switch info := pic.(type) {
-			case cst.GFFaiString:
+			case cst.TypeString:
 				c.AbortFai(0, string(info), nil)
-			case cst.GFError:
+			case cst.TypeError:
 				c.AbortFai(0, info.Error(), nil)
-			case cst.GFFaiInt:
+			case cst.TypeInt:
 				c.AbortFai(int(info), "", nil)
 			default:
 				// TODO-important: 非预期的异常，比如系统异常

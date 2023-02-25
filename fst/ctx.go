@@ -23,7 +23,7 @@ type Context struct {
 	UrlParams  *routeParams   // : 或 * 对应的参数
 	Pms        cst.KV         // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
 	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
-	PanicPet   PanicHandler   // 业务逻辑异常之后的处理
+	PanicPet   panicHandler   // 业务逻辑异常之后的处理
 
 	queryCache url.Values   // param query result from c.ReqRaw.URL.Query()
 	formCache  url.Values   // the parsed form data from POST, PATCH, or PUT body parameters.

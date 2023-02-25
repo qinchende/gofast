@@ -79,7 +79,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 
 	tgLen := len(fNames)
 	if tgLen <= 0 {
-		fst.GFPanic("sqlx: UpdateFields args [fNames] is empty")
+		fst.Panic("sqlx: UpdateFields args [fNames] is empty")
 	}
 
 	flsKV := ms.FieldsKV()
@@ -90,7 +90,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 	for i := 0; i < tgLen; i++ {
 		idx, ok := flsKV[fNames[i]]
 		if !ok {
-			fst.GFPanicIfErr(fmt.Errorf("sqlx: Field %s not exist.", fNames[i]))
+			fst.PanicIfErr(fmt.Errorf("sqlx: Field %s not exist.", fNames[i]))
 		}
 
 		// 更新字符串

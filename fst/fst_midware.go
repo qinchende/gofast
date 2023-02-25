@@ -13,7 +13,7 @@ func (gft *GoFast) UseGlobal(inject injectFunc) *GoFast {
 func (gft *GoFast) UseHttpHandler(hds HttpHandler) *GoFast {
 	if hds != nil {
 		gft.httpHandlers = append(gft.httpHandlers, hds)
-		GFPanicIf(uint8(len(gft.httpHandlers)) >= maxHttpHandlers, "Http handlers more the 255.")
+		PanicIf(uint8(len(gft.httpHandlers)) >= maxHttpHandlers, "Http handlers more the 255.")
 	}
 	return gft
 }
