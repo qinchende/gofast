@@ -74,7 +74,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
 			}
-			panic(fmt.Errorf("target item type must be structs; but got %T", rTyp))
+			panic(fmt.Errorf("Target object must be structs; but got %T", rTyp))
 		}
 
 		// primary, updated

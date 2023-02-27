@@ -12,7 +12,7 @@ import (
 )
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
-type GfStruct struct {
+type StructSchema struct {
 	attrs       orm.ModelAttrs  // 实体类型的相关控制属性
 	columns     []string        // 按顺序存放的tag列名
 	columnsKV   map[string]int8 // pms_name index
@@ -31,32 +31,32 @@ type fieldOptions struct {
 // 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
 var cachedSchemas sync.Map
 
-func cacheSetSchema(typ reflect.Type, val *GfStruct) {
+func cacheSetSchema(typ reflect.Type, val *StructSchema) {
 	cachedSchemas.Store(typ, val)
 }
 
-func cacheGetSchema(typ reflect.Type) *GfStruct {
+func cacheGetSchema(typ reflect.Type) *StructSchema {
 	if ret, ok := cachedSchemas.Load(typ); ok {
-		return ret.(*GfStruct)
+		return ret.(*StructSchema)
 	}
 	return nil
 }
 
 // 提取结构体变量的Schema元数据
-func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *GfStruct {
+func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	for rTyp.Kind() == reflect.Ptr {
 		rTyp = rTyp.Elem()
 	}
 	// 看类型，缓存有就直接用，否则计算一次并缓存
 	mSchema := cacheGetSchema(rTyp)
 	if mSchema == nil {
-		mSchema = structSchema(rTyp, opts)
+		mSchema = buildStructSchema(rTyp, opts)
 		cacheSetSchema(rTyp, mSchema)
 	}
 	return mSchema
 }
 
-func structSchema(rTyp reflect.Type, opts *BindOptions) *GfStruct {
+func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	rootIdx := make([]int, 0)
 	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx, opts)
 
@@ -82,7 +82,7 @@ func structSchema(rTyp reflect.Type, opts *BindOptions) *GfStruct {
 	fOptionsNew := make([]*fieldOptions, len(fOptions))
 	copy(fOptionsNew, fOptions)
 	// 构造ORM Model元数据
-	mSchema := GfStruct{
+	mSchema := StructSchema{
 		attrs:       *mdAttrs,
 		columns:     fColumnsNew,
 		columnsKV:   make(map[string]int8, len(fColumns)),

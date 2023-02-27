@@ -7,33 +7,33 @@ import (
 )
 
 // no cache
-func SchemaNoCache(obj any, opts *BindOptions) *GfStruct {
-	return structSchema(reflect.TypeOf(obj), opts)
+func SchemaNoCache(obj any, opts *BindOptions) *StructSchema {
+	return buildStructSchema(reflect.TypeOf(obj), opts)
 }
 
-func SchemaNoCacheOfType(rTyp reflect.Type, opts *BindOptions) *GfStruct {
-	return structSchema(rTyp, opts)
+func SchemaNoCacheOfType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
+	return buildStructSchema(rTyp, opts)
 }
 
 // cached
-func Schema(obj any, opts *BindOptions) *GfStruct {
+func Schema(obj any, opts *BindOptions) *StructSchema {
 	return fetchSchemaCache(reflect.TypeOf(obj), opts)
 }
 
-func SchemaOfType(rTyp reflect.Type, opts *BindOptions) *GfStruct {
+func SchemaOfType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	return fetchSchemaCache(rTyp, opts)
 }
 
 // reflect
-func (ms *GfStruct) ValueByIndex(rVal *reflect.Value, index int8) any {
+func (ms *StructSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Interface()
 }
 
-func (ms *GfStruct) AddrByIndex(rVal *reflect.Value, index int8) any {
+func (ms *StructSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
 }
 
-func (ms *GfStruct) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Value {
+func (ms *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Value {
 	idxArr := ms.fieldsIndex[index]
 	if len(idxArr) == 1 {
 		return rVal.Field(idxArr[0])

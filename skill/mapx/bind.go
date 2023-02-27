@@ -11,16 +11,16 @@ import (
 	"reflect"
 )
 
-// 只用传入的值赋值对象
+// 用传入的hash数据源，赋值目标对象，并可以做数据校验
 func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
-	if kvs == nil || len(kvs) == 0 {
+	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
+	if dst == nil || kvs == nil || len(kvs) == 0 || bindOpts == nil {
 		return nil
 	}
-	dstVal := reflect.Indirect(reflect.ValueOf(dst))
-	if dstVal.Kind() != reflect.Struct {
-		return fmt.Errorf("%T is not like struct", dst)
+	dstVal, sm, err := checkDestSchema(dst, bindOpts)
+	if err != nil {
+		return err
 	}
-	sm := getSchema(dstVal, bindOpts)
 
 	var fls []string
 	if bindOpts.UseFieldName {
@@ -50,7 +50,7 @@ func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 				}
 			}
 		}
-		fv := sm.RefValueByIndex(&dstVal, int8(i))
+		fv := sm.RefValueByIndex(dstVal, int8(i))
 
 		// 如果字段是结构体类型
 		fvType := fv.Type()
@@ -101,7 +101,7 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 	case (dstKind == reflect.Slice || dstKind == reflect.Array) && (srcKind == reflect.Slice || srcKind == reflect.Array):
 		// NOTE: 这里可能 dstVal.Len() > srcVal.Len() 也应该支持
 		if dstKind == reflect.Array && dstVal.Len() != srcVal.Len() {
-			return errors.New("array length not match")
+			return errors.New("Array length not match.")
 		}
 
 		sliceTyp, itemType, isPtr, _ := checkDestType(dst)
@@ -131,12 +131,12 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 			}
 		}
 	default:
-		return errors.New("only array-like value supported")
+		return errors.New("Only array-like value supported.")
 	}
 
 	// 数组不能为空
 	if bindOpts.UseValid && fOpt.valid != nil && fOpt.valid.Required && dstVal.Len() == 0 {
-		return fmt.Errorf("list field %s requied", dstVal.Type().String())
+		return fmt.Errorf("List field %s requied", dstVal.Type().String())
 	}
 
 	return nil
@@ -145,14 +145,16 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主要用于给dst加上默认值，然后执行下字段验证
 func optimizeStruct(dst any, bindOpts *BindOptions) (err error) {
-	dstVal := reflect.Indirect(reflect.ValueOf(dst))
-	if dstVal.Kind() != reflect.Struct {
-		return fmt.Errorf("%T is not like struct", dst)
+	if dst == nil || bindOpts == nil {
+		return nil
 	}
-	sm := getSchema(dstVal, bindOpts)
+	dstVal, sm, err := checkDestSchema(dst, bindOpts)
+	if err != nil {
+		return err
+	}
 
 	for i := 0; i < len(sm.fields); i++ {
-		fv := sm.RefValueByIndex(&dstVal, int8(i))
+		fv := sm.RefValueByIndex(dstVal, int8(i))
 
 		// 如果字段是结构体类型
 		fvType := fv.Type()

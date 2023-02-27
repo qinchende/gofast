@@ -41,7 +41,7 @@ const (
 
 // 功能强大的
 type SelectPet struct {
-	Target   any        // 解析的目标对象数组
+	Target   any        // 解析的目标对象（指针类型）
 	Sql      string     // 自定义完整的SQL语句，注意(Sql和SqlCount是成对出现的)
 	SqlCount string     // 分页场景下自定义查询总数的SQL语句（如果传"false"字符串，将不会查询总数）
 	Table    string     // 表名
