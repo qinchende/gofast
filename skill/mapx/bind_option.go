@@ -47,8 +47,8 @@ var (
 
 const (
 	LikeConfig int8 = iota // 采用解析配置文件的模式
-	LikeInput              // 采用解析数据库的模式
-	LikeLoadDB             // 采用解析数据库的模式
+	LikeInput              // 采用解析输入表单的模式
+	LikeLoadDB             // 采用解析MySQL记录的模式
 )
 
 // 使用什么典型配置来解析验证数据

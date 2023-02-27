@@ -265,11 +265,11 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 func checkDestType(dest any) (*orm.ModelSchema, reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Ptr {
-		panic("dest must be pointer.")
+		panic("Target object must be pointer.")
 	}
 	sliceType := dTyp.Elem()
 	if sliceType.Kind() != reflect.Slice {
-		panic("dest must be slice.")
+		panic("Target object must be slice.")
 	}
 	sm := orm.SchemaOfType(dTyp)
 

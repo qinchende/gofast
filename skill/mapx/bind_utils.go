@@ -2,36 +2,50 @@
 // Use of this source code is governed by a MIT license
 package mapx
 
-import "reflect"
+import (
+	"errors"
+	"fmt"
+	"reflect"
+)
 
 func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Ptr {
-		panic("dest must be pointer.")
+		panic("Target object must be pointer.")
 	}
-	dSliceTyp := dTyp.Elem()
-	if dSliceTyp.Kind() != reflect.Slice {
-		panic("dest must be slice.")
+	sliceType := dTyp.Elem()
+	if sliceType.Kind() != reflect.Slice {
+		panic("Target object must be slice.")
 	}
 
 	isPtr := false
 	isKV := false
-	dItemType := dSliceTyp.Elem()
+	recordType := sliceType.Elem()
 	// 推荐: dest 传入的 slice 类型为指针类型，这样将来就不涉及变量值拷贝了。
-	if dItemType.Kind() == reflect.Ptr {
+	if recordType.Kind() == reflect.Ptr {
 		isPtr = true
-		dItemType = dItemType.Elem()
-	} else if dItemType.Name() == "KV" {
+		recordType = recordType.Elem()
+	} else if recordType.Name() == "KV" || recordType.Name() == "cst.KV" || recordType.Name() == "fst.KV" {
 		isKV = true
 	}
 
-	return dSliceTyp, dItemType, isPtr, isKV
+	return sliceType, recordType, isPtr, isKV
 }
 
-func getSchema(dstVal reflect.Value, bindOpts *BindOptions) *GfStruct {
+func checkDestSchema(dst any, bindOpts *BindOptions) (*reflect.Value, *StructSchema, error) {
+	dstType := reflect.TypeOf(dst)
+	if dstType.Kind() != reflect.Ptr {
+		return nil, nil, errors.New("Target object must be pointer.")
+	}
+
+	dstVal := reflect.Indirect(reflect.ValueOf(dst))
+	if dstVal.Kind() != reflect.Struct {
+		return nil, nil, fmt.Errorf("%T not like struct.", dst)
+	}
+
 	if bindOpts.CacheSchema {
-		return SchemaOfType(dstVal.Type(), bindOpts)
+		return &dstVal, SchemaOfType(dstVal.Type(), bindOpts), nil
 	} else {
-		return SchemaNoCacheOfType(dstVal.Type(), bindOpts)
+		return &dstVal, SchemaNoCacheOfType(dstVal.Type(), bindOpts), nil
 	}
 }

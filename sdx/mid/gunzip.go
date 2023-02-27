@@ -24,5 +24,6 @@ func Gunzip(useGunzip bool) fst.CtxHandler {
 			}
 			c.ReqRaw.Body = reader
 		}
+		c.Next()
 	}
 }
