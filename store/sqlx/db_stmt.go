@@ -3,9 +3,9 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/timex"
-	"github.com/qinchende/gofast/store/orm"
 	"time"
 )
 
@@ -27,12 +27,12 @@ func (conn *OrmDB) PrepareCtx(ctx context.Context, sqlStr string, readonly bool)
 		stmt, err = conn.tx.PrepareContext(ctx, sqlStr)
 	}
 
-	PanicIfErr(err)
+	panicIfErr(err)
 	return &StmtConn{ctx: ctx, stmt: stmt, sqlStr: sqlStr, readonly: readonly}
 }
 
 func (conn *StmtConn) Close() {
-	PanicIfErr(conn.stmt.Close())
+	panicIfErr(conn.stmt.Close())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -42,7 +42,7 @@ func (conn *StmtConn) Exec(args ...any) int64 {
 
 func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 	if conn.readonly {
-		panic("StmtConn just readonly, can't exec sql.")
+		cst.PanicString("StmtConn just readonly, can't exec sql.")
 		return 0
 	}
 
@@ -57,10 +57,7 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 		logx.SlowF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
 	}
 
-	if err != nil {
-		LogStackIfErr(err)
-		return 0
-	}
+	panicIfErr(err)
 	ct, _ := ret.RowsAffected()
 	return ct
 }
@@ -73,14 +70,8 @@ func (conn *StmtConn) QueryRow(dest any, args ...any) int64 {
 func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
-
-	if err != nil {
-		LogStackIfErr(err)
-		return 0
-	}
-
-	sm := orm.Schema(dest)
-	return scanSqlRowsOne(dest, sqlRows, sm, nil)
+	panicIfErr(err)
+	return scanSqlRowsOne(dest, sqlRows, nil, nil)
 }
 
 func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
@@ -90,12 +81,7 @@ func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
 func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
-
-	if err != nil {
-		LogStackIfErr(err)
-		return 0
-	}
-
+	panicIfErr(err)
 	return scanSqlRowsSlice(dest, sqlRows, nil)
 }
 

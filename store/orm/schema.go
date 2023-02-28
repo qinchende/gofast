@@ -7,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -20,13 +21,13 @@ func SchemaOfType(rTyp reflect.Type) *ModelSchema {
 
 // 结构体中属性的数据库字段名称合集
 func SchemaValues(obj any) (*ModelSchema, []any) {
-	sm := Schema(obj)
+	ms := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
-	values := make([]any, len(sm.columns))
+	values := make([]any, len(ms.columns))
 	structValues(&values, &vIndex, obj)
 
-	return sm, values
+	return ms, values
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -49,7 +50,6 @@ func structValues(values *[]any, nextIndex *int8, obj any) {
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的ORM Schema元数据
 func fetchSchema(rTyp reflect.Type) *ModelSchema {
 	eTyp := rTyp.Elem()
@@ -74,7 +74,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 				cacheSetSchema(rTyp, mSchema)
 				return mSchema
 			}
-			panic(fmt.Errorf("Target object must be structs; but got %T", rTyp))
+			cst.PanicString(fmt.Sprintf("Target object must be structs; but got %T", rTyp))
 		}
 
 		// primary, updated
@@ -108,7 +108,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 			}
 		}
 		if priIndex == -1 {
-			panic(fmt.Errorf("%T, model has no primary key", rTyp)) // 不能没有主键
+			cst.PanicString(fmt.Sprintf("%T, model has no primary key", rTyp)) // 不能没有主键
 		}
 		// 2. updated 的索引位置
 		var updateIndex = -1
@@ -172,7 +172,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 // 反射提取结构体的字段（支持嵌套递归）
 func structFields(rTyp reflect.Type, parentIdx []int, mFields *[3]string) ([]string, []string, [][]int) {
 	if rTyp.Kind() != reflect.Struct {
-		panic(fmt.Errorf("%T is not like struct", rTyp))
+		cst.PanicString(fmt.Sprintf("%T is not like struct", rTyp))
 	}
 
 	fColumns := make([]string, 0)
@@ -241,42 +241,17 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[3]string) ([]str
 	return fColumns, fFields, fIndexes // 结构体的字段别名，字段名，顺序索引位置
 }
 
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func SchemaValuesByFields(obj ApplyOrmStruct, fields []string) (*ModelSchema, []interface{}) {
-//	mSchema := fetchSchema(obj)
-//	clsLen := mSchema.Length()
-//
-//	// 反射取值
-//	values := make([]interface{}, clsLen, clsLen+1)
-//	var valIndex int8 = 0               // 反射取值索引
-//	var priIndex = mSchema.primaryIndex // 主键索引位置
-//	pValIndex := &valIndex
-//	pPriIndex := &priIndex
-//	structValues2(&values, pValIndex, pPriIndex, obj)
-//
-//	return mSchema, values
-//}
-//
-//// 反射提取结构体的值（支持嵌套递归）
-//func structValues2(values *[]interface{}, nextIndex *int8, priIndex *int8, obj interface{}) {
-//	rVal := reflect.Indirect(reflect.ValueOf(obj))
-//
-//	for i := 0; i < rVal.NumField(); i++ {
-//		va := rVal.Field(i)
-//		vaI := va.Interface()
-//
-//		if va.Kind() == reflect.Struct {
-//			if _, ok := vaI.(time.Time); !ok {
-//				structValues2(values, nextIndex, priIndex, vaI)
-//				continue
-//			}
-//		}
-//		if *nextIndex == *priIndex {
-//			(*values)[0] = vaI
-//			*priIndex = -1
-//		} else {
-//			*nextIndex++
-//			(*values)[*nextIndex] = vaI
-//		}
-//	}
-//}
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 缓存数据表的Schema
+var cachedSchemas sync.Map
+
+func cacheSetSchema(typ reflect.Type, val *ModelSchema) {
+	cachedSchemas.Store(typ, val)
+}
+
+func cacheGetSchema(typ reflect.Type) *ModelSchema {
+	if ret, ok := cachedSchemas.Load(typ); ok {
+		return ret.(*ModelSchema)
+	}
+	return nil
+}

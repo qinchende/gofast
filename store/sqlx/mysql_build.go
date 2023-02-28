@@ -2,7 +2,7 @@ package sqlx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
@@ -79,7 +79,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 
 	tgLen := len(fNames)
 	if tgLen <= 0 {
-		fst.Panic("sqlx: UpdateFields args [fNames] is empty")
+		cst.PanicString("sqlx: UpdateFields args [fNames] is empty")
 	}
 
 	flsKV := ms.FieldsKV()
@@ -90,7 +90,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 	for i := 0; i < tgLen; i++ {
 		idx, ok := flsKV[fNames[i]]
 		if !ok {
-			fst.PanicIfErr(fmt.Errorf("sqlx: Field %s not exist.", fNames[i]))
+			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", fNames[i]))
 		}
 
 		// 更新字符串
@@ -154,7 +154,7 @@ func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string 
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func checkPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
+func fillPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
 	if pet.isReady {
 		return pet
 	}

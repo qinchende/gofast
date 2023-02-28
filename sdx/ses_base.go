@@ -88,7 +88,7 @@ func (ss *CtxSession) Save() {
 
 	// 调用自定义函数保存当前session。保存失败就抛异常
 	if _, err := ss.saveSessionToRedis(); err != nil {
-		fst.Panic("Save session error. " + err.Error())
+		cst.Panic("Save session error. " + err.Error())
 	} else {
 		ss.saved = true
 	}
@@ -106,7 +106,7 @@ func (ss *CtxSession) Del(key string) {
 func (ss *CtxSession) ExpireS(ttl int32) {
 	yn, err := ss.setSessionExpire(ttl)
 	if yn == false || err != nil {
-		fst.Panic("Session expire error.")
+		cst.Panic("Session expire error.")
 	}
 }
 
@@ -121,7 +121,7 @@ func (ss *CtxSession) Sid() string {
 
 func (ss *CtxSession) Destroy() {
 	if err := ss.destroySession(); err != nil {
-		fst.Panic("Destroy session error. " + err.Error())
+		cst.Panic("Destroy session error. " + err.Error())
 	}
 	ss.resetSession()
 }

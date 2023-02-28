@@ -4,6 +4,7 @@ package mapx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/validx"
 	"github.com/qinchende/gofast/store/orm"
@@ -104,7 +105,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 // 反射提取结构体的字段（支持嵌套递归）
 func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []*fieldOptions) {
 	if rTyp.Kind() != reflect.Struct {
-		panic(fmt.Errorf("%T is not like struct", rTyp))
+		cst.PanicString(fmt.Sprintf("%T is not like struct", rTyp))
 	}
 
 	fColumns := make([]string, 0)
@@ -152,9 +153,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 		// 4. options
 		optStr := fi.Tag.Get(opts.ValidTag)
 		vOpt, err := validx.ParseOptions(&fi, optStr)
-		if err != nil {
-			panic(err) // 这里针对某个struct取结构，直接抛系统异常
-		}
+		cst.PanicIfErr(err) // 解析不对，直接抛异常
 		fOptions = append(fOptions, &fieldOptions{valid: vOpt, sField: &fi})
 	}
 	return fColumns, fFields, fIndexes, fOptions

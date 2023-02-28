@@ -2,7 +2,10 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "net/http"
+import (
+	"github.com/qinchende/gofast/cst"
+	"net/http"
+)
 
 // 用于封装，框架自定义一组
 func (gft *GoFast) UseGlobal(inject injectFunc) *GoFast {
@@ -13,7 +16,7 @@ func (gft *GoFast) UseGlobal(inject injectFunc) *GoFast {
 func (gft *GoFast) UseHttpHandler(hds HttpHandler) *GoFast {
 	if hds != nil {
 		gft.httpHandlers = append(gft.httpHandlers, hds)
-		PanicIf(uint8(len(gft.httpHandlers)) >= maxHttpHandlers, "Http handlers more the 255.")
+		cst.PanicIf(uint8(len(gft.httpHandlers)) >= maxHttpHandlers, "Http handlers more the 255.")
 	}
 	return gft
 }

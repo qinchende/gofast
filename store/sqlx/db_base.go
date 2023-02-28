@@ -4,13 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"github.com/qinchende/gofast/connx/gfrds"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/timex"
 	"time"
 )
-
-// 执行超过500ms的语句需要优化分析，我们先打印出慢日志
-const slowThreshold = time.Millisecond * 500
 
 func (conn *OrmDB) SetRdsNodes(nodes *[]gfrds.GfRedis) {
 	if len(*nodes) > 0 {
@@ -49,7 +47,7 @@ func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) s
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	PanicIfErr(err)
+	panicIfErr(err)
 	return result
 }
 
@@ -75,7 +73,7 @@ func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) 
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	PanicIfErr(err)
+	panicIfErr(err)
 	return rows
 }
 
@@ -86,7 +84,7 @@ func (conn *OrmDB) TransBegin() *OrmDB {
 
 func (conn *OrmDB) TransCtx(ctx context.Context) *OrmDB {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	PanicIfErr(err)
+	panicIfErr(err)
 	return &OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 }
 
@@ -96,7 +94,7 @@ func (conn *OrmDB) TransFunc(fn func(newConn *OrmDB)) {
 
 func (conn *OrmDB) TransFuncCtx(ctx context.Context, fn func(newConn *OrmDB)) {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	PanicIfErr(err)
+	panicIfErr(err)
 
 	nConn := OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 	defer nConn.TransEnd()
@@ -112,12 +110,11 @@ func (conn *OrmDB) Rollback() error {
 }
 
 func (conn *OrmDB) TransEnd() {
-	var err error
-
 	if pic := recover(); pic != nil {
-		err = conn.Rollback()
+		panicIfErr(conn.Rollback())
+		cst.Panic(pic)
 	} else {
-		err = conn.Commit()
+		panicIfErr(conn.Commit())
 	}
-	LogStackIfErr(err) // 出现了非常严重的错误，可能连接没有释放
+	// 出现了非常严重的错误，可能没有提交或回滚成功
 }
