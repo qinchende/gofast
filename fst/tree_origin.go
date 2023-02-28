@@ -2,7 +2,10 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "fmt"
+import (
+	"fmt"
+	"github.com/qinchende/gofast/cst"
+)
 
 // 目前一共 73 字节
 type radixNode struct {
@@ -120,7 +123,7 @@ func (n *radixNode) regSegment(mTree *methodTree, nParent *radixNode, seg string
 	// 2.1 没有共同的前缀，他们只可能是兄弟节点。
 	// 新来的只可能绑定在 n 节点的父节点上
 	if i == 0 {
-		PanicIf(nParent == nil, "解析路由错误，找不到父节点")
+		cst.PanicIf(nParent == nil, "解析路由错误，找不到父节点")
 		nParent.regSegment(mTree, nil, seg, ri)
 		return
 	}
@@ -205,7 +208,7 @@ func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouteItem) {
 	} else {
 		wildParts = splitSlashPath(wildParts, path[lastI:]) // 最后一个段记录下来
 	}
-	PanicIf(wildCt != slashCt, "路由配置有误，通配符标识符只能成段出现")
+	cst.PanicIf(wildCt != slashCt, "路由配置有误，通配符标识符只能成段出现")
 
 	// 依次串联起所有的节点
 	pNode := n
@@ -213,11 +216,11 @@ func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouteItem) {
 	var tSeg string
 	for i := 0; i < lenParts; i++ {
 		tSeg = wildParts[i]
-		PanicIf(tSeg[0] == '*' && i < (lenParts-1), "通配符*只能出现在最后一段")
+		cst.PanicIf(tSeg[0] == '*' && i < (lenParts-1), "通配符*只能出现在最后一段")
 
 		if i == 0 {
 			if isBeginWildcard(tSeg) {
-				PanicIf(len(tSeg) < 2, "通配符必须设置参数名称")
+				cst.PanicIf(len(tSeg) < 2, "通配符必须设置参数名称")
 				pNode.nType = param
 				if tSeg[0] == '*' {
 					pNode.nType = catchAll
@@ -236,7 +239,7 @@ func (n *radixNode) bindSegment(mTree *methodTree, path string, ri *RouteItem) {
 		mTree.nodeStrLen += uint16(len(tSeg))
 		pNode.children = []*radixNode{newNode}
 		if isBeginWildcard(tSeg) {
-			PanicIf(len(tSeg) < 2, "通配符必须设置参数名称")
+			cst.PanicIf(len(tSeg) < 2, "通配符必须设置参数名称")
 			pNode.wildChild = true
 			newNode.nType = param
 			if tSeg[0] == '*' {

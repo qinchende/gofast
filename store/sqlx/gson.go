@@ -19,13 +19,13 @@ type gsonResult struct {
 	onlyGson bool
 }
 
-func loadRecordFromGsonString(dest any, data string, sm *orm.ModelSchema) error {
+func loadRecordFromGsonString(dest any, data string, ms *orm.ModelSchema) error {
 	var values []any
 	if err := jsonx.UnmarshalFromString(&values, data); err != nil {
 		return err
 	}
 
-	cls := sm.Columns()
+	cls := ms.Columns()
 	recordKV := make(map[string]any, len(cls))
 	for j := 0; j < len(cls); j++ {
 		recordKV[cls[j]] = values[j]

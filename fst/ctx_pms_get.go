@@ -29,7 +29,7 @@ func (c *Context) GetMust(key string) any {
 	if val, ok := c.Pms[key]; ok {
 		return val
 	}
-	PanicIfErr(errorKeyNotExist)
+	cst.PanicIfErr(errorKeyNotExist)
 	return nil
 }
 
@@ -44,7 +44,7 @@ func (c *Context) GetString(key string) (string, error) {
 func (c *Context) GetStringDef(key string, def string) string {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToString2(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -52,7 +52,7 @@ func (c *Context) GetStringDef(key string, def string) string {
 
 func (c *Context) GetStringMust(key string) string {
 	v, err := lang.ToString2(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -67,7 +67,7 @@ func (c *Context) GetBool(key string) (bool, error) {
 func (c *Context) GetBoolDef(key string, def bool) bool {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToBool(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -75,7 +75,7 @@ func (c *Context) GetBoolDef(key string, def bool) bool {
 
 func (c *Context) GetBoolMust(key string) bool {
 	v, err := lang.ToBool(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -89,7 +89,7 @@ func (c *Context) GetInt64(key string) (int64, error) {
 func (c *Context) GetInt64Def(key string, def int64) int64 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToInt64(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -97,7 +97,7 @@ func (c *Context) GetInt64Def(key string, def int64) int64 {
 
 func (c *Context) GetInt64Must(key string) int64 {
 	v, err := lang.ToInt64(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -111,7 +111,7 @@ func (c *Context) GetInt(key string) (int, error) {
 func (c *Context) GetIntDef(key string, def int) int {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToInt(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -119,7 +119,7 @@ func (c *Context) GetIntDef(key string, def int) int {
 
 func (c *Context) GetIntMust(key string) int {
 	v, err := lang.ToInt(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -133,7 +133,7 @@ func (c *Context) GetInt32(key string) (int32, error) {
 func (c *Context) GetInt32Def(key string, def int32) int32 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToInt32(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -141,7 +141,7 @@ func (c *Context) GetInt32Def(key string, def int32) int32 {
 
 func (c *Context) GetInt32Must(key string) int32 {
 	v, err := lang.ToInt32(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -155,7 +155,7 @@ func (c *Context) GetInt16(key string) (int16, error) {
 func (c *Context) GetInt16Def(key string, def int16) int16 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToInt16(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -163,7 +163,7 @@ func (c *Context) GetInt16Def(key string, def int16) int16 {
 
 func (c *Context) GetInt16Must(key string) int16 {
 	v, err := lang.ToInt16(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -177,7 +177,7 @@ func (c *Context) GetInt8(key string) (int8, error) {
 func (c *Context) GetInt8Def(key string, def int8) int8 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToInt8(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -185,7 +185,7 @@ func (c *Context) GetInt8Def(key string, def int8) int8 {
 
 func (c *Context) GetInt8Must(key string) int8 {
 	v, err := lang.ToInt8(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -199,7 +199,7 @@ func (c *Context) GetUint64(key string) (uint64, error) {
 func (c *Context) GetUint64Def(key string, def uint64) uint64 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToUint64(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -207,7 +207,7 @@ func (c *Context) GetUint64Def(key string, def uint64) uint64 {
 
 func (c *Context) GetUint64Must(key string) uint64 {
 	v, err := lang.ToUint64(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -221,7 +221,7 @@ func (c *Context) GetUint(key string) (uint, error) {
 func (c *Context) GetUintDef(key string, def uint) uint {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToUint(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -229,7 +229,7 @@ func (c *Context) GetUintDef(key string, def uint) uint {
 
 func (c *Context) GetUintMust(key string) uint {
 	v, err := lang.ToUint(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -243,7 +243,7 @@ func (c *Context) GetUint32(key string) (uint32, error) {
 func (c *Context) GetUint32Def(key string, def uint32) uint32 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToUint32(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -251,7 +251,7 @@ func (c *Context) GetUint32Def(key string, def uint32) uint32 {
 
 func (c *Context) GetUint32Must(key string) uint32 {
 	v, err := lang.ToUint32(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -265,7 +265,7 @@ func (c *Context) GetUint16(key string) (uint16, error) {
 func (c *Context) GetUint16Def(key string, def uint16) uint16 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToUint16(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -273,7 +273,7 @@ func (c *Context) GetUint16Def(key string, def uint16) uint16 {
 
 func (c *Context) GetUint16Must(key string) uint16 {
 	v, err := lang.ToUint16(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -287,7 +287,7 @@ func (c *Context) GetUint8(key string) (uint8, error) {
 func (c *Context) GetUint8Def(key string, def uint8) uint8 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToUint8(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -295,7 +295,7 @@ func (c *Context) GetUint8Def(key string, def uint8) uint8 {
 
 func (c *Context) GetUint8Must(key string) uint8 {
 	v, err := lang.ToUint8(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -310,7 +310,7 @@ func (c *Context) GetFloat64(key string) (float64, error) {
 func (c *Context) GetFloat64Def(key string, def float64) float64 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToFloat64(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -318,7 +318,7 @@ func (c *Context) GetFloat64Def(key string, def float64) float64 {
 
 func (c *Context) GetFloat64Must(key string) float64 {
 	v, err := lang.ToFloat64(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -332,7 +332,7 @@ func (c *Context) GetFloat32(key string) (float32, error) {
 func (c *Context) GetFloat32Def(key string, def float32) float32 {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToFloat32(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -340,7 +340,7 @@ func (c *Context) GetFloat32Def(key string, def float32) float32 {
 
 func (c *Context) GetFloat32Must(key string) float32 {
 	v, err := lang.ToFloat32(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -356,7 +356,7 @@ func (c *Context) GetTime(key string) (*time.Time, error) {
 func (c *Context) GetTimeDef(key string, def *time.Time) *time.Time {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToTime("", v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -364,7 +364,7 @@ func (c *Context) GetTimeDef(key string, def *time.Time) *time.Time {
 
 func (c *Context) GetTimeMust(key string) *time.Time {
 	v, err := lang.ToTime("", c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 
@@ -378,7 +378,7 @@ func (c *Context) GetDuration(key string) (time.Duration, error) {
 func (c *Context) GetDurationDef(key string, def time.Duration) time.Duration {
 	if v, ok := c.Pms[key]; ok && v != nil {
 		v2, err2 := lang.ToDuration(v)
-		PanicIfErr(err2)
+		cst.PanicIfErr(err2)
 		return v2
 	}
 	return def
@@ -386,7 +386,7 @@ func (c *Context) GetDurationDef(key string, def time.Duration) time.Duration {
 
 func (c *Context) GetDurationMust(key string) time.Duration {
 	v, err := lang.ToDuration(c.GetMust(key))
-	PanicIfErr(err)
+	cst.PanicIfErr(err)
 	return v
 }
 

@@ -5,17 +5,18 @@ package mapx
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"reflect"
 )
 
 func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Ptr {
-		panic("Target object must be pointer.")
+		cst.PanicString("Target object must be pointer.")
 	}
 	sliceType := dTyp.Elem()
 	if sliceType.Kind() != reflect.Slice {
-		panic("Target object must be slice.")
+		cst.PanicString("Target object must be slice.")
 	}
 
 	isPtr := false
@@ -25,8 +26,11 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	if recordType.Kind() == reflect.Ptr {
 		isPtr = true
 		recordType = recordType.Elem()
-	} else if recordType.Name() == "KV" || recordType.Name() == "cst.KV" || recordType.Name() == "fst.KV" {
-		isKV = true
+	} else {
+		typName := recordType.Name()
+		if typName == "cst.KV" || typName == "fst.KV" || typName == "KV" {
+			isKV = true
+		}
 	}
 
 	return sliceType, recordType, isPtr, isKV

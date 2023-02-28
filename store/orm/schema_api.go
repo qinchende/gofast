@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/hash"
 	"reflect"
-	"sync"
 	"time"
 )
 
@@ -100,19 +99,4 @@ func (ms *ModelSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
 
 func (ms *ModelSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 缓存数据表的Schema
-var cachedSchemas sync.Map
-
-func cacheSetSchema(typ reflect.Type, val *ModelSchema) {
-	cachedSchemas.Store(typ, val)
-}
-
-func cacheGetSchema(typ reflect.Type) *ModelSchema {
-	if ret, ok := cachedSchemas.Load(typ); ok {
-		return ret.(*ModelSchema)
-	}
-	return nil
 }

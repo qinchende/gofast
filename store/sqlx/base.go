@@ -5,11 +5,14 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/qinchende/gofast/connx/gfrds"
+	"time"
 )
 
 const (
 	timeFormat     = "2006-01-02 15:04:05"
 	timeFormatMini = "01-02 15:04:05"
+	
+	slowThreshold = time.Millisecond * 500 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
 )
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
@@ -39,7 +42,7 @@ const (
 	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
 )
 
-// 功能强大的
+// 功能强大的控制参数，这个对象比较大，可以考虑用sync.Pool缓存
 type SelectPet struct {
 	Target   any        // 解析的目标对象（指针类型）
 	Sql      string     // 自定义完整的SQL语句，注意(Sql和SqlCount是成对出现的)

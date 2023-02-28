@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"math"
 	"net/http"
 	"regexp"
@@ -10,19 +11,19 @@ import (
 
 // idx 0. not match any 1. 404 handlers 2. 405 handlers
 func (gft *GoFast) regSpecialHandlers(hds []CtxHandler, idx int) {
-	PanicIf(len(hds) <= 0, "there must be at least one handler")
-	PanicIf(len(gft.allRoutes[idx].eHds) > 0, "handlers already exists.")
+	cst.PanicIf(len(hds) <= 0, "there must be at least one handler")
+	cst.PanicIf(len(gft.allRoutes[idx].eHds) > 0, "handlers already exists.")
 	gft.allRoutes[idx].eHds = addCtxHandlers(gft.fstMem, hds)
 }
 
 // 所有注册的 router handlers 都要通过此函数来注册
 func (gp *RouteGroup) register(httpMethod, relPath string, hds []CtxHandler) *RouteItem {
-	PanicIf(len(hds) <= 0, "there must be at least one handler")
+	cst.PanicIf(len(hds) <= 0, "there must be at least one handler")
 	// 最终的路由绝对路径
 	absPath := gp.fixAbsolutePath(relPath)
-	PanicIf(absPath[0] != '/', "Path must begin with '/'")
-	PanicIf(len(absPath) > math.MaxUint8, "The path is more than 255 chars")
-	PanicIf(len(httpMethod) == 0, "HTTP method can not be empty")
+	cst.PanicIf(absPath[0] != '/', "Path must begin with '/'")
+	cst.PanicIf(len(absPath) > math.MaxUint8, "The path is more than 255 chars")
+	cst.PanicIf(len(httpMethod) == 0, "HTTP method can not be empty")
 
 	// 新添加一个 GroupItem，记录所有的处理函数
 	ri := &RouteItem{
@@ -36,7 +37,7 @@ func (gp *RouteGroup) register(httpMethod, relPath string, hds []CtxHandler) *Ro
 	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再构造路由前缀树
 	ri.routeIdx = uint16(len(myApp.allRoutes))
 	myApp.allRoutes = append(myApp.allRoutes, ri)
-	PanicIf(len(myApp.allRoutes) > math.MaxInt16, "Too many routers more than MaxInt16.")
+	cst.PanicIf(len(myApp.allRoutes) > math.MaxInt16, "Too many routers more than MaxInt16.")
 	return ri
 }
 
