@@ -45,7 +45,7 @@ func cacheGetSchema(typ reflect.Type) *StructSchema {
 
 // 提取结构体变量的Schema元数据
 func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *StructSchema {
-	for rTyp.Kind() == reflect.Ptr {
+	for rTyp.Kind() == reflect.Pointer {
 		rTyp = rTyp.Elem()
 	}
 	// 看类型，缓存有就直接用，否则计算一次并缓存
