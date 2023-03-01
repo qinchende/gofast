@@ -57,7 +57,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		rTyp = eTyp.Elem()
 	}
 
-	for rTyp.Kind() == reflect.Ptr {
+	for rTyp.Kind() == reflect.Pointer {
 		rTyp = rTyp.Elem()
 	}
 

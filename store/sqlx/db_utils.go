@@ -18,7 +18,7 @@ func panicIfErr(err error) {
 // Utils
 func checkDestType(dest any) (*orm.ModelSchema, reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
-	if dTyp.Kind() != reflect.Ptr {
+	if dTyp.Kind() != reflect.Pointer {
 		cst.PanicString("Target object must be pointer.")
 	}
 	sliceType := dTyp.Elem()
@@ -31,12 +31,12 @@ func checkDestType(dest any) (*orm.ModelSchema, reflect.Type, reflect.Type, bool
 	isKV := false
 	recordType := sliceType.Elem()
 	// 推荐: dest 传入的 slice 类型为指针类型，这样将来就不涉及变量值拷贝了。
-	if recordType.Kind() == reflect.Ptr {
+	if recordType.Kind() == reflect.Pointer {
 		isPtr = true
 		recordType = recordType.Elem()
 	} else {
 		typName := recordType.Name()
-		if typName == "cst.KV" || typName == "fst.KV" || typName == "KV" {
+		if typName == "cst.KV" || typName == "KV" {
 			isKV = true
 		}
 	}

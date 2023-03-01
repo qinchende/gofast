@@ -52,16 +52,16 @@ const (
 )
 
 // 使用什么典型配置来解析验证数据
-func matchOptions(like int8) (ao *BindOptions) {
+func matchOptions(like int8) (opt *BindOptions) {
 	switch like {
 	case LikeLoadDB:
-		ao = dbStructOptions
+		opt = dbStructOptions
 	case LikeInput:
-		ao = inputStructOptions
+		opt = inputStructOptions
 	case LikeConfig:
-		ao = configStructOptions
+		opt = configStructOptions
 	default:
-		ao = configStructOptions
+		opt = configStructOptions
 	}
 	return
 }

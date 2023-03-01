@@ -4,6 +4,7 @@ package jsonx
 
 import (
 	"encoding/json"
+	"github.com/qinchende/gofast/skill/lang"
 	"io"
 	"strings"
 )
@@ -16,7 +17,9 @@ var (
 )
 
 func Unmarshal(v any, data []byte) error {
-	return json.Unmarshal(data, v)
+	// return json.Unmarshal(data, v)
+	// 为了统一设置 decoder.UseNumber() 这里转换成字符串使用
+	return UnmarshalFromString(v, lang.BytesToString(data))
 }
 
 func UnmarshalFromString(v any, str string) error {

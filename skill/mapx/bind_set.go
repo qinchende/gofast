@@ -15,7 +15,7 @@ import (
 )
 
 // 返回错误的原则是转换时候发现格式错误，不能转换
-func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, bindOpts *BindOptions) error {
+func sdxSetValue(dstVal reflect.Value, src any, fOpt *fieldOptions, bindOpts *BindOptions) error {
 	// 如果源值为nil，不做任何处理，也不报错
 	if src == nil {
 		return nil
@@ -25,60 +25,60 @@ func sdxSetValue(dst reflect.Value, src any, fOpt *fieldOptions, bindOpts *BindO
 	switch srcT.Kind() {
 	case reflect.String:
 		if s, ok := src.(string); ok {
-			return sdxSetWithString(dst, s, fOpt)
+			return sdxSetWithString(dstVal, s, fOpt)
 		} else if num, ok := src.(json.Number); ok {
-			return sdxSetWithString(dst, num.String(), fOpt)
+			return sdxSetWithString(dstVal, num.String(), fOpt)
 		} else {
-			return sdxSetWithString(dst, fmt.Sprint(src), fOpt)
+			return sdxSetWithString(dstVal, fmt.Sprint(src), fOpt)
 		}
 	case reflect.Array, reflect.Slice:
-		return bindList(dst.Addr().Interface(), src, fOpt, bindOpts)
+		return bindList(dstVal.Addr().Interface(), src, fOpt, bindOpts)
 	}
 
 	// 实体对象字段类型
-	switch dst.Kind() {
+	switch dstVal.Kind() {
 	case reflect.String:
-		dst.SetString(sdxAsString(src))
+		dstVal.SetString(sdxAsString(src))
 		return nil
 	case reflect.Bool:
 		bv, err := sdxAsBool(src)
 		if err == nil {
-			dst.SetBool(bv.(bool))
+			dstVal.SetBool(bv.(bool))
 		}
 		return err
 	case reflect.Float32, reflect.Float64:
 		fv, err := sdxAsFloat64(src)
 		if err == nil {
-			dst.SetFloat(fv.(float64))
+			dstVal.SetFloat(fv.(float64))
 		}
 		return err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 		iv, err := sdxAsInt64(src)
 		if err == nil {
-			dst.SetInt(iv.(int64))
+			dstVal.SetInt(iv.(int64))
 		}
 		return err
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 		uiv, err := sdxAsUInt64(src)
 		if err == nil {
-			dst.SetUint(uiv.(uint64))
+			dstVal.SetUint(uiv.(uint64))
 		}
 		return err
 	case reflect.Interface:
 		// 初始化零值
-		dst.Set(reflect.Zero(dst.Type()))
+		dstVal.Set(reflect.Zero(dstVal.Type()))
 		return nil
 	case reflect.Slice, reflect.Array:
 		// TODO: 此时src肯定不是list，但有可能是未解析的字符串
 		//newSrc := []any{src}
-		return bindList(dst, src, fOpt, bindOpts)
+		return bindList(dstVal, src, fOpt, bindOpts)
 	case reflect.Map:
 		// TODO: 需要一种新的解析函数
 		return errors.New("only map-like configs supported")
 	case reflect.Struct:
 		// 这个时候值可能是时间类型
-		if _, ok := dst.Interface().(time.Time); ok {
-			return sdxSetTime(dst, sdxAsString(src), fOpt.sField)
+		if _, ok := dstVal.Interface().(time.Time); ok {
+			return sdxSetTime(dstVal, sdxAsString(src), fOpt.sField)
 		}
 	}
 	return nil

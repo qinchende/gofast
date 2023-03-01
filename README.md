@@ -46,7 +46,7 @@ var handler = func(str string) func(c *fst.Context) {
 var handlerRender = func(str string) func(c *fst.Context) {
 	return func(c *fst.Context) {
 		log.Println(str)
-		c.Fai(200, fst.KV{"data": str})
+		c.Fai(200, cst.KV{"data": str})
 	}
 }
 
@@ -114,7 +114,7 @@ func main() {
 		nick := ctx.DefaultPostForm("nick", "anonymous")
 
 		//names := ctx.PostFormMap("names")
-		ctx.Suc(fst.KV{
+		ctx.Suc(cst.KV{
 			"message": message,
 			"nick":    nick,
 			"first":   firstname,
