@@ -1,7 +1,7 @@
 package collect
 
 import (
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/randx"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -21,7 +21,7 @@ func TestSafeMap(t *testing.T) {
 		},
 	}
 	for _, test := range tests {
-		t.Run(lang.Rand(), func(t *testing.T) {
+		t.Run(randx.Rand(), func(t *testing.T) {
 			testSafeMapWithParameters(t, test.size, test.exception)
 		})
 	}

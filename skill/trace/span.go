@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/randx"
 	"strconv"
 	"strings"
 	"time"
@@ -35,7 +36,7 @@ func newServerSpan(carrier Carrier, serviceName, operationName string) tracespec
 			return carrier.Get(traceIdKey)
 		}
 		return ""
-	}, lang.RandId)
+	}, randx.RandId)
 	spanId := lang.TakeWithPriority(func() string {
 		if carrier != nil {
 			return carrier.Get(spanIdKey)

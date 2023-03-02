@@ -2,6 +2,7 @@ package hash
 
 import (
 	"crypto/md5"
+	"crypto/sha1"
 	"fmt"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/spaolacci/murmur3"
@@ -13,6 +14,12 @@ func Hash(data []byte) uint64 {
 
 func Md5(data []byte) []byte {
 	digest := md5.New()
+	digest.Write(data)
+	return digest.Sum(nil)
+}
+
+func Sha1(data []byte) []byte {
+	digest := sha1.New()
 	digest.Write(data)
 	return digest.Sum(nil)
 }

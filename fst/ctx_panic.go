@@ -2,7 +2,9 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "github.com/qinchende/gofast/skill/lang"
+import (
+	"github.com/qinchende/gofast/skill/lang"
+)
 
 // 异常处理逻辑的接口定义
 type panicHandler interface {
@@ -32,4 +34,21 @@ func (c *Context) PanicCatch(ret any) {
 			c.FaiMsg(lang.ToString(ret))
 		}
 	}
+}
+
+// 如果有错误就引发异常，同时返回指定的结果
+func (c *Context) PanicIfErr(err error, ret any) {
+	if err == nil {
+		return
+	}
+
+	switch ret.(type) {
+	case string:
+		c.PanicPet = &Ret{Msg: ret.(string)}
+	case *Ret:
+		c.PanicPet = ret.(*Ret)
+	default:
+		c.PanicPet = &Ret{Msg: lang.ToString(ret)}
+	}
+	panic(err.Error())
 }

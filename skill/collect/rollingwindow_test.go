@@ -1,7 +1,7 @@
 package collect
 
 import (
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/randx"
 	"github.com/stretchr/testify/assert"
 	"math/rand"
 	"testing"
@@ -85,7 +85,7 @@ func TestRollingWindowReduce(t *testing.T) {
 	}
 
 	for _, test := range tests {
-		t.Run(lang.Rand(), func(t *testing.T) {
+		t.Run(randx.Rand(), func(t *testing.T) {
 			r := test.win
 			for x := 0; x < size; x++ {
 				for i := 0; i <= x; i++ {

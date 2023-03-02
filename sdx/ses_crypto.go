@@ -6,7 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/randx"
 	"regexp"
 	"strings"
 )
@@ -38,7 +38,7 @@ func genToken(secret string) (string, string) {
 
 // 按照指定长度length, 自动生成随机的Guid字符串，
 func genGuid(length int) string {
-	src := lang.GetRandomBytes(length)
+	src := randx.RandomBytes(length)
 	guid := base64.StdEncoding.EncodeToString(src)
 	guid = cleanString(guid)
 

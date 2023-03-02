@@ -3,7 +3,7 @@
 package fuse
 
 import (
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/skill/randx"
 )
 
 type autoBreaker struct {
@@ -20,7 +20,7 @@ func NewGBreaker(name string, markLog bool) Breaker {
 		markLog: markLog,
 	}
 	if len(b.name) == 0 {
-		b.name = lang.Rand()
+		b.name = randx.Rand()
 	}
 	b.throttle = newGoogleThrottle()
 	return &b
