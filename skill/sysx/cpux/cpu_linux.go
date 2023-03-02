@@ -2,7 +2,6 @@ package cpux
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 	"time"
 
@@ -135,7 +134,7 @@ func systemCpuUsage() (uint64, error) {
 		fields := strings.Fields(line)
 		if fields[0] == "cpu" {
 			if len(fields) < cpuFields {
-				return 0, fmt.Errorf("bad format of cpu stats")
+				return 0, errors.New("bad format of cpu stats")
 			}
 
 			var totalClockTicks uint64

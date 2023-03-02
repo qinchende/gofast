@@ -11,47 +11,48 @@ import (
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func DecodeYamlBytes(dst any, content []byte, like int8) error {
-	return DecodeYamlBytesX(dst, content, matchOptions(like))
+func BindYamlBytes(dst any, content []byte, like int8) error {
+	return BindYamlBytesX(dst, content, matchOptions(like))
 }
 
-func DecodeYamlBytesX(dst any, content []byte, opts *BindOptions) error {
-	var o any
-	if err := DecodeYaml(&o, content); err != nil {
+func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
+	var res any
+	if err := UnmarshalYamlBytes(&res, content); err != nil {
 		return err
 	}
 
-	if kv, ok := o.(map[string]any); ok {
-		return BindKVX(dst, kv, opts)
+	if kvs, ok := res.(map[string]any); ok {
+		return BindKVX(dst, kvs, opts)
 	} else {
 		return errors.New("only map-like configs supported")
 	}
 }
 
-func DecodeYamlReader(dst any, reader io.Reader, like int8) error {
-	return DecodeYamlReaderX(dst, reader, matchOptions(like))
+func BindYamlReader(dst any, reader io.Reader, like int8) error {
+	return BindYamlReaderX(dst, reader, matchOptions(like))
 }
 
-func DecodeYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {
+func BindYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {
 	content, err := ioutil.ReadAll(reader)
 	if err != nil {
 		return err
 	}
-	return DecodeYamlBytesX(dst, content, opts)
-}
-
-// yamlUnmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.
-func DecodeYaml(out any, in []byte) error {
-	var res any
-	if err := yaml.Unmarshal(in, &res); err != nil {
-		return err
-	}
-
-	*out.(*any) = cleanupMapValue(res)
-	return nil
+	return BindYamlBytesX(dst, content, opts)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// yamlUnmarshal YAML to map[string]interface{} instead of map[interface{}]interface{}.
+func UnmarshalYamlBytes(dest any, content []byte) error {
+	var res any
+	if err := yaml.Unmarshal(content, &res); err != nil {
+		return err
+	}
+
+	*dest.(*any) = cleanupMapValue(res)
+	return nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++
 func cleanupInterfaceMap(in map[any]any) map[string]any {
 	res := make(map[string]any)
 	for k, v := range in {

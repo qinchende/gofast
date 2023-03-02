@@ -76,10 +76,10 @@ func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 	return nil
 }
 
-// src 只能是 array, slice 类型。如果是 string ，先按照JSON格式解析成数组
+// Note: src 只能是 array, slice 类型。如果是 string ，先按照JSON格式解析成数组
 func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err error) {
 	if fOpt == nil {
-		return fmt.Errorf("field options can't nil.")
+		return errors.New("field options can't nil.")
 	}
 
 	dstVal := reflect.Indirect(reflect.ValueOf(dst))

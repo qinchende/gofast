@@ -66,6 +66,11 @@ func SessSetUid(c *fst.Context, uid int64) {
 	c.Sess.Set(MySessDB.GuidField, uid)
 }
 
+// 获取登录账号的uid
+func SessGetUid(c *fst.Context) any {
+	return c.Sess.Get(MySessDB.GuidField)
+}
+
 // 销毁当前 Session
 func SessDestroy(c *fst.Context) {
 	c.Sess.Destroy()

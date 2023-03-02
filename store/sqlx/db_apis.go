@@ -90,6 +90,17 @@ func (conn *OrmDB) QueryRowSql(dest any, sql string, args ...any) int64 {
 	return scanSqlRowsOne(dest, sqlRows, nil, nil)
 }
 
+// 查询数据库，只返回查询结果条数，而不去解析查询到的数据
+func (conn *OrmDB) QuerySqlJust(sql string, args ...any) (ct int64) {
+	sqlRows := conn.QuerySql(sql, args...)
+	defer CloseSqlRows(sqlRows)
+	for sqlRows.Next() {
+		ct++
+	}
+	panicIfErr(sqlRows.Err())
+	return
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询多行记录
 func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {

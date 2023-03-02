@@ -8,11 +8,11 @@ import (
 )
 
 // +++ JSON Bytes
-func DecodeJsonBytes(dst any, content []byte, like int8) error {
-	return DecodeJsonBytesX(dst, content, matchOptions(like))
+func BindJsonBytes(dst any, content []byte, like int8) error {
+	return BindJsonBytesX(dst, content, matchOptions(like))
 }
 
-func DecodeJsonBytesX(dst any, content []byte, opts *BindOptions) error {
+func BindJsonBytesX(dst any, content []byte, opts *BindOptions) error {
 	var kv map[string]any
 	if err := jsonx.Unmarshal(&kv, content); err != nil {
 		return err
@@ -21,11 +21,11 @@ func DecodeJsonBytesX(dst any, content []byte, opts *BindOptions) error {
 }
 
 // +++ JSON Reader
-func DecodeJsonReader(dst any, reader io.Reader, like int8) error {
-	return DecodeJsonReaderX(dst, reader, matchOptions(like))
+func BindJsonReader(dst any, reader io.Reader, like int8) error {
+	return BindJsonReaderX(dst, reader, matchOptions(like))
 }
 
-func DecodeJsonReaderX(dst any, reader io.Reader, opts *BindOptions) error {
+func BindJsonReaderX(dst any, reader io.Reader, opts *BindOptions) error {
 	var kv map[string]any
 	if err := jsonx.UnmarshalFromReader(&kv, reader); err != nil {
 		return err
