@@ -5,6 +5,7 @@ package sdx
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
+	"github.com/qinchende/gofast/skill/lang"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -55,7 +56,7 @@ func SessBuilder(c *fst.Context) {
 
 // 验证请求是否经过了合法认证
 func SessMustLogin(c *fst.Context) {
-	uid := c.Sess.Get(MySessDB.GuidField)
+	uid := c.Sess.Get(MySessDB.UidField)
 	if uid == nil || uid == "" {
 		c.AbortFai(110, "User login auth error.", nil)
 	}
@@ -63,12 +64,13 @@ func SessMustLogin(c *fst.Context) {
 
 // 设置当前登录账号的 uid
 func SessSetUid(c *fst.Context, uid int64) {
-	c.Sess.Set(MySessDB.GuidField, uid)
+	c.Sess.Set(MySessDB.UidField, uid)
 }
 
 // 获取登录账号的uid
-func SessGetUid(c *fst.Context) any {
-	return c.Sess.Get(MySessDB.GuidField)
+func SessGetUid(c *fst.Context) (uid int64) {
+	uid, _ = lang.ToInt64(c.Sess.Get(MySessDB.UidField))
+	return
 }
 
 // 销毁当前 Session

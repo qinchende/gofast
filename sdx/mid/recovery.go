@@ -17,9 +17,9 @@ func Recovery(c *fst.Context) {
 			// 可能需要重定向异常结果的返回
 			if c.PanicPet != nil {
 				switch ret := c.PanicPet.(type) {
-				case fst.Ret:
+				case *cst.Ret:
 					c.CarryAddMsg(lang.ToString(pic))
-					c.AbortFai(ret.Code, ret.Msg, ret.Data)
+					c.AbortRet(ret)
 					return
 				case fst.PanicFunc, *fst.PanicFunc: // 执行自定义异常函数，比如变量初始化等
 					c.PanicPet.Callback()
@@ -34,6 +34,10 @@ func Recovery(c *fst.Context) {
 				c.AbortFai(0, info.Error(), nil)
 			case cst.TypeInt:
 				c.AbortFai(int(info), "", nil)
+			case *cst.Ret:
+				c.AbortRet(info)
+			case cst.Ret:
+				c.AbortRet(&info)
 			default:
 				// TODO-important: 非预期的异常，比如系统异常
 				// 将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架GFPanic）

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/qinchende/gofast/skill/fs"
-	"github.com/qinchende/gofast/skill/hash"
+	"github.com/qinchende/gofast/skill/hashx"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,7 +55,7 @@ func TestConfigJson(t *testing.T) {
 }
 
 func createTempFile(ext, text string) (string, error) {
-	tmpfile, err := ioutil.TempFile(os.TempDir(), hash.Md5HexBytes([]byte(text))+"*"+ext)
+	tmpfile, err := ioutil.TempFile(os.TempDir(), hashx.Md5HexBytes([]byte(text))+"*"+ext)
 	if err != nil {
 		return "", err
 	}

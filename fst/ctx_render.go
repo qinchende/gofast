@@ -11,16 +11,6 @@ import (
 	"net/http"
 )
 
-//  返回结构体
-type Ret struct {
-	Code int    // 返回编码
-	Msg  string // 文本消息
-	Data any    // 携带数据体
-	Desc string // 描述，内部说明，不对外传递和显示
-}
-
-func (ret Ret) Callback() {}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast JSON render
 // JSON是GoFast默认的返回格式，一等公民。所以默认函数命名没有给出JSON字样
@@ -46,7 +36,7 @@ func (c *Context) FaiCode(code int) {
 	c.Fai(code, "", nil)
 }
 
-func (c *Context) FaiRet(ret *Ret) {
+func (c *Context) FaiRet(ret *cst.Ret) {
 	c.Fai(ret.Code, ret.Msg, ret.Data)
 }
 
@@ -61,8 +51,8 @@ func (c *Context) IfSucFai(ifTrue bool, suc, fai any) {
 		switch suc.(type) {
 		case string:
 			c.SucMsg(suc.(string))
-		case *Ret:
-			c.SucRet(suc.(*Ret))
+		case *cst.Ret:
+			c.SucRet(suc.(*cst.Ret))
 		case int:
 			c.SucCode(suc.(int))
 		default:
@@ -72,8 +62,8 @@ func (c *Context) IfSucFai(ifTrue bool, suc, fai any) {
 		switch fai.(type) {
 		case string:
 			c.FaiMsg(fai.(string))
-		case *Ret:
-			c.FaiRet(fai.(*Ret))
+		case *cst.Ret:
+			c.FaiRet(fai.(*cst.Ret))
 		case error:
 			c.FaiErr(fai.(error))
 		case int:
@@ -98,7 +88,7 @@ func (c *Context) SucCode(code int) {
 	c.Suc(code, "", nil)
 }
 
-func (c *Context) SucRet(ret *Ret) {
+func (c *Context) SucRet(ret *cst.Ret) {
 	c.Suc(ret.Code, ret.Msg, ret.Data)
 }
 
@@ -139,7 +129,7 @@ func (c *Context) AbortFai(code int, msg string, data any) {
 	c.AbortDirect(http.StatusOK, bytes)
 }
 
-func (c *Context) AbortRet(ret *Ret) {
+func (c *Context) AbortRet(ret *cst.Ret) {
 	c.AbortFai(ret.Code, ret.Msg, ret.Data)
 }
 

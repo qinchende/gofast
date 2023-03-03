@@ -1,7 +1,5 @@
 package cst
 
-import "github.com/qinchende/gofast/skill/lang"
-
 // GoFast框架主动抛异常
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 为了和Runtime抛异常区别开来，GoFast主动抛出的异常都是自定义数据类型
@@ -18,7 +16,7 @@ func Panic(val any) {
 	case int:
 		panic(TypeInt(val.(int)))
 	default:
-		panic(TypeString(lang.ToString(val)))
+		panic(val)
 	}
 }
 

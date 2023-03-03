@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
@@ -307,7 +308,7 @@ func sdxSetTimeDuration(dst reflect.Value, src string) error {
 func sdxSetTime(dst reflect.Value, src string, sField *reflect.StructField) error {
 	timeFormat := ""
 	if sField != nil {
-		timeFormat = sField.Tag.Get("time_format")
+		timeFormat = sField.Tag.Get(cst.FieldTagTimeFmt)
 	}
 	if timeFormat == "" {
 		timeFormat = time.RFC3339
@@ -337,11 +338,11 @@ func sdxSetTime(dst reflect.Value, src string, sField *reflect.StructField) erro
 
 	l := time.Local
 	if sField != nil {
-		if isUTC, _ := strconv.ParseBool(sField.Tag.Get("time_utc")); isUTC {
+		if isUTC, _ := strconv.ParseBool(sField.Tag.Get(cst.FieldTagTimeUTC)); isUTC {
 			l = time.UTC
 		}
 
-		if locTag := sField.Tag.Get("time_location"); locTag != "" {
+		if locTag := sField.Tag.Get(cst.FieldTagTimeLoc); locTag != "" {
 			loc, err := time.LoadLocation(locTag)
 			if err != nil {
 				return err

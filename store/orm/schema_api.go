@@ -2,7 +2,7 @@ package orm
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/skill/hash"
+	"github.com/qinchende/gofast/skill/hashx"
 	"reflect"
 	"time"
 )
@@ -24,7 +24,7 @@ func (ms *ModelSchema) CacheLineKey(dbName, id any) string {
 }
 
 func (ms *ModelSchema) CacheSqlKey(sql string) string {
-	return "Gf#Pet#" + hash.Md5HexString(sql)
+	return "Gf#Pet#" + hashx.Md5HexString(sql)
 }
 
 func (ms *ModelSchema) ExpireS() uint32 {

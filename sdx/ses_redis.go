@@ -23,7 +23,7 @@ func (ss *CtxSession) loadSessionFromRedis(c *fst.Context) error {
 func (ss *CtxSession) saveSessionToRedis() (string, error) {
 	str, _ := jsonx.Marshal(ss.values)
 	ttl := MySessDB.TTL
-	if ss.tokenIsNew && ss.values[MySessDB.GuidField] == nil {
+	if ss.tokenIsNew && ss.values[MySessDB.UidField] == nil {
 		ttl = MySessDB.TTLNew
 	}
 	return MySessDB.Redis.Set(sdxSessKeyPrefix+ss.guid, str, time.Duration(ttl)*time.Second)

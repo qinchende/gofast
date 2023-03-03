@@ -1,10 +1,9 @@
 package fs
 
 import (
+	"github.com/qinchende/gofast/skill/hashx"
 	"io/ioutil"
 	"os"
-
-	"github.com/qinchende/gofast/skill/hash"
 )
 
 // TempFileWithText creates the temporary file with the given content,
@@ -12,7 +11,7 @@ import (
 // The file is kept as open, the caller should close the file handle,
 // and remove the file by name.
 func TempFileWithText(text string) (*os.File, error) {
-	tmpfile, err := ioutil.TempFile(os.TempDir(), hash.Md5HexBytes([]byte(text)))
+	tmpfile, err := ioutil.TempFile(os.TempDir(), hashx.Md5HexBytes([]byte(text)))
 	if err != nil {
 		return nil, err
 	}
