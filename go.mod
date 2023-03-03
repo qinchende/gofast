@@ -10,6 +10,7 @@ require (
 	github.com/gomodule/redigo v1.8.3
 	github.com/json-iterator/go v1.1.12
 	github.com/prometheus/client_golang v1.13.0
+	github.com/samber/lo v1.37.0
 	github.com/shirou/gopsutil/v3 v3.21.11
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.1
@@ -74,6 +75,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.11.2 // indirect
 	go.opentelemetry.io/proto/otlp v0.19.0 // indirect
 	golang.org/x/crypto v0.0.0-20221010152910-d6f0a8c073c2 // indirect
+	golang.org/x/exp v0.0.0-20220303212507-bbda1eaf7a17 // indirect
 	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
 	golang.org/x/sys v0.3.0 // indirect

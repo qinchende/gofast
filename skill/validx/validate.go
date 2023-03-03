@@ -8,6 +8,7 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"regexp"
+	"time"
 )
 
 var (
@@ -43,6 +44,14 @@ func IsBase64(str string) bool {
 	return regexMap["base64"].MatchString(str)
 }
 
+func IsLenRange(str string, min, max int) bool {
+	return len(str) >= min && len(str) <= max
+}
+
+func IsNumRange(num float64, min, max float64) bool {
+	return num >= min && num <= max
+}
+
 // 验证结构体字段值，是否符合指定规范
 func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 	if vOpts == nil {
@@ -63,31 +72,37 @@ func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 			return fmt.Errorf(`value "%s" not in "%v"`, str, vOpts.Enum)
 		}
 		// 否则常见的正则表达式
-		if vOpts.Match != "" {
+		if len(vOpts.Match) > 0 {
 			reg := regexMap[vOpts.Match]
 			if reg != nil {
+				// 通用正则验证
+				// case "email":
+				// case "mobile":
+				// case "ipv4":
+				// case "ipv4:port":
+				// case "base64":
+				// case "base64URL":
 				if reg.MatchString(str) == false {
-					return fmt.Errorf(`value "%s" not like "%s"`, str, vOpts.Match)
+					return fmt.Errorf(`The value "%s" not like "%s"`, str, vOpts.Match)
 				}
 			} else {
-				switch {
-				//case str == "email":
-				//case str == "mobile":
-				//case str == "ipv4":
-				//case str == "ipv4:port":
-				//case str == "base64":
-				//case str == "base64URL":
-				case str == "ipv6":
-				case str == "id_card":
-				case str == "url":
-				case str == "file":
-				case str == "time":
-				case str == "datetime":
+				// 自定义验证逻辑
+				switch vOpts.Match {
+				case "ipv6":
+				case "id_card":
+				case "url":
+				case "file":
+				case "time":
+					if len(vOpts.TimeFmt) > 0 {
+						if _, err := time.Parse(vOpts.TimeFmt, str); err != nil {
+							return fmt.Errorf(`value "%s" can't match time format "%s"`, str, vOpts.TimeFmt)
+						}
+					}
 				}
 			}
 		}
-		// 自定义正则表达式
-		if vOpts.Regex != "" {
+		// 自定义正则验证
+		if len(vOpts.Regex) > 0 {
 			if regexp.MustCompile(vOpts.Regex).MatchString(str) == false {
 				return fmt.Errorf(`value "%s" can't match "%s"`, str, vOpts.Regex)
 			}
@@ -98,10 +113,13 @@ func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 		err = checkNumberRange(float64(fValue.Uint()), vOpts.Range)
 	case reflect.Float32, reflect.Float64:
 		err = checkNumberRange(fValue.Float(), vOpts.Range)
+	case reflect.Struct:
+		// todo: 如果是 time.Time 类型如何处理
 	}
 	return
 }
 
+// 长度范围验证
 func checkNumberRange(fv float64, nr *numRange) error {
 	if nr == nil {
 		return nil

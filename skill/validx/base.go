@@ -9,7 +9,8 @@ const (
 	attrRange    = "range"
 	attrLength   = "len"
 	attrRegex    = "regex"
-	attrMatch    = "match" // email,mobile,ipv4,ipv4:port,ipv6,id_card,url,file,base64,time,datetime
+	attrMatch    = "match" // email,mobile,ipv4,ipv4:port,ipv6,id_card,url,file,base64,time
+	attrTimeFmt  = "time_fmt"
 
 	// 常用关键字
 	itemSeparator = "|"
@@ -23,6 +24,7 @@ type (
 		Len      *numRange // 字符串长度范围
 		Regex    string    // 正则表达式
 		Match    string    // 匹配某个内置的格式
+		TimeFmt  string    // 时间格式化
 		DefValue string    // 默认值
 		Required bool      // 是否必传项
 	}

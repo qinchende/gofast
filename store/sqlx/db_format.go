@@ -2,7 +2,7 @@ package sqlx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/skill/hash"
+	"github.com/qinchende/gofast/skill/hashx"
 	"strings"
 	"time"
 )
@@ -26,10 +26,10 @@ func realSql(sqlStr string, args ...any) string {
 }
 
 func sqlHash(sqlStr string) string {
-	return hash.Md5HexString(sqlStr)
+	return hashx.Md5HexString(sqlStr)
 }
 
 func realSqlHash(sqlStr string, args ...any) string {
 	sql := realSql(sqlStr, args...)
-	return hash.Md5HexString(sql)
+	return hashx.Md5HexString(sql)
 }

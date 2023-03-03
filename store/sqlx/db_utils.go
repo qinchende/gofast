@@ -4,6 +4,7 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/store/orm"
+	"github.com/samber/lo"
 	"reflect"
 )
 
@@ -36,9 +37,12 @@ func checkDestType(dest any) (*orm.ModelSchema, reflect.Type, reflect.Type, bool
 		recordType = recordType.Elem()
 	} else {
 		typName := recordType.Name()
-		if typName == "cst.KV" || typName == "KV" {
+		if lo.Contains[string]([]string{"KV", "cst.KV"}, typName) {
 			isKV = true
 		}
+		//if typName == "cst.KV" || typName == "KV" {
+		//	isKV = true
+		//}
 	}
 
 	return ms, sliceType, recordType, isPtr, isKV

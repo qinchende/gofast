@@ -25,11 +25,13 @@ func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error
 
 	items := strings.Split(str, ",")
 	for _, segment := range items {
+		// item指的是k=v字符串
 		item := strings.TrimSpace(segment)
 		switch {
 		case item == attrRequired:
 			vOpts.Required = true
 		default:
+			// 解析成 [k,v]
 			kv := strings.Split(item, equalToken)
 			if len(kv) != 2 {
 				return nil, fmt.Errorf(fieldOptionError, sField.Name)
@@ -57,6 +59,8 @@ func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error
 				vOpts.Regex = strings.TrimSpace(kv[1])
 			case kv[0] == attrMatch:
 				vOpts.Match = strings.TrimSpace(kv[1])
+			case kv[0] == attrTimeFmt:
+				vOpts.TimeFmt = strings.TrimSpace(kv[1])
 			}
 		}
 	}

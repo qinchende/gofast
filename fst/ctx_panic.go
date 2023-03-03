@@ -3,6 +3,7 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 )
 
@@ -28,8 +29,8 @@ func (c *Context) PanicCatch(ret any) {
 		switch ret.(type) {
 		case string:
 			c.FaiMsg(ret.(string))
-		case *Ret:
-			c.FaiRet(ret.(*Ret))
+		case *cst.Ret:
+			c.FaiRet(ret.(*cst.Ret))
 		default:
 			c.FaiMsg(lang.ToString(ret))
 		}
@@ -41,14 +42,22 @@ func (c *Context) PanicIfErr(err error, ret any) {
 	if err == nil {
 		return
 	}
-
-	switch ret.(type) {
-	case string:
-		c.PanicPet = &Ret{Msg: ret.(string)}
-	case *Ret:
-		c.PanicPet = ret.(*Ret)
-	default:
-		c.PanicPet = &Ret{Msg: lang.ToString(ret)}
+	if ret == nil {
+		cst.Panic(err)
+		return
 	}
-	panic(err.Error())
+	c.CarryAddMsg(err.Error())
+	cst.Panic(ret)
+}
+
+func (c *Context) PanicIf(ifTrue bool, ret any) {
+	cst.PanicIf(ifTrue, ret)
+}
+
+func (c *Context) PanicString(ret string) {
+	cst.PanicString(ret)
+}
+
+func (c *Context) Panic(ret any) {
+	cst.Panic(ret)
 }

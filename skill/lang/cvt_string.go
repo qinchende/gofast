@@ -8,7 +8,10 @@ import (
 )
 
 // StringToBytes converts string to byte slice without a memory allocation.
-func StringToBytes(s string) (b []byte) {
+func StringToBytes(s string) []byte {
+	return STB(s)
+}
+func STB(s string) (b []byte) {
 	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s))
 	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	bh.Data, bh.Len, bh.Cap = sh.Data, sh.Len, sh.Len
@@ -17,9 +20,13 @@ func StringToBytes(s string) (b []byte) {
 
 // BytesToString converts byte slice to string without a memory allocation.
 func BytesToString(b []byte) string {
+	return BTS(b)
+}
+func BTS(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func ToString(v any) (s string) {
 	s, _ = ToString2(v)
 	return
