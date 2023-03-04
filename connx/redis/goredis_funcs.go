@@ -1,5 +1,5 @@
 // 下面封装一些常用的命令函数，不常用的自己用标准的调用方法。
-package gfrds
+package redis
 
 import (
 	"time"

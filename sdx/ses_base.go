@@ -3,7 +3,7 @@
 package sdx
 
 import (
-	"github.com/qinchende/gofast/connx/gfrds"
+	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 )
@@ -14,7 +14,7 @@ var (
 )
 
 type RedisSessCnf struct {
-	RedisConn  gfrds.ConnCnf `v:"required"`                       // 用 Redis 做持久化
+	RedisConn  redis.ConnCnf `v:"required"`                       // 用 Redis 做持久化
 	UidField   string        `v:"def=uid"`                        // 标记当前登录用户字段是 user_id
 	Secret     string        `v:"required,def=sdx"`               // token秘钥
 	TTL        int32         `v:"def=14400,range=[0:2000000000]"` // session有效期 默认 3600*4 秒
@@ -25,7 +25,7 @@ type RedisSessCnf struct {
 // 参数配置，Redis实例等
 type RedisSessionDB struct {
 	RedisSessCnf
-	Redis *gfrds.GfRedis
+	Redis *redis.GfRedis
 }
 
 // 每个进程只有一个全局 SdxSS 配置对象
@@ -39,7 +39,7 @@ func SetupSession(ss *RedisSessionDB) {
 	MySessDB = ss
 
 	if ss.Redis == nil {
-		ss.Redis = gfrds.NewGoRedis(&ss.RedisConn)
+		ss.Redis = redis.NewGoRedis(&ss.RedisConn)
 	}
 }
 

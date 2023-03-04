@@ -1,4 +1,4 @@
-package gfrds
+package redis
 
 import (
 	"context"
