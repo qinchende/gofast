@@ -7,13 +7,21 @@ import (
 	"strings"
 )
 
+func (c *Context) GetHeader(key string) string {
+	return c.ReqRaw.Header.Get(key)
+}
+
+func (c *Context) SetHeader(key, value string) {
+	c.ReqRaw.Header.Set(key, value)
+}
+
 // ClientIP implements a best effort algorithm to return the real client IP, it parses
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
 	if c.myApp.WebConfig.ForwardedByClientIP {
-		//clientIP := c.GetHeader("X-Forwarded-For")
-		//clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
+		// clientIP := c.GetHeader("X-Forwarded-For")
+		// clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
 		ip := strings.TrimSpace(c.GetHeader("X-Forwarded-For"))
 		if ip == "" {
 			ip = strings.TrimSpace(c.GetHeader("X-Real-Ip"))
@@ -31,7 +39,13 @@ func (c *Context) ClientIP() string {
 
 // ContentType returns the Content-Type header of the request.
 func (c *Context) ContentType() string {
-	return filterFlags(c.GetHeader("Content-Type"))
+	ctType := c.ReqRaw.Header.Get("Content-Type")
+	for i, char := range ctType {
+		if char == ' ' || char == ';' {
+			return ctType[:i]
+		}
+	}
+	return ctType
 }
 
 // IsWebsocket returns true if the request headers indicate that a websocket
@@ -42,18 +56,4 @@ func (c *Context) IsWebsocket() bool {
 		return true
 	}
 	return false
-}
-
-func (c *Context) GetHeader(key string) string {
-	return c.ReqRaw.Header.Get(key)
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func filterFlags(content string) string {
-	for i, char := range content {
-		if char == ' ' || char == ';' {
-			return content[:i]
-		}
-	}
-	return content
 }

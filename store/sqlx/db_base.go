@@ -3,14 +3,14 @@ package sqlx
 import (
 	"context"
 	"database/sql"
-	"github.com/qinchende/gofast/connx/gfrds"
+	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/timex"
 	"time"
 )
 
-func (conn *OrmDB) SetRdsNodes(nodes *[]gfrds.GfRedis) {
+func (conn *OrmDB) SetRdsNodes(nodes *[]redis.GfRedis) {
 	if len(*nodes) > 0 {
 		conn.rdsNodes = nodes
 	} else {

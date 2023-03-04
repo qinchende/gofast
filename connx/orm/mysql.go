@@ -1,10 +1,10 @@
-package gform
+package orm
 
 import (
 	"context"
 	"database/sql"
 	"github.com/go-sql-driver/mysql"
-	"github.com/qinchende/gofast/connx/gfrds"
+	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/store/sqlx"
 	"log"
 	"strings"
@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	ConnCnf struct {
+	MysqlConnCnf struct {
 		ConnStr    string   `v:"required"`
 		ConnStrR   string   `v:"required=false"`
 		MaxOpen    int      `v:"def=100,range=[1:1000]"`
@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func OpenMysql(cf *ConnCnf) *sqlx.OrmDB {
+func OpenMysql(cf *MysqlConnCnf) *sqlx.OrmDB {
 	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
 
 	// DBName ->
@@ -61,10 +61,10 @@ func OpenMysql(cf *ConnCnf) *sqlx.OrmDB {
 
 	// redis cache
 	rds := cf.RedisNodes
-	rdsNodes := make([]gfrds.GfRedis, len(rds))
+	rdsNodes := make([]redis.GfRedis, len(rds))
 	for i := 0; i < len(rds); i++ {
-		rdsCnf := gfrds.ParseDsn(rds[i])
-		rdsNodes[i] = *gfrds.NewGoRedis(rdsCnf)
+		rdsCnf := redis.ParseDsn(rds[i])
+		rdsNodes[i] = *redis.NewGoRedis(rdsCnf)
 	}
 	ormDB.SetRdsNodes(&rdsNodes)
 

@@ -2,7 +2,6 @@ package task
 
 import (
 	"context"
-	"github.com/qinchende/gofast/connx/gfrds"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/gmp"
@@ -29,7 +28,7 @@ type LiteGroup struct {
 	groupName string
 	tasks     []*LitePet
 
-	rds *gfrds.GfRedis // Note：最好用一个实时持久化的Redis数据库
+	rds *redis.GfRedis // Note：最好用一个实时持久化的Redis数据库
 	key string
 
 	createdTime time.Duration
@@ -43,7 +42,7 @@ type LiteGroup struct {
 	isStopping bool   // 是否正在停止任务
 }
 
-func NewLiteGroup(appName, serverNo, gpName string, rds *gfrds.GfRedis) *LiteGroup {
+func NewLiteGroup(appName, serverNo, gpName string, rds *redis.GfRedis) *LiteGroup {
 	return &LiteGroup{
 		appName:     appName,
 		serverNo:    serverNo,
