@@ -23,7 +23,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 			brk.LogError(err)
 			kp.CountRouteDrop(c.RouteIdx)
 			// 有可能会连续疯狂的熔断，确认要打印所有信息吗？这里先不打印
-			//r := c.ReqRaw
+			//r := c.Req
 			//logx.ErrorF("[http] break, %s - %s - %s", r.RequestURI, httpx.GetRemoteAddr(r), r.UserAgent())
 			c.AbortDirect(http.StatusServiceUnavailable, midFusingBody)
 			// 返回之后，后面的 defer 和 c.Next() 都不会执行。
@@ -31,7 +31,7 @@ func Breaker(kp *gate.RequestKeeper) fst.CtxHandler {
 		}
 
 		defer func() {
-			status := c.ResWrap.Status()
+			status := c.Res.Status()
 			// 5xx 以下的错误被认为是正常返回。否认就是服务器错误，被认定是拒绝服务
 			if status < http.StatusInternalServerError {
 				brk.Accept() // 一次正常请求

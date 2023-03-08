@@ -12,8 +12,8 @@ type header struct {
 
 func ExecRequest(app http.Handler, method, path string, headers ...header) *httptest.ResponseRecorder {
 	req := httptest.NewRequest(method, path, nil)
-	for _, h := range headers {
-		req.Header.Add(h.Key, h.Value)
+	for i := range headers {
+		req.Header.Add(headers[i].Key, headers[i].Value)
 	}
 	w := httptest.NewRecorder()
 	app.ServeHTTP(w, req)

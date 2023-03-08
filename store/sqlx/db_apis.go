@@ -185,7 +185,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.M
 
 	var err error
 	if gsonStr {
-		ret, err := jsonx.Marshal(gr.Gson)
+		ret, err := jsonx.Marshal(gr.GsonRows)
 		panicIfErr(err)
 		pet.Result.Target = lang.BytesToString(ret)
 	}
@@ -194,7 +194,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.M
 		if gsonStr {
 			*cacheStr = pet.Result.Target
 		} else {
-			*cacheStr, err = jsonx.Marshal(gr.Gson)
+			*cacheStr, err = jsonx.Marshal(gr.GsonRows)
 			panicIfErr(err)
 		}
 		_, _ = rds.Set(pet.Cache.sqlHash, *cacheStr, time.Duration(pet.Cache.ExpireS)*time.Second)

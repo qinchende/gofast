@@ -36,7 +36,7 @@ func MaxContentLength(c *fst.Context) {
 	}
 
 	// request body length
-	if c.ReqRaw.ContentLength > rt.MaxLen {
+	if c.Req.ContentLength > rt.MaxLen {
 		c.AbortDirect(http.StatusRequestEntityTooLarge, fmt.Sprintf("Request body large then %d", rt.MaxLen))
 	}
 

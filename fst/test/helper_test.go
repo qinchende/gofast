@@ -55,9 +55,9 @@ func TestCover(t *testing.T) {
 //func execReq(app *fst.GoFast, method, path string) *httptest.ResponseRecorder {
 //	app.ReadyToListen()
 //	req := httptest.NewRequest(method, path, nil)
-//	ResWrap := httptest.NewRecorder()
-//	app.ServeHTTP(ResWrap, req)
-//	return ResWrap
+//	Res := httptest.NewRecorder()
+//	app.ServeHTTP(Res, req)
+//	return Res
 //}
 //
 //func TestRouterMethod(t *testing.T) {

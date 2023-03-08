@@ -5,9 +5,9 @@ package fst
 import "net/url"
 
 type matchRoute struct {
-	ptrNode *radixMiniNode
-	params  *routeParams
-	rts     bool // 判断是否可以 RedirectTrailingSlash 找到节点
+	ptrNode *radixMiniNode // 可以考虑不用指针
+	params  *urlParams     // 这个最好用指针，因为绝大多数URL没有params
+	rts     bool           // 判断是否可以 RedirectTrailingSlash 找到节点
 }
 
 // 在一个函数（作用域）中解决路由匹配的问题，加快匹配速度

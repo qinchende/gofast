@@ -9,13 +9,13 @@ import (
 )
 
 type gsonResultOne struct {
-	gson.GsonOne
+	gson.GsonRow
 	hasValue bool
 }
 
 // 缓存实体 gsonResult
 type gsonResult struct {
-	gson.Gson
+	gson.GsonRows
 	onlyGson bool
 }
 
@@ -35,7 +35,7 @@ func loadRecordFromGsonString(dest any, data string, ms *orm.ModelSchema) error 
 }
 
 func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
-	if err := jsonx.UnmarshalFromString(&gr.Gson, data); err != nil {
+	if err := jsonx.UnmarshalFromString(&gr.GsonRows, data); err != nil {
 		return err
 	}
 

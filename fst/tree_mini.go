@@ -213,8 +213,8 @@ func (gft *GoFast) buildMiniRoutes() {
 	gpRebuildHandlers(&gft.RouteGroup)
 	gpRebuildHandlers(gft.specialGroup)
 	// 2. 重建路由树 （这里面将节点事件 转换到 新版全局数组中）
-	for _, mTree := range gft.routerTrees {
-		rebuildMethodTree(fstMem, mTree)
+	for i := range gft.routerTrees {
+		rebuildMethodTree(fstMem, gft.routerTrees[i])
 	}
 	// 3. 重建特殊节点，比如 NoRoute | NoMethod
 	rebuildSpecialHandlers(gft)
@@ -231,8 +231,8 @@ func (gft *GoFast) buildMiniRoutes() {
 		fstMem.allCtxHdsLen = 0
 		fstMem.treeCharT = nil
 
-		for _, mTree := range gft.routerTrees {
-			mTree.root = nil
+		for i := range gft.routerTrees {
+			gft.routerTrees[i].root = nil
 		}
 
 		// 将原始路由和分组删除
@@ -246,9 +246,10 @@ func allocateMemSpace(gft *GoFast) {
 	fstMem := gft.fstMem
 
 	var totalNodes, nodeStrLen uint16
-	for _, mTree := range gft.routerTrees {
-		totalNodes += mTree.nodeCt
-		nodeStrLen += mTree.nodeStrLen
+	trees := gft.routerTrees
+	for i := range trees {
+		totalNodes += trees[i].nodeCt
+		nodeStrLen += trees[i].nodeStrLen
 	}
 
 	// 第一种：处理函数节点空间
@@ -317,8 +318,8 @@ func gpRebuildHandlers(gp *RouteGroup) {
 	if gp.children == nil {
 		return
 	}
-	for _, chGroup := range gp.children {
-		gpRebuildHandlers(chGroup)
+	for i := range gp.children {
+		gpRebuildHandlers(gp.children[i])
 	}
 }
 

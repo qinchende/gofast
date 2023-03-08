@@ -17,12 +17,12 @@ func Gunzip(useGunzip bool) fst.CtxHandler {
 
 	return func(c *fst.Context) {
 		if strings.Contains(c.GetHeader(cst.HeaderContentEncoding), "gzip") {
-			reader, err := gzip.NewReader(c.ReqRaw.Body)
+			reader, err := gzip.NewReader(c.Req.Body)
 			if err != nil {
 				c.AbortDirect(http.StatusBadRequest, "Can't unzip body!")
 				return
 			}
-			c.ReqRaw.Body = reader
+			c.Req.Body = reader
 		}
 		c.Next()
 	}

@@ -40,9 +40,9 @@ func (trees methodTrees) getTreeMiniRoot(method string) *radixMiniNode {
 }
 
 func (trees methodTrees) getTree(method string) *methodTree {
-	for _, tree := range trees {
-		if tree.method == method {
-			return tree
+	for i := range trees {
+		if trees[i].method == method {
+			return trees[i]
 		}
 	}
 	return nil

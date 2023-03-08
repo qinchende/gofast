@@ -43,10 +43,10 @@ func ginHandle2(ctx *gin.Context) {
 }
 
 //func ginHandleTest(c *gin.Context) {
-//	io.WriteString(c.Writer, c.ReqRaw.RequestURI)
+//	io.WriteString(c.Writer, c.Req.RequestURI)
 //}
 //func ginHandleWrite(c *gin.Context) {
-//	io.WriteString(c.Writer, c.Params.ByName("name"))
+//	io.WriteString(c.Writer, c.Params.Value("name"))
 //}
 
 // add gin middlewares
