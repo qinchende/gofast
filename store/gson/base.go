@@ -1,13 +1,13 @@
 package gson
 
-type Gson struct {
+type GsonRows struct {
 	Ct   int64
 	Tt   int64
 	Cls  []string
 	Rows [][]any
 }
 
-type GsonOne struct {
+type GsonRow struct {
 	Cls []string
 	Row []any
 }

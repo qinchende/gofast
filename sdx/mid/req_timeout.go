@@ -34,8 +34,8 @@ func Timeout(kp *gate.RequestKeeper, useTimeout bool) fst.CtxHandler {
 
 	return func(c *fst.Context) {
 		rt := AllAttrs[c.RouteIdx]
-		// 因为参数c.ReqRaw.Context()，意味着客户端请求主动断开时，会主动触发这里的ctxTimeout
-		ctxTimeout, cancelCtx := context.WithTimeout(c.ReqRaw.Context(), time.Duration(rt.TimeoutMS)*time.Millisecond)
+		// 因为参数c.Req.Context()，意味着客户端请求主动断开时，会主动触发这里的ctxTimeout
+		ctxTimeout, cancelCtx := context.WithTimeout(c.Req.Context(), time.Duration(rt.TimeoutMS)*time.Millisecond)
 		defer cancelCtx()
 
 		panicChan := make(chan any, 1)

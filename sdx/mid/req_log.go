@@ -14,12 +14,12 @@ func Logger(c *fst.Context) {
 
 	// 请求处理完，并成功返回了，接下来就是打印请求日志
 	p := &logx.ReqLogEntity{
-		RawReq: c.ReqRaw,
+		RawReq: c.Req,
 	}
 	p.Pms = c.Pms
 	p.ClientIP = c.ClientIP()
-	p.StatusCode = c.ResWrap.Status()
-	p.ResData = c.ResWrap.WrittenData()
+	p.StatusCode = c.Res.Status()
+	p.ResData = c.Res.WrittenData()
 	p.BodySize = len(p.ResData)
 
 	// 内部错误信息一般不返回给调用者，但是需要打印日志信息
@@ -39,11 +39,11 @@ func LoggerMini(c *fst.Context) {
 
 	// 请求处理完，并成功返回了，接下来就是打印请求日志
 	p := &logx.ReqLogEntity{
-		RawReq: c.ReqRaw,
+		RawReq: c.Req,
 	}
 	p.ClientIP = c.ClientIP()
-	p.StatusCode = c.ResWrap.Status()
-	p.ResData = c.ResWrap.WrittenData()
+	p.StatusCode = c.Res.Status()
+	p.ResData = c.Res.WrittenData()
 	p.BodySize = len(p.ResData)
 
 	// Stop timer

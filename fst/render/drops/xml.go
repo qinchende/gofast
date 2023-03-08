@@ -6,7 +6,6 @@ package drops
 
 import (
 	"encoding/xml"
-	"github.com/qinchende/gofast/fst/render"
 	"net/http"
 )
 
@@ -25,5 +24,5 @@ func (r XML) Write(w http.ResponseWriter) error {
 
 // WriteContentType (XML) writes XML ContentType for response.
 func (r XML) WriteContentType(w http.ResponseWriter) {
-	render.writeContentType(w, xmlContentType)
+	//render.writeContentType(w, xmlContentType)
 }

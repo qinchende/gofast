@@ -22,9 +22,9 @@ func (re *routeEvents) regCtxHandler(fstMem *fstMemSpace, eType string, hds []Ct
 
 	// 如果 hds 里面的有为 nil 的函数，丢弃掉
 	tHds := make([]CtxHandler, 0, len(hds))
-	for _, h := range hds {
-		if h != nil {
-			tHds = append(tHds, h)
+	for i := range hds {
+		if hds[i] != nil {
+			tHds = append(tHds, hds[i])
 		}
 	}
 

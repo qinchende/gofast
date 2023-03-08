@@ -106,7 +106,7 @@ func (gft *GoFast) initHomeRouter() {
 	gft.addSpecialRoute(2, "/405") // 405 Default Route
 
 	gft.ctxPool.New = func() any {
-		return &Context{myApp: gft, ResWrap: &ResponseWrap{}}
+		return &Context{myApp: gft, Res: &ResponseWrap{}}
 	}
 	gft.fstMem = &fstMemSpace{myApp: gft}
 }
@@ -138,22 +138,22 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c := gft.ctxPool.Get().(*Context)
 	c.EnterTime = timex.Now() // 请求开始进入上下文阶段，开始计时
-	c.ResWrap.Reset(w)
-	c.ReqRaw = r
+	c.Res.Reset(w)
+	c.Req = r
 	c.reset()
 	gft.handleHTTPRequest(c)
 	// 超时引发的对象不能放回缓存池
-	if !c.ResWrap.isTimeout {
+	if !c.Res.isTimeout {
 		gft.ctxPool.Put(c)
 	}
 }
 
 // 处理所有请求，匹配路由并执行指定的路由处理函数
 func (gft *GoFast) handleHTTPRequest(c *Context) {
-	reqPath := c.ReqRaw.URL.Path
+	reqPath := c.Req.URL.Path
 	unescape := false
-	if gft.WebConfig.UseRawPath && len(c.ReqRaw.URL.RawPath) > 0 {
-		reqPath = c.ReqRaw.URL.RawPath
+	if gft.WebConfig.UseRawPath && len(c.Req.URL.RawPath) > 0 {
+		reqPath = c.Req.URL.RawPath
 		unescape = gft.WebConfig.UnescapePathValues
 	}
 
@@ -164,11 +164,10 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 
 	// 以下分A、B、C三步走
 	// A. 看能不能找到 http method 对应的路由树
-	miniRoot := gft.getMethodMiniRoot(c.ReqRaw.Method)
+	miniRoot := gft.getMethodMiniRoot(c.Req.Method)
 	if miniRoot != nil {
 		// 开始在路由树中匹配 url path
 		miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape)
-		c.UrlParams = c.route.params
 
 		// 如果能匹配到路径
 		if c.route.ptrNode != nil {
@@ -186,8 +185,8 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 			return
 		}
 
-		// 支持重定向 && c.ReqRaw.Method != CONNECT && reqPath != [home index]
-		if c.route.rts && c.ReqRaw.Method[0] != 'C' && reqPath != "/" {
+		// 支持重定向 && c.Req.Method != CONNECT && reqPath != [home index]
+		if c.route.rts && c.Req.Method[0] != 'C' && reqPath != "/" {
 			// TODO：需要重定向的跳转，先执行特殊中间件
 			c.route.ptrNode = gft.miniNodeAny // after match error handlers
 			c.execHandlers()                  // match handlers
@@ -201,14 +200,14 @@ func (gft *GoFast) handleHTTPRequest(c *Context) {
 	// 找到了：就给出Method错误提示
 	// 找不到：就走后面路由没匹配的逻辑
 	if gft.WebConfig.CheckOtherMethodRoute {
-		for _, tree := range gft.routerTrees {
-			if tree.method == c.ReqRaw.Method || tree.miniRoot == nil {
+		trees := gft.routerTrees
+		for i := range trees {
+			if trees[i].method == c.Req.Method || trees[i].miniRoot == nil {
 				continue
 			}
 			// 在别的 Method 路由树中匹配到了当前路径，返回提示 当前请求的 Method 错了。
-			if tree.miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape); c.route.ptrNode != nil {
+			if trees[i].miniRoot.matchRoute(gft.fstMem, reqPath, &c.route, unescape); c.route.ptrNode != nil {
 				c.route.ptrNode = gft.miniNode405
-				c.UrlParams = c.route.params
 				c.execHandlers() // 405 handlers
 				return
 			}

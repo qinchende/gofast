@@ -217,20 +217,20 @@ func TestRouteParamsByName(t *testing.T) {
 	wild := ""
 	router := fst.Default()
 	router.Get("/test/:name/:last_name/*wild", func(c *fst.Context) {
-		name = c.UrlParams.ByName("name")
-		lastName = c.UrlParams.ByName("last_name")
+		name = c.UrlParam("name")
+		lastName = c.UrlParam("last_name")
 		var ok bool
-		wild, ok = c.UrlParams.Get("wild")
+		wild, ok = c.UrlParamOk("wild")
 
 		assert.True(t, ok)
-		assert.Equal(t, name, c.Param("name"))
-		assert.Equal(t, name, c.Param("name"))
-		assert.Equal(t, lastName, c.Param("last_name"))
+		assert.Equal(t, name, c.UrlParam("name"))
+		assert.Equal(t, name, c.UrlParam("name"))
+		assert.Equal(t, lastName, c.UrlParam("last_name"))
 
-		assert.Empty(t, c.Param("wtf"))
-		assert.Empty(t, c.UrlParams.ByName("wtf"))
+		assert.Empty(t, c.UrlParam("wtf"))
+		assert.Empty(t, c.UrlParam("wtf"))
 
-		wtf, ok := c.UrlParams.Get("wtf")
+		wtf, ok := c.UrlParamOk("wtf")
 		assert.Empty(t, wtf)
 		assert.False(t, ok)
 	})
@@ -251,20 +251,20 @@ func TestRouteParamsByNameWithExtraSlash(t *testing.T) {
 	router := fst.Default()
 	router.WebConfig.RemoveExtraSlash = true
 	router.Get("/test/:name/:last_name/*wild", func(c *fst.Context) {
-		name = c.UrlParams.ByName("name")
-		lastName = c.UrlParams.ByName("last_name")
+		name = c.UrlParam("name")
+		lastName = c.UrlParam("last_name")
 		var ok bool
-		wild, ok = c.UrlParams.Get("wild")
+		wild, ok = c.UrlParamOk("wild")
 
 		assert.True(t, ok)
-		assert.Equal(t, name, c.Param("name"))
-		assert.Equal(t, name, c.Param("name"))
-		assert.Equal(t, lastName, c.Param("last_name"))
+		assert.Equal(t, name, c.UrlParam("name"))
+		assert.Equal(t, name, c.UrlParam("name"))
+		assert.Equal(t, lastName, c.UrlParam("last_name"))
 
-		assert.Empty(t, c.Param("wtf"))
-		assert.Empty(t, c.UrlParams.ByName("wtf"))
+		assert.Empty(t, c.UrlParam("wtf"))
+		assert.Empty(t, c.UrlParam("wtf"))
 
-		wtf, ok := c.UrlParams.Get("wtf")
+		wtf, ok := c.UrlParamOk("wtf")
 		assert.Empty(t, wtf)
 		assert.False(t, ok)
 	})
@@ -340,9 +340,9 @@ func TestRouterMiddlewareAndStatic(t *testing.T) {
 	router := fst.Default()
 	static := router.Group("/")
 	static.Before(func(c *fst.Context) {
-		c.ResWrap.Header().Add("Last-Modified", "Mon, 02 Jan 2006 15:04:05 MST")
-		c.ResWrap.Header().Add("Expires", "Mon, 02 Jan 2006 15:04:05 MST")
-		c.ResWrap.Header().Add("X-GIN", "GoFast Framework")
+		c.Res.Header().Add("Last-Modified", "Mon, 02 Jan 2006 15:04:05 MST")
+		c.Res.Header().Add("Expires", "Mon, 02 Jan 2006 15:04:05 MST")
+		c.Res.Header().Add("X-GIN", "GoFast Framework")
 	})
 	static.Static("/", "./")
 	router.BuildRoutes()
@@ -538,11 +538,11 @@ func TestRouteRawPath(t *testing.T) {
 	router.WebConfig.UnescapePathValues = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
-		name := c.UrlParams.ByName("name")
-		num := c.UrlParams.ByName("num")
+		name := c.UrlParam("name")
+		num := c.UrlParam("num")
 
-		assert.Equal(t, name, c.Param("name"))
-		assert.Equal(t, num, c.Param("num"))
+		assert.Equal(t, name, c.UrlParam("name"))
+		assert.Equal(t, num, c.UrlParam("num"))
 
 		assert.Equal(t, "Some/Other/Project", name)
 		assert.Equal(t, "222", num)
@@ -560,11 +560,11 @@ func TestRouteRawPathNoUnescape(t *testing.T) {
 	//router.DisableDefNoRoute = true
 
 	router.Post("/project/:name/build/:num", func(c *fst.Context) {
-		name := c.UrlParams.ByName("name")
-		num := c.UrlParams.ByName("num")
+		name := c.UrlParam("name")
+		num := c.UrlParam("num")
 
-		assert.Equal(t, name, c.Param("name"))
-		assert.Equal(t, num, c.Param("num"))
+		assert.Equal(t, name, c.UrlParam("name"))
+		assert.Equal(t, num, c.UrlParam("num"))
 
 		assert.Equal(t, "Some%2FOther%2FProject", name)
 		assert.Equal(t, "333", num)

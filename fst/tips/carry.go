@@ -45,8 +45,9 @@ func (b *CarryItem) JSON() any {
 		case reflect.Struct:
 			return b.Meta
 		case reflect.Map:
-			for _, key := range value.MapKeys() {
-				hash[key.String()] = value.MapIndex(key).Interface()
+			keys := value.MapKeys()
+			for i := range keys {
+				hash[keys[i].String()] = value.MapIndex(keys[i]).Interface()
 			}
 		default:
 			hash["meta"] = b.Meta
@@ -68,9 +69,9 @@ func (bs CarryList) ByType(typ CarryType) CarryList {
 		return bs
 	}
 	var bsTmp CarryList
-	for _, b := range bs {
-		if b.IsType(typ) {
-			bsTmp = append(bsTmp, b)
+	for i := range bs {
+		if bs[i].IsType(typ) {
+			bsTmp = append(bsTmp, bs[i])
 		}
 	}
 	return bsTmp
@@ -89,8 +90,8 @@ func (bs CarryList) CollectMessages() []string {
 		return nil
 	}
 	msgStrings := make([]string, len(bs), len(bs))
-	for i, b := range bs {
-		msgStrings[i] = b.Msg
+	for i := range bs {
+		msgStrings[i] = bs[i].Msg
 	}
 	return msgStrings
 }
@@ -103,8 +104,8 @@ func (bs CarryList) JSON() any {
 		return bs.Last().JSON()
 	default:
 		json := make([]any, len(bs), len(bs))
-		for i, b := range bs {
-			json[i] = b.JSON()
+		for i := range bs {
+			json[i] = bs[i].JSON()
 		}
 		return json
 	}

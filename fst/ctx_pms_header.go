@@ -8,11 +8,11 @@ import (
 )
 
 func (c *Context) GetHeader(key string) string {
-	return c.ReqRaw.Header.Get(key)
+	return c.Req.Header.Get(key)
 }
 
 func (c *Context) SetHeader(key, value string) {
-	c.ReqRaw.Header.Set(key, value)
+	c.Req.Header.Set(key, value)
 }
 
 // ClientIP implements a best effort algorithm to return the real client IP, it parses
@@ -31,7 +31,7 @@ func (c *Context) ClientIP() string {
 		}
 	}
 
-	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.ReqRaw.RemoteAddr)); err == nil {
+	if ip, _, err := net.SplitHostPort(strings.TrimSpace(c.Req.RemoteAddr)); err == nil {
 		return ip
 	}
 	return ""
@@ -39,9 +39,9 @@ func (c *Context) ClientIP() string {
 
 // ContentType returns the Content-Type header of the request.
 func (c *Context) ContentType() string {
-	ctType := c.ReqRaw.Header.Get("Content-Type")
-	for i, char := range ctType {
-		if char == ' ' || char == ';' {
+	ctType := c.Req.Header.Get("Content-Type")
+	for i := range ctType {
+		if ctType[i] == ' ' || ctType[i] == ';' {
 			return ctType[:i]
 		}
 	}

@@ -147,7 +147,7 @@ func (c *Context) String(resStatus int, format string, values ...any) {
 
 // File writes the specified file into the body stream in a efficient way.
 func (c *Context) File(filepath string) {
-	http.ServeFile(c.ResWrap, c.ReqRaw, filepath)
+	http.ServeFile(c.Res, c.Req, filepath)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -159,15 +159,15 @@ func (c *Context) Render(resStatus int, r render.Render) {
 		return
 	}
 
-	c.ResWrap.WriteHeader(resStatus)
+	c.Res.WriteHeader(resStatus)
 	// 如果指定的返回状态，不能返回数据内容。需要特殊处理
 	if !bodyAllowedForStatus(resStatus) {
-		r.WriteContentType(c.ResWrap)
+		r.WriteContentType(c.Res)
 		return
 	}
 
 	// 返回结果先写入缓存
-	if err := r.Write(c.ResWrap); err != nil {
+	if err := r.Write(c.Res); err != nil {
 		panic(err)
 	}
 
@@ -177,7 +177,7 @@ func (c *Context) Render(resStatus int, r render.Render) {
 	if c.Sess != nil {
 		c.Sess.Save()
 	}
-	if _, err := c.ResWrap.Send(); err != nil { // really send response data
+	if _, err := c.Res.Send(); err != nil { // really send response data
 		panic(err)
 	}
 	if c.route.ptrNode.hasAfterSend {
@@ -191,7 +191,7 @@ func (c *Context) AbortDirect(resStatus int, stream any) {
 		return
 	}
 	c.execIdx = maxRouteHandlers
-	_ = c.ResWrap.SendHijack(resStatus, lang.ToBytes(stream))
+	_ = c.Res.SendHijack(resStatus, lang.ToBytes(stream))
 }
 
 func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
@@ -199,12 +199,12 @@ func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
 		return
 	}
 	c.execIdx = maxRouteHandlers
-	c.ResWrap.SendHijackRedirect(c.ReqRaw, resStatus, redirectUrl)
+	c.Res.SendHijackRedirect(c.Req, resStatus, redirectUrl)
 }
 
 // 这个是为超时返回准备的特殊方法，一般不要使用
 func (c *Context) RenderTimeout(resStatus int, hint any) bool {
-	return c.ResWrap.sendByTimeoutGoroutine(resStatus, lang.ToBytes(hint))
+	return c.Res.sendByTimeoutGoroutine(resStatus, lang.ToBytes(hint))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

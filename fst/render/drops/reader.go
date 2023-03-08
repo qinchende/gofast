@@ -40,9 +40,9 @@ func (r Reader) WriteContentType(w http.ResponseWriter) {
 // writeHeaders writes custom Header.
 func (r Reader) writeHeaders(w http.ResponseWriter, headers map[string]string) {
 	header := w.Header()
-	for k, v := range headers {
+	for k := range headers {
 		if header.Get(k) == "" {
-			header.Set(k, v)
+			header.Set(k, headers[k])
 		}
 	}
 }

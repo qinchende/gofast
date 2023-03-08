@@ -33,9 +33,9 @@ func (gft *GoFast) Reg405(hds ...CtxHandler) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 请求结尾的 '/' 取消或者添加之后重定向，看是否能够匹配到相应路由
 func redirectTrailingSlash(c *Context) {
-	req := c.ReqRaw
+	req := c.Req
 	p := req.URL.Path
-	if prefix := path.Clean(c.ReqRaw.Header.Get("X-Forwarded-Prefix")); prefix != "." {
+	if prefix := path.Clean(c.Req.Header.Get("X-Forwarded-Prefix")); prefix != "." {
 		p = prefix + "/" + req.URL.Path
 	}
 	req.URL.Path = p + "/"
