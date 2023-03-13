@@ -18,7 +18,7 @@ func Recovery(c *fst.Context) {
 			if c.PanicPet != nil {
 				switch ret := c.PanicPet.(type) {
 				case *cst.Ret:
-					c.CarryAddMsg(lang.ToString(pic))
+					c.CarryMsg(lang.ToString(pic))
 					c.AbortRet(ret)
 					return
 				case fst.PanicFunc, *fst.PanicFunc: // 执行自定义异常函数，比如变量初始化等

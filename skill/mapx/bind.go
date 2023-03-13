@@ -11,6 +11,7 @@ import (
 	"reflect"
 )
 
+// object:
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
 func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
@@ -76,6 +77,7 @@ func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 	return nil
 }
 
+// array:
 // Note: src 只能是 array, slice 类型。如果是 string ，先按照JSON格式解析成数组
 func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err error) {
 	if fOpt == nil {
@@ -84,6 +86,7 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 
 	dstVal := reflect.Indirect(reflect.ValueOf(dst))
 	srcVal := reflect.Indirect(reflect.ValueOf(src))
+
 	// 如果数据源是字符串，先按照JSON解析成数组
 	if srcVal.Kind() == reflect.String {
 		var srcNew []any
@@ -97,8 +100,7 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 	dstKind := dstVal.Kind()
 	srcKind := dstVal.Kind()
 
-	switch {
-	case (dstKind == reflect.Slice || dstKind == reflect.Array) && (srcKind == reflect.Slice || srcKind == reflect.Array):
+	if (dstKind == reflect.Slice || dstKind == reflect.Array) && (srcKind == reflect.Slice || srcKind == reflect.Array) {
 		// NOTE: 这里可能 dstVal.Len() > srcVal.Len() 也应该支持
 		if dstKind == reflect.Array && dstVal.Len() != srcVal.Len() {
 			return errors.New("Array length not match.")
@@ -130,7 +132,7 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 				}
 			}
 		}
-	default:
+	} else {
 		return errors.New("Only array-like value supported.")
 	}
 

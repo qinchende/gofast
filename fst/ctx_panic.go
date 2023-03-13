@@ -25,7 +25,7 @@ func (pw PanicFunc) Callback() { pw.Func() }
 // 取出只作为消息传递的项
 func (c *Context) PanicCatch(ret any) {
 	if pic := recover(); pic != nil {
-		c.CarryAddMsg(lang.ToString(pic))
+		c.CarryMsg(lang.ToString(pic))
 		switch ret.(type) {
 		case string:
 			c.FaiMsg(ret.(string))
@@ -46,7 +46,7 @@ func (c *Context) PanicIfErr(err error, ret any) {
 		cst.Panic(err)
 		return
 	}
-	c.CarryAddMsg(err.Error())
+	c.CarryMsg(err.Error())
 	cst.Panic(ret)
 }
 

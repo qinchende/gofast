@@ -133,7 +133,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if mdAttrs.TableName == "" {
 			mdAttrs.TableName = lang.Camel2Snake(rTyp.Name())
 		}
-		mdAttrs.hashNumber = hashx.Hash(lang.StringToBytes(strings.Join(fDB, ",")))
+		mdAttrs.hashNumber = hashx.Hash(lang.STB(strings.Join(fDB, ",")))
 		hashStr := lang.ToString(mdAttrs.hashNumber)
 		mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + mFields[1] + "#%v"
 

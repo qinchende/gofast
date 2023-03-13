@@ -16,7 +16,7 @@ const (
 )
 
 // 添加一条消息，日志系统会打印出这些传递信息
-func (c *Context) CarryAddMsg(msg string) {
+func (c *Context) CarryMsg(msg string) {
 	if len(c.CarryItems) > maxCtxCarryLen {
 		logx.Error("current request context carry list is out of range.")
 		return
