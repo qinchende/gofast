@@ -17,22 +17,16 @@ const (
 	errAlreadyRendered = "ResWarp: already committed. "
 )
 
-type ResData struct {
-	dataBuf *bytes.Buffer // 记录响应的数据，用于框架统一封装之后的打印信息等场景
-	status  int16         // HttpStatus
-}
-
 // 自定义 ResponseWriter, 对标准库的一层包裹处理，需要对返回的数据做缓存，做到更灵活的控制。
 // 实现接口 ResponseWriter
+// 思想：通过加锁的方式，控制不同Goroutine对内存的竞争
 type ResponseWrap struct {
-	http.ResponseWriter
-	respLock sync.Mutex
-	ResData
-	committed bool
-	isTimeout bool
-
-	// TODO: 如果isTimeout，主线程执行的返回结果将被放入这个对象中
-	// extRespData *ResData
+	http.ResponseWriter               // Raw http.ResponseWriter
+	respLock            sync.Mutex    // render locker
+	dataBuf             *bytes.Buffer // render data（指针，每次申请新的data buffer。因为fst.Context用sync.Pool）
+	status              int16         // HttpStatus
+	committed           bool          // 防止重复render的标记
+	isTimeout           bool          // 是否是因为超时触发的render
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -60,8 +54,7 @@ func (w *ResponseWrap) Reset(res http.ResponseWriter) {
 	w.isTimeout = false
 	w.ResponseWriter = res
 	w.status = defaultStatus
-	w.dataBuf = new(bytes.Buffer)
-	//w.extRespData = nil
+	w.dataBuf = new(bytes.Buffer) // 申请新的内存
 }
 
 // 重置返回结果（没有最终response的情况下，可以重置返回内容）
@@ -140,7 +133,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 		w.status = http.StatusOK
 	}
 	n, err = w.realFinalSend()
-	w.respLock.Unlock()
+	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
 		logx.StackF("realSend error: %s", err)
@@ -156,7 +149,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	}
 	w.resetResponse(resStatus, data)
 	n, err := w.realFinalSend()
-	w.respLock.Unlock()
+	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
 		logx.StackF("realSend error: %s", err)
@@ -171,7 +164,7 @@ func (w *ResponseWrap) SendHijackRedirect(req *http.Request, resStatus int, redi
 	}
 	w.resetResponse(resStatus, lang.ToBytes(redirectUrl))
 	http.Redirect(w, req, redirectUrl, resStatus)
-	w.respLock.Unlock()
+	w.respLock.Unlock() // 因为tryToCommit没有解锁
 }
 
 // 超时协程调用
@@ -182,7 +175,7 @@ func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) bool {
 	}
 	w.resetResponse(resStatus, data)
 	_, err := w.realFinalSend()
-	w.respLock.Unlock()
+	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
 		logx.StackF("realSend error: %s", err)
@@ -214,5 +207,5 @@ func (w *ResponseWrap) tryToCommit(tip string) bool {
 		return false
 	}
 	w.committed = true
-	return true // 此时没有解锁，需要在调用外部解锁
+	return true // Note: Important! 此时没有解锁，需要在调用外部解锁
 }

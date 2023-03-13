@@ -48,7 +48,7 @@ func SessBuilder(c *fst.Context) {
 	} else {
 		ss.values = make(cst.KV)
 		if err := ss.loadSessionFromRedis(c); err != nil {
-			c.CarryAddMsg(err.Error())
+			c.CarryMsg(err.Error())
 			c.AbortFai(110, "Load session data from redis error.", nil)
 		}
 	}

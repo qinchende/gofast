@@ -25,17 +25,19 @@ type CommonFields struct {
 	UpdatedAt time.Time // `dbc:"updated_field"`
 }
 
-func (cf *CommonFields) GfAttrs(parent OrmStruct) *ModelAttrs {
+func (cf *CommonFields) GfAttrs(parent OrmStruct) (attr *ModelAttrs) {
 	if modelAttrsList != nil {
 		fullName := ""
 		if parent != nil {
 			fullName = reflect.TypeOf(parent).Elem().String()
 		}
-		if attr := modelAttrsList[fullName]; attr != nil {
-			return attr
-		}
+		attr = modelAttrsList[fullName]
 	}
-	return &ModelAttrs{}
+	if attr == nil {
+		attr = &ModelAttrs{}
+	}
+	//_ = mapx.Optimize(attr, mapx.LikeConfig) // 添加默认值，验证字段
+	return
 }
 
 // 万一更新失败，这里的值已经修改，需要回滚吗？？？
