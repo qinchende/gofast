@@ -2,6 +2,9 @@
 
 package jsonx
 
+// Note(add by chende 20230315):
+// 我简单测试过，在绝大多数情况下 json-iterator 并不比标准库提升多少性能。替换标准库的意义不大。
+// 真要大幅提升Decode性能，要找其它方案。
 import (
 	jsonIterator "github.com/json-iterator/go"
 	"github.com/qinchende/gofast/skill/lang"
