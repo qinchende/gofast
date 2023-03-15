@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/gmp"
