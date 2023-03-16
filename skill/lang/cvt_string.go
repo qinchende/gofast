@@ -2,6 +2,7 @@ package lang
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"unsafe"
 )
@@ -13,7 +14,12 @@ func StringToBytes(s string) []byte {
 	return STB(s)
 }
 func STB(s string) (b []byte) {
-	return *(*[]byte)(unsafe.Pointer(&s))
+	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s))
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
+	bh.Data, bh.Len, bh.Cap = sh.Data, sh.Len, sh.Len
+	return b
+	// 下面这种写法有问题，b.cap 为 0
+	// return *(*[]byte)(unsafe.Pointer(&s))
 }
 
 // BytesToString converts byte slice to string without a memory allocation.

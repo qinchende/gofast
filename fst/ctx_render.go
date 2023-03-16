@@ -222,13 +222,13 @@ func bodyAllowedForStatus(status int) bool {
 
 // NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 func (c *Context) tryToRender() bool {
-	c.rwLock.Lock()
+	c.lock.Lock()
 	if c.rendered {
-		c.rwLock.Unlock()
+		c.lock.Unlock()
 		logx.Warn("Double render, the call canceled.")
 		return false
 	}
 	c.rendered = true
-	c.rwLock.Unlock()
+	c.lock.Unlock()
 	return true
 }
