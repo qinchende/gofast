@@ -33,7 +33,7 @@ type Context struct {
 
 	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
 	PanicPet   panicHandler   // 业务逻辑异常之后的处理
-	rwLock     sync.RWMutex   // This mutex protect context
+	lock       sync.Mutex     // This mutex protect context
 }
 
 /************************************/
@@ -64,5 +64,5 @@ func (c *Context) reset() {
 
 	c.CarryItems = c.CarryItems[0:0]
 	c.PanicPet = nil
-	// c.rwLock
+	// c.lock
 }

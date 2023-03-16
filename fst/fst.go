@@ -106,7 +106,10 @@ func (gft *GoFast) initHomeRouter() {
 	gft.addSpecialRoute(2, "/405") // 405 Default Route
 
 	gft.ctxPool.New = func() any {
-		return &Context{myApp: gft, Res: &ResponseWrap{}}
+		return &Context{
+			myApp: gft,
+			Res:   &ResponseWrap{},
+		}
 	}
 	gft.fstMem = &fstMemSpace{myApp: gft}
 }
