@@ -37,6 +37,6 @@ func BenchmarkHashMd5(b *testing.B) {
 
 func BenchmarkMurmur3(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		Hash([]byte(text))
+		Sum64([]byte(text))
 	}
 }

@@ -187,7 +187,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.M
 	if gsonStr {
 		ret, err := jsonx.Marshal(gr.GsonRows)
 		panicIfErr(err)
-		pet.Result.Target = lang.BytesToString(ret)
+		pet.Result.Target = lang.BTS(ret)
 	}
 	if ct > 0 && withCache {
 		cacheStr := new(any)

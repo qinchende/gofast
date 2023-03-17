@@ -50,8 +50,8 @@ type HomeRouter struct {
 	//（我主张不要过分强调restful风格，这本身就是个鸡肋概念，没有完全解决问题，反而带来思想负担，引发无用争辩）。
 	routerTrees methodTrees
 
-	ctxPool sync.Pool    // 第二级：Handler context pools (第一级是标准形式，不需要缓冲池)
-	fstMem  *fstMemSpace // 主要以数组结构的形式，存储了 Routes & Handlers
+	fstMem *fstMemSpace // 主要以数组结构的形式，存储了 Routes & Handlers
+	pools  webPools     // 配合Context，可能用到的资源缓冲池
 }
 
 // 一个快速创建Server的函数，使用默认配置参数，方便调用。
@@ -105,12 +105,6 @@ func (gft *GoFast) initHomeRouter() {
 	gft.addSpecialRoute(1, "/404") // 404 Default Route
 	gft.addSpecialRoute(2, "/405") // 405 Default Route
 
-	gft.ctxPool.New = func() any {
-		return &Context{
-			myApp: gft,
-			Res:   &ResponseWrap{},
-		}
-	}
 	gft.fstMem = &fstMemSpace{myApp: gft}
 }
 
@@ -139,7 +133,7 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 承上启下：从全局拦截器 过度 到路由 handlers
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
-	c := gft.ctxPool.Get().(*Context)
+	c := gft.pools.getContext()
 	c.EnterTime = timex.Now() // 请求开始进入上下文阶段，开始计时
 	c.Res.Reset(w)
 	c.Req = r
@@ -147,7 +141,7 @@ func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	gft.handleHTTPRequest(c)
 	// 超时引发的对象不能放回缓存池
 	if !c.Res.isTimeout {
-		gft.ctxPool.Put(c)
+		gft.pools.putContext(c)
 	}
 }
 
@@ -235,6 +229,7 @@ func (gft *GoFast) BuildRoutes() {
 	})
 	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
 	gft.buildAllRoutes()
+	gft.initPools()
 	gft.execAppHandlers(gft.eAfterBuildRoutesHds) // after build routes
 }
 

@@ -168,7 +168,7 @@ func (rl *RotateLogger) Writeln(str string) (err error) {
 		_, err = rl.Write(bytes)
 		return
 	}
-	_, err = rl.Write(lang.StringToBytes(str))
+	_, err = rl.Write(lang.STB(str))
 	return
 }
 
@@ -185,7 +185,7 @@ func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
 	if str[len(str)-1] != '\n' {
 		sb.WriteByte('\n')
 	}
-	_, err = rl.Write(lang.StringToBytes(sb.String()))
+	_, err = rl.Write(lang.STB(sb.String()))
 	return
 }
 

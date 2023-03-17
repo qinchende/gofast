@@ -31,7 +31,7 @@ func Unmarshal(v any, data []byte) error {
 }
 
 func UnmarshalFromString(v any, str string) error {
-	return Unmarshal(v, lang.StringToBytes(str))
+	return Unmarshal(v, lang.STB(str))
 }
 
 func UnmarshalFromReader(v any, reader io.Reader) error {

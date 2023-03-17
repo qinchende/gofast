@@ -29,20 +29,6 @@ type fieldOptions struct {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
-var cachedSchemas sync.Map
-
-func cacheSetSchema(typ reflect.Type, val *StructSchema) {
-	cachedSchemas.Store(typ, val)
-}
-
-func cacheGetSchema(typ reflect.Type) *StructSchema {
-	if ret, ok := cachedSchemas.Load(typ); ok {
-		return ret.(*StructSchema)
-	}
-	return nil
-}
-
 // 提取结构体变量的Schema元数据
 func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	for rTyp.Kind() == reflect.Pointer {
@@ -157,4 +143,19 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 		fOptions = append(fOptions, &fieldOptions{valid: vOpt, sField: &fi})
 	}
 	return fColumns, fFields, fIndexes, fOptions
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
+var cachedStructSchemas sync.Map
+
+func cacheSetSchema(typ reflect.Type, val *StructSchema) {
+	cachedStructSchemas.Store(typ, val)
+}
+
+func cacheGetSchema(typ reflect.Type) *StructSchema {
+	if ret, ok := cachedStructSchemas.Load(typ); ok {
+		return ret.(*StructSchema)
+	}
+	return nil
 }

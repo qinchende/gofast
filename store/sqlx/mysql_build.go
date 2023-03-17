@@ -37,7 +37,7 @@ func insertSql(mss *orm.ModelSchema) string {
 			bVal[ct] = '?'
 			ct++
 		}
-		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ms.TableName(), sBuf.String(), lang.BytesToString(bVal))
+		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ms.TableName(), sBuf.String(), lang.BTS(bVal))
 	})
 }
 

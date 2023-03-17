@@ -67,7 +67,7 @@ func (c *Context) CollectPms() error {
 	if c.Pms != nil {
 		return nil
 	}
-	c.Pms = make(cst.KV)
+	c.Pms = c.getPms()
 	urlParsed := false
 
 	ctType := c.Req.Header.Get(cst.HeaderContentType)
