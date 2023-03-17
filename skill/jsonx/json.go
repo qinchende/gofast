@@ -19,7 +19,7 @@ var (
 func Unmarshal(v any, data []byte) error {
 	// return json.Unmarshal(data, v)
 	// 为了统一设置 decoder.UseNumber() 这里转换成字符串使用
-	return UnmarshalFromString(v, lang.BytesToString(data))
+	return UnmarshalFromString(v, lang.BTS(data))
 }
 
 func UnmarshalFromString(v any, str string) error {

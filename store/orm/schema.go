@@ -133,7 +133,7 @@ func fetchSchema(rTyp reflect.Type) *ModelSchema {
 		if mdAttrs.TableName == "" {
 			mdAttrs.TableName = lang.Camel2Snake(rTyp.Name())
 		}
-		mdAttrs.hashNumber = hashx.Hash(lang.STB(strings.Join(fDB, ",")))
+		mdAttrs.hashNumber = hashx.Sum64(lang.STB(strings.Join(fDB, ",")))
 		hashStr := lang.ToString(mdAttrs.hashNumber)
 		mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + mFields[1] + "#%v"
 
@@ -243,14 +243,14 @@ func structFields(rTyp reflect.Type, parentIdx []int, mFields *[3]string) ([]str
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 缓存数据表的Schema
-var cachedSchemas sync.Map
+var cachedModelSchemas sync.Map
 
 func cacheSetSchema(typ reflect.Type, val *ModelSchema) {
-	cachedSchemas.Store(typ, val)
+	cachedModelSchemas.Store(typ, val)
 }
 
 func cacheGetSchema(typ reflect.Type) *ModelSchema {
-	if ret, ok := cachedSchemas.Load(typ); ok {
+	if ret, ok := cachedModelSchemas.Load(typ); ok {
 		return ret.(*ModelSchema)
 	}
 	return nil

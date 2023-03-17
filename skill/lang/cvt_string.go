@@ -10,9 +10,9 @@ import (
 // NOTE：STB 和 BTS 这种黑魔法转换是不推荐使用的，特殊场景可能会出现意想不到的错误。
 // go 1.20后期版本中会提供标准库，实现类似的功能
 // StringToBytes converts string to byte slice without a memory allocation.
-func StringToBytes(s string) []byte {
-	return STB(s)
-}
+//func StringToBytes(s string) []byte {
+//	return STB(s)
+//}
 func STB(s string) (b []byte) {
 	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s))
 	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
@@ -23,9 +23,9 @@ func STB(s string) (b []byte) {
 }
 
 // BytesToString converts byte slice to string without a memory allocation.
-func BytesToString(b []byte) string {
-	return BTS(b)
-}
+//func BytesToString(b []byte) string {
+//	return BTS(b)
+//}
 func BTS(b []byte) string {
 	return *(*string)(unsafe.Pointer(&b))
 }

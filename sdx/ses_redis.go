@@ -16,7 +16,7 @@ func (ss *CtxSession) loadSessionFromRedis(c *fst.Context) error {
 	if str == "" || err != nil {
 		str = "{}"
 	}
-	return jsonx.Unmarshal(&ss.values, lang.StringToBytes(str))
+	return jsonx.Unmarshal(&ss.values, lang.STB(str))
 }
 
 // 保存到 redis

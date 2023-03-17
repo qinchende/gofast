@@ -30,7 +30,7 @@ type (
 )
 
 func NewConsistentHash() *ConsistentHash {
-	return NewCustomConsistentHash(minReplicas, Hash)
+	return NewCustomConsistentHash(minReplicas, Sum64)
 }
 
 func NewCustomConsistentHash(replicas int, fn HashFunc) *ConsistentHash {
@@ -39,7 +39,7 @@ func NewCustomConsistentHash(replicas int, fn HashFunc) *ConsistentHash {
 	}
 
 	if fn == nil {
-		fn = Hash
+		fn = Sum64
 	}
 
 	return &ConsistentHash{

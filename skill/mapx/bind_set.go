@@ -233,13 +233,13 @@ func sdxSetWithString(dst reflect.Value, src string, fOpt *fieldOptions) error {
 		}
 		return sdxSetStringArray(dst, vs, fOpt)
 	case reflect.Map:
-		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
+		return jsonx.Unmarshal(dst.Addr().Interface(), lang.STB(src))
 	case reflect.Struct:
 		switch dst.Interface().(type) {
 		case time.Time:
 			return sdxSetTime(dst, src, fOpt.sField)
 		}
-		return jsonx.Unmarshal(dst.Addr().Interface(), lang.StringToBytes(src))
+		return jsonx.Unmarshal(dst.Addr().Interface(), lang.STB(src))
 	default:
 		return errors.New("unknown type")
 	}
