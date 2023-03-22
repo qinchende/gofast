@@ -9,13 +9,33 @@ var (
 	ErrInvalidStopPosition  = errors.New("stop position is invalid")
 )
 
+// list必须是按字符串长度从小到大排序好的数组，而且不能有空字符串，数据量不可太大
+// 匹配到就返回索引，没找到就返回-1
+func SearchSortStrings(list []string, str string) int {
+	for i := range list {
+		if len(list[i]) < len(str) {
+			continue
+		}
+		if len(list[i]) > len(str) {
+			break
+		}
+		if list[i][0] == str[0] {
+			if list[i][len(list[i])-1] == str[len(str)-1] {
+				if list[i] == str {
+					return i
+				}
+			}
+		}
+	}
+	return -1
+}
+
 func Contains(list []string, str string) bool {
-	for _, each := range list {
-		if each == str {
+	for i := range list {
+		if list[i] == str {
 			return true
 		}
 	}
-
 	return false
 }
 
