@@ -9,3 +9,8 @@ type (
 	TypeInt    int
 	TypeString string
 )
+
+func (kvs KV) Get(k string) (v any, ok bool) {
+	v, ok = kvs[k]
+	return
+}

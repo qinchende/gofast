@@ -131,6 +131,6 @@ func (ri *RouteItem) AfterMatch(hds ...CtxHandler) *RouteItem {
 // RouteItemAttrs
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouteItem) Attrs(ra RouteAttrs) *RouteItem {
-	ra.SetRouteIndex(ri.routeIdx)
+	ra.SetIndex(ri.routeIdx)
 	return ri
 }
