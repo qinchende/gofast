@@ -16,22 +16,23 @@ type (
 		//MaxReq    int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量 (对单个请求不支持这个参数，这个是由自适应降载逻辑自动判断的)
 		//BreakRate float32 `cnf:",def=3000,range=[0:600000]"` // google sre算法K值敏感度，K 越小越容易丢请求，推荐 1.5-2 之间 （这个算法目前底层写死1.5，基本上通用了，不必每个路由单独设置）
 	}
-	allAttrs []*Attrs // 高级功能：每项路由可选配置，精准控制
+	listAttrs []*Attrs // 高级功能：每项路由可选配置，精准控制
 )
 
-var AllAttrs allAttrs // 所有配置项汇总
+var AttrsList listAttrs // 所有配置项汇总
 
-func (ras *Attrs) SetRouteIndex(routeIdx uint16) {
+// 添加一个路由属性对象
+func (ras *Attrs) SetIndex(routeIdx uint16) {
 	ras.RIndex = routeIdx
-	AllAttrs = append(AllAttrs, ras)
+	AttrsList = append(AttrsList, ras)
 }
 
 // 构建所有路由的属性数组。没有指定的就用默认值填充。
-func (*allAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
-	old := AllAttrs
-	AllAttrs = make(allAttrs, routesLen)
+func (*listAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
+	old := AttrsList
+	AttrsList = make(listAttrs, routesLen)
 	for _, it := range old {
-		AllAttrs[it.RIndex] = it
+		AttrsList[it.RIndex] = it
 	}
 
 	defAttrs := Attrs{
@@ -40,9 +41,9 @@ func (*allAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
 		//MaxReq:    1000000,
 		//BreakRate: 1.5,
 	}
-	for idx, it := range AllAttrs {
+	for idx, it := range AttrsList {
 		if it == nil {
-			AllAttrs[idx] = &defAttrs
+			AttrsList[idx] = &defAttrs
 		}
 	}
 }

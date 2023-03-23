@@ -7,7 +7,7 @@ import "github.com/qinchende/gofast/cst"
 type (
 	// 可以为路由自定义配置属性
 	RouteAttrs interface {
-		SetRouteIndex(uint16)
+		SetIndex(uint16)
 	}
 
 	UrlParam struct {

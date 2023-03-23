@@ -12,6 +12,7 @@ type WebConfig struct {
 	ForwardedByClientIP   bool   `v:"def=true"`      // 是否从"X-Forwarded-For"的header中提取请求IP地址
 	ApplyUrlParamsToPms   bool   `v:"def=true"`      // 将UrlParams解析的参数自动加入Pms
 	PrintRouteTrees       bool   `v:"def=false"`     // 是否打印出当前路由数
+	CacheQueryValues      bool   `v:"def=false"`     // 存储解析后的QueryValues，方便下次访问
 
 	//LogType     string `v:"def=json,enum=json|sdx"`              // 日志类型
 	//EnableRouteMonitor bool `cnf:",def=true"` // 是否统计路由的访问处理情况，为单个路由的熔断降载做储备
