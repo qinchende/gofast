@@ -22,6 +22,7 @@ type RouteGroup struct {
 	combEvents   routeEvents // 合并父节点的分组事件，routeEvents可能为空，但是combEvents几乎不会为空
 	myApp        *GoFast
 	prefix       string
+	attrs        *GAttrs
 	children     []*RouteGroup
 	hdsIdx       int16  // 记录当前分组 对应新事件数组中的起始位置索引
 	selfHdsLen   uint16 // 记录当前分组中一共加入的处理函数个数（仅限于本分组加入的事件，不包含合并上级分组的）
@@ -35,6 +36,8 @@ type RouteItem struct {
 	routeEvents             // all handlers
 	routeIdx    uint16      // 此路由在路由数组中的索引值
 }
+
+type RouteItems []*RouteItem
 
 // 每一种事件类型需要占用3个字节(开始索引2字节 + 长度1字节(长度最大255))
 // 这里抽象出N种事件类型，应该够用了，这样每个路由节点占用3*N字节空间，64位机器1字长是8字节

@@ -1,38 +1,50 @@
 package fst
 
-import (
-	"reflect"
-)
+import "github.com/qinchende/gofast/skill/lang"
 
 type (
-	Attrs struct {
-		RIndex    uint16       `v:""` // 索引位置
-		PmsStruct reflect.Type `v:""` // 收集参数的结构体类型
-		PmsFields []string     `v:""` // 从结构体类型解析出的字段，需要排序
+	GAttrs struct {
+		PmsFields []string
 	}
-	listAttrs []*Attrs // 高级功能：每项路由可选配置，精准控制
+
+	RAttrs struct {
+		RIndex    uint16   // 索引位置
+		PmsFields []string // 从结构体类型解析出的字段，需要排序
+	}
+	listAttrs []*RAttrs // 高级功能：每项路由可选配置，精准控制
 )
 
-var AttrsList listAttrs // 所有配置项汇总
+var routesAttrs listAttrs // 所有配置项汇总
 
 // 添加一个路由属性对象
-func (ras *Attrs) SetIndex(routeIdx uint16) {
+func (ras *RAttrs) SetIndex(routeIdx uint16) {
 	ras.RIndex = routeIdx
-	AttrsList = append(AttrsList, ras)
+	routesAttrs = append(routesAttrs, ras)
+}
+func (ras *RAttrs) Clone() RouteAttrs {
+	fls := make([]string, len(ras.PmsFields))
+	copy(fls, ras.PmsFields)
+
+	clone := &RAttrs{
+		RIndex:    ras.RIndex,
+		PmsFields: fls,
+	}
+	return clone
 }
 
 // 构建所有路由的属性数组。没有指定的就用默认值填充。
-func (*listAttrs) rebuild(routesLen uint16) {
-	old := AttrsList
-	AttrsList = make(listAttrs, routesLen)
-	for _, it := range old {
-		AttrsList[it.RIndex] = it
+func (*listAttrs) Rebuild(routesLen uint16) {
+	old := routesAttrs
+	routesAttrs = make(listAttrs, routesLen)
+	for i := range old {
+		lang.SortByLen(old[i].PmsFields)
+		routesAttrs[old[i].RIndex] = old[i]
 	}
 
-	defAttrs := Attrs{}
-	for idx, it := range AttrsList {
-		if it == nil {
-			AttrsList[idx] = &defAttrs
-		}
-	}
+	// 没有的项看是否给默认值
+	//for i := range routesAttrs {
+	//	if it == nil {
+	//		routesAttrs[idx] = &RAttrs{}
+	//	}
+	//}
 }

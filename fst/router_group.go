@@ -21,6 +21,15 @@ func (gp *RouteGroup) Group(relPath string) *RouteGroup {
 	return gpNew
 }
 
+func (gp *RouteGroup) Attrs(attrs *GAttrs) *RouteGroup {
+	if gp.attrs == nil {
+		gp.attrs = attrs
+	} else {
+		gp.attrs.PmsFields = append(gp.attrs.PmsFields, attrs.PmsFields...)
+	}
+	return gp
+}
+
 // Prefix returns the base path of router gp.
 // For example, if v := router.Group("/rest/n/v1/api"), v.Prefix() is "/rest/n/v1/api".
 func (gp *RouteGroup) Prefix() string {

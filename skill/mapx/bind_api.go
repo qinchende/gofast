@@ -32,3 +32,9 @@ func Optimize(dst any, like int8) error {
 func OptimizeX(dst any, opts *BindOptions) error {
 	return optimizeStruct(dst, opts)
 }
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func Columns(obj any) []string {
+	sm := Schema(obj, matchOptions(LikeInput))
+	return sm.columns
+}

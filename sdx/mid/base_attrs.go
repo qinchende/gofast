@@ -4,6 +4,7 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/fst"
 )
 
 type (
@@ -19,31 +20,41 @@ type (
 	listAttrs []*Attrs // 高级功能：每项路由可选配置，精准控制
 )
 
-var AttrsList listAttrs // 所有配置项汇总
+var RoutesAttrs listAttrs // 所有配置项汇总
 
 // 添加一个路由属性对象
 func (ras *Attrs) SetIndex(routeIdx uint16) {
 	ras.RIndex = routeIdx
-	AttrsList = append(AttrsList, ras)
+	RoutesAttrs = append(RoutesAttrs, ras)
+}
+
+// clone一个新的对象
+func (ras *Attrs) Clone() fst.RouteAttrs {
+	clone := &Attrs{
+		RIndex:    ras.RIndex,
+		Priority:  ras.Priority,
+		MaxLen:    ras.MaxLen,
+		TimeoutMS: ras.TimeoutMS,
+	}
+	return clone
 }
 
 // 构建所有路由的属性数组。没有指定的就用默认值填充。
 func (*listAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
-	old := AttrsList
-	AttrsList = make(listAttrs, routesLen)
-	for _, it := range old {
-		AttrsList[it.RIndex] = it
+	old := RoutesAttrs
+	RoutesAttrs = make(listAttrs, routesLen)
+	for i := range old {
+		RoutesAttrs[old[i].RIndex] = old[i]
 	}
 
-	defAttrs := Attrs{
-		MaxLen:    0,
-		TimeoutMS: int32(cnf.DefTimeoutMS),
-		//MaxReq:    1000000,
-		//BreakRate: 1.5,
-	}
-	for idx, it := range AttrsList {
-		if it == nil {
-			AttrsList[idx] = &defAttrs
+	for i := range RoutesAttrs {
+		if RoutesAttrs[i] == nil {
+			RoutesAttrs[i] = &Attrs{
+				MaxLen:    0,
+				TimeoutMS: int32(cnf.DefTimeoutMS),
+				//MaxReq:    1000000,
+				//BreakRate: 1.5,
+			}
 		}
 	}
 }

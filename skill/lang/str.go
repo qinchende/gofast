@@ -2,12 +2,19 @@ package lang
 
 import (
 	"errors"
+	"sort"
 )
 
 var (
 	ErrInvalidStartPosition = errors.New("start position is invalid")
 	ErrInvalidStopPosition  = errors.New("stop position is invalid")
 )
+
+func SortByLen(keys []string) {
+	sort.Slice(keys, func(i, j int) bool {
+		return len(keys[i]) < len(keys[j])
+	})
+}
 
 // list必须是按字符串长度从小到大排序好的数组，而且不能有空字符串，数据量不可太大
 // 匹配到就返回索引，没找到就返回-1

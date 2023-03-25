@@ -129,8 +129,71 @@ func (ri *RouteItem) AfterMatch(hds ...CtxHandler) *RouteItem {
 }
 
 // RouteItemAttrs
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++
 func (ri *RouteItem) Attrs(ra RouteAttrs) *RouteItem {
 	ra.SetIndex(ri.routeIdx)
 	return ri
+}
+
+// RouteItems
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (ris RouteItems) Attrs(ra RouteAttrs) RouteItems {
+	for i := range ris {
+		if i == 0 {
+			ra.SetIndex(ris[i].routeIdx)
+		} else {
+			ra.Clone().SetIndex(ris[i].routeIdx)
+		}
+	}
+	return ris
+}
+
+// +++++++++++++++++++
+func (ris RouteItems) Before(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EBefore, hds)
+	}
+	return ris
+}
+
+func (ris RouteItems) B(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EBefore, hds)
+	}
+	return ris
+}
+
+func (ris RouteItems) After(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EAfter, hds)
+	}
+	return ris
+}
+
+func (ris RouteItems) A(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EAfter, hds)
+	}
+	return ris
+}
+
+func (ris RouteItems) BeforeSend(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EBeforeSend, hds)
+	}
+	return ris
+}
+
+func (ris RouteItems) AfterSend(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EAfterSend, hds)
+	}
+	return ris
+}
+
+func (ris RouteItems) AfterMatch(hds ...CtxHandler) RouteItems {
+	for i := range ris {
+		ris[i].regItemCtxHandler(EAfterMatch, hds)
+	}
+	return ris
 }
