@@ -80,22 +80,30 @@ func (c *Context) CollectPms() error {
 		if err := jsonx.UnmarshalFromReader(&c.Pms, c.Req.Body); err != nil {
 			return err
 		}
+		for k := range c.Pms {
+			c.Pms2.Set(k, c.Pms[k])
+		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
 		c.ParseForm()
 		urlParsed = true
 		applyUrlValue(c.Pms, c.Req.Form)
+		applyUrlValue(c.Pms2, c.Req.Form)
 	}
 
 	// Url中带入的查询参数加入参数字典
 	if !urlParsed {
-		applyUrlValue(c.Pms, c.QueryValues())
+		qu := c.QueryValues()
+		applyUrlValue(c.Pms, qu)
+		applyUrlValue(c.Pms2, qu)
 	}
 
 	// 将UrlParams加入参数字典
 	if c.myApp.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
 		kvs := *c.route.params
 		for i := range kvs {
-			c.Pms[kvs[i].Key] = kvs[i].Value
+			//c.Pms[kvs[i].Key] = kvs[i].Value
+			c.Pms.Set(kvs[i].Key, kvs[i].Value)
+			c.Pms2.Set(kvs[i].Key, kvs[i].Value)
 		}
 	}
 
@@ -103,8 +111,8 @@ func (c *Context) CollectPms() error {
 }
 
 // 上传的参数一般都是单一的，不需要 url.Values 中的 slice切片
-func applyUrlValue(pms cst.KV, webValues url.Values) {
+func applyUrlValue(pms cst.SuperKV, webValues url.Values) {
 	for key := range webValues {
-		pms[key] = webValues[key][0]
+		pms.Set(key, webValues[key][0])
 	}
 }

@@ -22,3 +22,10 @@ func (gr *GsonRow) Get(k string) (v any, ok bool) {
 	}
 	return gr.Row[idx], true // 有可能找到字段了，但是存的值是nil
 }
+
+func (gr *GsonRow) Set(k string, v any) {
+	idx := lang.SearchSortStrings(gr.Cls, k)
+	if idx >= 0 {
+		gr.Row[idx] = v
+	}
+}

@@ -10,8 +10,9 @@ type Ret struct {
 
 func (ret Ret) Callback() {}
 
-// 上下文中用来保存解析到的请求数据，主要是KV形式
 // 可能用map，也可能自定义数组等合适的数据结构存取。
+// 比如上下文中用来保存解析到的请求数据，主要是KV形式
 type SuperKV interface {
 	Get(k string) (any, bool)
+	Set(k string, v any)
 }

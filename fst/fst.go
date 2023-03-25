@@ -4,8 +4,8 @@ package fst
 
 import (
 	"context"
+	"github.com/qinchende/gofast/fst/httpx"
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/httpx"
 	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
 	"os"
@@ -229,8 +229,8 @@ func (gft *GoFast) BuildRoutes() {
 	})
 	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
 	gft.buildAllRoutes()
-	gft.initPools()
-	AttrsList.rebuild(gft.RoutesLen())            // 构建所有路由的全局属性配置
+	routesAttrs.Rebuild(gft.RoutesLen()) // 构建所有路由的全局属性配置
+	gft.pools.initWebPools(gft)
 	gft.execAppHandlers(gft.eAfterBuildRoutesHds) // after build routes
 }
 

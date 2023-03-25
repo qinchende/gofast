@@ -21,7 +21,7 @@ func LoadShedding(kp *gate.RequestKeeper, useShedding bool, idx uint16) fst.CtxH
 	}
 
 	return func(c *fst.Context) {
-		rt := AttrsList[c.RouteIdx]
+		rt := RoutesAttrs[c.RouteIdx]
 
 		if kp.LimiterAllow(c.RouteIdx, rt.TimeoutMS) {
 			//kp.CountExtras(idx) // Just for debug
