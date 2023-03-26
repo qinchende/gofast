@@ -131,7 +131,7 @@ func (ri *RouteItem) AfterMatch(hds ...CtxHandler) *RouteItem {
 // RouteItemAttrs
 // +++++++++++++++++++
 func (ri *RouteItem) Attrs(ra RouteAttrs) *RouteItem {
-	ra.SetIndex(ri.routeIdx)
+	ra.BindRoute(ri)
 	return ri
 }
 
@@ -140,9 +140,9 @@ func (ri *RouteItem) Attrs(ra RouteAttrs) *RouteItem {
 func (ris RouteItems) Attrs(ra RouteAttrs) RouteItems {
 	for i := range ris {
 		if i == 0 {
-			ra.SetIndex(ris[i].routeIdx)
+			ra.BindRoute(ris[i])
 		} else {
-			ra.Clone().SetIndex(ris[i].routeIdx)
+			ra.Clone().BindRoute(ris[i])
 		}
 	}
 	return ris

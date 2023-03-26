@@ -3,13 +3,10 @@ package fst
 import "github.com/qinchende/gofast/skill/lang"
 
 type (
-	GAttrs struct {
-		PmsFields []string
-	}
-
 	RAttrs struct {
 		RIndex    uint16   // 索引位置
 		PmsFields []string // 从结构体类型解析出的字段，需要排序
+		Handler   CtxHandler
 	}
 	listAttrs []*RAttrs // 高级功能：每项路由可选配置，精准控制
 )
@@ -17,10 +14,19 @@ type (
 var routesAttrs listAttrs // 所有配置项汇总
 
 // 添加一个路由属性对象
-func (ras *RAttrs) SetIndex(routeIdx uint16) {
-	ras.RIndex = routeIdx
+func (ras *RAttrs) BindRoute(ri *RouteItem) {
+	if ri.Index() <= 0 && ras.Handler != nil {
+		ri.Handle(ras.Handler)
+	}
+	// 如果不是有效的RouteItem
+	if ri.Index() <= 0 {
+		return
+	}
+	ras.RIndex = ri.Index()
 	routesAttrs = append(routesAttrs, ras)
 }
+
+// 克隆对象
 func (ras *RAttrs) Clone() RouteAttrs {
 	fls := make([]string, len(ras.PmsFields))
 	copy(fls, ras.PmsFields)
@@ -40,11 +46,4 @@ func (*listAttrs) Rebuild(routesLen uint16) {
 		lang.SortByLen(old[i].PmsFields)
 		routesAttrs[old[i].RIndex] = old[i]
 	}
-
-	// 没有的项看是否给默认值
-	//for i := range routesAttrs {
-	//	if it == nil {
-	//		routesAttrs[idx] = &RAttrs{}
-	//	}
-	//}
 }

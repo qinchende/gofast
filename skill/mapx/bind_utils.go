@@ -47,9 +47,5 @@ func checkDestSchema(dest any, bindOpts *BindOptions) (*reflect.Value, *StructSc
 		return nil, nil, fmt.Errorf("%T not like struct.", dest)
 	}
 
-	if bindOpts.CacheSchema {
-		return &dstVal, SchemaOfType(dstVal.Type(), bindOpts), nil
-	} else {
-		return &dstVal, SchemaNoCacheOfType(dstVal.Type(), bindOpts), nil
-	}
+	return &dstVal, SchemaOfType(dstVal.Type(), bindOpts), nil
 }
