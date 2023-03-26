@@ -7,8 +7,8 @@ import "github.com/qinchende/gofast/cst"
 type (
 	// 可以为路由自定义配置属性
 	RouteAttrs interface {
-		SetIndex(uint16)   // 设置当前路由的index
-		Clone() RouteAttrs // 克隆自己
+		BindRoute(*RouteItem) // 设置当前路由的index
+		Clone() RouteAttrs    // 克隆自己
 	}
 
 	UrlParam struct {

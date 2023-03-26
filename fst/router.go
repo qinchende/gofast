@@ -22,7 +22,6 @@ type RouteGroup struct {
 	combEvents   routeEvents // 合并父节点的分组事件，routeEvents可能为空，但是combEvents几乎不会为空
 	myApp        *GoFast
 	prefix       string
-	attrs        *GAttrs
 	children     []*RouteGroup
 	hdsIdx       int16  // 记录当前分组 对应新事件数组中的起始位置索引
 	selfHdsLen   uint16 // 记录当前分组中一共加入的处理函数个数（仅限于本分组加入的事件，不包含合并上级分组的）

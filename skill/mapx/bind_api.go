@@ -24,7 +24,7 @@ func BindSliceX(dst any, src any, opts *BindOptions) error {
 	return bindList(dst, src, fOpt, opts)
 }
 
-// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Optimize(dst any, like int8) error {
 	return optimizeStruct(dst, matchOptions(like))
 
@@ -34,7 +34,8 @@ func OptimizeX(dst any, opts *BindOptions) error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Columns(obj any) []string {
-	sm := Schema(obj, matchOptions(LikeInput))
+// 提取对象的字段的column名
+func Columns(obj any, like int8) []string {
+	sm := Schema(obj, matchOptions(like))
 	return sm.columns
 }

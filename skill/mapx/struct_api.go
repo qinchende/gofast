@@ -6,22 +6,20 @@ import (
 	"reflect"
 )
 
-// no cache
-func SchemaNoCache(obj any, opts *BindOptions) *StructSchema {
-	return buildStructSchema(reflect.TypeOf(obj), opts)
-}
-
-func SchemaNoCacheOfType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
-	return buildStructSchema(rTyp, opts)
-}
-
-// cached
 func Schema(obj any, opts *BindOptions) *StructSchema {
-	return fetchSchemaCache(reflect.TypeOf(obj), opts)
+	if opts.CacheSchema {
+		return fetchSchemaCache(reflect.TypeOf(obj), opts)
+	} else {
+		return buildStructSchema(reflect.TypeOf(obj), opts)
+	}
 }
 
 func SchemaOfType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
-	return fetchSchemaCache(rTyp, opts)
+	if opts.CacheSchema {
+		return fetchSchemaCache(rTyp, opts)
+	} else {
+		return buildStructSchema(rTyp, opts)
+	}
 }
 
 // reflect

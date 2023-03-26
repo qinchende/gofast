@@ -3,11 +3,23 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
+	"math"
 	"net/http"
 	"os"
 	"path"
+	"regexp"
 	"strings"
 )
+
+//func (gp *RouteGroup) Attrs(attrs *GAttrs) *RouteGroup {
+//	if gp.attrs == nil {
+//		gp.attrs = attrs
+//	} else {
+//		gp.attrs.PmsFields = append(gp.attrs.PmsFields, attrs.PmsFields...)
+//	}
+//	return gp
+//}
 
 // Note：如果分组已经存在，需要报错。 或者不报错。
 // GoFast选择不报错，允许添加相同路径的不同分组，区别应用不同的特性
@@ -21,21 +33,104 @@ func (gp *RouteGroup) Group(relPath string) *RouteGroup {
 	return gpNew
 }
 
-func (gp *RouteGroup) Attrs(attrs *GAttrs) *RouteGroup {
-	if gp.attrs == nil {
-		gp.attrs = attrs
-	} else {
-		gp.attrs.PmsFields = append(gp.attrs.PmsFields, attrs.PmsFields...)
-	}
-	return gp
-}
-
 // Prefix returns the base path of router gp.
 // For example, if v := router.Group("/rest/n/v1/api"), v.Prefix() is "/rest/n/v1/api".
 func (gp *RouteGroup) Prefix() string {
 	return gp.prefix
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// idx 0. not match any 1. 404 handlers 2. 405 handlers
+func (gft *GoFast) regSpecialHandlers(hds []CtxHandler, idx int) {
+	cst.PanicIf(len(hds) <= 0, "there must be at least one handler")
+	cst.PanicIf(len(gft.allRoutes[idx].eHds) > 0, "handlers already exists.")
+	gft.allRoutes[idx].eHds = addCtxHandlers(gft.fstMem, hds)
+}
+
+// 在当前分组注册一个新节点
+func (gp *RouteGroup) register(httpMethod, relPath string, hds []CtxHandler) *RouteItem {
+	// 最终的路由绝对路径
+	absPath := gp.fixAbsolutePath(relPath)
+	cst.PanicIf(absPath[0] != '/', "Path must begin with '/'")
+	cst.PanicIf(len(absPath) > math.MaxUint8, "The path is more than 255 chars")
+	cst.PanicIf(len(httpMethod) == 0, "HTTP method can not be empty")
+
+	// 新添加一个 GroupItem，记录所有的处理函数
+	ri := &RouteItem{
+		method:   httpMethod,
+		fullPath: absPath,
+		group:    gp,
+		routeIdx: 0,
+	}
+
+	// 可以 RouteItem 只创建对象，不指定处理函数。等后面再设置
+	if len(hds) == 0 {
+		return ri
+	} else {
+		return ri.Handle(hds...)
+	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// TODO: 有个问题，httpMethod参数没有做枚举校验，可以创建任意名称的method路由数，真要这么自由吗???
+func (gp *RouteGroup) Handle(httpMethod, relPath string, hds ...CtxHandler) *RouteItem {
+	if matches, err := regexp.MatchString("^[A-Z]+$", httpMethod); !matches || err != nil {
+		panic("http method " + httpMethod + " is not valid")
+	}
+	return gp.register(httpMethod, relPath, hds)
+}
+
+func (gp *RouteGroup) Get(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodGet, relPath, hds)
+}
+
+func (gp *RouteGroup) Post(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodPost, relPath, hds)
+}
+
+func (gp *RouteGroup) Delete(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodDelete, relPath, hds)
+}
+
+func (gp *RouteGroup) Patch(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodPatch, relPath, hds)
+}
+
+func (gp *RouteGroup) Put(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodPut, relPath, hds)
+}
+
+func (gp *RouteGroup) Options(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodOptions, relPath, hds)
+}
+
+func (gp *RouteGroup) Head(relPath string, hds ...CtxHandler) *RouteItem {
+	return gp.register(http.MethodHead, relPath, hds)
+}
+
+// 特殊类型
+func (gp *RouteGroup) GetPost(relPath string, hds ...CtxHandler) RouteItems {
+	get := gp.register(http.MethodGet, relPath, hds)
+	post := gp.register(http.MethodPost, relPath, hds)
+	return RouteItems{get, post}
+}
+
+// Any registers a route that matches all the HTTP methods.
+// GET, POST, PUT, PATCH, HEAD, OPTIONS, DELETE, CONNECT, TRACE.
+func (gp *RouteGroup) All(relPath string, hds ...CtxHandler) RouteItems {
+	get := gp.register(http.MethodGet, relPath, hds)
+	post := gp.register(http.MethodPost, relPath, hds)
+	put := gp.register(http.MethodPut, relPath, hds)
+	patch := gp.register(http.MethodPatch, relPath, hds)
+	head := gp.register(http.MethodHead, relPath, hds)
+	opt := gp.register(http.MethodOptions, relPath, hds)
+	del := gp.register(http.MethodDelete, relPath, hds)
+	conn := gp.register(http.MethodConnect, relPath, hds)
+	trace := gp.register(http.MethodTrace, relPath, hds)
+	return RouteItems{get, post, put, patch, head, opt, del, conn, trace}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // StaticFile 	-> 指定路由到某个具体的磁盘文件
 // Static 		-> 指定URL映射到某个磁盘目录，不打印当前路径下的文件列表
 // StaticFS 	-> 和Static一样，但是显示当前目录文件列表（类似FTP），需要自定义磁盘路径http.FileSystem

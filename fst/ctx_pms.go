@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/fst/httpx"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
@@ -94,7 +95,9 @@ func (c *Context) CollectPms() error {
 	if !urlParsed {
 		qu := c.QueryValues()
 		applyUrlValue(c.Pms, qu)
-		applyUrlValue(c.Pms2, qu)
+
+		// TODO: Pms2
+		httpx.ParseQuery(c.Pms2, c.Req.URL.RawQuery)
 	}
 
 	// 将UrlParams加入参数字典
