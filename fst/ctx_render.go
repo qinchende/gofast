@@ -147,7 +147,7 @@ func (c *Context) String(resStatus int, format string, values ...any) {
 
 // File writes the specified file into the body stream in a efficient way.
 func (c *Context) File(filepath string) {
-	http.ServeFile(c.Res, c.Req, filepath)
+	http.ServeFile(c.Res, c.Req.Raw, filepath)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -199,7 +199,7 @@ func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
 		return
 	}
 	c.execIdx = maxRouteHandlers
-	c.Res.SendHijackRedirect(c.Req, resStatus, redirectUrl)
+	c.Res.SendHijackRedirect(c.Req.Raw, resStatus, redirectUrl)
 }
 
 // 这个是为超时返回准备的特殊方法，一般不要使用

@@ -14,7 +14,7 @@ func Logger(c *fst.Context) {
 
 	// 请求处理完，并成功返回了，接下来就是打印请求日志
 	p := &logx.ReqLogEntity{
-		RawReq: c.Req,
+		RawReq: c.Req.Raw,
 	}
 	p.Pms = c.Pms
 	p.ClientIP = c.ClientIP()
@@ -39,7 +39,7 @@ func LoggerMini(c *fst.Context) {
 
 	// 请求处理完，并成功返回了，接下来就是打印请求日志
 	p := &logx.ReqLogEntity{
-		RawReq: c.Req,
+		RawReq: c.Req.Raw,
 	}
 	p.ClientIP = c.ClientIP()
 	p.StatusCode = c.Res.Status()

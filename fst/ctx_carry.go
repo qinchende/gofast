@@ -3,8 +3,8 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/tips"
-	"net/url"
 )
 
 // 将来可以扩展，携带各种数据类型
@@ -52,7 +52,7 @@ func (c *Context) CarryMsgItems() tips.CarryList {
 //	return it.Meta.(url.Values)
 //}
 
-func (c *Context) setQueryCache(val url.Values) {
+func (c *Context) setQueryCache(val cst.KV) {
 	c.checkCarrySize()
 	queryItem := &tips.CarryItem{
 		Type: carryTypeQueryCache,
@@ -61,12 +61,12 @@ func (c *Context) setQueryCache(val url.Values) {
 	}
 	c.CarryItems = append(c.CarryItems, queryItem)
 }
-func (c *Context) queryCache() url.Values {
+func (c *Context) queryCache() cst.KV {
 	it := c.CarryItems.FirstOne(carryTypeQueryCache)
 	if it == nil {
 		return nil
 	}
-	return it.Meta.(url.Values)
+	return it.Meta.(cst.KV)
 }
 
 // 控制context.CarryList的长度，这个结构要通过sync.Pool复用，内存占用会只增不减

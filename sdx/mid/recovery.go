@@ -41,7 +41,7 @@ func Recovery(c *fst.Context) {
 			default:
 				// TODO-important: 非预期的异常，比如系统异常
 				// 将会作为熔断的判断依据（业务逻辑不要随意使用系统panic，请用框架GFPanic）
-				logx.Stacks(c.Req.RequestURI)
+				logx.Stacks(c.Req.Raw.RequestURI)
 				c.AbortDirect(http.StatusInternalServerError, info)
 			}
 		}

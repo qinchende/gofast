@@ -1,3 +1,5 @@
+// Copyright 2023 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package httpx
 
 import (
@@ -7,9 +9,10 @@ import (
 )
 
 // 解析url中的query参数
+// 发生error，意味着解析不到合适的值，啥都不做了。
 func ParseQuery(pms cst.SuperKV, query string) {
 	for query != "" {
-		var key string
+		var key, value string
 
 		// k1=v1&k1=v2
 		idx := strings.IndexByte(query, '&')
@@ -20,7 +23,6 @@ func ParseQuery(pms cst.SuperKV, query string) {
 			key, query = query[:idx], query[idx+1:]
 		}
 
-		//key, query, _ = strings.Cut(query, "&")
 		if key == "" {
 			continue
 		}
@@ -28,22 +30,19 @@ func ParseQuery(pms cst.SuperKV, query string) {
 			continue
 		}
 
-		// k = v
+		// k1=v1
 		idx = strings.IndexByte(key, '=')
-		if idx < 0 {
+		if idx <= 0 {
 			continue
 		}
-		key, value := key[:idx], key[idx+1:]
-		if len(key) == 0 || len(value) == 0 {
-			continue
-		}
+		key, value = key[:idx], key[idx+1:]
 
-		key, err1 := url.QueryUnescape(key)
-		if err1 != nil {
+		// check
+		var err error
+		if key, err = url.QueryUnescape(key); err != nil {
 			continue
 		}
-		value, err2 := url.QueryUnescape(value)
-		if err2 != nil {
+		if value, err = url.QueryUnescape(value); err != nil {
 			continue
 		}
 

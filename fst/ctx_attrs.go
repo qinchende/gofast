@@ -34,6 +34,7 @@ func (ras *RAttrs) Clone() RouteAttrs {
 	clone := &RAttrs{
 		RIndex:    ras.RIndex,
 		PmsFields: fls,
+		Handler:   ras.Handler,
 	}
 	return clone
 }

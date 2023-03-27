@@ -8,14 +8,22 @@ import (
 	"os"
 )
 
+// 返回所有上传文件的Form表单结构
+// MultipartForm is the parsed multipart form, including file uploads.
+func (c *Context) MultipartForm() (*multipart.Form, error) {
+	err := c.Req.Raw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes)
+	return c.Req.Raw.MultipartForm, err
+}
+
+// 查找一个上传的文件
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
-	if c.Req.MultipartForm == nil {
-		if err := c.Req.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes); err != nil {
+	if c.Req.Raw.MultipartForm == nil {
+		if err := c.Req.Raw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes); err != nil {
 			return nil, err
 		}
 	}
-	f, fh, err := c.Req.FormFile(name)
+	f, fh, err := c.Req.Raw.FormFile(name)
 	if err != nil {
 		return nil, err
 	}
@@ -23,12 +31,7 @@ func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
 	return fh, err
 }
 
-// MultipartForm is the parsed multipart form, including file uploads.
-func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.Req.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes)
-	return c.Req.MultipartForm, err
-}
-
+// 指定文件，临时保存上传的文件流
 // SaveUploadedFile uploads the form file to specific dst.
 func (c *Context) SaveUploadedFile(file *multipart.FileHeader, dst string) error {
 	src, err := file.Open()

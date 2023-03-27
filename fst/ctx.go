@@ -5,7 +5,6 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/tips"
-	"net/http"
 	"sync"
 	"time"
 )
@@ -17,7 +16,7 @@ type Context struct {
 
 	EnterTime time.Duration // 请求传递进入框架逻辑的时间
 	Res       *ResponseWrap // 被封装后的Response
-	Req       *http.Request // 原始 request
+	Req       *RequestWrap  // 被封装后的Request
 
 	lock     sync.Mutex   // This mutex protect context
 	route    matchRoute   // 路由匹配结果，一般用于确定相应资源
