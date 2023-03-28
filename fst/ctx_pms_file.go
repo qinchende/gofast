@@ -3,32 +3,29 @@
 package fst
 
 import (
+	"errors"
 	"io"
 	"mime/multipart"
 	"os"
 )
 
-// 返回所有上传文件的Form表单结构
-// MultipartForm is the parsed multipart form, including file uploads.
-func (c *Context) MultipartForm() (*multipart.Form, error) {
-	err := c.Req.Raw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes)
-	return c.Req.Raw.MultipartForm, err
-}
+//// 返回所有上传文件的Form表单结构
+//// MultipartForm is the parsed multipart form, including file uploads.
+//func (c *Context) MultipartForm() (*multipart.Form, error) {
+//	err := httpx.ParseMultipartForm(c.Pms2, c.Req.Raw, c.myApp.WebConfig.MaxMultipartBytes)
+//	return c.Req.Raw.MultipartForm, err
+//}
 
 // 查找一个上传的文件
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
-	if c.Req.Raw.MultipartForm == nil {
-		if err := c.Req.Raw.ParseMultipartForm(c.myApp.WebConfig.MaxMultipartBytes); err != nil {
-			return nil, err
+	mForm := c.Req.Raw.MultipartForm
+	if mForm != nil && mForm.File != nil {
+		if fhs := mForm.File[name]; len(fhs) > 0 {
+			return fhs[0], nil
 		}
 	}
-	f, fh, err := c.Req.Raw.FormFile(name)
-	if err != nil {
-		return nil, err
-	}
-	f.Close()
-	return fh, err
+	return nil, errors.New("http: no such file")
 }
 
 // 指定文件，临时保存上传的文件流

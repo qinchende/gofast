@@ -1,12 +1,14 @@
-// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
+// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
 package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/httpx"
+	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
+	"net/http"
 	"strings"
 )
 
@@ -50,17 +52,17 @@ func (c *Context) QueryValues() cst.KV {
 	return val
 }
 
-//// ++++++++++++++++++++++++++++++++++++
-//// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
-//func (c *Context) ParseForm() {
-//	if c.Req.Raw.PostForm == nil {
-//		// 如果解析出错，就当做解析不出参数，参数为空
-//		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
-//		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != nil && err != http.ErrNotMultipart {
-//			logx.DebugF("parse multipart form error: %v", err)
-//		}
-//	}
-//}
+// ++++++++++++++++++++++++++++++++++++
+// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
+func (c *Context) ParseForm() {
+	if c.Req.Raw.PostForm == nil {
+		// 如果解析出错，就当做解析不出参数，参数为空
+		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
+		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != nil && err != http.ErrNotMultipart {
+			logx.DebugF("parse multipart form error: %v", err)
+		}
+	}
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ##这个方法很重要##
@@ -81,24 +83,18 @@ func (c *Context) CollectPms() error {
 		if err := jsonx.UnmarshalFromReader(&c.Pms, c.Req.Raw.Body); err != nil {
 			return err
 		}
-		for k := range c.Pms {
-			c.Pms2.Set(k, c.Pms[k])
-		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
-		_ = httpx.ParseMultipartForm(c.Pms2, c.Req.Raw, c.myApp.WebConfig.MaxMultipartBytes)
-		//c.ParseForm()
+		_ = httpx.ParseMultipartForm(c.Pms, c.Req.Raw, c.myApp.WebConfig.MaxMultipartBytes)
 		urlParsed = true
-		//applyUrlValue(c.Pms, c.Req.Raw.Form)
-		//applyUrlValue(c.Pms2, c.Req.Raw.Form)
 	}
 
 	// Url中带入的查询参数加入参数字典
 	if !urlParsed {
 		if c.myApp.WebConfig.CacheQueryValues {
-			applyMap(c.Pms2, c.QueryValues())
+			applyMap(c.Pms, c.QueryValues())
 		} else {
 			// TODO: Pms2
-			httpx.ParseQuery(c.Pms2, c.Req.Raw.URL.RawQuery)
+			httpx.ParseQuery(c.Pms, c.Req.Raw.URL.RawQuery)
 		}
 	}
 
@@ -106,21 +102,19 @@ func (c *Context) CollectPms() error {
 	if c.myApp.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
 		kvs := *c.route.params
 		for i := range kvs {
-			//c.Pms[kvs[i].Key] = kvs[i].Value
-			//c.Pms.Set(kvs[i].Key, kvs[i].Value)
-			c.Pms2.Set(kvs[i].Key, kvs[i].Value)
+			c.Pms.Set(kvs[i].Key, kvs[i].Value)
 		}
+	}
+
+	// TODO: 加入http协议头中的 header 参数
+
+	// 临时逻辑，将Pms转到Pms2中
+	for k := range c.Pms {
+		c.Pms2.Set(k, c.Pms[k])
 	}
 
 	return nil
 }
-
-//// 上传的参数一般都是单一的，不需要 url.Values 中的 slice切片
-//func applyUrlValue(pms cst.SuperKV, webValues url.Values) {
-//	for key := range webValues {
-//		pms.Set(key, webValues[key][0])
-//	}
-//}
 
 func applyMap(pms cst.SuperKV, kvs cst.KV) {
 	for key := range kvs {
