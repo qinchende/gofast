@@ -22,6 +22,7 @@ func (wp *webPools) initWebPools(gft *GoFast) {
 		return &Context{
 			myApp: wp.myApp,
 			Res:   &ResponseWrap{},
+			Req:   &RequestWrap{},
 		}
 	}
 
@@ -51,8 +52,8 @@ func (wp *webPools) putContext(c *Context) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Pms Pool
-func (c *Context) getPms() cst.SuperKV {
+// Pms Pool get
+func (c *Context) newPms() cst.SuperKV {
 	pmsPool := c.myApp.pools.pmsPools[c.RouteIdx]
 	if pmsPool != nil {
 		gr := pmsPool.Get().(*gson.GsonRow)

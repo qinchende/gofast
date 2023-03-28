@@ -21,22 +21,22 @@ func Tracing(appName string, useTracing bool) fst.CtxHandler {
 		propagator := otel.GetTextMapPropagator()
 		tracer := otel.GetTracerProvider().Tracer(trace.TraceName)
 
-		ctx := propagator.Extract(c.Req.Context(), propagation.HeaderCarrier(c.Req.Header))
+		ctx := propagator.Extract(c.Req.Raw.Context(), propagation.HeaderCarrier(c.Req.Raw.Header))
 		spanName := c.FullPath()
 		if len(spanName) == 0 {
-			spanName = c.Req.URL.Path
+			spanName = c.Req.Raw.URL.Path
 		}
 		spanCtx, span := tracer.Start(
 			ctx,
 			spanName,
 			oteltrace.WithSpanKind(oteltrace.SpanKindServer),
-			oteltrace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(appName, spanName, c.Req)...),
+			oteltrace.WithAttributes(semconv.HTTPServerAttributesFromHTTPRequest(appName, spanName, c.Req.Raw)...),
 		)
 		defer span.End()
 
 		// convenient for tracking error messages
 		propagator.Inject(spanCtx, propagation.HeaderCarrier(c.Res.Header()))
-		c.Req = c.Req.WithContext(spanCtx)
+		c.Req.Raw = c.Req.Raw.WithContext(spanCtx)
 
 		c.Next()
 	}

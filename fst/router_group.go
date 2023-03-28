@@ -194,7 +194,7 @@ func (gp *RouteGroup) createStaticHandler(relPath string, fs http.FileSystem) Ct
 			return
 		}
 		_ = f.Close()
-		fileServer.ServeHTTP(c.Res, c.Req)
+		fileServer.ServeHTTP(c.Res, c.Req.Raw)
 	}
 }
 

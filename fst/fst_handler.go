@@ -34,22 +34,22 @@ func (gft *GoFast) Reg405(hds ...CtxHandler) {
 // 请求结尾的 '/' 取消或者添加之后重定向，看是否能够匹配到相应路由
 func redirectTrailingSlash(c *Context) {
 	req := c.Req
-	p := req.URL.Path
-	if prefix := path.Clean(c.Req.Header.Get("X-Forwarded-Prefix")); prefix != "." {
-		p = prefix + "/" + req.URL.Path
+	p := req.Raw.URL.Path
+	if prefix := path.Clean(c.Req.Raw.Header.Get("X-Forwarded-Prefix")); prefix != "." {
+		p = prefix + "/" + req.Raw.URL.Path
 	}
-	req.URL.Path = p + "/"
+	req.Raw.URL.Path = p + "/"
 	if length := len(p); length > 1 && p[length-1] == '/' {
-		req.URL.Path = p[:length-1]
+		req.Raw.URL.Path = p[:length-1]
 	}
 
 	// GET 和 非GET 请求重定向状态不一样
 	code := http.StatusMovedPermanently // Permanent redirect, request with GET method
-	if req.Method != http.MethodGet {
+	if req.Raw.Method != http.MethodGet {
 		code = http.StatusTemporaryRedirect
 	}
 
-	rURL := req.URL.String()
-	logx.InfoF("redirecting request %d: %s --> %s", code, req.URL.Path, rURL)
+	rURL := req.Raw.URL.String()
+	logx.InfoF("redirecting request %d: %s --> %s", code, req.Raw.URL.Path, rURL)
 	c.AbortRedirect(code, rURL)
 }

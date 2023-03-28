@@ -18,6 +18,7 @@ const (
 	MIMEAppJson       = "application/json"
 	MIMEPostForm      = "application/x-www-form-urlencoded"
 	MIMEMultiPostForm = "multipart/form-data"
+	MIMEMultiMixed    = "multipart/mixed"
 	MIMEProtoBuf      = "application/x-protobuf"
 	MIMEMsgPack       = "application/msgpack"
 	MIMEXMsgPack      = "application/x-msgpack"
@@ -34,6 +35,7 @@ const (
 	MIMEAppJsonUTF8       = MIMEAppJson + "; " + CharsetUTF8
 	MIMEPostFormUTF8      = MIMEPostForm + "; " + CharsetUTF8
 	MIMEMultiPostFormUTF8 = MIMEMultiPostForm + "; " + CharsetUTF8
+	MIMEMultiMixedUTF8    = MIMEMultiMixed + "; " + CharsetUTF8
 )
 
 // Headers
