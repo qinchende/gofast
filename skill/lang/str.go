@@ -1,3 +1,5 @@
+// Copyright 2023 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package lang
 
 import (
@@ -26,6 +28,7 @@ func SearchSortStrings(list []string, str string) int {
 		if len(list[i]) > len(str) {
 			break
 		}
+		// 如果首尾字符相同，然后再全量比较
 		if list[i][0] == str[0] {
 			if list[i][len(list[i])-1] == str[len(str)-1] {
 				if list[i] == str {

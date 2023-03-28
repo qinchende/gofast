@@ -21,11 +21,12 @@ var (
 )
 
 func ParseMultipartForm(pms cst.SuperKV, r *http.Request, maxMemory int64) error {
-	// 看是否已经解析过
+	// 看是否已经解析过，同时如果有上传文件，文件的信息将被解析在r.MultipartForm中
 	if r.MultipartForm != nil {
 		return errors.New("http: multipart already parsed")
 	}
 	ct := r.Header.Get("Content-Type")
+
 	parseFormErr := parseForm(pms, r, ct)
 
 	// 流式数据解析 ++++++++++++++++++++++
@@ -54,7 +55,7 @@ func parseForm(pms cst.SuperKV, r *http.Request, ct string) error {
 	if r.Method == "POST" || r.Method == "PUT" || r.Method == "PATCH" {
 		err = parsePostForm(pms, r, ct)
 	}
-	ParseQuery(pms, r.URL.RawQuery)
+	ParseQuery(pms, r.URL.RawQuery) // url中参数优先级高于post提交，相同字段则覆盖
 	return err
 }
 
@@ -70,16 +71,24 @@ func parsePostForm(pms cst.SuperKV, r *http.Request, ct string) error {
 	}
 
 	if strings.HasPrefix(ct, "application/x-www-form-urlencoded") {
+		// TODO：这种超大Body情况先不考虑
 		//var reader io.Reader = r.Body
 		//maxFormSize := maxPostFormSize
 		//if _, ok := r.Body.(*maxBytesReader); !ok {
 		//	maxFormSize = maxLimitReaderSize
 		//	reader = io.LimitReader(r.Body, maxFormSize)
 		//}
+
+		// content-type: application/x-www-form-urlencoded
+		// 最多读取10MB（10x1024x1024B）的内容，多了就丢弃了
+		// 几乎http协议中指定了Content-Length这个header的请求，其Body都是LimitReader了
+		// 参考源代码:  net/http/transfer.go 565行 case realLength > 0:
 		reader := io.LimitReader(r.Body, maxLimitReaderSize)
-		bytes, e := io.ReadAll(reader)
-		if e != nil {
-			return e
+		// 一次性读取完成，知道读取maxLimitReaderSize字节，或者遇到EOF标记
+		// add by sdx on 20230329
+		bytes, err := ReadAll(reader, r.ContentLength)
+		if err != nil {
+			return err
 		}
 		if int64(len(bytes)) > maxLimitReaderSize {
 			return errors.New("http: POST too large")
@@ -133,3 +142,26 @@ func multipartReader(r *http.Request, ct string, allowMixed bool) (*multipart.Re
 //		dst[k] = append(dst[k], vs...)
 //	}
 //}
+
+// Copy from io/io.go 638行的函数，用最有可能的[]byte长度申请内存空间，防止动态扩容
+// ReadAll reads from r until an error or EOF and returns the data it read.
+// A successful call returns err == nil, not err == EOF. Because ReadAll is
+// defined to read from src until EOF, it does not treat an EOF from Read
+// as an error to be reported.
+func ReadAll(r io.Reader, size int64) ([]byte, error) {
+	// 内存空间尽量一次性分配到位
+	b := make([]byte, 0, size)
+	for {
+		if len(b) == cap(b) {
+			b = append(b, 0)[:len(b)] // Add more capacity (let append pick how much).
+		}
+		n, err := r.Read(b[len(b):cap(b)])
+		b = b[:len(b)+n]
+		if err != nil {
+			if err == io.EOF {
+				err = nil
+			}
+			return b, err
+		}
+	}
+}
