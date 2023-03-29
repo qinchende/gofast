@@ -1,6 +1,6 @@
 // Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package fst
+package httpx
 
 import (
 	"bytes"
@@ -36,6 +36,10 @@ func (w *ResponseWrap) HeaderValues() http.Header {
 
 func (w *ResponseWrap) Status() int {
 	return int(w.status)
+}
+
+func (w *ResponseWrap) IsTimeout() bool {
+	return w.isTimeout
 }
 
 // 数据长度
@@ -168,7 +172,7 @@ func (w *ResponseWrap) SendHijackRedirect(req *http.Request, resStatus int, redi
 }
 
 // 超时协程调用
-func (w *ResponseWrap) sendByTimeoutGoroutine(resStatus int, data []byte) bool {
+func (w *ResponseWrap) SendByTimeoutGoroutine(resStatus int, data []byte) bool {
 	w.isTimeout = true
 	if w.tryToCommit("Can't Send by timeout goroutine.") == false {
 		return false

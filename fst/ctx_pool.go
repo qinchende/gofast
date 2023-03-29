@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/fst/httpx"
 	"github.com/qinchende/gofast/store/gson"
 	"sync"
 )
@@ -21,8 +22,8 @@ func (wp *webPools) initWebPools(gft *GoFast) {
 	wp.ctxPool.New = func() any {
 		return &Context{
 			myApp: wp.myApp,
-			Res:   &ResponseWrap{},
-			Req:   &RequestWrap{},
+			Res:   &httpx.ResponseWrap{},
+			Req:   &httpx.RequestWrap{},
 		}
 	}
 

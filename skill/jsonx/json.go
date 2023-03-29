@@ -3,8 +3,8 @@
 package jsonx
 
 import (
+	"bytes"
 	"encoding/json"
-	"github.com/qinchende/gofast/skill/lang"
 	"io"
 	"strings"
 )
@@ -17,21 +17,19 @@ var (
 )
 
 func Unmarshal(v any, data []byte) error {
-	// return json.Unmarshal(data, v)
+	return json.Unmarshal(data, v)
 	// 为了统一设置 decoder.UseNumber() 这里转换成字符串使用
-	return UnmarshalFromString(v, lang.BTS(data))
+	return UnmarshalFromReader(v, bytes.NewReader(data))
 }
 
 func UnmarshalFromString(v any, str string) error {
-	decoder := NewDecoder(strings.NewReader(str))
-	decoder.UseNumber()
-	return decoder.Decode(v)
+	// 这里无形中带来了字符串到字节数组的copy开销
+	// 但是不这么做无法解决UseNumber()的问题，标准库有缺陷吧？
+	return UnmarshalFromReader(v, strings.NewReader(str))
 }
 
 func UnmarshalFromReader(v any, reader io.Reader) error {
-	var buf strings.Builder
-	teeReader := io.TeeReader(reader, &buf)
-	decoder := NewDecoder(teeReader)
+	decoder := NewDecoder(reader)
 	decoder.UseNumber()
 	return decoder.Decode(v)
 }

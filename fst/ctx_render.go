@@ -204,7 +204,7 @@ func (c *Context) AbortRedirect(resStatus int, redirectUrl string) {
 
 // 这个是为超时返回准备的特殊方法，一般不要使用
 func (c *Context) RenderTimeout(resStatus int, hint any) bool {
-	return c.Res.sendByTimeoutGoroutine(resStatus, lang.ToBytes(hint))
+	return c.Res.SendByTimeoutGoroutine(resStatus, lang.ToBytes(hint))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
