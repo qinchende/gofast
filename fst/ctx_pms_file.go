@@ -3,7 +3,6 @@
 package fst
 
 import (
-	"errors"
 	"io"
 	"mime/multipart"
 	"os"
@@ -19,13 +18,7 @@ import (
 // 查找一个上传的文件
 // FormFile returns the first file for the provided form key.
 func (c *Context) FormFile(name string) (*multipart.FileHeader, error) {
-	mForm := c.Req.Raw.MultipartForm
-	if mForm != nil && mForm.File != nil {
-		if fhs := mForm.File[name]; len(fhs) > 0 {
-			return fhs[0], nil
-		}
-	}
-	return nil, errors.New("http: no such file")
+	return c.Req.FormFile(name)
 }
 
 // 指定文件，临时保存上传的文件流

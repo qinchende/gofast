@@ -4,6 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/fst/httpx"
 	"github.com/qinchende/gofast/fst/tips"
 	"sync"
 	"time"
@@ -14,9 +15,9 @@ import (
 type Context struct {
 	myApp *GoFast // 用于上下文
 
-	EnterTime time.Duration // 请求传递进入框架逻辑的时间
-	Res       *ResponseWrap // 被封装后的Response
-	Req       *RequestWrap  // 被封装后的Request
+	EnterTime time.Duration       // 请求传递进入框架逻辑的时间
+	Res       *httpx.ResponseWrap // 被封装后的Response
+	Req       *httpx.RequestWrap  // 被封装后的Request
 
 	lock     sync.Mutex   // This mutex protect context
 	route    matchRoute   // 路由匹配结果，一般用于确定相应资源

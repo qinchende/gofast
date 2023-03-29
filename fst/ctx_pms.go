@@ -5,10 +5,8 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/httpx"
-	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
-	"net/http"
 	"strings"
 )
 
@@ -52,17 +50,17 @@ func (c *Context) QueryValues() cst.KV {
 	return val
 }
 
-// ++++++++++++++++++++++++++++++++++++
-// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
-func (c *Context) ParseForm() {
-	if c.Req.Raw.PostForm == nil {
-		// 如果解析出错，就当做解析不出参数，参数为空
-		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
-		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != nil && err != http.ErrNotMultipart {
-			logx.DebugF("parse multipart form error: %v", err)
-		}
-	}
-}
+//// ++++++++++++++++++++++++++++++++++++
+//// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
+//func (c *Context) ParseForm() {
+//	if c.Req.Raw.PostForm == nil {
+//		// 如果解析出错，就当做解析不出参数，参数为空
+//		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
+//		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != nil && err != http.ErrNotMultipart {
+//			logx.DebugF("parse multipart form error: %v", err)
+//		}
+//	}
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ##这个方法很重要##
@@ -84,7 +82,7 @@ func (c *Context) CollectPms() error {
 			return err
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
-		_ = httpx.ParseMultipartForm(c.Pms, c.Req.Raw, c.myApp.WebConfig.MaxMultipartBytes)
+		_ = httpx.ParseMultipartForm(c.Pms, c.Req.Raw, ctType, c.myApp.WebConfig.MaxMultipartBytes)
 		urlParsed = true
 	}
 

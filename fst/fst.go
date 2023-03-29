@@ -123,6 +123,7 @@ func (gft *GoFast) addSpecialRoute(idx uint16, path string) {
 // 这里的代码就是在一个协程中运行的
 // Note:
 // 1. 这是请求进来之后的第一级上下文，为了节省内存空间，第一级的拦截器通过之后，会进入第二级更丰富的Context上下文（占用内存更多）
+// 源码调用处：net/http/server.go 1966行 serverHandler{c.server}.ServeHTTP(w, w.req)
 func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// 开始依次执行全局拦截器，开始是第一级的fits系列
 	// 第二级的handler函数 (serveHTTPWithCtx) 的入口是这里的最后一个Fit函数
@@ -140,7 +141,7 @@ func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c.reset()
 	gft.handleHTTPRequest(c)
 	// 超时引发的对象不能放回缓存池
-	if !c.Res.isTimeout {
+	if !c.Res.IsTimeout() {
 		gft.pools.putContext(c)
 	}
 }
