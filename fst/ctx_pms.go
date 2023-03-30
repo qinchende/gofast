@@ -7,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/fst/httpx"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
+	"net/http"
 	"strings"
 )
 
@@ -35,7 +36,8 @@ func (c *Context) UrlParamOk(key string) (string, bool) {
 	return c.route.params.Get(key)
 }
 
-// ++++++++++++++++++++++++++++++++++++
+// 标准库解法
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析 Url 中的参数
 func (c *Context) QueryValues() cst.KV {
 	// 单独调用这个还是会解析一下Get请求中携带的URL参数，即使ParseForm已解析了一次URL参数
@@ -50,18 +52,19 @@ func (c *Context) QueryValues() cst.KV {
 	return val
 }
 
-//// ++++++++++++++++++++++++++++++++++++
-//// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
-//func (c *Context) ParseForm() {
-//	if c.Req.Raw.PostForm == nil {
-//		// 如果解析出错，就当做解析不出参数，参数为空
-//		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
-//		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != nil && err != http.ErrNotMultipart {
-//			logx.DebugF("parse multipart form error: %v", err)
-//		}
-//	}
-//}
+// 解析所有 Post 数据到 PostForm对象中，同时将 PostForm 和 QueryForm 中的数据合并到 Form 中。
+func (c *Context) ParseForm() error {
+	if c.Req.Raw.PostForm == nil {
+		// 如果解析出错，就当做解析不出参数，参数为空
+		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
+		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != http.ErrNotMultipart {
+			return err
+		}
+	}
+	return nil
+}
 
+// GoFast 框架 Gson 解法
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ##这个方法很重要##
 // 框架每次都将请求所携带的相关数据解析之后加入统一的变量c.Pms中，这样对开发人员来说只需要关注c.Pms中有无自己想要的数据，
@@ -78,18 +81,27 @@ func (c *Context) CollectPms() error {
 
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
-		if err := jsonx.UnmarshalFromReader(&c.Pms, c.Req.Raw.Body); err != nil {
+		//if err := jsonx.UnmarshalFromReader(&c.Pms, c.Req.Raw.Body); err != nil {
+		//	return err
+		//}
+		if err := jsonx.UnmarshalGsonRequest(c.Pms2, c.Req.Raw); err != nil {
 			return err
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
-		_ = httpx.ParseMultipartForm(c.Pms, c.Req.Raw, ctType, c.myApp.WebConfig.MaxMultipartBytes)
+		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
+		if err := httpx.ParseMultipartForm(c.Pms, c.Req.Raw, ctType, maxMemory); err != nil {
+			return err
+		}
 		urlParsed = true
 	}
 
 	// Url中带入的查询参数加入参数字典
 	if !urlParsed {
 		if c.myApp.WebConfig.CacheQueryValues {
-			applyMap(c.Pms, c.QueryValues())
+			kvs := c.QueryValues()
+			for key := range kvs {
+				c.Pms.Set(key, kvs[key])
+			}
 		} else {
 			// TODO: Pms2
 			httpx.ParseQuery(c.Pms, c.Req.Raw.URL.RawQuery)
@@ -105,6 +117,8 @@ func (c *Context) CollectPms() error {
 	}
 
 	// TODO: 加入http协议头中的 header 参数
+	// 个人不喜欢，也不推荐用http header的方式，传递业务数据。有啥好处呢，欺骗防火墙？掩耳盗铃？
+	// 头信息多了，会无形中增加net/http标准库的资源消耗
 
 	// 临时逻辑，将Pms转到Pms2中
 	for k := range c.Pms {
@@ -112,10 +126,4 @@ func (c *Context) CollectPms() error {
 	}
 
 	return nil
-}
-
-func applyMap(pms cst.SuperKV, kvs cst.KV) {
-	for key := range kvs {
-		pms.Set(key, kvs[key])
-	}
 }
