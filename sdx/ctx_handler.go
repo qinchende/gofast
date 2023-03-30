@@ -5,7 +5,7 @@ package sdx
 import "github.com/qinchende/gofast/fst"
 
 func PmsParser(c *fst.Context) {
-	c.PanicIfErr(c.CollectPms(), "PmsParser error.")
+	c.PanicIfErr(c.CollectPms(), "parse request data error")
 }
 
 //func JwtAuthHandler(secret string) fst.CtxHandler {
