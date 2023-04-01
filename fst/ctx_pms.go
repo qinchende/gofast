@@ -75,16 +75,12 @@ func (c *Context) CollectPms() error {
 	if c.Pms != nil {
 		return nil
 	}
-	c.Pms = make(cst.KV)
-	c.Pms2 = c.newPms() // 这里可能是不同数据结果
-	urlParsed := false
+	c.Pms = c.newPms() // 实现了 cst.SuperKV 的任何数据结构
 
+	urlParsed := false
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
-		//if err := jsonx.UnmarshalFromReader(&c.Pms, c.Req.Raw.Body); err != nil {
-		//	return err
-		//}
-		if err := jsonx.UnmarshalGsonRequest(c.Pms2, c.Req.Raw); err != nil {
+		if err := jsonx.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
 			return err
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
@@ -103,7 +99,6 @@ func (c *Context) CollectPms() error {
 				c.Pms.Set(key, kvs[key])
 			}
 		} else {
-			// TODO: Pms2
 			httpx.ParseQuery(c.Pms, c.Req.Raw.URL.RawQuery)
 		}
 	}
@@ -119,11 +114,6 @@ func (c *Context) CollectPms() error {
 	// TODO: 加入http协议头中的 header 参数
 	// 个人不喜欢，也不推荐用http header的方式，传递业务数据。有啥好处呢，欺骗防火墙？掩耳盗铃？
 	// 头信息多了，会无形中增加net/http标准库的资源消耗
-
-	// 临时逻辑，将Pms转到Pms2中
-	for k := range c.Pms {
-		c.Pms2.Set(k, c.Pms[k])
-	}
 
 	return nil
 }

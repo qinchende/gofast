@@ -47,11 +47,10 @@ func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
 
 	// 这个时候可以随意改变 p.Pms ，这是请求最后一个执行的地方了
 	var basePms = make(map[string]any)
-	if p.Pms["tok"] != nil {
-		basePms["tok"] = p.Pms["tok"]
-		delete(p.Pms, "tok")
+	if tok, ok := p.Pms.Get("tok"); ok {
+		basePms["tok"] = tok
+		p.Pms.Del("tok")
 	}
-
 	// 请求参数
 	var reqParams []byte
 	if p.Pms != nil {

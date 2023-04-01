@@ -17,13 +17,13 @@ type squaresMark struct {
 }
 
 // 先扫描字符串，获取所有左右括号的位置信息
-func (dd *gsonDecode) searchBrackets() {
+func (dd *fastDecode) searchBrackets() {
 	dd.braces.left = make([]uint32, 0, 8)
 	dd.braces.right = make([]uint32, 0, 8)
-
+	
 	dd.squares.left = make([]uint32, 0, 8)
 	dd.squares.right = make([]uint32, 0, 8)
-
+	
 	strLen := uint32(len(dd.src))
 	for i := uint32(0); i < strLen; i++ {
 		switch dd.src[i] {

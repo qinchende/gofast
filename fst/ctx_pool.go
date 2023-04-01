@@ -60,7 +60,7 @@ func (c *Context) newPms() cst.SuperKV {
 		gr := pmsPool.Get().(*gson.GsonRow)
 		if gr.Cls == nil {
 			gr.Cls = routesAttrs[c.RouteIdx].PmsFields
-			gr.Row = make([]any, len(gr.Cls))
+			gr.Row = make([]any, gr.Len())
 		} else {
 			for i := range gr.Row {
 				gr.Row[i] = nil // gr.Row reset value
@@ -74,6 +74,6 @@ func (c *Context) newPms() cst.SuperKV {
 func (wp *webPools) putPms(c *Context) {
 	pmsPool := c.myApp.pools.pmsPools[c.RouteIdx]
 	if pmsPool != nil {
-		pmsPool.Put(c.Pms2)
+		pmsPool.Put(c.Pms)
 	}
 }

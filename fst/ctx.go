@@ -27,8 +27,7 @@ type Context struct {
 	rendered bool         // 当前请求是否已经Render
 
 	Sess       SessionKeeper  // Session数据，数据存储部分可以自定义
-	Pms        cst.KV         // 所有Request参数的map（queryCache + formCache）一般用于构造model对象
-	Pms2       cst.SuperKV    // 准备用数组替代Pms的map
+	Pms        cst.SuperKV    // 所有Request参数的KV（queryCache + formCache）一般用于构造model对象
 	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
 	PanicPet   panicHandler   // 业务逻辑异常之后的处理
 }
@@ -56,7 +55,7 @@ func (c *Context) reset() {
 
 	c.Sess = nil
 	c.Pms = nil
-	c.Pms2 = nil
+	//c.Pms2 = nil
 	c.CarryItems = c.CarryItems[0:0]
 	c.PanicPet = nil
 	// c.lock

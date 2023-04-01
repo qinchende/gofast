@@ -13,9 +13,9 @@ import (
 
 // object:
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
-func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
+func bindKVToStruct(dst any, kvs cst.SuperKV, bindOpts *BindOptions) (err error) {
 	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
-	if dst == nil || kvs == nil || len(kvs) == 0 || bindOpts == nil {
+	if dst == nil || kvs == nil || kvs.Len() == 0 || bindOpts == nil {
 		return nil
 	}
 	dstVal, sm, err := checkDestSchema(dst, bindOpts)
@@ -35,7 +35,7 @@ func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 		fOpt := flsOpts[i] // 这个肯定不为 nil
 		vOpt := fOpt.valid // 这个可能是 nil
 		fName := fls[i]
-		sv, ok := kvs[fName]
+		sv, ok := kvs.Get(fName)
 
 		if ok == false {
 			if vOpt == nil {
@@ -57,7 +57,11 @@ func bindKVToStruct(dst any, kvs cst.KV, bindOpts *BindOptions) (err error) {
 		fvType := fv.Type()
 		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
 			// 如果sv 无法转换成 cst.KV 类型，将要抛出异常
-			if err = bindKVToStruct(fv.Addr().Interface(), sv.(map[string]any), bindOpts); err != nil {
+			switch sv.(type) {
+			case map[string]any:
+				sv = cst.KV(sv.(map[string]any))
+			}
+			if err = bindKVToStruct(fv.Addr().Interface(), sv.(cst.KV), bindOpts); err != nil {
 				return err
 			}
 			continue
@@ -116,7 +120,7 @@ func bindList(dst any, src any, fOpt *fieldOptions, bindOpts *BindOptions) (err 
 				fv = fv.Elem()
 			}
 			if fv.Kind() == reflect.Struct {
-				if err = bindKVToStruct(fv.Addr().Interface(), srcVal.Index(i).Interface().(map[string]any), bindOpts); err != nil {
+				if err = bindKVToStruct(fv.Addr().Interface(), srcVal.Index(i).Interface().(cst.KV), bindOpts); err != nil {
 					return err
 				}
 				continue

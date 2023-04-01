@@ -1,6 +1,7 @@
 package sqlx
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/gson"
@@ -26,7 +27,7 @@ func loadRecordFromGsonString(dest any, data string, ms *orm.ModelSchema) error 
 	}
 
 	cls := ms.Columns()
-	recordKV := make(map[string]any, len(cls))
+	recordKV := make(cst.KV, len(cls))
 	for j := 0; j < len(cls); j++ {
 		recordKV[cls[j]] = values[j]
 	}
@@ -45,7 +46,7 @@ func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
 	// 循环解析每一条记录
 	for i := int64(0); i < gr.Ct; i++ {
 		row := gr.Rows[i]
-		recordKV := make(map[string]any, len(gr.Cls))
+		recordKV := make(cst.KV, len(gr.Cls))
 		for j := 0; j < len(gr.Cls); j++ {
 			recordKV[gr.Cls[j]] = row[j]
 		}
