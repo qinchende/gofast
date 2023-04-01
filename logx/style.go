@@ -62,7 +62,7 @@ type ReqLogEntity struct {
 	Latency    time.Duration
 	ClientIP   string
 	StatusCode int
-	Pms        cst.KV
+	Pms        cst.SuperKV
 	BodySize   int
 	ResData    []byte
 	CarryItems tips.CarryList

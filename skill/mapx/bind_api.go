@@ -7,7 +7,7 @@ import (
 )
 
 // NOTE(Important): 下面API中的第一个参数dst，最好都是指针类型，避免将来发生值拷贝
-func BindKV(dst any, kvs cst.KV, like int8) error {
+func BindKV(dst any, kvs cst.SuperKV, like int8) error {
 	return bindKVToStruct(dst, kvs, matchOptions(like))
 }
 
