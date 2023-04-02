@@ -18,7 +18,7 @@ type webPools struct {
 
 func (wp *webPools) initWebPools(gft *GoFast) {
 	wp.myApp = gft
-
+	
 	wp.ctxPool.New = func() any {
 		return &Context{
 			myApp: wp.myApp,
@@ -26,14 +26,14 @@ func (wp *webPools) initWebPools(gft *GoFast) {
 			Req:   &httpx.RequestWrap{},
 		}
 	}
-
+	
 	wp.pmsPools = make([]*sync.Pool, wp.myApp.RoutesLen())
 	pms := wp.pmsPools
 	for i := range pms {
 		if routesAttrs[i] == nil {
 			continue
 		}
-
+		
 		pms[i] = &sync.Pool{}
 		pms[i].New = func() any {
 			return &gson.GsonRow{} // 存放请求数据的对象
@@ -59,8 +59,7 @@ func (c *Context) newPms() cst.SuperKV {
 	if pmsPool != nil {
 		gr := pmsPool.Get().(*gson.GsonRow)
 		if gr.Cls == nil {
-			gr.Cls = routesAttrs[c.RouteIdx].PmsFields
-			gr.Row = make([]any, gr.Len())
+			gr.Init(routesAttrs[c.RouteIdx].PmsFields)
 		} else {
 			for i := range gr.Row {
 				gr.Row[i] = nil // gr.Row reset value

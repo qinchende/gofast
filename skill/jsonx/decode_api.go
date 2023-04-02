@@ -43,5 +43,5 @@ func decodeFromString(dst cst.SuperKV, source string) error {
 	if err := decode.init(dst, source); err != nil {
 		return err
 	}
-	return decode.parse()
+	return decode.warpError(decode.parseJson())
 }
