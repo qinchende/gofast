@@ -11,16 +11,16 @@ const (
 )
 
 type GsonField struct {
-	DType  int
-	Name   string
-	ValStr string
-	ValAny any
+	Typ int
+	Key string
+	Val any
+	str string
 }
 
 type GsonRow struct {
-	Cls []string
-	Row []any
-	Val []string
+	Cls    []string
+	Row    []any
+	values []string
 }
 
 // TODO: 在这种模式下，GsonRow中的Cls必须是已经按照字符串长度从小到大排好序的
@@ -47,11 +47,20 @@ func (gr *GsonRow) Set(k string, v any) {
 	}
 }
 
+func (gr *GsonRow) GetString(k string) (v string, ok bool) {
+	idx := lang.SearchSortStrings(gr.Cls, k)
+	if idx < 0 || gr.Row[idx] == nil {
+		return "", false
+	}
+	return gr.Row[idx].(string), true // 有可能找到字段了，但是存的值是nil
+}
+
+// 绕一圈，主要是为了避免对象分配，提高性能。
 func (gr *GsonRow) SetString(k string, v string) {
 	idx := lang.SearchSortStrings(gr.Cls, k)
 	if idx >= 0 {
-		gr.Val[idx] = v
-		//gr.Row[idx] = gr.Val[idx]
+		gr.values[idx] = v
+		gr.Row[idx] = &gr.values[idx]
 	}
 }
 
@@ -78,9 +87,17 @@ func (gr *GsonRow) GetValue(idx int) any {
 	return gr.Row[idx]
 }
 
-func (gr *GsonRow) SetByIndex(idx int, v any) {
+func (gr *GsonRow) SetByIndex(idx int, v string) {
 	if idx < 0 || idx > gr.Len() {
 		return
 	}
-	gr.Row[idx] = v
+	gr.values[idx] = v
+	gr.Row[idx] = &gr.values[idx]
+}
+
+// 初始化内存空间
+func (gr *GsonRow) Init(cls []string) {
+	gr.Cls = cls
+	gr.Row = make([]any, gr.Len())
+	gr.values = make([]string, gr.Len())
 }

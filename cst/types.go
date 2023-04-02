@@ -4,7 +4,7 @@ type (
 	KV        map[string]any
 	WebKV     map[string]string
 	WebValues map[string][]string
-	
+
 	TypeError  error
 	TypeInt    int
 	TypeString string
@@ -15,6 +15,7 @@ type (
 type SuperKV interface {
 	Get(k string) (any, bool)
 	Set(k string, v any)
+	GetString(k string) (string, bool)
 	SetString(k string, v string)
 	Del(k string)
 	Len() int
@@ -27,6 +28,12 @@ func (kvs KV) Get(k string) (v any, ok bool) {
 
 func (kvs KV) Set(k string, v any) {
 	kvs[k] = v
+}
+
+func (kvs KV) GetString(k string) (v string, ok bool) {
+	tmp, ok := kvs[k]
+	v = tmp.(string)
+	return
 }
 
 func (kvs KV) SetString(k string, v string) {
