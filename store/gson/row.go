@@ -2,25 +2,25 @@ package gson
 
 import "github.com/qinchende/gofast/skill/lang"
 
-// GsonField Data Type
-const (
-	Any int = iota
-	String
-	Int
-	Float64
-)
-
-type GsonField struct {
-	Typ int
-	Key string
-	Val any
-	str string
-}
+//// GsonField Data Type
+//const (
+//	Any int = iota
+//	String
+//	Int
+//	Float64
+//)
+//
+//type GsonField struct {
+//	Typ int
+//	Key string
+//	Val any
+//	str string
+//}
 
 type GsonRow struct {
-	Cls    []string
-	Row    []any
-	values []string
+	Cls    []string // 字段
+	Row    []any    // 对应值，如果是nil，证明没有匹配到
+	values []string // 真正的值
 }
 
 // TODO: 在这种模式下，GsonRow中的Cls必须是已经按照字符串长度从小到大排好序的
@@ -52,7 +52,11 @@ func (gr *GsonRow) GetString(k string) (v string, ok bool) {
 	if idx < 0 || gr.Row[idx] == nil {
 		return "", false
 	}
-	return gr.Row[idx].(string), true // 有可能找到字段了，但是存的值是nil
+	switch gr.Row[idx].(type) {
+	case string:
+		return gr.Row[idx].(string), true
+	}
+	return "", false
 }
 
 // 绕一圈，主要是为了避免对象分配，提高性能。
@@ -73,12 +77,13 @@ func (gr *GsonRow) KeyIndex(k string) int {
 	return lang.SearchSortStrings(gr.Cls, k)
 }
 
-func (gr *GsonRow) GetKey(idx int) string {
-	if idx < 0 || idx > gr.Len() {
-		return ""
-	}
-	return gr.Cls[idx]
-}
+//
+//func (gr *GsonRow) GetKey(idx int) string {
+//	if idx < 0 || idx > gr.Len() {
+//		return ""
+//	}
+//	return gr.Cls[idx]
+//}
 
 func (gr *GsonRow) GetValue(idx int) any {
 	if idx < 0 || idx > gr.Len() {
@@ -87,7 +92,7 @@ func (gr *GsonRow) GetValue(idx int) any {
 	return gr.Row[idx]
 }
 
-func (gr *GsonRow) SetByIndex(idx int, v string) {
+func (gr *GsonRow) SetStringByIndex(idx int, v string) {
 	if idx < 0 || idx > gr.Len() {
 		return
 	}
