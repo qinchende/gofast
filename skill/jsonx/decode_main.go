@@ -3,6 +3,11 @@ package jsonx
 import (
 	"errors"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/store/gson"
+)
+
+const (
+	tempByteStackSize = 128 // 栈上分配一定空间，方便放临时字符串（不能太大，防止协程栈伸缩）| 或者单独申请内存并管理
 )
 
 var (
@@ -10,10 +15,12 @@ var (
 )
 
 type fastDecode struct {
-	dst  cst.SuperKV
-	src  string
-	head int
-	tail int
+	gr    *gson.GsonRow
+	dst   cst.SuperKV
+	src   string
+	head  int
+	tail  int
+	stack [tempByteStackSize]byte // 这里的内存分配不是在栈上，因为后面要用到，发生了逃逸
 	//braces  bracesMark  // 大括号
 	//squares squaresMark // 中括号
 }
@@ -26,12 +33,16 @@ func (dd *fastDecode) init(dst cst.SuperKV, src string) error {
 	dd.src = src
 	dd.head = 0
 	dd.tail = len(dd.src) - 1
+	// 直接明确具体的解析对象
+	if gr, ok := dd.dst.(*gson.GsonRow); ok {
+		dd.gr = gr
+	}
 	return nil
 }
 
 func (dd *fastDecode) warpError(err error) error {
 	if err != nil {
-		end := dd.head + 5
+		end := dd.head + 10
 		if end > dd.tail {
 			end = dd.tail
 		}
