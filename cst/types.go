@@ -15,10 +15,10 @@ type (
 type SuperKV interface {
 	Get(k string) (any, bool)
 	Set(k string, v any)
-	GetString(k string) (string, bool)
-	SetString(k string, v string)
 	Del(k string)
 	Len() int
+	//GetString(k string) (string, bool)
+	//SetString(k string, v string)
 }
 
 func (kvs KV) Get(k string) (v any, ok bool) {
@@ -30,6 +30,14 @@ func (kvs KV) Set(k string, v any) {
 	kvs[k] = v
 }
 
+func (kvs KV) Del(k string) {
+	delete(kvs, k)
+}
+
+func (kvs KV) Len() int {
+	return len(kvs)
+}
+
 func (kvs KV) GetString(k string) (v string, ok bool) {
 	tmp, ok := kvs[k]
 	v = tmp.(string)
@@ -38,12 +46,4 @@ func (kvs KV) GetString(k string) (v string, ok bool) {
 
 func (kvs KV) SetString(k string, v string) {
 	kvs[k] = v
-}
-
-func (kvs KV) Del(k string) {
-	delete(kvs, k)
-}
-
-func (kvs KV) Len() int {
-	return len(kvs)
 }
