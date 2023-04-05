@@ -5,14 +5,14 @@ import "github.com/qinchende/gofast/skill/lang"
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
 func (dd *fastDecode) parseJson() error {
-	if ok := dd.nextHead(); !ok {
+	if ok := dd.skipHeadSpace(); !ok {
 		return sErr
 	}
-	
+
 	c := dd.src[dd.head]
 	switch c {
 	case '{':
-		if ok := dd.nextTail(); !ok {
+		if ok := dd.skipTailSpace(); !ok {
 			return sErr
 		}
 		if dd.src[dd.tail] != '}' {
@@ -20,7 +20,7 @@ func (dd *fastDecode) parseJson() error {
 		}
 		return dd.parseObject()
 	case '[':
-		if exist := dd.nextTail(); !exist {
+		if exist := dd.skipTailSpace(); !exist {
 			return sErr
 		}
 		if dd.src[dd.tail] != ']' {
@@ -35,7 +35,7 @@ func (dd *fastDecode) parseJson() error {
 func (dd *fastDecode) parseObject() error {
 	dd.head++
 	dd.tail--
-	
+
 	// 剩下的全部应该是 k:v,k:v,k:{},k:[]
 loopComma:
 	// TODO: 不应该先找逗号，而应该先找冒号，看冒号后面的第一个非空字符是否是{[，如果是就需要先跳过所有{}和[]的匹配对，再找后面的逗号
@@ -63,11 +63,25 @@ loopComma:
 
 func (dd *fastDecode) parseArray() error {
 	return nil
-	
+
 }
 
-func (dd *fastDecode) parseLiteral() error {
-	return nil
+//func (dd *fastDecode) parseLiteral() error {
+//	return nil
+//}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 下一个逗号
+func (dd *fastDecode) nextComma() int {
+	off := dd.head
+	for off < dd.tail {
+		c := dd.src[off]
+		if c == ',' {
+			return off - dd.head
+		}
+		off++
+	}
+	return -1
 }
 
 // 可能的情况 "k":v | "k":{} | "k":[]
@@ -87,72 +101,87 @@ func (dd *fastDecode) parseKV(kvPair string) error {
 	}
 	key := kvPair[:colonIdx]
 	val := kvPair[colonIdx+1:]
-	
+
 	if dd.gr != nil {
 		return dd.setGsonValue(key, val)
 	}
 	return dd.setMapValue(key, val)
 }
 
-// 当目标为 cst.KV 类型时候，用此方法设置
-func (dd *fastDecode) setMapValue(key, val string) error {
-	// 核查 key
-	var err error
-	if key, err = dd.cutKeyQuote(key); err != nil {
-		return err
+// 核查 key +++++++++
+func (dd *fastDecode) checkKey(key string, needCopy bool) (ret string, err error) {
+	var inShare bool
+	if key, err = cutKeyQuote(key); err != nil {
+		return
 	}
-	
-	//// 核查 value
-	//if val, err = dd.cutValueQuote(val); err != nil {
-	//	return err
-	//}
-	
-	// k = v
-	dd.dst.SetString(key, val)
+	if key, inShare, err = dd.getStringLiteral(key); err != nil {
+		return
+	}
+	if inShare && needCopy {
+		key = copyString(key)
+	}
+	return key, nil
+}
+
+// 核查 value ++++++++++
+func (dd *fastDecode) checkValue(val string) (ret string, err error) {
+	var hasQuote, inShare bool
+	if val, hasQuote, err = cutValueQuote(val); err != nil {
+		return
+	}
+	if hasQuote {
+		if val, inShare, err = dd.getStringLiteral(val); err != nil {
+			return
+		}
+		// 证明此时用的是临时栈空间保存转义之后的Value，需要申请新的内存空间放置
+		if inShare {
+			val = copyString(val)
+		}
+	}
+	return val, nil
+}
+
+// 当目标为 cst.KV 类型时候，用此方法设置
+func (dd *fastDecode) setMapValue(key, val string) (err error) {
+	if key, err = dd.checkKey(key, true); err != nil {
+		return
+	}
+	if val, err = dd.checkValue(val); err != nil {
+		return
+	}
+
+	// set k = v
+	dd.dst.Set(key, val)
 	return nil
 }
 
 // 当目标为 gson.GsonRow 类型时候，用此方法设置
 func (dd *fastDecode) setGsonValue(key, val string) (err error) {
-	// 核查 key +++++++++
-	if key, err = dd.cutKeyQuote(key); err != nil {
+	if key, err = dd.checkKey(key, false); err != nil {
 		return
 	}
-	if key, _, _, err = dd.checkStringLiteral(key); err != nil {
-		return
-	}
-	
 	keyIdx := dd.gr.KeyIndex(key)
-	// 没有这个字段，直接返回了
+	// 没有这个字段，直接返回了(此时再去解析后面的value是没有意义的)
 	if keyIdx < 0 {
 		return nil
 	}
-	
-	// 核查 value ++++++++++
-	var hasQuote bool
-	if val, hasQuote, err = dd.cutValueQuote(val); err != nil {
+
+	if val, err = dd.checkValue(val); err != nil {
 		return
 	}
-	if hasQuote {
-		var hasSlash, makeMem bool
-		if val, hasSlash, makeMem, err = dd.checkStringLiteral(val); err != nil {
-			return
-		}
-		// 证明此时用的是临时栈空间保存转义之后的Value，需要申请新的内存空间放置
-		if hasSlash && makeMem == false {
-			tmp := make([]byte, len(val))
-			copy(tmp, val)
-			val = lang.BTS(tmp)
-		}
-	}
-	
-	// k = v
-	//dd.dst.SetString(key, val)
+
+	// set k = v
 	dd.gr.SetStringByIndex(keyIdx, val)
 	return nil
 }
 
-func (dd *fastDecode) nextHead() bool {
+func copyString(src string) string {
+	tmp := make([]byte, len(src))
+	copy(tmp, src)
+	return lang.BTS(tmp)
+}
+
+func (dd *fastDecode) skipHeadSpace() bool {
 	for dd.head < dd.tail {
 		c := dd.src[dd.head]
 		if !isSpace(c) {
@@ -163,7 +192,7 @@ func (dd *fastDecode) nextHead() bool {
 	return false
 }
 
-func (dd *fastDecode) nextTail() bool {
+func (dd *fastDecode) skipTailSpace() bool {
 	for dd.head < dd.tail {
 		c := dd.src[dd.tail]
 		if !isSpace(c) {
@@ -172,19 +201,6 @@ func (dd *fastDecode) nextTail() bool {
 		dd.tail--
 	}
 	return false
-}
-
-// 下一个逗号
-func (dd *fastDecode) nextComma() int {
-	off := dd.head
-	for off < dd.tail {
-		c := dd.src[off]
-		if c == ',' {
-			return off - dd.head
-		}
-		off++
-	}
-	return -1
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -250,25 +266,37 @@ func trim(str string) string {
 // \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
 // +++++++++++++++++++++++++++++++++++++++++++++++++++
 // 一个合法的 Key，或者Value 字符串
-func (dd *fastDecode) checkStringLiteral(str string) (ret string, hasSlash, makeMem bool, err error) {
+func (dd *fastDecode) getStringLiteral(str string) (ret string, inShare bool, err error) {
 	var newStr []byte
 	var step int
-	
+	var hasSlash bool
+
 	for i := 0; i < len(str); i++ {
 		c := str[i]
 		// 不支持非可见字符
 		if c < 32 {
-			return "", false, false, sErr
+			return "", false, sErr
 		}
 		if c == '\\' {
 			// 第一次检索到有 \
 			if hasSlash == false {
 				hasSlash = true
-				if len(str) <= len(dd.stack) {
-					newStr = dd.stack[:]
+				// TODO：这里发生了逃逸，需要用sync.Pool的方式，共享内存空间
+				// 或者别的黑魔法操作内存
+				// add by sdx 20230404 动态初始化 share 内存
+				if dd.share == nil {
+					defSize := len(str)
+					if defSize > tempByteStackSize {
+						defSize = tempByteStackSize
+					}
+					dd.share = make([]byte, defSize)
+				}
+
+				if len(str) <= len(dd.share) {
+					newStr = dd.share[:]
+					inShare = true
 				} else {
 					newStr = make([]byte, len(str))
-					makeMem = true
 				}
 				for ; step < i; step++ {
 					newStr[step] = str[step]
@@ -297,9 +325,9 @@ func (dd *fastDecode) checkStringLiteral(str string) (ret string, hasSlash, make
 			case 'r':
 				newStr[step] = '\r'
 				step++
-			case 'u': // TODO: uft8编码字符
+			case 'u': // TODO: uft8编码字符有待转换
 			default:
-				return "", false, false, sErr
+				return "", false, sErr
 			}
 			continue
 		}
@@ -319,20 +347,20 @@ func (dd *fastDecode) checkStringLiteral(str string) (ret string, hasSlash, make
 		//	r += size
 		//	w += utf8.EncodeRune(b[w:], rr)
 	}
-	if hasSlash == true {
-		return lang.BTS(newStr[:step]), hasSlash, makeMem, nil
+	if hasSlash {
+		return lang.BTS(newStr[:step]), inShare, nil
 	}
-	return str, hasSlash, makeMem, nil
+	return str, false, nil
 }
 
 // 检查是否为一个合法的 key
-func (dd *fastDecode) cutKeyQuote(key string) (ret string, err error) {
+func cutKeyQuote(key string) (ret string, err error) {
 	key = trim(key)
-	
+
 	if len(key) < 2 {
 		return "", sErr
 	}
-	
+
 	if key[0] != '"' || key[len(key)-1] != '"' {
 		return "", sErr
 	}
@@ -340,13 +368,13 @@ func (dd *fastDecode) cutKeyQuote(key string) (ret string, err error) {
 }
 
 // 检查是否是一个合法的 value 值
-func (dd *fastDecode) cutValueQuote(val string) (ret string, hasQuote bool, err error) {
+func cutValueQuote(val string) (ret string, hasQuote bool, err error) {
 	val = trim(val)
-	
+
 	if len(val) < 1 {
 		return "", false, sErr
 	}
-	
+
 	// 如果 value 没有 双引号，可能是数值、true、false、null四种情况
 	if val[0] != '"' {
 		if err = checkNoQuoteValue(val); err != nil {
@@ -354,7 +382,7 @@ func (dd *fastDecode) cutValueQuote(val string) (ret string, hasQuote bool, err 
 		}
 		return val, false, nil
 	}
-	
+
 	// 有双引号
 	if len(val) == 1 {
 		return "", false, sErr
@@ -364,12 +392,13 @@ func (dd *fastDecode) cutValueQuote(val string) (ret string, hasQuote bool, err 
 	return val[1 : len(val)-1], true, nil
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 没有双引号围起来的值，只可能是：数值、true、false、null
 func checkNoQuoteValue(str string) error {
 	if len(str) == 0 {
 		return sErr
 	}
-	
+
 	// 只有这几种首字符的可能
 isNumber:
 	c := str[0]
@@ -433,7 +462,7 @@ func checkScientificNumberTail(str string) error {
 	if c == '-' || c == '+' {
 		str = str[1:]
 	}
-	
+
 	if len(str) == 0 {
 		return sErr
 	}

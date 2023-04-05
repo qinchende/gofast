@@ -47,6 +47,11 @@ func (gr *GsonRow) Set(k string, v any) {
 	}
 }
 
+func (gr *GsonRow) Len() int {
+	return len(gr.Cls)
+}
+
+// GsonRow特有的高级功能 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gr *GsonRow) GetString(k string) (v string, ok bool) {
 	idx := lang.SearchSortStrings(gr.Cls, k)
 	if idx < 0 || gr.Row[idx] == nil {
@@ -68,22 +73,16 @@ func (gr *GsonRow) SetString(k string, v string) {
 	}
 }
 
-func (gr *GsonRow) Len() int {
-	return len(gr.Cls)
-}
-
-// 高级功能 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gr *GsonRow) KeyIndex(k string) int {
 	return lang.SearchSortStrings(gr.Cls, k)
 }
 
-//
-//func (gr *GsonRow) GetKey(idx int) string {
-//	if idx < 0 || idx > gr.Len() {
-//		return ""
-//	}
-//	return gr.Cls[idx]
-//}
+func (gr *GsonRow) GetKeyByIndex(idx int) string {
+	if idx < 0 || idx > gr.Len() {
+		return ""
+	}
+	return gr.Cls[idx]
+}
 
 func (gr *GsonRow) GetValue(idx int) any {
 	if idx < 0 || idx > gr.Len() {
