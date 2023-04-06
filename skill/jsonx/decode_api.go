@@ -30,6 +30,9 @@ func DecodeRequest(dst cst.SuperKV, req *http.Request) error {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decodeFromReader(dst cst.SuperKV, reader io.Reader, ctSize int64) error {
 	// 一次性读取完成，或者遇到EOF标记或者其它错误
+	if ctSize > maxJsonLength {
+		ctSize = maxJsonLength
+	}
 	bytes, err1 := iox.ReadAll(reader, ctSize)
 	if err1 != nil {
 		return err1
@@ -39,10 +42,14 @@ func decodeFromReader(dst cst.SuperKV, reader io.Reader, ctSize int64) error {
 }
 
 func decodeFromString(dst cst.SuperKV, source string) error {
-	decode := fastDecode{}
-	if err := decode.init(dst, source); err != nil {
+	if len(source) > maxJsonLength {
+		return errJsonTooLarge
+	}
+
+	dd := fastDecode{}
+	if err := dd.init(dst, source); err != nil {
 		return err
 	}
-	return nil
-	//return decode.warpError(decode.parseJson())
+	//return nil
+	return dd.warpError(dd.parseJson())
 }

@@ -1,6 +1,11 @@
 package iox
 
-import "io"
+import (
+	"errors"
+	"io"
+)
+
+const maxReadSize = 30<<30 - 1 // 最大30GB
 
 // Copy from io/io.go 638行的函数，用最有可能的[]byte长度申请内存空间，防止动态扩容
 // 而标准库默认字节数组512字节，内容超过了会发生slice自动grow
@@ -19,6 +24,10 @@ func ReadAll(r io.Reader, defSize int64) ([]byte, error) {
 	b := make([]byte, 0, defSize) // 内存空间尽量一次性分配到位
 	for {
 		if len(b) == cap(b) {
+			// 兜底控制，太大了禁止再扩大内存占用
+			if len(b) >= maxReadSize {
+				return b, errors.New("too large, stopped.")
+			}
 			b = append(b, 0)[:len(b)] // Add more capacity (let append pick how much).
 		}
 		n, err := r.Read(b[len(b):cap(b)])

@@ -18,6 +18,7 @@ func (dd *fastDecode) parseJson() error {
 		if dd.src[dd.tail] != '}' {
 			return sErr
 		}
+		dd.setSeg(dd.src[dd.head+1:dd.tail], dd.head)
 		return dd.parseObject()
 	case '[':
 		if exist := dd.skipTailSpace(); !exist {
@@ -33,30 +34,42 @@ func (dd *fastDecode) parseJson() error {
 }
 
 func (dd *fastDecode) parseObject() error {
-	dd.head++
-	dd.tail--
-
 	// 剩下的全部应该是 k:v,k:v,k:{},k:[]
-loopComma:
+	seg := &dd.seg
+
+loopKVItem:
 	// TODO: 不应该先找逗号，而应该先找冒号，看冒号后面的第一个非空字符是否是{[，如果是就需要先跳过所有{}和[]的匹配对，再找后面的逗号
 	// 注意不是所有{ } [ ] 字符都算，本身key 或者 value 是有可能包含这些特殊字符的。
-	off := dd.nextComma()
-	if off < 0 {
-		nh := dd.tail + 1
-		span := dd.src[dd.head:nh]
-		err := dd.parseKV(span)
-		dd.head = nh
+
+	// A: 找冒号 +++
+	colonIdx := dd.nextColon(int(seg.step))
+	// 1. 没有冒号，可能就是一段空白字符
+	if colonIdx == -1 {
+		tmp := trim(seg.data[seg.step:])
+		if len(tmp) != 0 {
+			return sErr
+		}
+		return nil
+	}
+	// 2. 冒号前面的Key其实就可以得到了，如果目标对象没有这个key，后面的的逗号找到即可丢弃
+
+	// B: 找逗号 +++
+	commaIdx := dd.nextComma(colonIdx + 1) // 从冒号后面开始查找
+	// 1. 没找到逗号，这是最后一个k:v了
+	if commaIdx == -1 {
+		end := uint32(len(seg.data))
+		err := dd.parseKV(uint32(colonIdx), end)
+		seg.step = end
 		return err
-	} else if off == 0 {
-		return sErr
-	} else if off > 0 {
-		nh := dd.head + off + 1
-		span := dd.src[dd.head : nh-1]
-		if err := dd.parseKV(span); err != nil {
+	}
+	// 2. 找到一个“,” 其前面部分当做一个k:v来解
+	if commaIdx > 0 {
+		err := dd.parseKV(uint32(colonIdx), uint32(commaIdx))
+		seg.step = uint32(commaIdx) + 1
+		if err != nil {
 			return err
 		}
-		dd.head = nh
-		goto loopComma
+		goto loopKVItem // 再找下一个
 	}
 	return nil
 }
@@ -66,79 +79,101 @@ func (dd *fastDecode) parseArray() error {
 
 }
 
-//func (dd *fastDecode) parseLiteral() error {
-//	return nil
-//}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 下一个逗号
-func (dd *fastDecode) nextComma() int {
-	off := dd.head
-	for off < dd.tail {
-		c := dd.src[off]
-		if c == ',' {
-			return off - dd.head
+// 找冒号："k":"v" | "k":[ |  "k":{
+func (dd *fastDecode) nextColon(idx int) int {
+	str := dd.seg.data
+
+	quoteCt := 0
+	for idx < len(str) {
+		if str[idx] == '"' {
+			// 非第一个"，如果后面的"前面有\，是允许的
+			if quoteCt == 1 {
+				if str[idx-1] == '\\' {
+					continue
+				}
+			}
+			quoteCt++
+			if quoteCt > 2 {
+				return -1
+			}
 		}
-		off++
+		if quoteCt == 2 {
+			if str[idx] == ':' {
+				return idx
+			}
+		}
+		idx++
 	}
 	return -1
 }
 
-// 可能的情况 "k":v | "k":{} | "k":[]
-func (dd *fastDecode) parseKV(kvPair string) error {
-	// 冒号不能是key中的冒号
-	colonIdx := colonInKVString(kvPair)
-	// 可能就是一段空白字符
-	if colonIdx == -1 {
-		kvPair = trim(kvPair)
-		if len(kvPair) != 0 {
-			return sErr
+// 找逗号："k":"v",
+func (dd *fastDecode) nextComma(idx int) int {
+	str := dd.seg.data
+
+	ckSpace := true
+	for idx < len(str) {
+		c := str[idx]
+		if c == ',' {
+			return idx
 		}
+		idx++
+
+		// ++++++++++++++++++++++++++++++
+		if ckSpace {
+			if isSpace(c) {
+				continue
+			}
+
+			ckSpace = false
+			if c == '{' {
+				match := dd.matchRightBig(idx)
+				if match == -1 {
+					return -1
+				}
+				idx = match + 1
+				continue
+			}
+			if c == '[' {
+				match := dd.matchRightMid(idx)
+				if match == -1 {
+					return -1
+				}
+				idx = match + 1
+				continue
+			}
+		}
+		//  +++++++++++++++++++++++++++++
 	}
-	// 长度小于2的key是不可能的，等于2时可能是空字符串: ""
-	if colonIdx < 2 {
-		return sErr
-	}
-	key := kvPair[:colonIdx]
-	val := kvPair[colonIdx+1:]
+	return -1
+}
+
+//  从 idx 开始，开始找 相应的 }
+func (dd *fastDecode) matchRightBig(idx int) int {
+	//str := dd.seg.data
+
+	//
+
+	return -1
+}
+
+//  从 idx 开始，开始找 相应的 ]
+func (dd *fastDecode) matchRightMid(idx int) int {
+
+	return -1
+}
+
+// 可能的情况 "k":v | "k":{} | "k":[]
+func (dd *fastDecode) parseKV(colonIdx, commaIdx uint32) error {
+	str := dd.seg.data
+	key := str[dd.seg.step:colonIdx]
+	val := str[colonIdx+1 : commaIdx]
 
 	if dd.gr != nil {
 		return dd.setGsonValue(key, val)
 	}
 	return dd.setMapValue(key, val)
-}
-
-// 核查 key +++++++++
-func (dd *fastDecode) checkKey(key string, needCopy bool) (ret string, err error) {
-	var inShare bool
-	if key, err = cutKeyQuote(key); err != nil {
-		return
-	}
-	if key, inShare, err = dd.getStringLiteral(key); err != nil {
-		return
-	}
-	if inShare && needCopy {
-		key = copyString(key)
-	}
-	return key, nil
-}
-
-// 核查 value ++++++++++
-func (dd *fastDecode) checkValue(val string) (ret string, err error) {
-	var hasQuote, inShare bool
-	if val, hasQuote, err = cutValueQuote(val); err != nil {
-		return
-	}
-	if hasQuote {
-		if val, inShare, err = dd.getStringLiteral(val); err != nil {
-			return
-		}
-		// 证明此时用的是临时栈空间保存转义之后的Value，需要申请新的内存空间放置
-		if inShare {
-			val = copyString(val)
-		}
-	}
-	return val, nil
 }
 
 // 当目标为 cst.KV 类型时候，用此方法设置
@@ -181,6 +216,39 @@ func copyString(src string) string {
 	return lang.BTS(tmp)
 }
 
+// 核查 key +++++++++
+func (dd *fastDecode) checkKey(key string, needCopy bool) (ret string, err error) {
+	var inShare bool
+	if key, err = cutKeyQuote(key); err != nil {
+		return
+	}
+	if key, inShare, err = dd.getStringLiteral(key); err != nil {
+		return
+	}
+	if inShare && needCopy {
+		key = copyString(key)
+	}
+	return key, nil
+}
+
+// 核查 value ++++++++++
+func (dd *fastDecode) checkValue(val string) (ret string, err error) {
+	var hasQuote, inShare bool
+	if val, hasQuote, err = cutValueQuote(val); err != nil {
+		return
+	}
+	if hasQuote {
+		if val, inShare, err = dd.getStringLiteral(val); err != nil {
+			return
+		}
+		// 证明此时用的是临时栈空间保存转义之后的Value，需要申请新的内存空间放置
+		if inShare {
+			val = copyString(val)
+		}
+	}
+	return val, nil
+}
+
 func (dd *fastDecode) skipHeadSpace() bool {
 	for dd.head < dd.tail {
 		c := dd.src[dd.head]
@@ -206,31 +274,6 @@ func (dd *fastDecode) skipTailSpace() bool {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func isSpace(c byte) bool {
 	return c <= ' ' && (c == ' ' || c == '\n' || c == '\r' || c == '\t')
-}
-
-// 在"k":v形式的字符串中找到冒号
-func colonInKVString(str string) int {
-	quoteCt := 0
-	for i := range str {
-		if str[i] == '"' {
-			// 非第一个"，如果后面的"前面有\，是允许的
-			if quoteCt == 1 {
-				if str[i-1] == '\\' {
-					continue
-				}
-			}
-			quoteCt++
-			if quoteCt > 2 {
-				return -1
-			}
-		}
-		if quoteCt == 2 {
-			if str[i] == ':' {
-				return i
-			}
-		}
-	}
-	return -1
 }
 
 func trim(str string) string {
