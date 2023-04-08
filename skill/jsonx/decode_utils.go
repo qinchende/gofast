@@ -1,11 +1,67 @@
 package jsonx
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"unicode"
 	"unicode/utf16"
 	"unicode/utf8"
 )
 
+const (
+	spaceCharMask = (1 << ' ') | (1 << '\t') | (1 << '\r') | (1 << '\n')
+)
+
+func isSpace(c byte) bool {
+	return spaceCharMask&(1<<c) != 0
+}
+
+func trim(str string) string {
+	s := 0
+	e := len(str) - 1
+	for s < e {
+		c := str[s]
+		if !isSpace(c) {
+			break
+		}
+		s++
+	}
+	for s < e {
+		c := str[e]
+		if !isSpace(c) {
+			break
+		}
+		e--
+	}
+	return str[s : e+1]
+}
+
+func cloneString(src string) string {
+	tmp := make([]byte, len(src))
+	copy(tmp, src)
+	return lang.BTS(tmp)
+}
+
+func (dd *fastDecode) skipHeadSpace() {
+	for dd.head < dd.tail {
+		c := dd.src[dd.head]
+		if !isSpace(c) {
+			return
+		}
+		dd.head++
+	}
+}
+
+func (dd *fastDecode) skipTailSpace() {
+	for dd.head < dd.tail {
+		c := dd.src[dd.tail]
+		if !isSpace(c) {
+			return
+		}
+		dd.tail--
+	}
+}
+
+// 来自标准库 json/decode_xxx.go的函数
 // ++++++++++++++++++++++++++++++++++++++需要转义的字符
 // \\ 反斜杠
 // \" 双引号
@@ -18,13 +74,12 @@ import (
 // \r 回车符
 // \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
 // +++++++++++++++++++++++++++++++++++++++++++++++++++
-
 func unquoteBytes(s []byte) (t []byte, ok bool) {
 	if len(s) < 2 || s[0] != '"' || s[len(s)-1] != '"' {
 		return
 	}
 	s = s[1 : len(s)-1]
-	
+
 	// Check for unusual characters. If there are none,
 	// then no unquoting is needed, so return a slice of the
 	// original bytes.
@@ -47,7 +102,7 @@ func unquoteBytes(s []byte) (t []byte, ok bool) {
 	if r == len(s) {
 		return s, true
 	}
-	
+
 	b := make([]byte, len(s)+2*utf8.UTFMax)
 	w := copy(b, s[0:r])
 	for r < len(s) {
@@ -112,17 +167,17 @@ func unquoteBytes(s []byte) (t []byte, ok bool) {
 				}
 				w += utf8.EncodeRune(b[w:], rr)
 			}
-		
+
 		// Quote, control characters are invalid.
 		case c == '"', c < ' ':
 			return
-		
+
 		// ASCII
 		case c < utf8.RuneSelf:
 			b[w] = c
 			r++
 			w++
-		
+
 		// Coerce to well-formed UTF-8.
 		default:
 			rr, size := utf8.DecodeRune(s[r:])
