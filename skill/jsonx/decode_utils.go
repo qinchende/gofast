@@ -35,30 +35,30 @@ func trim(str string) string {
 	return str[s : e+1]
 }
 
+func trimHead(str string) int {
+	i := 0
+	for ; i < len(str); i++ {
+		if !isSpace(str[i]) {
+			break
+		}
+	}
+	return i
+}
+
+func trimTail(str string) int {
+	tail := len(str) - 1
+	for ; tail >= 0; tail-- {
+		if !isSpace(str[tail]) {
+			break
+		}
+	}
+	return tail
+}
+
 func cloneString(src string) string {
 	tmp := make([]byte, len(src))
 	copy(tmp, src)
 	return lang.BTS(tmp)
-}
-
-func (dd *fastDecode) skipHeadSpace() {
-	for dd.head < dd.tail {
-		c := dd.src[dd.head]
-		if !isSpace(c) {
-			return
-		}
-		dd.head++
-	}
-}
-
-func (dd *fastDecode) skipTailSpace() {
-	for dd.head < dd.tail {
-		c := dd.src[dd.tail]
-		if !isSpace(c) {
-			return
-		}
-		dd.tail--
-	}
 }
 
 // 来自标准库 json/decode_xxx.go的函数
