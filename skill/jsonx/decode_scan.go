@@ -1,156 +1,46 @@
 package jsonx
 
-import "github.com/qinchende/gofast/skill/lang"
+import (
+	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/gson"
+)
 
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
-func (dd *fastDecode) parseJson() int {
-	dd.skipHeadSpace()
-	dd.skipTailSpace()
-
-	if dd.head >= dd.tail {
-		return errEOF
-	}
-
-	switch c := dd.src[dd.head]; c {
+func (sd *subDecode) parseJson() int {
+	switch c := sd.sub[sd.scan]; c {
 	case '{':
-		if dd.src[dd.tail] != '}' {
-			dd.flag = dd.tail + 1
+		// 先检查最后一个字符是否符合预期
+		if sd.sub[len(sd.sub)-1] != '}' {
+			sd.errPos = len(sd.sub) - 1
 			return errChar
 		}
-		dd.changeSub(dd.src[dd.head+1 : dd.tail])
-		return dd.parseObject()
+		sd.sub = sd.sub[:len(sd.sub)-1]
+		sd.scan++
+		return sd.parseObject()
 	case '[':
-		if dd.src[dd.tail] != ']' {
-			dd.flag = dd.tail + 1
+		if sd.sub[len(sd.sub)-1] != ']' {
+			sd.errPos = len(sd.sub) - 1
 			return errChar
 		}
-		dd.changeSub(dd.src[dd.head+1 : dd.tail])
-		return dd.parseArray()
+		sd.sub = sd.sub[:len(sd.sub)-1]
+		sd.scan++
+		return sd.parseArray()
 	case 'n':
-		if dd.src[dd.head:dd.tail+1] == "null" {
+		if sd.sub == "null" {
 			return noErr
 		}
 	}
 	return errJson
 }
 
-// 剩下的全部应该是 k:v,k:v,k:{},k:[]
-func (dd *fastDecode) parseObject() int {
-loopKVItem:
-	// TODO: 不应该先找逗号，而应该先找冒号，看冒号后面的第一个非空字符是否是{[，如果是就需要先跳过所有{}和[]的匹配对，再找后面的逗号
-	// 注意不是所有{ } [ ] 字符都算，本身key 或者 value 是有可能包含这些特殊字符的。
-
-	// A: 找冒号 +++
-	colonIdx := dd.nextColon(int(dd.scan))
-	// 1. 没有冒号，可能就是一段空白字符
-	if colonIdx == -1 {
-		tmp := trim(dd.sub[dd.scan:])
-		if len(tmp) != 0 {
-			return errChar
-		}
-		return noErr
-	}
-	// 2. TODO：这里冒号前面的Key其实就可以得到了，可以先判断目标对象是否有这个key，没有value都不用解析了，直接解析下一个
-
-	// B: 找逗号 +++
-	commaIdx := dd.nextComma(colonIdx + 1) // 从冒号后面开始查找
-	// 1. 没找到逗号，这是最后一个k:v了
-	if commaIdx == -1 {
-		end := uint32(len(dd.sub))
-		err := dd.parseKV(uint32(colonIdx), end)
-		dd.isMixedVal = false
-		dd.scan = end
-		return err
-	}
-	// 2. 找到一个“,” 其前面部分当做一个k:v来解
-	if commaIdx > 0 {
-		err := dd.parseKV(uint32(colonIdx), uint32(commaIdx))
-		dd.isMixedVal = false
-		dd.scan = uint32(commaIdx) + 1
-		if err != noErr {
-			return err
-		}
-		goto loopKVItem // 再找下一个
-	}
-	return noErr
-}
-
-func (dd *fastDecode) parseArray() int {
-	return noErr
-
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 找冒号："k":"v" | "k":[ |  "k":{
-func (dd *fastDecode) nextColon(idx int) int {
-	quoteCt := 0
-	for idx < len(dd.sub) {
-		if dd.sub[idx] == '"' {
-			// 非第一个"，如果后面的"前面有\，是允许的
-			if quoteCt == 1 {
-				if dd.sub[idx-1] == '\\' {
-					continue
-				}
-			}
-			quoteCt++
-			if quoteCt > 2 {
-				return -1
-			}
-		}
-		if quoteCt == 2 {
-			if dd.sub[idx] == ':' {
-				return idx
-			}
-		}
-		idx++
-	}
-	return -1
-}
-
-// 找逗号："k":"v",
-func (dd *fastDecode) nextComma(pos int) int {
-	ckSpace := true
-	for pos < len(dd.sub) {
-		c := dd.sub[pos]
-		if c == ',' {
-			return pos
-		}
-		pos++
-
-		if ckSpace {
-			if isSpace(c) {
-				continue
-			}
-
-			ckSpace = false
-			if c == '{' {
-				pos = dd.skipObject(pos)
-				if pos < 0 {
-					return pos
-				}
-				dd.isMixedVal = true
-				return dd.skipComma(pos)
-			}
-			if c == '[' {
-				pos = dd.skipArray(pos)
-				if pos < 0 {
-					return pos
-				}
-				dd.isMixedVal = true
-				return dd.skipComma(pos)
-			}
-		}
-	}
-	return -1
-}
-
 // 前提：dd.sub 肯定是 { 字符后面的字符串
 // 返回 } 后面字符的 index
-func (dd *fastDecode) skipObject(pos int) int {
+func (sd *subDecode) scanObject(pos int) int {
 	var hasKV bool
-	for pos < len(dd.sub) {
-		c := dd.sub[pos]
+	for pos < len(sd.sub) {
+		c := sd.sub[pos]
 		pos++
 
 		if isSpace(c) {
@@ -163,13 +53,13 @@ func (dd *fastDecode) skipObject(pos int) int {
 		// 上面都不是，只能是k:v
 		if hasKV {
 			// 不是第一个kv, 先跳过一个逗号
-			pos = dd.skipComma(pos - 1)
+			pos = sd.scanComma(pos - 1)
 			if pos < 0 {
 				return pos
 			}
 			pos += 1
 		}
-		pos = dd.skipKVItem(pos - 1)
+		pos = sd.scanKVItem(pos - 1)
 		if pos < 0 {
 			return pos
 		}
@@ -178,11 +68,170 @@ func (dd *fastDecode) skipObject(pos int) int {
 	return -1
 }
 
+// 必须是k:v, ...形式
+func (sd *subDecode) scanKVItem(pos int) int {
+	// A: 找冒号 +++
+	colonPos := sd.scanColon(pos)
+	// 1. 没有冒号，可能就是一段空白字符
+	if colonPos < 0 {
+		return colonPos
+	}
+
+	// 冒号找到了，看看后面的值
+	pos = colonPos + 1
+	for pos < len(sd.sub) {
+		c := sd.sub[pos]
+		pos++
+
+		if isSpace(c) {
+			continue
+		}
+		if c == '{' {
+			return sd.scanObject(pos)
+		}
+		if c == '[' {
+			return sd.scanArray(pos)
+		}
+
+		// one value
+		if c == '"' {
+			return sd.scanQuoteValue(pos)
+		}
+		return sd.scanNoQuoteValue(pos - 1)
+	}
+	return -1
+}
+
+// 剩下的全部应该是 k:v,k:v,k:{},k:[]
+func (sd *subDecode) parseObject() (err int) {
+loopKVItem:
+	// TODO: 不应该先找逗号，而应该先找冒号，看冒号后面的第一个非空字符是否是{[，如果是就需要先跳过所有{}和[]的匹配对，再找后面的逗号
+	// 注意不是所有{ } [ ] 字符都算，本身key 或者 value 是有可能包含这些特殊字符的。
+
+	// A: 找冒号 +++
+	colonPos := sd.scanColon(sd.scan)
+	// 1. 没有找到冒号，可能就是一段空白字符
+	if colonPos == errNotFound {
+		tmp := trim(sd.sub[sd.scan:])
+		if len(tmp) != 0 {
+			return errChar
+		}
+		return noErr
+	} else if colonPos < 0 {
+		return colonPos
+	}
+
+	key := sd.sub[sd.scan:colonPos]
+	sd.scan = colonPos
+	// 2. TODO：这里冒号前面的Key其实就可以得到了，可以先判断目标对象是否有这个key，没有value都不用解析了，直接解析下一个
+
+	// B: 找逗号 +++
+	commaPos := sd.scanComma(colonPos + 1) // 从冒号后面开始查找第一个匹配的逗号
+	val := ""
+	sd.isMixedVal = false
+	// 1. 没找到逗号，这是最后一个k:v了
+	if commaPos == errNotFound {
+		sd.scan = len(sd.sub)
+		val = sd.sub[colonPos+1 : sd.scan]
+	} else if commaPos <= 0 {
+		return commaPos
+	}
+	// 2. 找到一个“,” 其前面部分当做一个k:v来解
+	if commaPos > 0 {
+		val = sd.sub[colonPos+1 : commaPos]
+		sd.scan = commaPos + 1
+	}
+
+	if gr, ok := sd.dst.(*gson.GsonRow); ok {
+		err = sd.setGsonValue(gr, key, val)
+	} else {
+		err = sd.setMapValue(key, val)
+	}
+	if err < 0 {
+		return err
+	}
+
+	goto loopKVItem // 再找下一个
+}
+
+func (sd *subDecode) parseArray() int {
+	return noErr
+
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 找冒号："k":"v" | "k":[ |  "k":{
+func (sd *subDecode) scanColon(pos int) int {
+	quoteCt := 0
+	for pos < len(sd.sub) {
+		c := sd.sub[pos]
+		pos++
+
+		if c == '"' {
+			// 非第一个"，如果后面的"前面有\，是允许的
+			if quoteCt == 1 {
+				if sd.sub[pos-1] == '\\' {
+					pos++
+					continue
+				}
+			}
+			quoteCt++
+			if quoteCt > 2 {
+				sd.errPos = pos - 1
+				return errChar
+			}
+		}
+		if quoteCt == 2 {
+			if c == ':' {
+				return pos
+			}
+		}
+	}
+	return errNotFound
+}
+
+// 找逗号："k":"v",
+func (sd *subDecode) scanComma(pos int) int {
+	ckSpace := true
+	for pos < len(sd.sub) {
+		c := sd.sub[pos]
+		if c == ',' {
+			return pos
+		}
+		pos++
+
+		if ckSpace {
+			if isSpace(c) {
+				continue
+			}
+
+			ckSpace = false
+			if c == '{' {
+				pos = sd.scanObject(pos)
+				if pos < 0 {
+					return pos
+				}
+				sd.isMixedVal = true
+				return sd.scanComma(pos)
+			}
+			if c == '[' {
+				pos = sd.scanArray(pos)
+				if pos < 0 {
+					return pos
+				}
+				sd.isMixedVal = true
+				return sd.scanComma(pos)
+			}
+		}
+	}
+	return -1
+}
+
 // 前提：dd.sub 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
-func (dd *fastDecode) skipArray(pos int) int {
-	for pos < len(dd.sub) {
-		c := dd.sub[pos]
+func (sd *subDecode) scanArray(pos int) int {
+	for pos < len(sd.sub) {
+		c := sd.sub[pos]
 		pos++
 
 		if c == ']' {
@@ -192,55 +241,23 @@ func (dd *fastDecode) skipArray(pos int) int {
 			continue
 		}
 
-		pos = dd.skipArrItem(pos)
+		pos = sd.scanArrItem(pos)
 	}
 	return -1
 }
 
-// 必须是k:v, ...形式
-func (dd *fastDecode) skipKVItem(pos int) int {
-	// A: 找冒号 +++
-	colonIdx := dd.nextColon(pos)
-	// 1. 没有冒号，可能就是一段空白字符
-	if colonIdx < 0 {
-		return colonIdx
-	}
-
-	// 冒号找到了，看看后面的值
-	pos = colonIdx + 1
-	for pos < len(dd.sub) {
-		c := dd.sub[pos]
-		pos++
-
-		if isSpace(c) {
-			continue
-		}
-		if c == '{' {
-			return dd.skipObject(pos)
-		}
-		if c == '[' {
-			return dd.skipArray(pos)
-		}
-		if c == '"' {
-			return dd.skipQuoteValue(pos)
-		}
-		return dd.skipNoQuoteValue(pos - 1)
-	}
-	return -1
-}
-
-func (dd *fastDecode) skipArrItem(pos int) int {
+func (sd *subDecode) scanArrItem(pos int) int {
 
 	return -1
 }
 
-func (dd *fastDecode) skipQuoteValue(pos int) int {
-	for pos < len(dd.sub) {
-		c := dd.sub[pos]
+func (sd *subDecode) scanQuoteValue(pos int) int {
+	for pos < len(sd.sub) {
+		c := sd.sub[pos]
 		pos++
 
 		if c == '"' {
-			if dd.sub[pos-1] == '\\' {
+			if sd.sub[pos-1] == '\\' {
 				continue
 			}
 			return pos
@@ -249,80 +266,81 @@ func (dd *fastDecode) skipQuoteValue(pos int) int {
 	return -1
 }
 
-// 跳过一个逗号
-func (dd *fastDecode) skipComma(pos int) int {
-	for pos < len(dd.sub) {
-		c := dd.sub[pos]
-		pos++
+//// 跳过一个逗号
+//func (dd *subDecode) scanComma(pos int) int {
+//	for pos < len(dd.sub) {
+//		c := dd.sub[pos]
+//		pos++
+//
+//		if isSpace(c) {
+//			continue
+//		}
+//		if c == ',' {
+//			return pos
+//		}
+//		return -1
+//	}
+//	return -1
+//}
 
-		if isSpace(c) {
-			continue
-		}
-		if c == ',' {
-			return pos
-		}
-		return -1
-	}
-	return -1
-}
-
-// 可能的情况 "k":v | "k":{} | "k":[]
-func (dd *fastDecode) parseKV(colonIdx, commaIdx uint32) int {
-	key := dd.sub[dd.scan:colonIdx]
-	val := dd.sub[colonIdx+1 : commaIdx]
-
-	if dd.gr != nil {
-		return dd.setGsonValue(key, val)
-	}
-	return dd.setMapValue(key, val)
-}
+//
+//// 可能的情况 "k":v | "k":{} | "k":[]
+//func (dd *subDecode) parseKV(colonPos, commaPos int) int {
+//	key := dd.sub[dd.scan:colonPos]
+//	val := dd.sub[colonPos+1 : commaPos]
+//
+//	if dd.gr != nil {
+//		return dd.setGsonValue(key, val)
+//	}
+//	return dd.setMapValue(key, val)
+//}
 
 // 当目标为 cst.KV 类型时候，用此方法设置
-func (dd *fastDecode) setMapValue(key, val string) (err int) {
-	if key, err = dd.checkKey(key, true); err < 0 {
+func (sd *subDecode) setMapValue(key, val string) (err int) {
+	if key, err = sd.checkKey(key, true); err < 0 {
 		return
 	}
 
-	if !dd.isMixedVal {
-		if val, err = dd.checkValue(val); err < 0 {
+	if !sd.isMixedVal {
+		if val, err = sd.checkValue(val); err < 0 {
 			return
 		}
 	}
 
 	// set k = v
-	dd.dst.Set(key, val)
+	sd.dst.Set(key, val)
 	return noErr
 }
 
 // 当目标为 gson.GsonRow 类型时候，用此方法设置
-func (dd *fastDecode) setGsonValue(key, val string) (err int) {
-	if key, err = dd.checkKey(key, false); err < 0 {
+func (sd *subDecode) setGsonValue(gr *gson.GsonRow, key, val string) (err int) {
+	if key, err = sd.checkKey(key, false); err < 0 {
 		return
 	}
-	keyIdx := dd.gr.KeyIndex(key)
+	keyIdx := gr.KeyIndex(key)
 	// 没有这个字段，直接返回了(此时再去解析后面的value是没有意义的)
 	if keyIdx < 0 {
 		return noErr
 	}
 
-	if !dd.isMixedVal {
-		if val, err = dd.checkValue(val); err < 0 {
+	if !sd.isMixedVal {
+		if val, err = sd.checkValue(val); err < 0 {
 			return
 		}
 	}
 
 	// set k = v
-	dd.gr.SetStringByIndex(keyIdx, val)
+	gr.SetStringByIndex(keyIdx, val)
 	return noErr
 }
 
 // 核查 key +++++++++
-func (dd *fastDecode) checkKey(key string, needCopy bool) (ret string, err int) {
+func (sd *subDecode) checkKey(key string, needCopy bool) (ret string, err int) {
 	var inShare bool
 	if key, err = cutKeyQuote(key); err < 0 {
 		return
 	}
-	if key, inShare, err = dd.getStringLiteral(key); err < 0 {
+	if key, inShare, err = sd.getStringLiteral(key); err < 0 {
 		return
 	}
 	if inShare && needCopy {
@@ -332,13 +350,13 @@ func (dd *fastDecode) checkKey(key string, needCopy bool) (ret string, err int) 
 }
 
 // 核查 value ++++++++++
-func (dd *fastDecode) checkValue(val string) (ret string, err int) {
+func (sd *subDecode) checkValue(val string) (ret string, err int) {
 	var hasQuote, inShare bool
 	if val, hasQuote, err = cutValueQuote(val); err < 0 {
 		return
 	}
 	if hasQuote {
-		if val, inShare, err = dd.getStringLiteral(val); err < 0 {
+		if val, inShare, err = sd.getStringLiteral(val); err < 0 {
 			return
 		}
 		// 证明此时用的是临时栈空间保存转义之后的Value，需要申请新的内存空间放置
@@ -363,7 +381,7 @@ func (dd *fastDecode) checkValue(val string) (ret string, err int) {
 // \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
 // +++++++++++++++++++++++++++++++++++++++++++++++++++
 // 一个合法的 Key，或者Value 字符串
-func (dd *fastDecode) getStringLiteral(str string) (ret string, inShare bool, err int) {
+func (sd *subDecode) getStringLiteral(str string) (ret string, inShare bool, err int) {
 	var newStr []byte
 	var step int
 	var hasSlash bool
@@ -381,16 +399,16 @@ func (dd *fastDecode) getStringLiteral(str string) (ret string, inShare bool, er
 				// TODO：这里发生了逃逸，需要用sync.Pool的方式，共享内存空间
 				// 或者别的黑魔法操作内存
 				// add by sdx 20230404 动态初始化 share 内存
-				if dd.share == nil {
+				if sd.share == nil {
 					defSize := len(str)
 					if defSize > tempByteStackSize {
 						defSize = tempByteStackSize
 					}
-					dd.share = make([]byte, defSize)
+					sd.share = make([]byte, defSize)
 				}
 
-				if len(str) <= len(dd.share) {
-					newStr = dd.share[:]
+				if len(str) <= len(sd.share) {
+					newStr = sd.share[:]
 					inShare = true
 				} else {
 					newStr = make([]byte, len(str))
@@ -490,12 +508,12 @@ func cutValueQuote(val string) (ret string, hasQuote bool, err int) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (dd *fastDecode) skipMatch(pos int, match string) int {
+func (sd *subDecode) scanMatch(pos int, match string) int {
 	end := pos + len(match)
-	if end > len(dd.sub) {
+	if end > len(sd.sub) {
 		return -1
 	}
-	if dd.sub[pos:end] == match {
+	if sd.sub[pos:end] == match {
 		return end
 	}
 	return -1
@@ -503,14 +521,14 @@ func (dd *fastDecode) skipMatch(pos int, match string) int {
 
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
-func (dd *fastDecode) skipNumber(pos int) int {
-	if pos >= len(dd.sub) {
+func (sd *subDecode) scanNumber(pos int) int {
+	if pos >= len(sd.sub) {
 		return -1
 	}
 
 	var startZero, hasDot, needNum bool
 
-	c := dd.sub[pos]
+	c := sd.sub[pos]
 	if c < '0' || c > '9' {
 		return -1
 	}
@@ -521,8 +539,8 @@ func (dd *fastDecode) skipNumber(pos int) int {
 	}
 	pos++
 
-	for pos < len(dd.sub) {
-		c = dd.sub[pos]
+	for pos < len(sd.sub) {
+		c = sd.sub[pos]
 		pos++
 
 		if startZero {
@@ -544,7 +562,7 @@ func (dd *fastDecode) skipNumber(pos int) int {
 			if needNum {
 				return -1
 			}
-			return dd.skipScientificNumberTail(pos)
+			return sd.scanScientificNumberTail(pos)
 		} else if c < '0' || c > '9' {
 			pos--
 			break
@@ -560,19 +578,19 @@ func (dd *fastDecode) skipNumber(pos int) int {
 }
 
 // 检查科学计数法（e|E）后面的字符串合法性
-func (dd *fastDecode) skipScientificNumberTail(pos int) int {
-	if pos >= len(dd.sub) {
-		return -1
+func (sd *subDecode) scanScientificNumberTail(pos int) int {
+	if pos >= len(sd.sub) {
+		return errEOF
 	}
 
-	c := dd.sub[pos]
+	c := sd.sub[pos]
 	if c == '-' || c == '+' {
 		pos++
 	}
 
 	// TODO: 加减号后面没有任何数字匹配，会如何
-	for pos < len(dd.sub) {
-		if dd.sub[pos] < '0' || dd.sub[pos] > '9' {
+	for pos < len(sd.sub) {
+		if sd.sub[pos] < '0' || sd.sub[pos] > '9' {
 			return pos
 		}
 		pos++
@@ -580,25 +598,25 @@ func (dd *fastDecode) skipScientificNumberTail(pos int) int {
 	return pos
 }
 
-func (dd *fastDecode) skipNoQuoteValue(pos int) int {
-	if pos >= len(dd.sub) {
+func (sd *subDecode) scanNoQuoteValue(pos int) int {
+	if pos >= len(sd.sub) {
 		return -1
 	}
 
-	switch c := dd.sub[pos]; {
+	switch c := sd.sub[pos]; {
 	case c >= '0' && c <= '9':
 		// 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7
-		return dd.skipNumber(pos)
+		return sd.scanNumber(pos)
 	case c == '-':
 		// -0.3 | -3.7E-7
 		pos++
-		return dd.skipNumber(pos)
+		return sd.scanNumber(pos)
 	case c == 'f':
-		return dd.skipMatch(pos, "false")
+		return sd.scanMatch(pos, "false")
 	case c == 't':
-		return dd.skipMatch(pos, "true")
+		return sd.scanMatch(pos, "true")
 	case c == 'n':
-		return dd.skipMatch(pos, "null")
+		return sd.scanMatch(pos, "null")
 	}
 	return -1
 }

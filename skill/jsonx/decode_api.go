@@ -47,9 +47,6 @@ func decodeFromString(dst cst.SuperKV, source string) error {
 	}
 
 	dd := fastDecode{}
-	if err := dd.init(dst, source); err != nil {
-		return err
-	}
-	//return nil
-	return dd.warpError(dd.parseJson())
+	dd.init(dst, source)
+	return dd.root.warpError(dd.root.parseJson())
 }
