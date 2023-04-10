@@ -13,11 +13,17 @@ const (
 )
 
 const (
-	noErr        int = 0
-	errNotFound  int = -1
-	errEOF       int = -2
-	errJson      int = -3
-	errChar      int = -4
+	bytesNull  = "null"
+	bytesTrue  = "true"
+	bytesFalse = "false"
+)
+
+const (
+	noErr        int = 0  // 没有错误
+	scanEOF      int = -1 // 扫描结束
+	errNormal    int = -2 // 没找到期望的字符
+	errJson      int = -3 // 非法JSON格式
+	errChar      int = -4 // 非预期的字符
 	errEscape    int = -5
 	errUnicode   int = -6
 	errOverflow  int = -7
@@ -26,13 +32,21 @@ const (
 	errInfinity  int = -10
 	errMismatch  int = -11
 	errUTF8      int = -12
+	errKey       int = -13
+	errValue     int = -14
+	errKV        int = -15
+	errNull      int = -16
+	errObject    int = -17
+	errArray     int = -18
+	errTrue      int = -19
+	errFalse     int = -20
 
 	//errNotSupportType int = -13
 )
 
 //var errorStrings = []string{
 //	0:                      "ok",
-//	-(errEOF):              "eof",
+//	-(scanEOF):              "eof",
 //	ERR_INVALID_CHAR:       "invalid char",
 //	ERR_INVALID_ESCAPE:     "invalid escape char",
 //	ERR_INVALID_UNICODE:    "invalid unicode escape",
@@ -70,10 +84,10 @@ type subDecode struct {
 	//gr  *gson.GsonRow // Gson 作为特殊解析对象，单独处理
 
 	// 解析对象过程中用到临时变量 +++++++++++++++++++++++++++++++++++++
-	sub        string // 本段字符串
-	scan       int    // 自己的扫描进度
-	errPos     int    // 当前扫描位置做标记，方便错误定位
-	isMixedVal bool   // 判断当前 {} 或者 [] 是一个字符串整体，不需要解析
+	sub  string // 本段字符串
+	scan int    // 自己的扫描进度
+	//pos        int    // 当前扫描位置做标记，方便错误定位
+	isMixedVal bool // 判断当前 {} 或者 [] 是一个字符串整体，不需要解析
 }
 
 func (dd *fastDecode) init(dst cst.SuperKV, src string) {
@@ -89,15 +103,19 @@ func (dd *fastDecode) init(dst cst.SuperKV, src string) {
 func (sd *subDecode) initSubDecode(subStr string, offSrc int) {
 	//sd.flag = 0
 	sd.isMixedVal = false
+	sd.sub = subStr
+	sd.scan = 0
+	//sd.pos = 0
+	sd.offSrc = offSrc
 
-	th := trimHead(subStr)
-	tt := trimTail(subStr)
-	if th > tt {
-		th = tt
-	}
-	sd.scan = th
-	sd.offSrc = offSrc + th
-	sd.sub = subStr[th : tt+1]
+	//th := trimHead(subStr)
+	//tt := trimTail(subStr)
+	//if th > tt {
+	//	th = tt
+	//}
+	//sd.scan = th
+	//sd.offSrc = offSrc + th
+	//sd.sub = subStr[th : tt+1]
 }
 
 func (sd *subDecode) warpError(errCode int) error {
@@ -109,7 +127,7 @@ func (sd *subDecode) warpError(errCode int) error {
 	//if end > sd.tail {
 	//	end = sd.tail
 	//}
-	pos := sd.errPos + sd.offSrc
+	pos := sd.scan + sd.offSrc
 	errMsg := fmt.Sprintf("jsonx: error type %d. pos: %d, near: %q", errCode, pos, sd.sub[pos])
 	return errors.New(errMsg)
 }
