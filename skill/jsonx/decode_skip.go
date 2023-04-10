@@ -1,5 +1,50 @@
 package jsonx
 
+func (sd *subDecode) lastNotBlank() (byte, int) {
+	for i := len(sd.sub) - 1; i < len(sd.sub); i-- {
+		if !isSpace(sd.sub[i]) {
+			sd.sub = sd.sub[:i+1] // cut 最后的空字符
+			return sd.sub[i], i
+		}
+	}
+	return 0, 0
+}
+
+func (sd *subDecode) skipBlank() int {
+	for sd.scan < len(sd.sub) {
+		if !isSpace(sd.sub[sd.scan]) {
+			return noErr
+		}
+		sd.scan++
+	}
+	return scanEOF
+}
+
+//func (sd *subDecode) skipNull() (ret int) {
+//	ret = sd.scan + 4
+//	if ret > len(sd.sub) {
+//		return errNull
+//	}
+//	if sd.sub[sd.scan:ret] == bytesNull {
+//		sd.scan = ret
+//		return noErr
+//	} else {
+//		return errNull
+//	}
+//}
+
+func (sd *subDecode) skipMatch(match string) (ret int) {
+	ret = sd.scan + len(match)
+	if ret > len(sd.sub) {
+		return errMismatch
+	}
+	if sd.sub[sd.scan:ret] == match {
+		sd.scan = ret
+		return noErr
+	}
+	return errMismatch
+}
+
 func (sd *subDecode) skipHeadSpace() {
 	for sd.scan < len(sd.sub) {
 		if !isSpace(sd.sub[sd.scan]) {
@@ -39,7 +84,7 @@ func (sd *subDecode) skipObject(pos int) int {
 		// 上面都不是，只能是k:v
 		if hasKV {
 			// 不是第一个kv, 先跳过一个逗号
-			pos = sd.skipComma(pos - 1)
+			pos = sd.skipSeparator(',')
 			if pos < 0 {
 				return pos
 			}
@@ -57,7 +102,7 @@ func (sd *subDecode) skipObject(pos int) int {
 // 必须是k:v, ...形式
 func (sd *subDecode) skipKVItem(pos int) int {
 	// A: 找冒号 +++
-	colonPos := sd.scanColon(pos)
+	colonPos := sd.skipSeparator(':')
 	// 1. 没有冒号，可能就是一段空白字符
 	if colonPos < 0 {
 		return colonPos
@@ -106,7 +151,6 @@ func (sd *subDecode) skipColon(pos int) int {
 			}
 			quoteCt++
 			if quoteCt > 2 {
-				sd.errPos = pos - 1
 				return errChar
 			}
 		}
@@ -116,45 +160,45 @@ func (sd *subDecode) skipColon(pos int) int {
 			}
 		}
 	}
-	return errNotFound
+	return noErr
 }
 
-// 找逗号："k":"v",
-func (sd *subDecode) skipComma(pos int) int {
-	ckSpace := true
-	for pos < len(sd.sub) {
-		c := sd.sub[pos]
-		if c == ',' {
-			return pos
-		}
-		pos++
-
-		if ckSpace {
-			if isSpace(c) {
-				continue
-			}
-
-			ckSpace = false
-			if c == '{' {
-				pos = sd.skipObject(pos)
-				if pos < 0 {
-					return pos
-				}
-				sd.isMixedVal = true
-				return sd.skipComma(pos)
-			}
-			if c == '[' {
-				pos = sd.skipArray(pos)
-				if pos < 0 {
-					return pos
-				}
-				sd.isMixedVal = true
-				return sd.skipComma(pos)
-			}
-		}
-	}
-	return -1
-}
+//// 找逗号："k":"v",
+//func (sd *subDecode) skipComma(pos int) int {
+//	ckSpace := true
+//	for pos < len(sd.sub) {
+//		c := sd.sub[pos]
+//		if c == ',' {
+//			return pos
+//		}
+//		pos++
+//
+//		if ckSpace {
+//			if isSpace(c) {
+//				continue
+//			}
+//
+//			ckSpace = false
+//			if c == '{' {
+//				pos = sd.skipObject(pos)
+//				if pos < 0 {
+//					return pos
+//				}
+//				sd.isMixedVal = true
+//				return sd.skipComma(pos)
+//			}
+//			if c == '[' {
+//				pos = sd.skipArray(pos)
+//				if pos < 0 {
+//					return pos
+//				}
+//				sd.isMixedVal = true
+//				return sd.skipComma(pos)
+//			}
+//		}
+//	}
+//	return -1
+//}
 
 // 前提：dd.sub 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
@@ -212,17 +256,17 @@ func (sd *subDecode) skipQuoteValue(pos int) int {
 //	return -1
 //}
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) skipMatch(pos int, match string) int {
-	end := pos + len(match)
-	if end > len(sd.sub) {
-		return -1
-	}
-	if sd.sub[pos:end] == match {
-		return end
-	}
-	return -1
-}
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func (sd *subDecode) skipMatch(pos int, match string) int {
+//	end := pos + len(match)
+//	if end > len(sd.sub) {
+//		return -1
+//	}
+//	if sd.sub[pos:end] == match {
+//		return end
+//	}
+//	return -1
+//}
 
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
@@ -285,7 +329,7 @@ func (sd *subDecode) skipNumber(pos int) int {
 // 检查科学计数法（e|E）后面的字符串合法性
 func (sd *subDecode) skipScientificNumberTail(pos int) int {
 	if pos >= len(sd.sub) {
-		return errEOF
+		return scanEOF
 	}
 
 	c := sd.sub[pos]
@@ -317,11 +361,11 @@ func (sd *subDecode) skipNoQuoteValue(pos int) int {
 		pos++
 		return sd.skipNumber(pos)
 	case c == 'f':
-		return sd.skipMatch(pos, "false")
+		return sd.skipMatch("false")
 	case c == 't':
-		return sd.skipMatch(pos, "true")
+		return sd.skipMatch("true")
 	case c == 'n':
-		return sd.skipMatch(pos, "null")
+		return sd.skipMatch("null")
 	}
 	return -1
 }
