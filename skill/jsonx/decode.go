@@ -87,7 +87,7 @@ type subDecode struct {
 	sub  string // 本段字符串
 	scan int    // 自己的扫描进度
 	//pos        int    // 当前扫描位置做标记，方便错误定位
-	isMixedVal bool // 判断当前 {} 或者 [] 是一个字符串整体，不需要解析
+	directString bool // 判断当前 {} 或者 [] 是一个字符串整体，不需要解析
 }
 
 func (dd *fastDecode) init(dst cst.SuperKV, src string) {
@@ -102,7 +102,7 @@ func (dd *fastDecode) init(dst cst.SuperKV, src string) {
 
 func (sd *subDecode) initSubDecode(subStr string, offSrc int) {
 	//sd.flag = 0
-	sd.isMixedVal = false
+	sd.directString = false
 	sd.sub = subStr
 	sd.scan = 0
 	//sd.pos = 0
@@ -123,11 +123,12 @@ func (sd *subDecode) warpError(errCode int) error {
 		return nil
 	}
 
-	//end := sd.flag + 20 // 输出标记后面 n 个字符
-	//if end > sd.tail {
-	//	end = sd.tail
-	//}
-	pos := sd.scan + sd.offSrc
-	errMsg := fmt.Sprintf("jsonx: error type %d. pos: %d, near: %q", errCode, pos, sd.sub[pos])
+	sta := sd.scan + sd.offSrc
+	end := sta + 20 // 输出标记后面 n 个字符
+	if end > len(sd.sub) {
+		end = len(sd.sub)
+	}
+
+	errMsg := fmt.Sprintf("jsonx: error pos: %d, near %q of ( %s )", sta, sd.sub[sta], sd.sub[sta:end])
 	return errors.New(errMsg)
 }
