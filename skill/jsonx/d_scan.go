@@ -1,8 +1,6 @@
 package jsonx
 
-import (
-	"github.com/qinchende/gofast/store/gson"
-)
+import "github.com/qinchende/gofast/cst"
 
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
@@ -11,7 +9,7 @@ func (sd *subDecode) parseJson() (ret int) {
 		return errJson
 	}
 
-	switch sd.sub[sd.scan] {
+	switch sd.str[sd.scan] {
 	case '{':
 		return sd.scanJsonEnd('}')
 	case '[':
@@ -37,7 +35,7 @@ func (sd *subDecode) scanJsonEnd(ch byte) (ret int) {
 		ret = sd.scanArray()
 	} else {
 		ret = sd.skipMatch(bytesNull)
-		if sd.scan < len(sd.sub) {
+		if sd.scan < len(sd.str) {
 			return errChar
 		}
 	}
@@ -48,12 +46,12 @@ func (sd *subDecode) scanJsonEnd(ch byte) (ret int) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 前提：sd.sub 肯定是 { 字符后面的字符串
-// 返回 } 后面字符的 index
+// 前提：sd.str 肯定是 { 字符后面的字符串
+// 返回 } 后面一个字符的 index
 func (sd *subDecode) scanObject() (ret int) {
 	var hasKV bool
-	for sd.scan < len(sd.sub) {
-		switch c := sd.sub[sd.scan]; {
+	for sd.scan < len(sd.str) {
+		switch c := sd.str[sd.scan]; {
 		case isSpace(c):
 			sd.scan++
 			continue
@@ -83,17 +81,18 @@ func (sd *subDecode) scanObject() (ret int) {
 func (sd *subDecode) scanKVItem() (ret int) {
 	// A: 找 key 字符串
 	var slash bool
-	start := sd.scan
+	var key, value string
+
+	idx := sd.scan
 	if slash, ret = sd.scanQuoteString(); ret < 0 {
 		return
 	}
-	var key string
 	if slash {
-		if key, ret = sd.unescapeString(start, sd.scan); ret < 0 {
+		if key, ret = sd.unescapeString(idx, sd.scan); ret < 0 {
 			return
 		}
 	} else {
-		key = sd.sub[start+1 : sd.scan-1]
+		key = sd.str[idx+1 : sd.scan-1]
 	}
 
 	// B: 跳过冒号
@@ -104,36 +103,133 @@ func (sd *subDecode) scanKVItem() (ret int) {
 		return
 	}
 
-	// 2. TODO：这里冒号前面的Key其实就可以得到了，可以先判断目标对象是否有这个key，没有value就跳过值，然后解析下一个
-	//keyIdx := -1
-	//gr, _ := sd.dst.(*gson.GsonRow)
-	//if gr != nil {
-	//	keyIdx = gr.KeyIndex(key)
-	//}
+	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
+	idx = -1 // Note: 这里只是复用了 前面的 idx 变量
+	if sd.gr != nil {
+		idx = sd.gr.KeyIndex(key)
+		if idx < 0 {
+			sd.skipValue = true
+		}
+	}
 
 	// C: 找Value
-	value := ""
-	if value, ret = sd.scanValue(); ret < 0 {
+	value, ret = sd.scanValue(key)
+
+	// 不需要值时候，直接跳过去，找下一个KV
+	if sd.skipValue || sd.skipTotal {
+		sd.skipValue = false
+		return
+	}
+
+	if ret < 0 {
 		return
 	}
 
 	// D: 记录解析的 KV
-	if gr, ok := sd.dst.(*gson.GsonRow); ok {
-		ret = sd.setGsonValue(gr, key, value)
+	if sd.gr != nil {
+		sd.gr.SetStringByIndex(idx, value)
 	} else {
-		ret = sd.setMapValue(key, value)
+		sd.dst.Set(key, value)
 	}
+	return noErr
+}
+
+func (sd *subDecode) scanSubObject(key string) (val string, ret int) {
+	sub := subDecode{
+		str:       sd.str,
+		scan:      sd.scan,
+		skipTotal: sd.skipValue,
+	}
+
+	if sd.gr != nil {
+		// TODO: 无法为子对象提供目标值，只能返回字符串
+		sub.skipTotal = true
+	} else {
+		sd.skipValue = true
+		newKV := make(cst.KV)
+		sd.dst.Set(key, newKV)
+		sub.dst = &newKV
+	}
+
+	ret = sub.scanObject()
+	if ret < 0 {
+		sd.scan = sub.scan
+		return
+	}
+
+	if sd.gr != nil && sd.skipValue == false {
+		val = sd.str[sd.scan-1 : sub.scan]
+	}
+	sd.scan = sub.scan
+	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 前提：sd.str 肯定是 [ 字符后面的字符串
+// 返回 ] 后面字符的 index
+func (sd *subDecode) scanArray() (ret int) {
+	for sd.scan < len(sd.str) {
+		c := sd.str[sd.scan]
+		sd.scan++
+
+		if c == ']' {
+			return noErr
+		}
+		if isSpace(c) {
+			continue
+		}
+
+		ret = sd.scanArrItem()
+	}
+	return scanEOF
+}
+
+// TODO：需要实现解析List
+func (sd *subDecode) scanArrItem() int {
+
+	return -1
+}
+
+func (sd *subDecode) scanSubArray(key string) (val string, ret int) {
+	sub := subDecode{
+		str:       sd.str,
+		scan:      sd.scan,
+		skipTotal: sd.skipValue,
+	}
+
+	if sd.gr != nil {
+		// TODO: 无法为子对象提供目标值，只能返回字符串
+		sub.skipTotal = true
+	} else {
+		sd.skipValue = true
+		sub.list = make([]any, 0)
+	}
+
+	ret = sub.scanArray()
+	if ret < 0 {
+		sd.scan = sub.scan
+		return
+	}
+
+	if sd.gr != nil {
+		if sd.skipValue == false {
+			val = sd.str[sd.scan-1 : sub.scan]
+		}
+	} else {
+		sd.dst.Set(key, sub.list)
+	}
+	sd.scan = sub.scan
 	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) scanQuoteString() (slash bool, ret int) {
-	if sd.sub[sd.scan] != '"' {
+	if sd.str[sd.scan] != '"' {
 		return false, errChar
 	}
 	sd.scan++
-	for sd.scan < len(sd.sub) {
-		c := sd.sub[sd.scan]
+	for sd.scan < len(sd.str) {
+		c := sd.str[sd.scan]
 		sd.scan++
 
 		if c < 32 {
@@ -141,8 +237,8 @@ func (sd *subDecode) scanQuoteString() (slash bool, ret int) {
 			return false, errChar
 		} else if c == '\\' {
 			slash = true
-			if sd.scan < len(sd.sub) {
-				c = sd.sub[sd.scan]
+			if sd.scan < len(sd.str) {
+				c = sd.str[sd.scan]
 				if c == '"' || c == '\\' {
 					sd.scan++
 				}
@@ -154,10 +250,10 @@ func (sd *subDecode) scanQuoteString() (slash bool, ret int) {
 	return slash, scanEOF
 }
 
-func (sd *subDecode) scanValue() (val string, ret int) {
+func (sd *subDecode) scanValue(key string) (val string, ret int) {
 	start := sd.scan
-	for sd.scan < len(sd.sub) {
-		c := sd.sub[sd.scan]
+	for sd.scan < len(sd.str) {
+		c := sd.str[sd.scan]
 		sd.scan++
 
 		if isSpace(c) {
@@ -167,11 +263,9 @@ func (sd *subDecode) scanValue() (val string, ret int) {
 		// TODO：这里需要完善Object,Array
 		switch c {
 		case '{':
-			sd.directString = true
-			return "{}", sd.scanObject()
+			return sd.scanSubObject(key)
 		case '[':
-			sd.directString = true
-			return "[]", sd.scanArray()
+			return sd.scanSubArray(key)
 		case '"':
 			sd.scan--
 			var slash bool
@@ -179,18 +273,25 @@ func (sd *subDecode) scanValue() (val string, ret int) {
 			if ret < 0 {
 				return
 			}
+			if sd.skipValue {
+				return "", noErr
+			}
 			if slash {
 				val, ret = sd.unescapeString(start, sd.scan)
 			} else {
-				val = sd.sub[start+1 : sd.scan-1]
+				val = sd.str[start+1 : sd.scan-1]
 			}
 			return
 		default:
 			sd.scan--
 			ret = sd.scanNoQuoteValue()
-			if ret >= 0 {
-				val = sd.sub[start:sd.scan]
+			if ret < 0 {
+				return
 			}
+			if sd.skipValue {
+				return "", noErr
+			}
+			val = sd.str[start:sd.scan]
 			return
 		}
 	}
@@ -200,8 +301,8 @@ func (sd *subDecode) scanValue() (val string, ret int) {
 // 跳过一个分割符号，前面可以是空字符
 // 比如 , | :
 func (sd *subDecode) skipSeparator(ch byte) (ret int) {
-	for sd.scan < len(sd.sub) {
-		c := sd.sub[sd.scan]
+	for sd.scan < len(sd.str) {
+		c := sd.str[sd.scan]
 		if isSpace(c) {
 			sd.scan++
 			continue
@@ -215,38 +316,18 @@ func (sd *subDecode) skipSeparator(ch byte) (ret int) {
 	return scanEOF
 }
 
-// 当目标为 cst.KV 类型时候，用此方法设置
-func (sd *subDecode) setMapValue(key, val string) (err int) {
-	// set k = v
-	sd.dst.Set(key, val)
-	return noErr
-}
-
-// 当目标为 gson.GsonRow 类型时候，用此方法设置
-func (sd *subDecode) setGsonValue(gr *gson.GsonRow, key, val string) (err int) {
-	keyIdx := gr.KeyIndex(key)
-	// 没有这个字段，直接返回了(此时再去解析后面的value是没有意义的)
-	if keyIdx < 0 {
-		return noErr
-	}
-
-	// set k = v
-	gr.SetStringByIndex(keyIdx, val)
-	return noErr
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
 func (sd *subDecode) scanNumber() int {
-	if sd.scan >= len(sd.sub) {
+	if sd.scan >= len(sd.str) {
 		return scanEOF
 	}
 
 	var startZero, hasDot, needNum bool
 
-	c := sd.sub[sd.scan]
+	c := sd.str[sd.scan]
 	if c < '0' || c > '9' {
 		return -1
 	}
@@ -257,8 +338,8 @@ func (sd *subDecode) scanNumber() int {
 	}
 	sd.scan++
 
-	for sd.scan < len(sd.sub) {
-		c = sd.sub[sd.scan]
+	for sd.scan < len(sd.str) {
+		c = sd.str[sd.scan]
 		sd.scan++
 
 		if startZero {
@@ -297,18 +378,18 @@ func (sd *subDecode) scanNumber() int {
 
 // 检查科学计数法（e|E）后面的字符串合法性
 func (sd *subDecode) scanScientificNumberTail() int {
-	if sd.scan >= len(sd.sub) {
+	if sd.scan >= len(sd.str) {
 		return scanEOF
 	}
 
-	c := sd.sub[sd.scan]
+	c := sd.str[sd.scan]
 	if c == '-' || c == '+' {
 		sd.scan++
 	}
 
 	// TODO: 加减号后面没有任何数字匹配，会如何
-	for sd.scan < len(sd.sub) {
-		if sd.sub[sd.scan] < '0' || sd.sub[sd.scan] > '9' {
+	for sd.scan < len(sd.str) {
+		if sd.str[sd.scan] < '0' || sd.str[sd.scan] > '9' {
 			return noErr
 		}
 		sd.scan++
@@ -317,11 +398,11 @@ func (sd *subDecode) scanScientificNumberTail() int {
 }
 
 func (sd *subDecode) scanNoQuoteValue() (ret int) {
-	if sd.scan >= len(sd.sub) {
+	if sd.scan >= len(sd.str) {
 		return scanEOF
 	}
 
-	switch c := sd.sub[sd.scan]; {
+	switch c := sd.str[sd.scan]; {
 	case c >= '0' && c <= '9':
 		return sd.scanNumber() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7
 	case c == '-':
@@ -338,27 +419,48 @@ func (sd *subDecode) scanNoQuoteValue() (ret int) {
 	return errValue
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 前提：sd.sub 肯定是 [ 字符后面的字符串
-// 返回 ] 后面字符的 index
-func (sd *subDecode) scanArray() (ret int) {
-	for sd.scan < len(sd.sub) {
-		c := sd.sub[sd.scan]
-		sd.scan++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) lastNotBlank() (byte, int) {
+	for i := len(sd.str) - 1; i < len(sd.str); i-- {
+		if !isSpace(sd.str[i]) {
+			sd.str = sd.str[:i+1] // cut 最后的空字符
+			return sd.str[i], i
+		}
+	}
+	return 0, 0
+}
 
-		if c == ']' {
+func (sd *subDecode) skipBlank() int {
+	for sd.scan < len(sd.str) {
+		if !isSpace(sd.str[sd.scan]) {
 			return noErr
 		}
-		if isSpace(c) {
-			continue
-		}
-
-		ret = sd.scanArrItem()
+		sd.scan++
 	}
 	return scanEOF
 }
 
-func (sd *subDecode) scanArrItem() int {
-
-	return -1
+func (sd *subDecode) skipMatch(match string) (ret int) {
+	ret = sd.scan + len(match)
+	if ret > len(sd.str) {
+		return errMismatch
+	}
+	if sd.str[sd.scan:ret] == match {
+		sd.scan = ret
+		return noErr
+	}
+	return errMismatch
 }
+
+//func (sd *subDecode) skipNull() (ret int) {
+//	ret = sd.scan + 4
+//	if ret > len(sd.str) {
+//		return errNull
+//	}
+//	if sd.str[sd.scan:ret] == bytesNull {
+//		sd.scan = ret
+//		return noErr
+//	} else {
+//		return errNull
+//	}
+//}
