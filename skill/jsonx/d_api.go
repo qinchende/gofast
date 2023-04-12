@@ -37,8 +37,7 @@ func decodeFromReader(dst cst.SuperKV, reader io.Reader, ctSize int64) error {
 	if err1 != nil {
 		return err1
 	}
-	str := lang.BTS(bytes)
-	return decodeFromString(dst, str)
+	return decodeFromString(dst, lang.BTS(bytes))
 }
 
 func decodeFromString(dst cst.SuperKV, source string) error {
@@ -47,6 +46,8 @@ func decodeFromString(dst cst.SuperKV, source string) error {
 	}
 
 	dd := fastDecode{}
-	dd.init(dst, source)
+	if err := dd.init(dst, source); err != nil {
+		return err
+	}
 	return dd.root.warpError(dd.root.parseJson())
 }
