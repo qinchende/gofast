@@ -3,14 +3,14 @@ package jde
 import "github.com/qinchende/gofast/skill/lang"
 
 // 肯定是 "*?" 的字符串
-// 这是零新增内存方案，还可以用共享内存方案实现 \"
+// 这是零新增内存方案，还可以用共享内存方案实现
 func (sd *subDecode) unescapeString(start, end int) (val string, err int) {
 	str := sd.str[start:end]
 
 	var bs []byte
 	var slash bool
 	var pos, ct int
-	end = 2
+	end = 2 // 只是复用end变量
 
 	for i := 0; i < len(str); i++ {
 		c := str[i]
