@@ -1,4 +1,4 @@
-package jsonx
+package jde
 
 import (
 	"errors"

@@ -5,8 +5,8 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/httpx"
-	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
+	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 	"strings"
 )
@@ -80,7 +80,7 @@ func (c *Context) CollectPms() error {
 	urlParsed := false
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
-		if err := jsonx.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
+		if err := jde.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
 			return err
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
