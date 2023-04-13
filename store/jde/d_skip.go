@@ -1,4 +1,4 @@
-package jsonx
+package jde
 
 //func (sd *subDecode) skipHeadSpace() {
 //	for sd.scan < len(sd.str) {

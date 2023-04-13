@@ -1,4 +1,4 @@
-package jsonx
+package jde
 
 import (
 	"errors"
@@ -86,7 +86,7 @@ type subDecode struct {
 	// 解析对象过程中用到临时变量 +++++++++++++++++++++++++++++++++++++
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
-	skipValue bool   // 当前解析直接跳过
+	skipValue bool   // 跳过当前要解析的值
 	skipTotal bool   // 跳过所有项目
 }
 

@@ -1,4 +1,4 @@
-package jsonx
+package jde
 
 import "github.com/qinchende/gofast/skill/lang"
 
@@ -10,7 +10,7 @@ func (sd *subDecode) unescapeString(start, end int) (val string, err int) {
 	var bs []byte
 	var slash bool
 	var pos, ct int
-	end = 2
+	end = 2 // 只是复用end变量
 
 	for i := 0; i < len(str); i++ {
 		c := str[i]
