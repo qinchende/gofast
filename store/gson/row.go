@@ -51,7 +51,18 @@ func (gr *GsonRow) Len() int {
 	return len(gr.Cls)
 }
 
-// GsonRow特有的高级功能 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GsonRow 特有的高级功能 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 初始化内存空间
+func (gr *GsonRow) Init(cls []string) {
+	gr.Cls = cls
+	gr.Row = make([]any, gr.Len())
+	gr.values = make([]string, gr.Len())
+}
+
+func (gr *GsonRow) KeyIndex(k string) int {
+	return lang.SearchSortStrings(gr.Cls, k)
+}
+
 func (gr *GsonRow) GetString(k string) (v string, ok bool) {
 	idx := lang.SearchSortStrings(gr.Cls, k)
 	if idx < 0 || gr.Row[idx] == nil {
@@ -62,19 +73,6 @@ func (gr *GsonRow) GetString(k string) (v string, ok bool) {
 		return gr.Row[idx].(string), true
 	}
 	return "", false
-}
-
-// 绕一圈，主要是为了避免对象分配，提高性能。
-func (gr *GsonRow) SetString(k string, v string) {
-	idx := lang.SearchSortStrings(gr.Cls, k)
-	if idx >= 0 {
-		gr.values[idx] = v
-		gr.Row[idx] = &gr.values[idx]
-	}
-}
-
-func (gr *GsonRow) KeyIndex(k string) int {
-	return lang.SearchSortStrings(gr.Cls, k)
 }
 
 func (gr *GsonRow) GetKeyByIndex(idx int) string {
@@ -91,6 +89,15 @@ func (gr *GsonRow) GetValue(idx int) any {
 	return gr.Row[idx]
 }
 
+// 绕一圈，主要是为了避免对象分配，提高性能。
+func (gr *GsonRow) SetString(k string, v string) {
+	idx := lang.SearchSortStrings(gr.Cls, k)
+	if idx >= 0 {
+		gr.values[idx] = v
+		gr.Row[idx] = &gr.values[idx]
+	}
+}
+
 func (gr *GsonRow) SetStringByIndex(idx int, v string) {
 	if idx < 0 || idx > gr.Len() {
 		return
@@ -99,9 +106,9 @@ func (gr *GsonRow) SetStringByIndex(idx int, v string) {
 	gr.Row[idx] = &gr.values[idx]
 }
 
-// 初始化内存空间
-func (gr *GsonRow) Init(cls []string) {
-	gr.Cls = cls
-	gr.Row = make([]any, gr.Len())
-	gr.values = make([]string, gr.Len())
+func (gr *GsonRow) SetByIndex(idx int, v any) {
+	if idx < 0 || idx > gr.Len() {
+		return
+	}
+	gr.Row[idx] = v
 }

@@ -1,6 +1,8 @@
 package jde
 
-import "github.com/qinchende/gofast/cst"
+import (
+	"github.com/qinchende/gofast/cst"
+)
 
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
@@ -49,6 +51,10 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 // 前提：sd.str 肯定是 { 字符后面的字符串
 // 返回 } 后面一个字符的 index
 func (sd *subDecode) scanObject() (err int) {
+	if err = sd.mustObject(); err < 0 {
+		return
+	}
+
 	var hasKV bool
 	for sd.scan < len(sd.str) {
 		switch c := sd.str[sd.scan]; {
@@ -68,11 +74,13 @@ func (sd *subDecode) scanObject() (err int) {
 			if err = sd.skipBlank(); err < 0 {
 				return
 			}
+		} else {
+			hasKV = true
 		}
+
 		if err = sd.scanKVItem(); err < 0 {
 			return
 		}
-		hasKV = true
 	}
 	return scanEOF
 }
@@ -81,18 +89,16 @@ func (sd *subDecode) scanObject() (err int) {
 func (sd *subDecode) scanKVItem() (err int) {
 	// A: 找 key 字符串
 	var slash bool
-	var key, value string
-
-	idx := sd.scan
+	start := sd.scan
 	if slash, err = sd.scanQuoteString(); err < 0 {
 		return
 	}
 	if slash {
-		if key, err = sd.unescapeString(idx, sd.scan); err < 0 {
+		if sd.key, err = sd.unescapeString(start, sd.scan); err < 0 {
 			return
 		}
 	} else {
-		key = sd.str[idx+1 : sd.scan-1]
+		sd.key = sd.str[start+1 : sd.scan-1]
 	}
 
 	// B: 跳过冒号
@@ -103,37 +109,11 @@ func (sd *subDecode) scanKVItem() (err int) {
 		return
 	}
 
-	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
-	idx = -1 // Note: 这里只是复用了 前面的 idx 变量
-	if sd.gr != nil {
-		if idx = sd.gr.KeyIndex(key); idx < 0 {
-			sd.skipValue = true
-		}
-	}
-
-	// C: 找Value
-	value, err = sd.scanValue(key)
-
-	// 不需要值时候，直接跳过去，找下一个KV
-	if sd.skipValue || sd.skipTotal {
-		sd.skipValue = false
-		return
-	}
-
-	if err < 0 {
-		return
-	}
-
-	// D: 记录解析的 KV
-	if sd.gr != nil {
-		sd.gr.SetStringByIndex(idx, value)
-	} else {
-		sd.dst.Set(key, value)
-	}
-	return noErr
+	// C: 找Value，然后直接赋值对象
+	return sd.scanValue()
 }
 
-func (sd *subDecode) scanSubObject(key string) (val string, err int) {
+func (sd *subDecode) scanSubObject() (err int) {
 	sub := subDecode{
 		str:       sd.str,
 		scan:      sd.scan,
@@ -146,7 +126,7 @@ func (sd *subDecode) scanSubObject(key string) (val string, err int) {
 	} else {
 		sd.skipValue = true
 		newKV := make(cst.KV)
-		sd.dst.Set(key, newKV)
+		sd.mp.Set(sd.key, newKV)
 		sub.dst = &newKV
 	}
 
@@ -157,65 +137,85 @@ func (sd *subDecode) scanSubObject(key string) (val string, err int) {
 	}
 
 	if sd.gr != nil && sd.skipValue == false {
-		val = sd.str[sd.scan-1 : sub.scan]
+		val := sd.str[sd.scan-1 : sub.scan]
+		// TODO: 这里要重新规划一下
+		sd.gr.SetString(sd.key, val)
 	}
 	sd.scan = sub.scan
 	return
 }
 
-func (sd *subDecode) scanSubArray(key string) (val string, err int) {
-	sub := subDecode{
-		str:       sd.str,
-		scan:      sd.scan,
-		skipTotal: sd.skipValue,
-	}
-
-	if sd.gr != nil {
-		// TODO: 无法为子对象提供目标值，只能返回字符串
-		sub.skipTotal = true
-	} else {
-		sd.skipValue = true
-		sub.list = make([]any, 0)
-	}
-
-	err = sub.scanArray()
-	if err < 0 {
-		sd.scan = sub.scan
-		return
-	}
-
-	if sd.gr != nil {
-		if sd.skipValue == false {
-			val = sd.str[sd.scan-1 : sub.scan]
-		}
-	} else {
-		sd.dst.Set(key, sub.list)
-	}
-	sd.scan = sub.scan
-	return
-}
+//func (sd *subDecode) scanSubArray(key string) (val string, err int) {
+//	sub := subDecode{
+//		str:       sd.str,
+//		scan:      sd.scan,
+//		skipTotal: sd.skipValue,
+//	}
+//
+//	if sd.gr != nil {
+//		// TODO: 无法为子对象提供目标值，只能返回字符串
+//		sub.skipTotal = true
+//	} else {
+//		sd.skipValue = true
+//	}
+//
+//	err = sub.scanArray()
+//	if err < 0 {
+//		sd.scan = sub.scan
+//		return
+//	}
+//
+//	if sd.gr != nil {
+//		if sd.skipValue == false {
+//			val = sd.str[sd.scan-1 : sub.scan]
+//		}
+//	} else {
+//		//sd.mp.Set(key, sub.list)
+//	}
+//	sd.scan = sub.scan
+//	return
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
 func (sd *subDecode) scanArray() (err int) {
+	if err = sd.mustList(); err < 0 {
+		return
+	}
+
+	var hasItem bool
 	for sd.scan < len(sd.str) {
 		c := sd.str[sd.scan]
 		sd.scan++
 
-		if c == ']' {
-			return noErr
-		}
 		if isSpace(c) {
 			continue
 		}
+		if c == ']' {
+			return noErr
+		}
 
-		err = sd.scanArrItem()
+		// A. 如果已有Item，跳过','
+		if hasItem {
+			if err = sd.skipSeparator(','); err < 0 {
+				return
+			}
+			if err = sd.skipBlank(); err < 0 {
+				return
+			}
+		} else {
+			hasItem = true
+		}
+
+		// B: 找Value
+		if err = sd.scanValue(); err < 0 {
+			return
+		}
 	}
 	return scanEOF
 }
 
-// TODO：需要实现解析List
 func (sd *subDecode) scanArrItem() int {
 
 	return -1
@@ -249,7 +249,10 @@ func (sd *subDecode) scanQuoteString() (slash bool, err int) {
 	return slash, scanEOF
 }
 
-func (sd *subDecode) scanValue(key string) (val string, err int) {
+func (sd *subDecode) scanValue() (err int) {
+	sd.setSkipFlag()
+
+	var val string
 	start := sd.scan
 	for sd.scan < len(sd.str) {
 		c := sd.str[sd.scan]
@@ -261,43 +264,37 @@ func (sd *subDecode) scanValue(key string) (val string, err int) {
 
 		switch c {
 		case '{':
-			return sd.scanSubObject(key)
+			err = sd.scanSubObject()
 		case '[':
-			return sd.scanSubArray(key)
+			//err = sd.scanSubArray()
 		case '"':
 			sd.scan--
 			var slash bool
-			slash, err = sd.scanQuoteString()
-			if err < 0 {
+			if slash, err = sd.scanQuoteString(); err < 0 {
 				return
-			}
-			if sd.skipValue {
-				return "", noErr
+			} else if sd.isSkip() {
+				return noErr
 			}
 			if slash {
-				val, err = sd.unescapeString(start, sd.scan)
+				if val, err = sd.unescapeString(start, sd.scan); err < 0 {
+					return
+				}
 			} else {
 				val = sd.str[start+1 : sd.scan-1]
 			}
-			return
+			err = sd.bindString(val)
 		default:
 			sd.scan--
 			err = sd.scanNoQuoteValue()
-			if err < 0 {
-				return
-			}
-			if sd.skipValue {
-				return "", noErr
-			}
-			val = sd.str[start:sd.scan]
-			return
 		}
+		sd.skipValue = false
+		return
 	}
-	return "", scanEOF
+	return scanEOF
 }
 
 // 跳过一个分割符号，前面可以是空字符
-// 比如 , | :
+// 比如 ',' 或者 ':'
 func (sd *subDecode) skipSeparator(ch byte) (err int) {
 	for sd.scan < len(sd.str) {
 		c := sd.str[sd.scan]
@@ -318,16 +315,17 @@ func (sd *subDecode) skipSeparator(ch byte) (err int) {
 
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
-func (sd *subDecode) scanNumber() int {
+func (sd *subDecode) scanNumberValue() int {
 	if sd.scan >= len(sd.str) {
 		return scanEOF
 	}
 
+	start := sd.scan
 	var startZero, hasDot, needNum bool
 
 	c := sd.str[sd.scan]
 	if c < '0' || c > '9' {
-		return -1
+		return errNumberFmt
 	}
 
 	// 0开头的数字，只能是：0 | 0.x | 0e | 0E
@@ -345,19 +343,19 @@ func (sd *subDecode) scanNumber() int {
 			case '.', 'e', 'E':
 				startZero = false
 			default:
-				return sd.scan - 1
+				return errNumberFmt
 			}
 		}
 
 		if c == '.' {
 			if hasDot == true {
-				return -1
+				return errNumberFmt
 			}
 			hasDot = true
 			needNum = true
 		} else if c == 'e' || c == 'E' {
 			if needNum {
-				return -1
+				return errNumberFmt
 			}
 			return sd.scanScientificNumberTail()
 		} else if c < '0' || c > '9' {
@@ -371,7 +369,11 @@ func (sd *subDecode) scanNumber() int {
 	if needNum {
 		return errNumberFmt
 	}
-	return noErr
+
+	if sd.isSkip() {
+		return noErr
+	}
+	return sd.bindNumber(sd.str[start:sd.scan])
 }
 
 // 检查科学计数法（e|E）后面的字符串合法性
@@ -402,16 +404,31 @@ func (sd *subDecode) scanNoQuoteValue() (err int) {
 
 	switch c := sd.str[sd.scan]; {
 	case c >= '0' && c <= '9':
-		return sd.scanNumber() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7
+		return sd.scanNumberValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7
 	case c == '-':
 		sd.scan++
-		return sd.scanNumber() // -0.3 | -3.7E-7
+		return sd.scanNumberValue() // -0.3 | -3.7E-7
 	case c == 'f':
-		return sd.skipMatch(bytesFalse)
+		if err = sd.skipMatch(bytesFalse); err < 0 {
+			return
+		} else if sd.isSkip() {
+			return noErr
+		}
+		return sd.bindBool(false)
 	case c == 't':
-		return sd.skipMatch(bytesTrue)
+		if err = sd.skipMatch(bytesTrue); err < 0 {
+			return
+		} else if sd.isSkip() {
+			return noErr
+		}
+		return sd.bindBool(true)
 	case c == 'n':
-		return sd.skipMatch(bytesNull)
+		if err = sd.skipMatch(bytesNull); err < 0 {
+			return
+		} else if sd.isSkip() {
+			return noErr
+		}
+		return sd.bindNull()
 	}
 
 	return errValue
