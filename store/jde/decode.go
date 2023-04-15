@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"math"
+	"reflect"
 )
 
 const (
@@ -65,32 +67,45 @@ var (
 )
 
 type fastDecode struct {
-	//dst cst.SuperKV
-	src  string    // 原始字符串
-	root subDecode // 当前解析片段，用于递归
+	source    string // 原始字符串
+	subDecode        // 当前解析片段，用于递归
 
-	//head int // 头位置
-	//tail int // 尾位置
 	// 这里的内存分配不是在栈上，因为后面要用到，发生了逃逸。既然已经逃逸，可以考虑动态初始化
 	// 即使逃逸也有一定意义，同一次解析中共享了内存
 	//share []byte
 }
 
 type subDecode struct {
-	dst  cst.SuperKV
-	gr   *gson.GsonRow
-	list []any
+	dst  any               // 指向原始目标值
+	kind reflect.Kind      // 这里只能是：Struct|Slice|Array
+	mp   cst.KV            // 解析到map
+	gr   *gson.GsonRow     // 解析到GsonRow
+	sm   *dts.StructSchema // 目标值是一个Struct时候
 
-	//directString bool   // 判断当前 {} 或者 [] 是一个字符串整体，不需要解析
-	//offSrc       int    // 相对于原始字符串的偏移
-	// 解析对象过程中用到临时变量 +++++++++++++++++++++++++++++++++++++
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
+	key       string // 当前KV对的Key值
+	keyIdx    int    // key index
 	skipValue bool   // 跳过当前要解析的值
 	skipTotal bool   // 跳过所有项目
+	isList    bool   // 区分 List 或者 Object
 }
 
-func (dd *fastDecode) init(dst cst.SuperKV, src string) error {
+//type subArrayDecode struct {
+//	dst  any               // 指向原始目标值
+//	kind reflect.Kind      // 这里只能是：Struct|Slice|Array
+//	mp   cst.KV            // 解析到map
+//	gr   *gson.GsonRow     // 解析到GsonRow
+//	sm   *dts.StructSchema // 目标值是一个Struct时候
+//
+//	str       string // 本段字符串
+//	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
+//	skipValue bool   // 跳过当前要解析的值
+//	skipTotal bool   // 跳过所有项目
+//	isList    bool   // 区分 List 或者 Object
+//}
+
+func (dd *fastDecode) init(dst any, src string) error {
 	if dst == nil {
 		return errors.New("target value can't nil.")
 	}
@@ -98,16 +113,27 @@ func (dd *fastDecode) init(dst cst.SuperKV, src string) error {
 		return errors.New("json content empty.")
 	}
 
-	dd.root.dst = dst
-	dd.src = src
-	dd.root.initSubDecode(dd.src)
-	return nil
-}
+	dd.source = src
+	dd.dst = dst
+	dd.str = src
+	dd.scan = 0
+	dd.gr, _ = dst.(*gson.GsonRow)
+	dd.mp, _ = dst.(cst.KV)
 
-func (sd *subDecode) initSubDecode(subStr string) {
-	sd.str = subStr
-	sd.scan = 0
-	sd.gr, _ = sd.dst.(*gson.GsonRow)
+	if dd.gr == nil && dd.mp == nil {
+		typ := reflect.TypeOf(dst)
+		dd.kind = typ.Kind()
+		if dd.kind != reflect.Pointer {
+			return errors.New("target value type error.")
+		}
+		dd.kind = typ.Elem().Kind()
+
+		// 如果是time.Time怎么办？
+		if dd.kind != reflect.Struct && dd.kind != reflect.Slice && dd.kind != reflect.Array {
+			return errors.New("target value type error.")
+		}
+	}
+	return nil
 }
 
 func (sd *subDecode) warpError(errCode int) error {

@@ -1,4 +1,4 @@
-package jde
+package test
 
 import (
 	"io"

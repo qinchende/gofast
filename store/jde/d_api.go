@@ -1,8 +1,6 @@
 package jde
 
 import (
-	"errors"
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/iox"
 	"github.com/qinchende/gofast/skill/lang"
 	"io"
@@ -26,14 +24,9 @@ func decodeFromString(dst any, source string) error {
 		return errJsonTooLarge
 	}
 
-	dest, ok := dst.(cst.SuperKV)
-	if !ok {
-		return errors.New("Just decode cst.SuperKV type value.")
-	}
-
 	dd := fastDecode{}
-	if err := dd.init(dest, source); err != nil {
+	if err := dd.init(dst, source); err != nil {
 		return err
 	}
-	return dd.root.warpError(dd.root.parseJson())
+	return dd.warpError(dd.parseJson())
 }
