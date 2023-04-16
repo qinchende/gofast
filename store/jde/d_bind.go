@@ -1,21 +1,5 @@
 package jde
 
-import "reflect"
-
-func (sd *subDecode) mustList() (err int) {
-	if sd.kind != reflect.Slice && sd.kind != reflect.Array {
-		return errArray
-	}
-	return noErr
-}
-
-func (sd *subDecode) mustObject() (err int) {
-	if sd.mp == nil && sd.gr == nil && sd.kind != reflect.Struct {
-		return errObject
-	}
-	return noErr
-}
-
 func (sd *subDecode) setSkipFlag() {
 	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
 	if sd.gr != nil {
@@ -36,29 +20,62 @@ func (sd *subDecode) isSkip() bool {
 }
 
 func (sd *subDecode) bindString(val string) (err int) {
-	if sd.gr != nil {
-		sd.gr.SetStringByIndex(sd.keyIdx, val)
-	} else if sd.mp != nil {
+	if sd.isSuperKV {
+		if sd.gr != nil {
+			sd.gr.SetStringByIndex(sd.keyIdx, val)
+			return noErr
+		}
 		sd.mp.Set(sd.key, val)
+		return noErr
 	}
+
+	// 如果是数组
+	if sd.isList {
+		return noErr
+	}
+
+	// 如果是 struct
+
 	return noErr
 }
 
 func (sd *subDecode) bindBool(val bool) (err int) {
-	if sd.gr != nil {
-		sd.gr.SetByIndex(sd.keyIdx, val)
-	} else if sd.mp != nil {
+	if sd.isSuperKV {
+		if sd.gr != nil {
+			sd.gr.SetByIndex(sd.keyIdx, val)
+			return noErr
+		}
 		sd.mp.Set(sd.key, val)
+		return noErr
 	}
+
+	// 如果是数组
+	if sd.isList {
+		return noErr
+	}
+
+	// 如果是 struct
+
 	return noErr
 }
 
 func (sd *subDecode) bindNumber(val string) (err int) {
-	if sd.gr != nil {
-		sd.gr.SetStringByIndex(sd.keyIdx, val)
-	} else if sd.mp != nil {
+	if sd.isSuperKV {
+		if sd.gr != nil {
+			sd.gr.SetStringByIndex(sd.keyIdx, val)
+			return noErr
+		}
 		sd.mp.Set(sd.key, val)
+		return noErr
 	}
+
+	// 如果是数组
+	if sd.isList {
+		return noErr
+	}
+
+	// 如果是 struct
+
 	return noErr
 }
 
@@ -68,5 +85,16 @@ func (sd *subDecode) bindNull() (err int) {
 	//} else if sd.mp != nil {
 	//	sd.mp.Set(sd.key, nil)
 	//}
+
+	// 如果是数组
+	if sd.isList {
+		return noErr
+	}
+
+	// 如果是 struct
+
 	return noErr
 }
+
+// Set Values
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -51,8 +51,8 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 // 前提：sd.str 肯定是 { 字符后面的字符串
 // 返回 } 后面一个字符的 index
 func (sd *subDecode) scanObject() (err int) {
-	if err = sd.mustObject(); err < 0 {
-		return
+	if sd.isList {
+		return errObject
 	}
 
 	var hasKV bool
@@ -125,9 +125,8 @@ func (sd *subDecode) scanSubObject() (err int) {
 		sub.skipTotal = true
 	} else {
 		sd.skipValue = true
-		newKV := make(cst.KV)
-		sd.mp.Set(sd.key, newKV)
-		sub.dst = &newKV
+		sub.mp = make(cst.KV)
+		sd.mp.Set(sd.key, sub.mp)
 	}
 
 	err = sub.scanObject()
@@ -180,8 +179,8 @@ func (sd *subDecode) scanSubObject() (err int) {
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
 func (sd *subDecode) scanArray() (err int) {
-	if err = sd.mustList(); err < 0 {
-		return
+	if !sd.isList {
+		return errArray
 	}
 
 	var hasItem bool
