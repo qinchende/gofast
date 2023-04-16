@@ -63,10 +63,14 @@ const (
 
 var (
 	//sErr            = errors.New("jsonx: json syntax error.")
-	errJsonTooLarge = errors.New("jsonx: string too large.")
+	errJsonTooLarge = errors.New("jde: string too large")
+	errValueType    = errors.New("jde: target value type error")
+	errValueIsNil   = errors.New("jde: target value is nil")
+	errJsonEmpty    = errors.New("jde: json content empty")
 )
 
 type fastDecode struct {
+	dst       any    // 指向原始目标值
 	source    string // 原始字符串
 	subDecode        // 当前解析片段，用于递归
 
@@ -75,12 +79,27 @@ type fastDecode struct {
 	//share []byte
 }
 
+var shareAP arrPet
+var shareSP structPet
+
+type arrPet struct {
+	arrType reflect.Type
+	recType reflect.Type
+	isPtr   bool
+	val     reflect.Value // 反射值
+}
+
+type structPet struct {
+	sm  *dts.StructSchema // 目标值是一个Struct时候
+	val reflect.Value     // 反射值
+}
+
 type subDecode struct {
-	dst  any               // 指向原始目标值
-	kind reflect.Kind      // 这里只能是：Struct|Slice|Array
-	mp   cst.KV            // 解析到map
-	gr   *gson.GsonRow     // 解析到GsonRow
-	sm   *dts.StructSchema // 目标值是一个Struct时候
+	//kind reflect.Kind  // 这里只能是：Struct|Slice|Array (Kind uint)
+	mp cst.KV        // 解析到map
+	gr *gson.GsonRow // 解析到GsonRow
+	ap *arrPet       // array pet
+	sp *structPet    // struct pet
 
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
@@ -88,50 +107,75 @@ type subDecode struct {
 	keyIdx    int    // key index
 	skipValue bool   // 跳过当前要解析的值
 	skipTotal bool   // 跳过所有项目
-	isList    bool   // 区分 List 或者 Object
-}
 
-//type subArrayDecode struct {
-//	dst  any               // 指向原始目标值
-//	kind reflect.Kind      // 这里只能是：Struct|Slice|Array
-//	mp   cst.KV            // 解析到map
-//	gr   *gson.GsonRow     // 解析到GsonRow
-//	sm   *dts.StructSchema // 目标值是一个Struct时候
-//
-//	str       string // 本段字符串
-//	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
-//	skipValue bool   // 跳过当前要解析的值
-//	skipTotal bool   // 跳过所有项目
-//	isList    bool   // 区分 List 或者 Object
-//}
+	isList    bool // 区分 [] 或者 {}
+	isStruct  bool // {} 可能目标是 一个 struct 对象
+	isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
+}
 
 func (dd *fastDecode) init(dst any, src string) error {
 	if dst == nil {
-		return errors.New("target value can't nil.")
+		return errValueIsNil
 	}
 	if len(src) == 0 {
-		return errors.New("json content empty.")
+		return errJsonEmpty
 	}
 
-	dd.source = src
+	// origin
 	dd.dst = dst
+	dd.source = src
+
+	// subDecode
 	dd.str = src
 	dd.scan = 0
-	dd.gr, _ = dst.(*gson.GsonRow)
-	dd.mp, _ = dst.(cst.KV)
 
-	if dd.gr == nil && dd.mp == nil {
-		typ := reflect.TypeOf(dst)
-		dd.kind = typ.Kind()
-		if dd.kind != reflect.Pointer {
-			return errors.New("target value type error.")
+	// 先确定是否是 cst.SuperKV 类型
+	var ok bool
+	if dd.gr, ok = dst.(*gson.GsonRow); !ok {
+		if dd.mp, ok = dst.(cst.KV); !ok {
+			dd.mp, _ = dst.(map[string]any)
 		}
-		dd.kind = typ.Elem().Kind()
+	}
+	if dd.gr != nil || dd.mp != nil {
+		dd.isSuperKV = true
+	}
 
-		// 如果是time.Time怎么办？
-		if dd.kind != reflect.Struct && dd.kind != reflect.Slice && dd.kind != reflect.Array {
-			return errors.New("target value type error.")
+	// 初始化其它类型
+	return dd.subDecode.init(dst)
+}
+
+func (sd *subDecode) init(dst any) error {
+	if sd.isSuperKV {
+		return nil
+	}
+
+	// 如果不是map和*GsonRow，只能是 Array|Slice|Struct
+	val := reflect.ValueOf(dst)
+	typ := val.Type()
+	kind := typ.Kind()
+	if kind != reflect.Pointer {
+		return errValueType
+	}
+	kind = typ.Elem().Kind()
+
+	// 只支持特定类型解析
+	if kind == reflect.Struct {
+		if typ.String() == "time.Time" {
+			return errValueType
 		}
+		sd.isStruct = true
+	} else if kind == reflect.Slice || kind == reflect.Array {
+		sd.isList = true
+
+		shareAP.arrType = typ
+		shareAP.recType = typ.Elem()
+		if shareAP.recType.Kind() == reflect.Pointer {
+			shareAP.isPtr = true
+		}
+		sd.ap = &shareAP
+
+	} else {
+		return errValueType
 	}
 	return nil
 }
