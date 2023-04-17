@@ -1,5 +1,9 @@
 package jde
 
+import (
+	"reflect"
+)
+
 func (sd *subDecode) setSkipFlag() {
 	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
 	if sd.gr != nil {
@@ -7,7 +11,6 @@ func (sd *subDecode) setSkipFlag() {
 			sd.skipValue = true
 		}
 	}
-
 	// 如果是 struct ，就找找是否支持这个字段
 }
 
@@ -31,6 +34,10 @@ func (sd *subDecode) bindString(val string) (err int) {
 
 	// 如果是数组
 	if sd.isList {
+		if sd.arr.recKind != reflect.String {
+			return errArray
+		}
+		pl.arrStr = append(pl.arrStr, val)
 		return noErr
 	}
 
@@ -71,6 +78,7 @@ func (sd *subDecode) bindNumber(val string) (err int) {
 
 	// 如果是数组
 	if sd.isList {
+		err = sd.arr.bindString(val)
 		return noErr
 	}
 
@@ -98,3 +106,11 @@ func (sd *subDecode) bindNull() (err int) {
 
 // Set Values
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+func (ap *arrPet) bindString(val string) (err int) {
+	if ap.recKind != reflect.String {
+		return errArray
+	}
+
+	return noErr
+}

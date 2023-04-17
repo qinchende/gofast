@@ -33,8 +33,13 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 		sd.scan++
 		err = sd.scanObject()
 	} else if ch == ']' {
+		sd.startListPool()
 		sd.scan++
 		err = sd.scanArray()
+		if err < 0 {
+			return err
+		}
+		sd.endListPool()
 	} else {
 		err = sd.skipMatch(bytesNull)
 		if sd.scan < len(sd.str) {
@@ -186,12 +191,12 @@ func (sd *subDecode) scanArray() (err int) {
 	var hasItem bool
 	for sd.scan < len(sd.str) {
 		c := sd.str[sd.scan]
-		sd.scan++
 
 		if isSpace(c) {
 			continue
 		}
 		if c == ']' {
+			sd.scan++
 			return noErr
 		}
 
