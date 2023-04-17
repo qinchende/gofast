@@ -4,102 +4,40 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/iox"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
-	"math"
+	"io"
 	"reflect"
-)
-
-const (
-	maxJsonLength     = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
-	tempByteStackSize = 128               // 栈上分配一定空间，方便放临时字符串（不能太大，防止协程栈伸缩）| 或者单独申请内存并管理
-)
-
-const (
-	bytesNull  = "null"
-	bytesTrue  = "true"
-	bytesFalse = "false"
-)
-
-const (
-	noErr        int = 0  // 没有错误
-	scanEOF      int = -1 // 扫描结束
-	errNormal    int = -2 // 没找到期望的字符
-	errJson      int = -3 // 非法JSON格式
-	errChar      int = -4 // 非预期的字符
-	errEscape    int = -5
-	errUnicode   int = -6
-	errOverflow  int = -7
-	errNumberFmt int = -8
-	errExceedMax int = -9
-	errInfinity  int = -10
-	errMismatch  int = -11
-	errUTF8      int = -12
-	errKey       int = -13
-	errValue     int = -14
-	errKV        int = -15
-	errNull      int = -16
-	errObject    int = -17
-	errArray     int = -18
-	errTrue      int = -19
-	errFalse     int = -20
-
-	//errNotSupportType int = -13
-)
-
-//var errorStrings = []string{
-//	0:                      "ok",
-//	-(scanEOF):              "eof",
-//	ERR_INVALID_CHAR:       "invalid char",
-//	ERR_INVALID_ESCAPE:     "invalid escape char",
-//	ERR_INVALID_UNICODE:    "invalid unicode escape",
-//	ERR_INTEGER_OVERFLOW:   "integer overflow",
-//	ERR_INVALID_NUMBER_FMT: "invalid number format",
-//	ERR_RECURSE_EXCEED_MAX: "recursion exceeded max depth",
-//	ERR_FLOAT_INFINITY:     "float number is infinity",
-//	ERR_MISMATCH:           "mismatched type with value",
-//	ERR_INVALID_UTF8:       "invalid UTF8",
-//}
-
-var (
-	//sErr            = errors.New("jsonx: json syntax error.")
-	errJsonTooLarge = errors.New("jde: string too large")
-	errValueType    = errors.New("jde: target value type error")
-	errValueIsNil   = errors.New("jde: target value is nil")
-	errJsonEmpty    = errors.New("jde: json content empty")
 )
 
 type fastDecode struct {
 	dst       any    // 指向原始目标值
 	source    string // 原始字符串
 	subDecode        // 当前解析片段，用于递归
-
-	// 这里的内存分配不是在栈上，因为后面要用到，发生了逃逸。既然已经逃逸，可以考虑动态初始化
-	// 即使逃逸也有一定意义，同一次解析中共享了内存
-	//share []byte
 }
 
-var shareAP arrPet
-var shareSP structPet
-
 type arrPet struct {
+	dst     any
 	arrType reflect.Type
 	recType reflect.Type
+	recKind reflect.Kind
 	isPtr   bool
 	val     reflect.Value // 反射值
 }
 
 type structPet struct {
-	sm  *dts.StructSchema // 目标值是一个Struct时候
-	val reflect.Value     // 反射值
+	sm *dts.StructSchema // 目标值是一个Struct时候
+	//val reflect.Value     // 反射值
 }
 
 type subDecode struct {
 	//kind reflect.Kind  // 这里只能是：Struct|Slice|Array (Kind uint)
-	mp cst.KV        // 解析到map
-	gr *gson.GsonRow // 解析到GsonRow
-	ap *arrPet       // array pet
-	sp *structPet    // struct pet
+	mp  cst.KV        // 解析到map
+	gr  *gson.GsonRow // 解析到GsonRow
+	arr *arrPet       // array pet (Slice|Array)
+	obj *structPet    // struct pet
 
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
@@ -157,6 +95,7 @@ func (sd *subDecode) init(dst any) error {
 		return errValueType
 	}
 	kind = typ.Elem().Kind()
+	sap.val = reflect.Indirect(val)
 
 	// 只支持特定类型解析
 	if kind == reflect.Struct {
@@ -167,12 +106,16 @@ func (sd *subDecode) init(dst any) error {
 	} else if kind == reflect.Slice || kind == reflect.Array {
 		sd.isList = true
 
-		shareAP.arrType = typ
-		shareAP.recType = typ.Elem()
-		if shareAP.recType.Kind() == reflect.Pointer {
-			shareAP.isPtr = true
+		sap.arrType = typ
+		sap.recType = typ.Elem()
+		sap.recKind = sap.recType.Elem().Kind()
+		if sap.recKind == reflect.Pointer {
+			sap.recKind = sap.recType.Elem().Elem().Kind()
+			sap.isPtr = true
 		}
-		sd.ap = &shareAP
+
+		sap.dst = dst
+		sd.arr = &sap
 
 	} else {
 		return errValueType
@@ -193,4 +136,29 @@ func (sd *subDecode) warpError(errCode int) error {
 
 	errMsg := fmt.Sprintf("jsonx: error pos: %d, near %q of ( %s )", sta, sd.str[sta], sd.str[sta:end])
 	return errors.New(errMsg)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
+	// 一次性读取完成，或者遇到EOF标记或者其它错误
+	if ctSize > maxJsonLength {
+		ctSize = maxJsonLength
+	}
+	bytes, err1 := iox.ReadAll(reader, ctSize)
+	if err1 != nil {
+		return err1
+	}
+	return decodeFromString(dst, lang.BTS(bytes))
+}
+
+func decodeFromString(dst any, source string) error {
+	if len(source) > maxJsonLength {
+		return errJsonTooLarge
+	}
+
+	dd := fastDecode{}
+	if err := dd.init(dst, source); err != nil {
+		return err
+	}
+	return dd.warpError(dd.parseJson())
 }
