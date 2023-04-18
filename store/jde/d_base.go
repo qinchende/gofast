@@ -60,6 +60,7 @@ var (
 	//sErr            = errors.New("jsonx: json syntax error.")
 	errJsonTooLarge = errors.New("jde: string too large")
 	errValueType    = errors.New("jde: target value type error")
+	errValueMustPtr = errors.New("jde: target value must pointer type")
 	errValueIsNil   = errors.New("jde: target value is nil")
 	errJsonEmpty    = errors.New("jde: json content empty")
 )

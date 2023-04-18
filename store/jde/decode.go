@@ -34,7 +34,7 @@ type structPet struct {
 
 type subDecode struct {
 	//kind reflect.Kind  // 这里只能是：Struct|Slice|Array (Kind uint)
-	mp  cst.KV        // 解析到map
+	mp  *cst.KV       // 解析到map
 	gr  *gson.GsonRow // 解析到GsonRow
 	arr *arrPet       // array pet (Slice|Array)
 	obj *structPet    // struct pet
@@ -70,8 +70,10 @@ func (dd *fastDecode) init(dst any, src string) error {
 	// 先确定是否是 cst.SuperKV 类型
 	var ok bool
 	if dd.gr, ok = dst.(*gson.GsonRow); !ok {
-		if dd.mp, ok = dst.(cst.KV); !ok {
-			dd.mp, _ = dst.(map[string]any)
+		if dd.mp, ok = dst.(*cst.KV); !ok {
+			if mpt, ok := dst.(*map[string]any); ok {
+				*dd.mp = *mpt
+			}
 		}
 	}
 	if dd.gr != nil || dd.mp != nil {
@@ -92,7 +94,7 @@ func (sd *subDecode) init(dst any) error {
 	typ := val.Type()
 	kind := typ.Kind()
 	if kind != reflect.Pointer {
-		return errValueType
+		return errValueMustPtr
 	}
 	kind = typ.Elem().Kind()
 	sap.val = reflect.Indirect(val)
