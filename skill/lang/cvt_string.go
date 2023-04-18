@@ -18,8 +18,13 @@ func STB(s string) (b []byte) {
 	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
 	bh.Data, bh.Len, bh.Cap = sh.Data, sh.Len, sh.Len
 	return b
-	// 下面这种写法有问题，b.cap 为 0
-	// return *(*[]byte)(unsafe.Pointer(&s))
+	// 还有下面这种写法
+	//l := len(s)
+	//return *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
+	//	Data: (*(*reflect.StringHeader)(unsafe.Pointer(&s))).Data,
+	//	Len:  l,
+	//	Cap:  l,
+	//}))
 }
 
 // BytesToString converts byte slice to string without a memory allocation.

@@ -130,7 +130,7 @@ func (sd *subDecode) scanSubObject() (err int) {
 		sub.skipTotal = true
 	} else {
 		sd.skipValue = true
-		sub.mp = make(cst.KV)
+		*sub.mp = make(cst.KV)
 		sd.mp.Set(sd.key, sub.mp)
 	}
 
@@ -230,6 +230,7 @@ func (sd *subDecode) scanQuoteString() (slash bool, err int) {
 	if sd.str[sd.scan] != '"' {
 		return false, errChar
 	}
+
 	sd.scan++
 	for sd.scan < len(sd.str) {
 		c := sd.str[sd.scan]
@@ -250,6 +251,18 @@ func (sd *subDecode) scanQuoteString() (slash bool, err int) {
 			return slash, noErr
 		}
 	}
+
+	//for sd.scan++; sd.scan < len(sd.str); sd.scan++ {
+	//	switch sd.str[sd.scan] {
+	//	case '\\':
+	//		slash = true
+	//		sd.scan++
+	//	case '"':
+	//		sd.scan++
+	//		return slash, noErr
+	//	}
+	//}
+
 	return slash, scanEOF
 }
 
