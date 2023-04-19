@@ -6,7 +6,6 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/iox"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"io"
 	"reflect"
@@ -18,26 +17,12 @@ type fastDecode struct {
 	subDecode        // 当前解析片段，用于递归
 }
 
-type arrPet struct {
-	dst     any
-	arrType reflect.Type
-	recType reflect.Type
-	recKind reflect.Kind
-	isPtr   bool
-	val     reflect.Value // 反射值
-}
-
-type structPet struct {
-	sm *dts.StructSchema // 目标值是一个Struct时候
-	//val reflect.Value     // 反射值
-}
-
 type subDecode struct {
-	//kind reflect.Kind  // 这里只能是：Struct|Slice|Array (Kind uint)
+	pl  *fastPool
 	mp  *cst.KV       // 解析到map
 	gr  *gson.GsonRow // 解析到GsonRow
-	arr *arrPet       // array pet (Slice|Array)
-	obj *structPet    // struct pet
+	arr *listDest     // array pet (Slice|Array)
+	obj *structDest   // struct pet
 
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
@@ -47,6 +32,7 @@ type subDecode struct {
 	skipTotal bool   // 跳过所有项目
 
 	isList    bool // 区分 [] 或者 {}
+	isArray   bool // 不是slice
 	isStruct  bool // {} 可能目标是 一个 struct 对象
 	isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
 }
@@ -57,6 +43,10 @@ func (dd *fastDecode) init(dst any, src string) error {
 	}
 	if len(src) == 0 {
 		return errJsonEmpty
+	}
+	rfVal := reflect.ValueOf(dst)
+	if rfVal.Kind() != reflect.Pointer {
+		return errValueMustPtr
 	}
 
 	// origin
@@ -78,53 +68,20 @@ func (dd *fastDecode) init(dst any, src string) error {
 	}
 	if dd.gr != nil || dd.mp != nil {
 		dd.isSuperKV = true
-	}
-
-	// 初始化其它类型
-	return dd.subDecode.init(dst)
-}
-
-func (sd *subDecode) init(dst any) error {
-	if sd.isSuperKV {
 		return nil
-	}
-
-	// 如果不是map和*GsonRow，只能是 Array|Slice|Struct
-	val := reflect.ValueOf(dst)
-	typ := val.Type()
-	kind := typ.Kind()
-	if kind != reflect.Pointer {
-		return errValueMustPtr
-	}
-	kind = typ.Elem().Kind()
-	sap.val = reflect.Indirect(val)
-
-	// 只支持特定类型解析
-	if kind == reflect.Struct {
-		if typ.String() == "time.Time" {
-			return errValueType
-		}
-		sd.isStruct = true
-	} else if kind == reflect.Slice || kind == reflect.Array {
-		sd.isList = true
-
-		sap.arrType = typ
-		sap.recType = typ.Elem()
-		sap.recKind = sap.recType.Elem().Kind()
-		if sap.recKind == reflect.Pointer {
-			sap.recKind = sap.recType.Elem().Elem().Kind()
-			sap.isPtr = true
-		}
-
-		sap.dst = dst
-		sd.arr = &sap
-
 	} else {
-		return errValueType
+		dd.subDecode.pl = jdePool.Get().(*fastPool)
+		dd.subDecode.pl.initMem()
+
+		return dd.subDecode.initListStruct(rfVal.Elem())
 	}
-	return nil
 }
 
+func (dd *fastDecode) finish() {
+	jdePool.Put(dd.subDecode.pl)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) warpError(errCode int) error {
 	if errCode >= 0 {
 		return nil
@@ -153,14 +110,16 @@ func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
 	return decodeFromString(dst, lang.BTS(bytes))
 }
 
-func decodeFromString(dst any, source string) error {
+func decodeFromString(dst any, source string) (err error) {
 	if len(source) > maxJsonLength {
 		return errJsonTooLarge
 	}
 
 	dd := fastDecode{}
-	if err := dd.init(dst, source); err != nil {
-		return err
+	if err = dd.init(dst, source); err != nil {
+		return
 	}
-	return dd.warpError(dd.parseJson())
+	errInt := dd.parseJson()
+	dd.finish()
+	return dd.warpError(errInt)
 }

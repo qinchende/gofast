@@ -3,6 +3,7 @@ package jde
 import (
 	"errors"
 	"math"
+	"reflect"
 )
 
 const (
@@ -63,4 +64,18 @@ var (
 	errValueMustPtr = errors.New("jde: target value must pointer type")
 	errValueIsNil   = errors.New("jde: target value is nil")
 	errJsonEmpty    = errors.New("jde: json content empty")
+	errPtrLevel     = errors.New("jde: target value is more than 3 layers of pointer")
 )
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//type Kind uint
+const (
+	kindsCount     = 27
+	numberKindMask = 65532
+)
+
+//go:inline
+func isNumKind(k reflect.Kind) bool {
+	return (1<<k)&numberKindMask != 0
+	//return k < 17 && k > 1
+}

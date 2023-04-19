@@ -23,6 +23,8 @@ const (
 	spaceCharMask = (1 << ' ') | (1 << '\t') | (1 << '\r') | (1 << '\n')
 )
 
+//go:nosplit
+//go:inline
 func isSpace(c byte) bool {
 	return spaceCharMask&(1<<c) != 0
 }
