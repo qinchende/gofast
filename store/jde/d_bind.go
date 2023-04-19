@@ -4,6 +4,7 @@ import (
 	"reflect"
 )
 
+//go:inline
 func (sd *subDecode) setSkipFlag() {
 	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
 	if sd.gr != nil {
@@ -14,6 +15,7 @@ func (sd *subDecode) setSkipFlag() {
 	// 如果是 struct ，就找找是否支持这个字段
 }
 
+//go:inline
 func (sd *subDecode) isSkip() bool {
 	if sd.skipValue || sd.skipTotal {
 		sd.skipValue = false
@@ -22,6 +24,7 @@ func (sd *subDecode) isSkip() bool {
 	return false
 }
 
+//go:inline
 func (sd *subDecode) bindString(val string) (err int) {
 	if sd.isSuperKV {
 		if sd.gr != nil {
@@ -34,10 +37,14 @@ func (sd *subDecode) bindString(val string) (err int) {
 
 	// 如果是数组
 	if sd.isList {
-		if sd.arr.recKind != reflect.String {
+		if sd.arr.itemKind != reflect.String {
 			return errArray
 		}
-		pl.arrStr = append(pl.arrStr, val)
+		if sd.isArray {
+
+		} else {
+			sd.pl.arrStr = append(sd.pl.arrStr, val)
+		}
 		return noErr
 	}
 
@@ -46,6 +53,7 @@ func (sd *subDecode) bindString(val string) (err int) {
 	return noErr
 }
 
+//go:inline
 func (sd *subDecode) bindBool(val bool) (err int) {
 	if sd.isSuperKV {
 		if sd.gr != nil {
@@ -66,6 +74,7 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 	return noErr
 }
 
+//go:inline
 func (sd *subDecode) bindNumber(val string) (err int) {
 	if sd.isSuperKV {
 		if sd.gr != nil {
@@ -78,7 +87,18 @@ func (sd *subDecode) bindNumber(val string) (err int) {
 
 	// 如果是数组
 	if sd.isList {
-		err = sd.arr.bindString(val)
+		if !isNumKind(sd.arr.itemKind) {
+			return errArray
+		}
+		if sd.isArray {
+
+		} else {
+			if num, err1 := parseInt(val); err < 0 {
+				return err1
+			} else {
+				sd.pl.arrI64 = append(sd.pl.arrI64, num)
+			}
+		}
 		return noErr
 	}
 
@@ -107,8 +127,8 @@ func (sd *subDecode) bindNull() (err int) {
 // Set Values
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-func (ap *arrPet) bindString(val string) (err int) {
-	if ap.recKind != reflect.String {
+func (ap *listDest) bindString(val string) (err int) {
+	if ap.itemKind != reflect.String {
 		return errArray
 	}
 
