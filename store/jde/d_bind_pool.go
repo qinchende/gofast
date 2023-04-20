@@ -1,7 +1,9 @@
 package jde
 
 import (
+	"reflect"
 	"sync"
+	"unsafe"
 )
 
 var jdePool = sync.Pool{New: func() any { return &fastPool{} }}
@@ -19,105 +21,124 @@ type fastPool struct {
 	//arrF64Ptr  []*float64
 
 	// +++
-	arr listDest
-	obj structDest
+	arr listMeta
+	obj structMeta
 }
 
 func (pl *fastPool) initMem() {
-	//pl.arrStr = make([]string, 0, 512)
-	//pl.arrStrPtr = make([]*string, 0, 512)
-	//
-	//pl.arrI64 = make([]int64, 0, 512)
-	//pl.arrI64Ptr = make([]*int64, 0, 512)
 }
 
-//type arrayFunc func(pl *fastPool, arr *listDest)
-//type sliceFunc func(pl *fastPool, arr *listDest)
-
-//var arraySetFunc = [kindsCount][2]arrayFunc{
-//	reflect.String: {setArrayString, setArrayStringPtr},
-//}
-
-//var sliceSetFunc = [kindsCount][2]sliceFunc{
-//	reflect.String: {setSliceString, setSliceStringPtr},
-//}
-
-//var structSetFunc = [32]arrayFunc{
-//	reflect.String: setArrayString,
-//}
-
 func (sd *subDecode) startListPool() {
-	if isNumKind(sd.pl.arr.itemKind) {
+	if isNumKind(sd.arr.itemKind) {
 		sd.pl.arrI64 = sd.pl.arrI64[0:0]
-		//sd.pl.arrI64Ptr = sd.pl.arrI64Ptr[0:0]
+		sd.pl.arrF64 = sd.pl.arrF64[0:0]
 	} else {
 		sd.pl.arrStr = sd.pl.arrStr[0:0]
-		//sd.pl.arrStrPtr = sd.pl.arrStrPtr[0:0]
+		sd.pl.arrBool = sd.pl.arrBool[0:0]
+		sd.pl.arrAny = sd.pl.arrAny[0:0]
 	}
 }
 
 func (sd *subDecode) endListPool() {
-	if !sd.isArray {
-		if isNumKind(sd.pl.arr.itemKind) {
-			setSliceInt[int](sd.pl, sd.arr)
-		} else {
-			setSliceString(sd.pl, sd.arr)
-		}
+	switch sd.arr.itemKind {
+	case reflect.Int8:
+		sliceSetNum[int8, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Int16:
+		sliceSetNum[int16, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Int32:
+		sliceSetNum[int32, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Int64:
+		sliceSetNum[int64, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Int:
+		sliceSetNum[int, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Uint8:
+		sliceSetNum[uint8, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Uint16:
+		sliceSetNum[uint16, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Uint32:
+		sliceSetNum[uint32, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Uint64:
+		sliceSetNum[uint64, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Uint:
+		sliceSetNum[int, int64](sd.pl.arrI64, sd.arr)
+	case reflect.Float32:
+		sliceSetNum[float32, float64](sd.pl.arrF64, sd.arr)
+	case reflect.Float64:
+		sliceSetNum[float64, float64](sd.pl.arrF64, sd.arr)
+	case reflect.String:
+		sliceSetString(sd.pl.arrStr, sd.arr)
+	case reflect.Interface:
+
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func setSliceInt[T int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64](pl *fastPool, arr *listDest) {
-	newArr := make([]T, len(pl.arrI64))
+func sliceSetNum[T int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64 | float32 | float64,
+	T2 int64 | float64](val []T2, arr *listMeta) {
+
+	size := len(val)
+
+	// 如果是数组 +++++++++++++++++++++++++
+	if arr.isPtr == false && arr.arrSize > 0 {
+		tmpSlice := []T{}
+		bh := (*reflect.SliceHeader)(unsafe.Pointer(&tmpSlice))
+		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&arr.dst)).ptr), size, size
+
+		for i := 0; i < size; i++ {
+			tmpSlice[i] = T(val[i])
+		}
+		return
+	}
+
+	// 如果是 Slice ++++++++++++++++++++++
+	newArr := make([]T, size)
 	for i := 0; i < len(newArr); i++ {
-		newArr[i] = T(pl.arrI64[i])
+		newArr[i] = T(val[i])
 	}
 	if arr.ptrLevel <= 0 {
-		//arr.refVal.Set(reflect.ValueOf(newArr))
 		*(arr.dst.(*[]T)) = newArr
 		return
 	}
 
 	// 第一级指针
-	newArrPtr1 := make([]*T, len(pl.arrI64))
+	newArrPtr1 := make([]*T, size)
 	for i := 0; i < len(newArr); i++ {
 		newArrPtr1[i] = &newArr[i]
 	}
 	arr.ptrLevel--
 	if arr.ptrLevel <= 0 {
-		//arr.refVal.Set(reflect.ValueOf(newArrPtr1))
 		*(arr.dst.(*[]*T)) = newArrPtr1
 		return
 	}
 
 	// 第二级指针
-	newArrPtr2 := make([]**T, len(pl.arrI64))
+	newArrPtr2 := make([]**T, size)
 	for i := 0; i < len(newArrPtr1); i++ {
 		newArrPtr2[i] = &newArrPtr1[i]
 	}
 	arr.ptrLevel--
 	if arr.ptrLevel <= 0 {
-		//arr.refVal.Set(reflect.ValueOf(newArrPtr2))
 		*(arr.dst.(*[]**T)) = newArrPtr2
 		return
 	}
 
 	// 第三级指针
-	newArrPtr3 := make([]***T, len(pl.arrI64))
+	newArrPtr3 := make([]***T, size)
 	for i := 0; i < len(newArrPtr2); i++ {
 		newArrPtr3[i] = &newArrPtr2[i]
 	}
 	arr.ptrLevel--
 	if arr.ptrLevel <= 0 {
-		//arr.refVal.Set(reflect.ValueOf(newArrPtr3))
 		*(arr.dst.(*[]***T)) = newArrPtr3
 	}
 	return
 }
 
-func setSliceString(pl *fastPool, arr *listDest) {
-	newArr := make([]string, len(pl.arrStr))
-	copy(newArr, pl.arrStr)
+func sliceSetString(val []string, arr *listMeta) {
+	size := len(val)
+
+	newArr := make([]string, size)
+	copy(newArr, val)
 	if arr.ptrLevel <= 0 {
 		// arr.refVal.Set(reflect.ValueOf(newArr))
 		*(arr.dst.(*[]string)) = newArr
@@ -125,96 +146,35 @@ func setSliceString(pl *fastPool, arr *listDest) {
 	}
 
 	// 第一级指针
-	newArrPtr1 := make([]*string, len(pl.arrStr))
+	newArrPtr1 := make([]*string, size)
 	for i := 0; i < len(newArr); i++ {
 		newArrPtr1[i] = &newArr[i]
 	}
 	arr.ptrLevel--
 	if arr.ptrLevel <= 0 {
-		// arr.refVal.Set(reflect.ValueOf(newArrPtr1))
 		*(arr.dst.(*[]*string)) = newArrPtr1
 		return
 	}
 
 	// 第二级指针
-	newArrPtr2 := make([]**string, len(pl.arrStr))
+	newArrPtr2 := make([]**string, size)
 	for i := 0; i < len(newArrPtr1); i++ {
 		newArrPtr2[i] = &newArrPtr1[i]
 	}
 	arr.ptrLevel--
 	if arr.ptrLevel <= 0 {
-		// arr.refVal.Set(reflect.ValueOf(newArrPtr2))
 		*(arr.dst.(*[]**string)) = newArrPtr2
 		return
 	}
 
 	// 第三级指针
-	newArrPtr3 := make([]***string, len(pl.arrStr))
+	newArrPtr3 := make([]***string, size)
 	for i := 0; i < len(newArrPtr2); i++ {
 		newArrPtr3[i] = &newArrPtr2[i]
 	}
 	arr.ptrLevel--
 	if arr.ptrLevel <= 0 {
-		// arr.refVal.Set(reflect.ValueOf(newArrPtr3))
 		*(arr.dst.(*[]***string)) = newArrPtr3
 	}
 	return
 }
-
-//func setSliceString(pl *fastPool, arr *listDest) {
-//	newArr := make([]T, len(pl.arrStr))
-//	copy(newArr, pl.arrStr)
-//
-//	newArrPtr := make([]*string, len(pl.arrStr))
-//	for i := 0; i < len(newArr); i++ {
-//		newArrPtr[i] = &newArr[i]
-//	}
-//	//arr.refVal.Set(reflect.ValueOf(newArrPtr))
-//	*(arr.dst.(*[]*string)) = newArrPtr
-//
-//
-//
-//
-//	newArr := make([]T, len(pl.arrI64))
-//	for i := 0; i < len(newArr); i++ {
-//		newArr[i] = T(pl.arrI64[i])
-//	}
-//	if arr.ptrLevel <= 0 {
-//		arr.refVal.Set(reflect.ValueOf(newArr))
-//		//*(arr.dst.(*[]int)) = newArr
-//		return
-//	}
-//
-//	// 第一级指针
-//	newArrPtr1 := make([]*T, len(pl.arrI64))
-//	for i := 0; i < len(newArr); i++ {
-//		newArrPtr1[i] = &newArr[i]
-//	}
-//	arr.ptrLevel--
-//	if arr.ptrLevel <= 0 {
-//		arr.refVal.Set(reflect.ValueOf(newArrPtr1))
-//		return
-//	}
-//
-//	// 第二级指针
-//	newArrPtr2 := make([]**T, len(pl.arrI64))
-//	for i := 0; i < len(newArrPtr1); i++ {
-//		newArrPtr2[i] = &newArrPtr1[i]
-//	}
-//	arr.ptrLevel--
-//	if arr.ptrLevel <= 0 {
-//		arr.refVal.Set(reflect.ValueOf(newArrPtr2))
-//		return
-//	}
-//
-//	// 第三级指针
-//	newArrPtr3 := make([]***T, len(pl.arrI64))
-//	for i := 0; i < len(newArrPtr2); i++ {
-//		newArrPtr3[i] = &newArrPtr2[i]
-//	}
-//	arr.ptrLevel--
-//	if arr.ptrLevel <= 0 {
-//		arr.refVal.Set(reflect.ValueOf(newArrPtr3))
-//	}
-//	return
-//}

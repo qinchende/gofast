@@ -21,8 +21,8 @@ type subDecode struct {
 	pl  *fastPool
 	mp  *cst.KV       // 解析到map
 	gr  *gson.GsonRow // 解析到GsonRow
-	arr *listDest     // array pet (Slice|Array)
-	obj *structDest   // struct pet
+	arr *listMeta     // array pet (Slice|Array)
+	obj *structMeta   // struct pet
 
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
@@ -30,11 +30,10 @@ type subDecode struct {
 	keyIdx    int    // key index
 	skipValue bool   // 跳过当前要解析的值
 	skipTotal bool   // 跳过所有项目
-
-	isList    bool // 区分 [] 或者 {}
-	isArray   bool // 不是slice
-	isStruct  bool // {} 可能目标是 一个 struct 对象
-	isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
+	isList    bool   // 区分 [] 或者 {}
+	isArray   bool   // 不是slice
+	isStruct  bool   // {} 可能目标是 一个 struct 对象
+	isSuperKV bool   // {} 可能目标是 cst.SuperKV 类型
 }
 
 func (dd *fastDecode) init(dst any, src string) error {
@@ -72,6 +71,7 @@ func (dd *fastDecode) init(dst any, src string) error {
 	} else {
 		dd.subDecode.pl = jdePool.Get().(*fastPool)
 		dd.subDecode.pl.initMem()
+		dd.subDecode.pl.arr.dst = dst
 
 		return dd.subDecode.initListStruct(rfVal.Elem())
 	}

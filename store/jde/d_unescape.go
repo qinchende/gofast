@@ -3,7 +3,7 @@ package jde
 import "github.com/qinchende/gofast/skill/lang"
 
 // 肯定是 "*?" 的字符串
-// 这是零新增内存方案，还可以用共享内存方案实现
+// 这是零新增内存方案，直接移动原始[]byte。还可以用共享内存方案实现
 func (sd *subDecode) unescapeString(start, end int) (val string, err int) {
 	str := sd.str[start:end]
 

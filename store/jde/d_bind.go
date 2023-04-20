@@ -1,7 +1,7 @@
 package jde
 
 import (
-	"reflect"
+	"strconv"
 )
 
 //go:inline
@@ -37,14 +37,13 @@ func (sd *subDecode) bindString(val string) (err int) {
 
 	// 如果是数组
 	if sd.isList {
-		if sd.arr.itemKind != reflect.String {
+		if !allowStr(sd.arr.itemKind) {
 			return errArray
 		}
-		if sd.isArray {
-
-		} else {
-			sd.pl.arrStr = append(sd.pl.arrStr, val)
+		if sd.isArray && len(sd.pl.arrStr) >= sd.arr.arrSize {
+			return noErr
 		}
+		sd.pl.arrStr = append(sd.pl.arrStr, val)
 		return noErr
 	}
 
@@ -66,6 +65,13 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 
 	// 如果是数组
 	if sd.isList {
+		if !allowBool(sd.arr.itemKind) {
+			return errArray
+		}
+		if sd.isArray && len(sd.pl.arrStr) >= sd.arr.arrSize {
+			return noErr
+		}
+		sd.pl.arrBool = append(sd.pl.arrBool, val)
 		return noErr
 	}
 
@@ -87,17 +93,26 @@ func (sd *subDecode) bindNumber(val string) (err int) {
 
 	// 如果是数组
 	if sd.isList {
-		if !isNumKind(sd.arr.itemKind) {
-			return errArray
-		}
-		if sd.isArray {
-
-		} else {
+		if allowInt(sd.arr.itemKind) {
+			if sd.isArray && len(sd.pl.arrI64) >= sd.arr.arrSize {
+				return noErr
+			}
 			if num, err1 := parseInt(val); err < 0 {
 				return err1
 			} else {
 				sd.pl.arrI64 = append(sd.pl.arrI64, num)
 			}
+		} else if allowFloat(sd.arr.itemKind) {
+			if sd.isArray && len(sd.pl.arrF64) >= sd.arr.arrSize {
+				return noErr
+			}
+			if num, err1 := strconv.ParseFloat(val, 64); err1 != nil {
+				return errNumberFmt
+			} else {
+				sd.pl.arrF64 = append(sd.pl.arrF64, num)
+			}
+		} else {
+			return errArray
 		}
 		return noErr
 	}
@@ -120,17 +135,6 @@ func (sd *subDecode) bindNull() (err int) {
 	}
 
 	// 如果是 struct
-
-	return noErr
-}
-
-// Set Values
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-func (ap *listDest) bindString(val string) (err int) {
-	if ap.itemKind != reflect.String {
-		return errArray
-	}
 
 	return noErr
 }
