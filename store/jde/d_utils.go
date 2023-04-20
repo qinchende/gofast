@@ -19,16 +19,6 @@ import (
 // \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
 // +++++++++++++++++++++++++++++++++++++++++++++++++++
 
-const (
-	spaceCharMask = (1 << ' ') | (1 << '\t') | (1 << '\r') | (1 << '\n')
-)
-
-//go:nosplit
-//go:inline
-func isSpace(c byte) bool {
-	return spaceCharMask&(1<<c) != 0
-}
-
 func trimHead(str string) int {
 	i := 0
 	for ; i < len(str); i++ {

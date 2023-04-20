@@ -63,7 +63,7 @@ func (sd *subDecode) scanObject() (err int) {
 	var hasKV bool
 	for sd.scan < len(sd.str) {
 		switch c := sd.str[sd.scan]; {
-		case isSpace(c):
+		case isBlankChar[c]:
 			sd.scan++
 			continue
 		case c == '}':
@@ -189,10 +189,11 @@ func (sd *subDecode) scanArray() (err int) {
 	}
 
 	var hasItem bool
-	for sd.scan < len(sd.str) {
+	//for sd.scan < len(sd.str) {
+	for {
 		c := sd.str[sd.scan]
 
-		if isSpace(c) {
+		if isBlankChar[c] {
 			continue
 		}
 		if c == ']' {
@@ -217,7 +218,7 @@ func (sd *subDecode) scanArray() (err int) {
 			return
 		}
 	}
-	return scanEOF
+	//return scanEOF
 }
 
 func (sd *subDecode) scanArrItem() int {
@@ -232,7 +233,8 @@ func (sd *subDecode) scanQuoteString() (slash bool, err int) {
 	}
 
 	sd.scan++
-	for sd.scan < len(sd.str) {
+	//for sd.scan < len(sd.str) {
+	for {
 		c := sd.str[sd.scan]
 		sd.scan++
 
@@ -271,11 +273,12 @@ func (sd *subDecode) scanValue() (err int) {
 
 	var val string
 	start := sd.scan
-	for sd.scan < len(sd.str) {
+	//for sd.scan < len(sd.str) {
+	for {
 		c := sd.str[sd.scan]
 		sd.scan++
 
-		if isSpace(c) {
+		if isBlankChar[c] {
 			continue
 		}
 
@@ -307,15 +310,15 @@ func (sd *subDecode) scanValue() (err int) {
 		sd.skipValue = false
 		return
 	}
-	return scanEOF
+	//return scanEOF
 }
 
 // 跳过一个分割符号，前面可以是空字符
 // 比如 ',' 或者 ':'
 func (sd *subDecode) skipSeparator(ch byte) (err int) {
-	for sd.scan < len(sd.str) {
+	for {
 		c := sd.str[sd.scan]
-		if isSpace(c) {
+		if isBlankChar[c] {
 			sd.scan++
 			continue
 		}
@@ -325,7 +328,7 @@ func (sd *subDecode) skipSeparator(ch byte) (err int) {
 		}
 		return errChar
 	}
-	return scanEOF
+	//return scanEOF
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -333,15 +336,15 @@ func (sd *subDecode) skipSeparator(ch byte) (err int) {
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
 func (sd *subDecode) scanNumberValue() int {
-	if sd.scan >= len(sd.str) {
-		return scanEOF
-	}
+	//if sd.scan >= len(sd.str) {
+	//	return scanEOF
+	//}
 
 	start := sd.scan
 	var startZero, hasDot, needNum bool
 
 	c := sd.str[sd.scan]
-	if c < '0' || c > '9' {
+	if !numChars[c] {
 		return errNumberFmt
 	}
 
@@ -351,7 +354,8 @@ func (sd *subDecode) scanNumberValue() int {
 	}
 	sd.scan++
 
-	for sd.scan < len(sd.str) {
+	//for sd.scan < len(sd.str) {
+	for {
 		c = sd.str[sd.scan]
 		sd.scan++
 
@@ -364,7 +368,10 @@ func (sd *subDecode) scanNumberValue() int {
 			}
 		}
 
-		if c == '.' {
+		if !numChars[c] {
+			sd.scan--
+			break
+		} else if c == '.' {
 			if hasDot == true {
 				return errNumberFmt
 			}
@@ -375,9 +382,6 @@ func (sd *subDecode) scanNumberValue() int {
 				return errNumberFmt
 			}
 			return sd.scanScientificNumberTail()
-		} else if c < '0' || c > '9' {
-			sd.scan--
-			break
 		} else {
 			needNum = false
 		}
@@ -395,9 +399,9 @@ func (sd *subDecode) scanNumberValue() int {
 
 // 检查科学计数法（e|E）后面的字符串合法性
 func (sd *subDecode) scanScientificNumberTail() int {
-	if sd.scan >= len(sd.str) {
-		return scanEOF
-	}
+	//if sd.scan >= len(sd.str) {
+	//	return scanEOF
+	//}
 
 	c := sd.str[sd.scan]
 	if c == '-' || c == '+' {
@@ -406,7 +410,7 @@ func (sd *subDecode) scanScientificNumberTail() int {
 
 	// TODO: 加减号后面没有任何数字匹配，会如何
 	for sd.scan < len(sd.str) {
-		if sd.str[sd.scan] < '0' || sd.str[sd.scan] > '9' {
+		if !numChars[sd.str[sd.scan]] {
 			return noErr
 		}
 		sd.scan++
@@ -415,12 +419,12 @@ func (sd *subDecode) scanScientificNumberTail() int {
 }
 
 func (sd *subDecode) scanNoQuoteValue() (err int) {
-	if sd.scan >= len(sd.str) {
-		return scanEOF
-	}
+	//if sd.scan >= len(sd.str) {
+	//	return scanEOF
+	//}
 
 	switch c := sd.str[sd.scan]; {
-	case c >= '0' && c <= '9':
+	case numChars[c]:
 		return sd.scanNumberValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7
 	case c == '-':
 		sd.scan++
@@ -454,7 +458,7 @@ func (sd *subDecode) scanNoQuoteValue() (err int) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) lastNotBlank() (byte, int) {
 	for i := len(sd.str) - 1; i < len(sd.str); i-- {
-		if !isSpace(sd.str[i]) {
+		if !isBlankChar[sd.str[i]] {
 			sd.str = sd.str[:i+1] // cut 最后的空字符
 			return sd.str[i], i
 		}
@@ -462,14 +466,20 @@ func (sd *subDecode) lastNotBlank() (byte, int) {
 	return 0, 0
 }
 
+//go:inline
 func (sd *subDecode) skipBlank() int {
-	for sd.scan < len(sd.str) {
-		if !isSpace(sd.str[sd.scan]) {
-			return noErr
-		}
+	for isBlankChar[sd.str[sd.scan]] {
 		sd.scan++
 	}
-	return scanEOF
+	return noErr
+
+	//for sd.scan < len(sd.str) {
+	//	if !isSpace(sd.str[sd.scan]) {
+	//		return noErr
+	//	}
+	//	sd.scan++
+	//}
+	//return scanEOF
 }
 
 func (sd *subDecode) skipMatch(match string) int {
