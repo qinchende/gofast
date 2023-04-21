@@ -8,8 +8,7 @@ import (
 )
 
 const (
-	maxJsonLength     = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
-	tempByteStackSize = 128               // 栈上分配一定空间，方便放临时字符串（不能太大，防止协程栈伸缩）| 或者单独申请内存并管理
+	maxJsonLength = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
 )
 
 const (
@@ -37,16 +36,16 @@ const (
 	errKV        int = -15
 	errNull      int = -16
 	errObject    int = -17
-	errArray     int = -18
+	errList      int = -18
 	errTrue      int = -19
 	errFalse     int = -20
 
 	//errNotSupportType int = -13
 )
 
-type Type struct{}
+type dataType struct{}
 type emptyInterface struct {
-	typ *Type
+	typ *dataType
 	ptr unsafe.Pointer
 }
 
@@ -76,55 +75,42 @@ var (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //const (
-//	isSpaceMask = (1 << ' ') | (1 << '\t') | (1 << '\r') | (1 << '\n')
+//	isSpaceMask = (1 << ' ') | (1 << '\n') | (1 << '\r') | (1 << '\t')
 //)
 
 //go:nosplit
 //go:inline
-//func isSpace(c byte) bool {
+//func isBlank(c byte) bool {
 //	return isSpaceMask&(1<<c) != 0
 //}
 
+// 综合来说，判断空字符的综合性能是数组索引还不错，单一空字符多的情况下，直接||连接比较最好
+//go:nosplit
 //go:inline
-func isSpace(c byte) bool {
+func isBlank(c byte) bool {
 	return isBlankChar[c]
 }
 
 var (
-	isBlankChar = [256]bool{}
-
-	numChars = [256]bool{
-		'0': true,
-		'1': true,
-		'2': true,
-		'3': true,
-		'4': true,
-		'5': true,
-		'6': true,
-		'7': true,
-		'8': true,
-		'9': true,
+	isBlankChar = [256]bool{
+		' ':  true,
+		'\n': true,
+		'\r': true,
+		'\t': true,
 	}
 )
-
-func init() {
-	isBlankChar[' '] = true
-	isBlankChar['\n'] = true
-	isBlankChar['\t'] = true
-	isBlankChar['\r'] = true
-}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //type Kind uint
 const (
-	kindsCount     = 27
-	isBaseTypeMask = 17956862 // 0001 0001 0001 1111 1111 1111 1110
-	isNumKindMask  = 131068   // 0000 0000 0001 1111 1111 1111 1100
-	allowNumMask   = 1179644  // 0000 0001 0001 1111 1111 1111 1100
-	allowIntMask   = 1056764  // 0000 0001 0000 0001 1111 1111 1100
-	allowFloatMask = 1073152  // 0000 0001 0000 0110 0000 0000 0000
-	allowStrMask   = 17825792 // 0001 0001 0000 0000 0000 0000 0000
-	allowBoolMask  = 1048578  // 0000 0001 0000 0000 0000 0000 0010
+	kindsCount       = 27
+	isBaseTypeMask   = 17956862 // 0001 0001 0001 1111 1111 1111 1110
+	isNumKindMask    = 131068   // 0000 0000 0001 1111 1111 1111 1100
+	receiveNumMask   = 1179644  // 0000 0001 0001 1111 1111 1111 1100
+	receiveIntMask   = 1056764  // 0000 0001 0000 0001 1111 1111 1100
+	receiveFloatMask = 1073152  // 0000 0001 0000 0110 0000 0000 0000
+	receiveStrMask   = 17825792 // 0001 0001 0000 0000 0000 0000 0000
+	receiveBoolMask  = 1048578  // 0000 0001 0000 0000 0000 0000 0010
 )
 
 //go:inline
@@ -132,27 +118,31 @@ func isNumKind(k reflect.Kind) bool {
 	return (1<<k)&isNumKindMask != 0
 }
 
+// 变量是否接收对应的值类型 ++++++++++++
 //go:inline
 func allowNum(k reflect.Kind) bool {
-	return (1<<k)&allowNumMask != 0
+	return (1<<k)&receiveNumMask != 0
 }
 
 //go:inline
 func allowInt(k reflect.Kind) bool {
-	return (1<<k)&allowIntMask != 0
+	return (1<<k)&receiveIntMask != 0
 }
 
+// 下面三种直接比较性能更好
 //go:inline
 func allowFloat(k reflect.Kind) bool {
-	return (1<<k)&allowFloatMask != 0
+	return (1<<k)&receiveFloatMask != 0
 }
 
 //go:inline
 func allowStr(k reflect.Kind) bool {
-	return (1<<k)&allowStrMask != 0
+	return (1<<k)&receiveStrMask != 0
 }
 
 //go:inline
 func allowBool(k reflect.Kind) bool {
-	return (1<<k)&allowBoolMask != 0
+	return (1<<k)&receiveBoolMask != 0
 }
+
+// ++++++++++++++++++++++++++++++++++
