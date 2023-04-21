@@ -4,8 +4,10 @@ import (
 	"strconv"
 )
 
+// skip some items
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //go:inline
-func (sd *subDecode) setSkipFlag() {
+func (sd *subDecode) setSkip() {
 	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
 	if sd.gr != nil {
 		if sd.keyIdx = sd.gr.KeyIndex(sd.key); sd.keyIdx < 0 {
@@ -17,13 +19,10 @@ func (sd *subDecode) setSkipFlag() {
 
 //go:inline
 func (sd *subDecode) isSkip() bool {
-	if sd.skipValue || sd.skipTotal {
-		sd.skipValue = false
-		return true
-	}
-	return false
+	return sd.skipValue || sd.skipTotal
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //go:inline
 func (sd *subDecode) bindString(val string) (err int) {
 	if sd.isSuperKV {
@@ -38,9 +37,10 @@ func (sd *subDecode) bindString(val string) (err int) {
 	// 如果是数组
 	if sd.isList {
 		if !allowStr(sd.arr.itemKind) {
-			return errArray
+			return errList
 		}
 		if sd.isArray && len(sd.pl.arrStr) >= sd.arr.arrSize {
+			sd.skipValue = true
 			return noErr
 		}
 		sd.pl.arrStr = append(sd.pl.arrStr, val)
@@ -66,9 +66,10 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 	// 如果是数组
 	if sd.isList {
 		if !allowBool(sd.arr.itemKind) {
-			return errArray
+			return errList
 		}
 		if sd.isArray && len(sd.pl.arrStr) >= sd.arr.arrSize {
+			sd.skipValue = true
 			return noErr
 		}
 		sd.pl.arrBool = append(sd.pl.arrBool, val)
@@ -95,6 +96,7 @@ func (sd *subDecode) bindNumber(val string) (err int) {
 	if sd.isList {
 		if allowInt(sd.arr.itemKind) {
 			if sd.isArray && len(sd.pl.arrI64) >= sd.arr.arrSize {
+				sd.skipValue = true
 				return noErr
 			}
 			if num, err1 := parseInt(val); err < 0 {
@@ -102,8 +104,10 @@ func (sd *subDecode) bindNumber(val string) (err int) {
 			} else {
 				sd.pl.arrI64 = append(sd.pl.arrI64, num)
 			}
+
 		} else if allowFloat(sd.arr.itemKind) {
 			if sd.isArray && len(sd.pl.arrF64) >= sd.arr.arrSize {
+				sd.skipValue = true
 				return noErr
 			}
 			if num, err1 := strconv.ParseFloat(val, 64); err1 != nil {
@@ -111,8 +115,9 @@ func (sd *subDecode) bindNumber(val string) (err int) {
 			} else {
 				sd.pl.arrF64 = append(sd.pl.arrF64, num)
 			}
+
 		} else {
-			return errArray
+			return errList
 		}
 		return noErr
 	}
