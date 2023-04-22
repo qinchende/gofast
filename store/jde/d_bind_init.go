@@ -3,17 +3,26 @@ package jde
 import (
 	"github.com/qinchende/gofast/store/dts"
 	"reflect"
+	"unsafe"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 基础数据类型的Array或Slice
-type listMeta struct {
+type listPost struct {
 	dst any // 原始值
 	//refType reflect.Type
 	//refVal   reflect.Value // 反射值
 
-	arrSize  int // 数组长度
-	memSize  int // item类型对应的内存字节大小
+	arrSize int // item类型对应的内存字节大小
+	arrLen  int // 数组长度
+	arrIdx  int // 数组索引
+	arrPtr  uintptr
+
+	arrIntFunc bindIntFunc
+	//arrFloatFunc bindFloatFunc
+	//arrStrFunc   bindStrFunc
+	//arrBoolFunc  bindBoolFunc
+
 	listType reflect.Type
 	itemType reflect.Type
 	itemKind reflect.Kind
@@ -23,7 +32,7 @@ type listMeta struct {
 }
 
 // 解析Struct对象当前的meta信息
-type structMeta struct {
+type structPost struct {
 	refVal reflect.Value     // 反射值
 	sm     *dts.StructSchema // 目标值是一个Struct时候
 }
@@ -32,26 +41,23 @@ type structMeta struct {
 func (sd *subDecode) initListStruct(rfVal reflect.Value) (err error) {
 	rfTyp := rfVal.Type()
 
-	switch rfTyp.Kind() {
+	switch kd := rfTyp.Kind(); kd {
 	case reflect.Struct:
 		if rfTyp.String() == "time.Time" {
 			return errValueType
 		}
 		sd.isStruct = true
 		sd.obj = &sd.pl.obj
-	case reflect.Array:
-		if err = sd.initListMeta(rfVal); err != nil {
-			return
-		}
-		sd.isArray = true
-		sd.isList = true
-		sd.arr.arrSize = rfVal.Len()
-		sd.arr.memSize = int(sd.arr.itemType.Size())
-	case reflect.Slice:
+	case reflect.Array, reflect.Slice:
 		if err = sd.initListMeta(rfVal); err != nil {
 			return
 		}
 		sd.isList = true
+
+		// 进一步初始化数组
+		if kd == reflect.Array {
+			sd.initArrayMeta(rfVal)
+		}
 	default:
 		return errValueType
 	}
@@ -79,4 +85,18 @@ peelPtr:
 		goto peelPtr
 	}
 	return nil
+}
+
+func (sd *subDecode) initArrayMeta(rfVal reflect.Value) {
+	sd.isArray = true
+	sd.arr.arrLen = rfVal.Len()
+	sd.arr.arrIdx = 0
+
+	if sd.arr.isPtr {
+		return
+	}
+
+	sd.arr.arrSize = int(sd.arr.itemType.Size())
+	sd.arr.arrPtr = uintptr((*emptyInterface)(unsafe.Pointer(&sd.arr.dst)).ptr)
+	sd.arr.arrIntFunc = kindIntFunc[sd.arr.itemKind]
 }

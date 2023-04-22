@@ -9,22 +9,74 @@ import (
 var jdePool = sync.Pool{New: func() any { return &fastPool{} }}
 
 type fastPool struct {
-	arrStr []string
-	//arrStrPtr  []*string
+	arrI64  []int64
+	arrF64  []float64
+	arrStr  []string
 	arrBool []bool
-	//arrBoolPtr []*bool
-	arrAny []any
-	//arrAnyPtr  []*any
-	arrI64 []int64
-	//arrI64Ptr  []*int64
-	arrF64 []float64
-	//arrF64Ptr  []*float64
+	arrAny  []any
 
-	// +++
-	arr listMeta
-	obj structMeta
+	// +++++
+	arr listPost
+	obj structPost
 }
 
+type bindIntFunc func(*listPost, int64)
+type bindFloatFunc func(*listPost, int64)
+type bindStrFunc func(*listPost, int64)
+type bindBoolFunc func(*listPost, int64)
+
+var (
+	kindIntFunc = [27]bindIntFunc{
+		2: func(a *listPost, v int64) {
+			*(*int)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = int(v)
+			a.arrIdx++
+		},
+		3: func(a *listPost, v int64) {
+			*(*int8)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = int8(v)
+			a.arrIdx++
+		},
+		4: func(a *listPost, v int64) {
+			*(*int16)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = int16(v)
+			a.arrIdx++
+		},
+		5: func(a *listPost, v int64) {
+			*(*int32)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = int32(v)
+			a.arrIdx++
+		},
+		6: func(a *listPost, v int64) {
+			*(*int64)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = v
+			a.arrIdx++
+		},
+
+		7: func(a *listPost, v int64) {
+			*(*uint)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = uint(v)
+			a.arrIdx++
+		},
+		8: func(a *listPost, v int64) {
+			*(*uint8)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = uint8(v)
+			a.arrIdx++
+		},
+		9: func(a *listPost, v int64) {
+			*(*uint16)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = uint16(v)
+			a.arrIdx++
+		},
+		10: func(a *listPost, v int64) {
+			*(*uint32)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = uint32(v)
+			a.arrIdx++
+		},
+		11: func(a *listPost, v int64) {
+			*(*uint64)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = uint64(v)
+			a.arrIdx++
+		},
+	}
+)
+
+func bindArrValue[T string | bool | float32 | float64](a *listPost, v T) {
+	*(*T)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = v
+	a.arrIdx++
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (pl *fastPool) initMem() {
 }
 
@@ -32,6 +84,7 @@ func (sd *subDecode) startListPool() {
 	if isNumKind(sd.arr.itemKind) {
 		sd.pl.arrI64 = sd.pl.arrI64[0:0]
 		sd.pl.arrF64 = sd.pl.arrF64[0:0]
+		sd.pl.arrStr = sd.pl.arrStr[0:0]
 	} else {
 		sd.pl.arrStr = sd.pl.arrStr[0:0]
 		sd.pl.arrBool = sd.pl.arrBool[0:0]
@@ -40,6 +93,10 @@ func (sd *subDecode) startListPool() {
 }
 
 func (sd *subDecode) endListPool() {
+	if sd.isArray && !sd.arr.isPtr {
+		return
+	}
+
 	switch sd.arr.itemKind {
 	case reflect.Int8:
 		sliceSetNum[int8, int64](sd.pl.arrI64, sd.arr)
@@ -68,24 +125,24 @@ func (sd *subDecode) endListPool() {
 	case reflect.String:
 		sliceSetString(sd.pl.arrStr, sd.arr)
 	case reflect.Interface:
-
+		sliceSetString(sd.pl.arrStr, sd.arr)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func sliceSetNum[T int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64 | float32 | float64,
-	T2 int64 | float64](val []T2, arr *listMeta) {
+	T2 int64 | float64](val []T2, arr *listPost) {
 
 	size := len(val)
 
 	// 如果是数组 +++++++++++++++++++++++++
-	if arr.isPtr == false && arr.arrSize > 0 {
-		tmpSlice := []T{}
-		bh := (*reflect.SliceHeader)(unsafe.Pointer(&tmpSlice))
+	if !arr.isPtr && arr.arrSize > 0 {
+		dstArr := []T{}
+		bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstArr))
 		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&arr.dst)).ptr), size, size
 
 		for i := 0; i < size; i++ {
-			tmpSlice[i] = T(val[i])
+			dstArr[i] = T(val[i])
 		}
 		return
 	}
@@ -101,7 +158,21 @@ func sliceSetNum[T int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 
 	}
 
 	// 第一级指针
-	newArrPtr1 := make([]*T, size)
+	var newArrPtr1 []*T
+	if arr.ptrLevel == 1 && arr.isPtr {
+		//newArrPtr1 =
+
+		bh := (*reflect.SliceHeader)(unsafe.Pointer(&newArrPtr1))
+		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&arr.dst)).ptr), size, size
+
+		for i := 0; i < size; i++ {
+			newArrPtr1[i] = &newArr[i]
+		}
+
+		arr.ptrLevel = 0
+		return
+	}
+	newArrPtr1 = make([]*T, size)
 	for i := 0; i < len(newArr); i++ {
 		newArrPtr1[i] = &newArr[i]
 	}
@@ -134,7 +205,7 @@ func sliceSetNum[T int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 
 	return
 }
 
-func sliceSetString(val []string, arr *listMeta) {
+func sliceSetString(val []string, arr *listPost) {
 	size := len(val)
 
 	newArr := make([]string, size)

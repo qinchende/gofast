@@ -49,6 +49,11 @@ type emptyInterface struct {
 	ptr unsafe.Pointer
 }
 
+//type bindValue[T1 int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64 | float32 | float64, T2 int64 | float64] func(T2)
+
+//type bindI64Value func(int64)
+//type bindF64Value func(float64)
+
 //var errorStrings = []string{
 //	0:                      "ok",
 //	-(scanEOF):              "eof",

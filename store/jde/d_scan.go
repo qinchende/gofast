@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"reflect"
 )
@@ -13,6 +14,7 @@ func (sd *subDecode) parseJson() (err int) {
 	// 万一解析过程中异常，这里统一截获处理，返回解析错误
 	defer func() {
 		if pic := recover(); pic != nil {
+			fmt.Println(pic)
 			err = errJson
 		}
 	}()
@@ -197,7 +199,7 @@ func (sd *subDecode) scanList() (err int) {
 		return errList
 	}
 
-	// 三种情况特殊处理
+	// 根据目标值类型，直接匹配，提高效率
 	switch {
 	case isNumKind(sd.arr.itemKind) == true:
 		err = sd.scanArrItems(sd.scanNumValue)
@@ -412,7 +414,7 @@ loopNum:
 	if sd.isSkip() {
 		return noErr
 	}
-	return sd.bindNumber(sd.str[start:sd.scan])
+	return sd.bindNumber(sd.str[start:sd.scan], hasDot)
 }
 
 func (sd *subDecode) scanNoQuoteValue() (err int) {
