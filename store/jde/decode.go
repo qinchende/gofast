@@ -21,8 +21,8 @@ type subDecode struct {
 	pl  *fastPool
 	mp  *cst.KV       // 解析到map
 	gr  *gson.GsonRow // 解析到GsonRow
-	arr *listMeta     // array pet (Slice|Array)
-	obj *structMeta   // struct pet
+	arr *listPost     // array pet (Slice|Array)
+	obj *structPost   // struct pet
 
 	str       string // 本段字符串
 	scan      int    // 自己的扫描进度，当解析错误时，这个就是定位
