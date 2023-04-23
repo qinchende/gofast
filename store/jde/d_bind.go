@@ -41,17 +41,16 @@ func (sd *subDecode) bindString(val string) (err int) {
 			return errList
 		}
 		if sd.isArray {
-			if len(sd.pl.arrStr) >= sd.arr.arrSize {
+			if len(sd.pl.bufStr) >= sd.arr.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
-
-			if !sd.arr.isPtr {
-				bindArrValue[string](sd.arr, val)
-				return noErr
-			}
+			//if !sd.arr.isPtr {
+			//	bindArrValue[string](sd.arr, val)
+			//	return noErr
+			//}
 		}
-		sd.pl.arrStr = append(sd.pl.arrStr, val)
+		sd.pl.bufStr = append(sd.pl.bufStr, val)
 		return noErr
 	}
 
@@ -76,11 +75,13 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 		if !allowBool(sd.arr.itemKind) {
 			return errList
 		}
-		if sd.isArray && len(sd.pl.arrStr) >= sd.arr.arrSize {
-			sd.skipValue = true
-			return noErr
+		if sd.isArray {
+			if len(sd.pl.bufStr) >= sd.arr.arrLen {
+				sd.skipValue = true
+				return noErr
+			}
 		}
-		sd.pl.arrBool = append(sd.pl.arrBool, val)
+		sd.pl.bufBol = append(sd.pl.bufBol, val)
 		return noErr
 	}
 
@@ -105,31 +106,31 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 		// 如果目标是 any 值
 		if sd.arr.itemKind == reflect.Interface {
 			if sd.isArray {
-				if len(sd.pl.arrStr) >= sd.arr.arrLen {
+				if len(sd.pl.bufStr) >= sd.arr.arrLen {
 					sd.skipValue = true
 					return noErr
 				}
-				sd.pl.arrStr = append(sd.pl.arrStr, val)
 			}
+			sd.pl.bufStr = append(sd.pl.bufStr, val)
 			return noErr
 		}
 
 		if allowInt(sd.arr.itemKind) {
-			if sd.isArray && !sd.arr.isPtr {
-				if sd.arr.arrIdx >= sd.arr.arrLen {
-					sd.skipValue = true
-					return noErr
-				}
+			//if sd.isArray && !sd.arr.isPtr {
+			//	if sd.arr.arrIdx >= sd.arr.arrLen {
+			//		sd.skipValue = true
+			//		return noErr
+			//	}
+			//
+			//	if num, err1 := parseInt(val); err < 0 {
+			//		return err1
+			//	} else {
+			//		sd.arr.arrIntFunc(sd.arr, num)
+			//	}
+			//	return noErr
+			//}
 
-				if num, err1 := parseInt(val); err < 0 {
-					return err1
-				} else {
-					sd.arr.arrIntFunc(sd.arr, num)
-				}
-				return noErr
-			}
-
-			if len(sd.pl.arrI64) >= sd.arr.arrLen {
+			if len(sd.pl.bufI64) >= sd.arr.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
@@ -137,18 +138,18 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 			if num, err1 := parseInt(val); err < 0 {
 				return err1
 			} else {
-				sd.pl.arrI64 = append(sd.pl.arrI64, num)
+				sd.pl.bufI64 = append(sd.pl.bufI64, num)
 			}
 
 		} else if allowFloat(sd.arr.itemKind) {
-			if sd.isArray && len(sd.pl.arrF64) >= sd.arr.arrLen {
+			if sd.isArray && len(sd.pl.bufF64) >= sd.arr.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
 			if num, err1 := strconv.ParseFloat(val, 64); err1 != nil {
 				return errNumberFmt
 			} else {
-				sd.pl.arrF64 = append(sd.pl.arrF64, num)
+				sd.pl.bufF64 = append(sd.pl.bufF64, num)
 			}
 
 		} else {
@@ -163,12 +164,6 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 }
 
 func (sd *subDecode) bindNull() (err int) {
-	//if sd.gr != nil {
-	//	sd.gr.SetByIndex(sd.keyIdx, nil)
-	//} else if sd.mp != nil {
-	//	sd.mp.Set(sd.key, nil)
-	//}
-
 	// 如果是数组
 	if sd.isList {
 		return noErr

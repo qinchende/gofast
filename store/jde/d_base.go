@@ -83,19 +83,17 @@ var (
 //	isSpaceMask = (1 << ' ') | (1 << '\n') | (1 << '\r') | (1 << '\t')
 //)
 
-//go:nosplit
-//go:inline
+////go:nosplit
+////go:inline
 //func isBlank(c byte) bool {
 //	return isSpaceMask&(1<<c) != 0
 //}
 
-// 综合来说，判断空字符的综合性能是数组索引还不错，单一空字符多的情况下，直接||连接比较最好
-//go:nosplit
-//go:inline
-func isBlank(c byte) bool {
-	return isBlankChar[c]
-}
-
+//// 综合来说，判断空字符的综合性能是数组索引还不错，单一空字符多的情况下，直接||连接比较最好
+////go:inline
+//func isBlank(c byte) bool {
+//	return isBlankChar[c]
+//}
 var (
 	isBlankChar = [256]bool{
 		' ':  true,
