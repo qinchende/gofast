@@ -10,18 +10,18 @@ import (
 // 基础数据类型的Array或Slice
 type listPost struct {
 	dst any // 原始值
-	//refType reflect.Type
-	//refVal   reflect.Value // 反射值
+	// refType reflect.Type
+	// refVal   reflect.Value // 反射值
 
-	arrSize int // item类型对应的内存字节大小
-	arrLen  int // 数组长度
-	arrIdx  int // 数组索引
-	arrPtr  uintptr
+	arrPtr  uintptr // 数组首值地址
+	arrSize int     // item类型对应的内存字节大小
+	arrLen  int     // 数组长度
+	arrIdx  int     // 数组索引
 
-	arrIntFunc bindIntFunc
-	//arrFloatFunc bindFloatFunc
-	//arrStrFunc   bindStrFunc
-	//arrBoolFunc  bindBoolFunc
+	// arrIntFunc bindIntFunc
+	// arrFloatFunc bindFloatFunc
+	// arrStrFunc   bindStrFunc
+	// arrBoolFunc  bindBoolFunc
 
 	listType reflect.Type
 	itemType reflect.Type
@@ -38,9 +38,16 @@ type structPost struct {
 }
 
 // 如果不是map和*GsonRow，只能是 Array|Slice|Struct
-func (sd *subDecode) initListStruct(rfVal reflect.Value) (err error) {
-	rfTyp := rfVal.Type()
+func (sd *subDecode) initListStruct(dst any) (err error) {
+	rfVal := reflect.ValueOf(dst)
+	if rfVal.Kind() != reflect.Pointer {
+		return errValueMustPtr
+	}
+	rfVal = rfVal.Elem()
 
+	sd.getPool() // 需要用到缓冲池
+
+	rfTyp := rfVal.Type()
 	switch kd := rfTyp.Kind(); kd {
 	case reflect.Struct:
 		if rfTyp.String() == "time.Time" {
@@ -52,7 +59,7 @@ func (sd *subDecode) initListStruct(rfVal reflect.Value) (err error) {
 		if err = sd.initListMeta(rfVal); err != nil {
 			return
 		}
-		sd.isList = true
+		sd.pl.arr.dst = dst
 
 		// 进一步初始化数组
 		if kd == reflect.Array {
@@ -65,38 +72,42 @@ func (sd *subDecode) initListStruct(rfVal reflect.Value) (err error) {
 }
 
 func (sd *subDecode) initListMeta(rfVal reflect.Value) error {
-	sd.arr = &sd.pl.arr
-	//sd.arr.dst = rfVal.Addr().Interface()
+	sd.isList = true
 
-	sd.arr.listType = rfVal.Type()
-	sd.arr.itemType = sd.arr.listType.Elem()
-	sd.arr.itemKind = sd.arr.itemType.Kind()
+	a := &sd.pl.arr
+	a.listType = rfVal.Type()
+	a.itemType = a.listType.Elem()
+	a.itemKind = a.itemType.Kind()
 
 peelPtr:
-	if sd.arr.itemKind == reflect.Pointer {
-		sd.arr.itemType = sd.arr.itemType.Elem()
-		sd.arr.itemKind = sd.arr.itemType.Kind()
-		sd.arr.isPtr = true
-		sd.arr.ptrLevel++
+	if a.itemKind == reflect.Pointer {
+		a.itemType = a.itemType.Elem()
+		a.itemKind = a.itemType.Kind()
+		a.isPtr = true
+		a.ptrLevel++
 		// TODO：指针嵌套不能超过3层
-		if sd.arr.ptrLevel > 3 {
+		if a.ptrLevel > 3 {
 			return errPtrLevel
 		}
 		goto peelPtr
 	}
+
+	sd.arr = a
 	return nil
 }
 
 func (sd *subDecode) initArrayMeta(rfVal reflect.Value) {
 	sd.isArray = true
-	sd.arr.arrLen = rfVal.Len()
-	sd.arr.arrIdx = 0
 
-	if sd.arr.isPtr {
+	a := sd.arr
+	a.arrLen = rfVal.Len()
+	a.arrIdx = 0
+
+	if a.isPtr {
 		return
 	}
 
-	sd.arr.arrSize = int(sd.arr.itemType.Size())
-	sd.arr.arrPtr = uintptr((*emptyInterface)(unsafe.Pointer(&sd.arr.dst)).ptr)
-	sd.arr.arrIntFunc = kindIntFunc[sd.arr.itemKind]
+	a.arrSize = int(a.itemType.Size())
+	a.arrPtr = uintptr((*emptyInterface)(unsafe.Pointer(&a.dst)).ptr)
+	//a.arrIntFunc = kindIntFunc[a.itemKind]
 }

@@ -10,7 +10,7 @@ type scanFunc func() int
 
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
-func (sd *subDecode) parseJson() (err int) {
+func (sd *subDecode) scanJson() (err int) {
 	// 万一解析过程中异常，这里统一截获处理，返回解析错误
 	defer func() {
 		if pic := recover(); pic != nil {
@@ -50,12 +50,12 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 		sd.scan++
 		err = sd.scanObject()
 	} else if ch == ']' {
-		sd.startListPool()
+		sd.resetListPool()
 		sd.scan++
 		if err = sd.scanList(); err < 0 {
 			return err
 		}
-		sd.endListPool()
+		sd.flushListPool()
 	} else {
 		err = sd.skipMatch(bytesNull)
 	}
@@ -73,31 +73,56 @@ func (sd *subDecode) scanObject() (err int) {
 		return errObject
 	}
 
-	var hasKV bool
+	first := true
 	for {
-		switch c := sd.str[sd.scan]; {
-		case isBlankChar[c]:
-			sd.scan++
-			continue
-		case c == '}':
+		sd.skipBlank()
+
+		switch c := sd.str[sd.scan]; c {
+		case '}':
 			sd.scan++
 			return noErr
-		}
-
-		// 只能是k:v,k:v 不是第一个k:v, 先跳过一个逗号
-		if hasKV {
-			if err = sd.skipSeparator(','); err < 0 {
-				return
-			}
+		case ',':
+			sd.scan++
 			sd.skipBlank()
-		} else {
-			hasKV = true
+			goto scanKVPair
+		default:
+			if first {
+				first = false
+				goto scanKVPair
+			}
+			return errChar
 		}
 
+	scanKVPair:
 		if err = sd.scanKVItem(); err < 0 {
 			return
 		}
 	}
+	//var hasKV bool
+	//for {
+	//	switch c := sd.str[sd.scan]; {
+	//	case isBlankChar[c]:
+	//		sd.scan++
+	//		continue
+	//	case c == '}':
+	//		sd.scan++
+	//		return noErr
+	//	}
+	//
+	//	// 只能是k:v,k:v 不是第一个k:v, 先跳过一个逗号
+	//	if hasKV {
+	//		if err = sd.skipSeparator(','); err < 0 {
+	//			return
+	//		}
+	//		sd.skipBlank()
+	//	} else {
+	//		hasKV = true
+	//	}
+	//
+	//	if err = sd.scanKVItem(); err < 0 {
+	//		return
+	//	}
+	//}
 }
 
 // 必须是k:v, ...形式。不能为空，而且前面空字符已跳过，否则错误
@@ -215,28 +240,27 @@ func (sd *subDecode) scanList() (err int) {
 }
 
 func (sd *subDecode) scanArrItems(scanValue scanFunc) (err int) {
-	var hasItem bool
+	first := true
 	for {
-		c := sd.str[sd.scan]
-		if isBlankChar[c] {
-			continue
-		}
-		if c == ']' {
+		sd.skipBlank()
+
+		switch c := sd.str[sd.scan]; c {
+		case ']':
 			sd.scan++
 			return noErr
-		}
-
-		// A. already include item，then skip char ','
-		if hasItem {
-			if err = sd.skipSeparator(','); err < 0 {
-				return
-			}
+		case ',':
+			sd.scan++
 			sd.skipBlank()
-		} else {
-			hasItem = true
+			goto scanValue
+		default:
+			if first {
+				first = false
+				goto scanValue
+			}
+			return errChar
 		}
 
-		// B: find item Value
+	scanValue:
 		if err = scanValue(); err < 0 {
 			return
 		}
@@ -245,14 +269,15 @@ func (sd *subDecode) scanArrItems(scanValue scanFunc) (err int) {
 
 func (sd *subDecode) scanStrVal() (err int) {
 	start := sd.scan
-	var val string
-	var slash bool
 
+	var slash bool
 	if slash, err = sd.scanQuoteString(); err < 0 {
 		return
 	} else if sd.isSkip() {
 		return noErr
 	}
+
+	var val string
 	if slash {
 		if val, err = sd.unescapeString(start, sd.scan); err < 0 {
 			return
@@ -280,8 +305,8 @@ func (sd *subDecode) scanQuoteString() (slash bool, err int) {
 		sd.scan++
 
 		switch c := sd.str[sd.scan]; {
-		case c < ' ':
-			return false, errChar
+		//case c < ' ':
+		//	return false, errChar
 		case c == '"':
 			sd.scan++
 			return slash, noErr
@@ -322,6 +347,7 @@ func (sd *subDecode) scanObjValue() (err int) {
 
 // 跳过一个分割符号，前面可以是空字符
 // 比如 ',' 或者 ':'
+
 func (sd *subDecode) skipSeparator(ch byte) (err int) {
 	for {
 		c := sd.str[sd.scan]
