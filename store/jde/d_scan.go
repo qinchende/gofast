@@ -69,10 +69,6 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 // 前提：sd.str 肯定是 { 字符后面的字符串
 // 返回 } 后面一个字符的 index
 func (sd *subDecode) scanObject() (err int) {
-	if sd.isList {
-		return errObject
-	}
-
 	first := true
 	for {
 		sd.skipBlank()
@@ -98,31 +94,6 @@ func (sd *subDecode) scanObject() (err int) {
 			return
 		}
 	}
-	//var hasKV bool
-	//for {
-	//	switch c := sd.str[sd.scan]; {
-	//	case isBlankChar[c]:
-	//		sd.scan++
-	//		continue
-	//	case c == '}':
-	//		sd.scan++
-	//		return noErr
-	//	}
-	//
-	//	// 只能是k:v,k:v 不是第一个k:v, 先跳过一个逗号
-	//	if hasKV {
-	//		if err = sd.skipSeparator(','); err < 0 {
-	//			return
-	//		}
-	//		sd.skipBlank()
-	//	} else {
-	//		hasKV = true
-	//	}
-	//
-	//	if err = sd.scanKVItem(); err < 0 {
-	//		return
-	//	}
-	//}
 }
 
 // 必须是k:v, ...形式。不能为空，而且前面空字符已跳过，否则错误
@@ -142,12 +113,15 @@ func (sd *subDecode) scanKVItem() (err int) {
 	}
 
 	// B: 跳过冒号
-	if err = sd.skipSeparator(':'); err < 0 {
-		return
-	}
 	sd.skipBlank()
+	if sd.str[sd.scan] == ':' {
+		sd.scan++
+		sd.skipBlank()
+	} else {
+		return errChar
+	}
 
-	// C: 找Value，然后直接赋值对象
+	// C: 找 value string，然后绑定
 	sd.setSkip()
 	err = sd.scanObjValue()
 	sd.skipValue = false
@@ -251,16 +225,14 @@ func (sd *subDecode) scanArrItems(scanValue scanFunc) (err int) {
 		case ',':
 			sd.scan++
 			sd.skipBlank()
-			goto scanValue
 		default:
 			if first {
 				first = false
-				goto scanValue
+			} else {
+				return errChar
 			}
-			return errChar
 		}
 
-	scanValue:
 		if err = scanValue(); err < 0 {
 			return
 		}
@@ -322,49 +294,22 @@ func (sd *subDecode) scanQuoteString() (slash bool, err int) {
 }
 
 func (sd *subDecode) scanObjValue() (err int) {
-	for {
-		c := sd.str[sd.scan]
-		if isBlankChar[c] {
-			sd.scan++
-			continue
-		}
-
-		switch c {
-		case '{':
-			sd.scan++
-			err = sd.scanSubObject()
-		case '[':
-			sd.scan++
-			//err = sd.scanSubArray()
-		case '"':
-			err = sd.scanStrVal()
-		default:
-			err = sd.scanNoQuoteValue()
-		}
-		return
+	switch sd.str[sd.scan] {
+	case '{':
+		sd.scan++
+		err = sd.scanSubObject()
+	case '[':
+		sd.scan++
+		//err = sd.scanSubArray()
+	case '"':
+		err = sd.scanStrVal()
+	default:
+		err = sd.scanNoQuoteValue()
 	}
-}
-
-// 跳过一个分割符号，前面可以是空字符
-// 比如 ',' 或者 ':'
-
-func (sd *subDecode) skipSeparator(ch byte) (err int) {
-	for {
-		c := sd.str[sd.scan]
-		if isBlankChar[c] {
-			sd.scan++
-			continue
-		}
-		if c == ch {
-			sd.scan++
-			return noErr
-		}
-		return errChar
-	}
+	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
 func (sd *subDecode) scanNumValue() int {

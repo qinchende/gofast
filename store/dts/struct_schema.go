@@ -7,21 +7,36 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/validx"
-	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"sync"
 )
 
+type kvMix struct {
+	items []string
+	idxes []int
+}
+
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type StructSchema struct {
-	attrs       orm.ModelAttrs  // 实体类型的相关控制属性
+	// attrs       orm.ModelAttrs  // 实体类型的相关控制属性
 	columns     []string        // 按顺序存放的tag列名
-	columnsKV   map[string]int8 // pms_name index
+	columnsKV   kvMix           // pms_name index
 	fields      []string        // 按顺序存放的字段名
-	fieldsKV    map[string]int8 // field_name index
+	fieldsKV    kvMix           // field_name index
 	fieldsIndex [][]int         // reflect fields index
 	fieldsOpts  []*fieldOptions // 字段的属性
+	addrOff     []int
 }
+
+//type StructAttrs struct {
+//	TableName string // 数据库表名称
+//	CacheAll  bool   // 是否缓存所有记录
+//	ExpireS   uint32 // 过期时间（秒）默认7天
+//
+//	// 内部状态标记
+//	hashNumber  uint64 // 本结构体的哈希值
+//	cacheKeyFmt string // 行记录缓存的Key前缀
+//}
 
 type fieldOptions struct {
 	valid  *validx.ValidOptions // 验证
@@ -35,12 +50,12 @@ func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 		rTyp = rTyp.Elem()
 	}
 	// 看类型，缓存有就直接用，否则计算一次并缓存
-	mSchema := cacheGetSchema(rTyp)
-	if mSchema == nil {
-		mSchema = buildStructSchema(rTyp, opts)
-		cacheSetSchema(rTyp, mSchema)
+	ss := cacheGetSchema(rTyp)
+	if ss == nil {
+		ss = buildStructSchema(rTyp, opts)
+		cacheSetSchema(rTyp, ss)
 	}
-	return mSchema
+	return ss
 }
 
 func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
@@ -48,16 +63,16 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx, opts)
 
 	// 获取 Model的所有控制属性
-	rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
-	mdAttrs := new(orm.ModelAttrs)
-	attrsFunc := rTypVal.MethodByName("GfAttrs")
-	if attrsFunc.IsValid() {
-		vls := []reflect.Value{rTypVal}
-		mdAttrs = attrsFunc.Call(vls)[0].Interface().(*orm.ModelAttrs)
-	}
-	if mdAttrs == nil {
-		mdAttrs = &orm.ModelAttrs{}
-	}
+	//rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
+	//mdAttrs := new(orm.ModelAttrs)
+	//attrsFunc := rTypVal.MethodByName("GfAttrs")
+	//if attrsFunc.IsValid() {
+	//	vls := []reflect.Value{rTypVal}
+	//	mdAttrs = attrsFunc.Call(vls)[0].Interface().(*orm.ModelAttrs)
+	//}
+	//if mdAttrs == nil {
+	//	mdAttrs = &orm.ModelAttrs{}
+	//}
 
 	// 收缩切片
 	fColumnsNew := make([]string, len(fColumns))
@@ -69,23 +84,38 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	fOptionsNew := make([]*fieldOptions, len(fOptions))
 	copy(fOptionsNew, fOptions)
 	// 构造ORM Model元数据
-	mSchema := StructSchema{
-		attrs:       *mdAttrs,
+	ss := StructSchema{
+		//attrs:       *mdAttrs,
 		columns:     fColumnsNew,
-		columnsKV:   make(map[string]int8, len(fColumns)),
 		fields:      fFieldsNew,
-		fieldsKV:    make(map[string]int8, len(fFields)),
 		fieldsIndex: fIndexesNew,
 		fieldsOpts:  fOptionsNew,
 	}
+	ss.columnsKV.items = make([]string, len(fColumns))
+	ss.columnsKV.idxes = make([]int, len(fColumns))
+	ss.fieldsKV.items = make([]string, len(fFields))
+	ss.fieldsKV.idxes = make([]int, len(fFields))
+
 	// 这样做的目的是收缩Map对象占用的空间
-	for idx, name := range fColumns {
-		mSchema.columnsKV[name] = int8(idx)
+	copy(ss.columnsKV.items, ss.columns)
+	lang.SortByLen(ss.columnsKV.items)
+	for idx, name := range ss.columnsKV.items {
+		for sIdx, sName := range ss.columns {
+			if name == sName {
+				ss.columnsKV.idxes[idx] = sIdx
+			}
+		}
 	}
-	for idx, name := range fFields {
-		mSchema.fieldsKV[name] = int8(idx)
+	copy(ss.fieldsKV.items, ss.fields)
+	lang.SortByLen(ss.fieldsKV.items)
+	for idx, name := range ss.fieldsKV.items {
+		for sIdx, sName := range ss.fields {
+			if name == sName {
+				ss.fieldsKV.idxes[idx] = sIdx
+			}
+		}
 	}
-	return &mSchema
+	return &ss
 }
 
 // 反射提取结构体的字段（支持嵌套递归）

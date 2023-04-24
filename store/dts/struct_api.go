@@ -3,6 +3,7 @@
 package dts
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 )
 
@@ -14,7 +15,20 @@ func Schema(obj any, opts *BindOptions) *StructSchema {
 	}
 }
 
-func SchemaOfType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
+func SchemaForDB(obj any) *StructSchema {
+	return Schema(obj, dbStructOptions)
+}
+
+func SchemaForInput(obj any) *StructSchema {
+	return Schema(obj, inputStructOptions)
+}
+
+func SchemaForConfig(obj any) *StructSchema {
+	return Schema(obj, configStructOptions)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func SchemaByType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	if opts.CacheSchema {
 		return fetchSchemaCache(rTyp, opts)
 	} else {
@@ -22,17 +36,31 @@ func SchemaOfType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	}
 }
 
+func SchemaForDBByType(rTyp reflect.Type) *StructSchema {
+	return SchemaByType(rTyp, dbStructOptions)
+}
+
+func SchemaForInputByType(rTyp reflect.Type) *StructSchema {
+	return SchemaByType(rTyp, inputStructOptions)
+}
+
+func SchemaForConfigByType(rTyp reflect.Type) *StructSchema {
+	return SchemaByType(rTyp, configStructOptions)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
 // reflect
-func (ms *StructSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ms.fieldsIndex[index]).Interface()
+func (ss *StructSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
+	return rVal.FieldByIndex(ss.fieldsIndex[index]).Interface()
 }
 
-func (ms *StructSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ms.fieldsIndex[index]).Addr().Interface()
+func (ss *StructSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
+	return rVal.FieldByIndex(ss.fieldsIndex[index]).Addr().Interface()
 }
 
-func (ms *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Value {
-	idxArr := ms.fieldsIndex[index]
+func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Value {
+	idxArr := ss.fieldsIndex[index]
 	if len(idxArr) == 1 {
 		return rVal.Field(idxArr[0])
 	}
@@ -41,4 +69,13 @@ func (ms *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect
 		tmpVal = tmpVal.Field(x)
 	}
 	return tmpVal
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (ss *StructSchema) KeyIndex(k string) int {
+	idx := lang.SearchSortStrings(ss.columnsKV.items, k)
+	if idx < 0 {
+		return -1
+	}
+	return ss.columnsKV.idxes[idx]
 }

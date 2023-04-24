@@ -2,18 +2,13 @@ package jde
 
 import "unsafe"
 
-type bindIntFunc func(*listPost, int64)
-type bindFloatFunc func(*listPost, int64)
-type bindStrFunc func(*listPost, int64)
-type bindBoolFunc func(*listPost, int64)
-
 func bindArrValue[T string | bool | float32 | float64](a *listPost, v T) {
 	*(*T)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = v
 	a.arrIdx++
 }
 
 var (
-	kindIntFunc = [27]bindIntFunc{
+	kindIntFunc = [27]arrIntFunc{
 		2: func(a *listPost, v int64) {
 			*(*int)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.arrSize))) = int(v)
 			a.arrIdx++
