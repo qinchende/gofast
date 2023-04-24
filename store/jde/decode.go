@@ -32,15 +32,16 @@ func decodeFromString(dst any, source string) (err error) {
 		return
 	}
 	errCode := fd.scanJson()
-	fd.subDecode.putPool()
+	//fd.subDecode.putPool()
+	//return fd.warpErrorCode(errCode)
 	return fd.warpErrorCode(errCode)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type fastDecode struct {
-	dst       any    // 指向原始目标值
-	source    string // 原始字符串
-	subDecode        // 当前解析片段，用于递归
+	//source    string // 原始字符串
+	//dst       any    // 指向原始目标值
+	subDecode // 当前解析片段，用于递归
 }
 
 type subDecode struct {
@@ -64,34 +65,34 @@ type subDecode struct {
 }
 
 func (fd *fastDecode) init(dst any, src string) error {
-	if dst == nil {
-		return errValueIsNil
-	}
-	if len(src) == 0 {
-		return errJsonEmpty
-	}
+	//if dst == nil {
+	//	return errValueIsNil
+	//}
+	//if len(src) == 0 {
+	//	return errJsonEmpty
+	//}
 
 	// origin
-	fd.dst = dst
-	fd.source = src
+	//fd.dst = dst
+	//fd.source = src
 
 	// subDecode
 	fd.str = src
-	fd.scan = 0
+	//fd.scan = 0
 
-	// 先确定是否是 cst.SuperKV 类型
-	var ok bool
-	if fd.gr, ok = dst.(*gson.GsonRow); !ok {
-		if fd.mp, ok = dst.(*cst.KV); !ok {
-			if mpt, ok := dst.(*map[string]any); ok {
-				*fd.mp = *mpt
-			}
-		}
-	}
-	if fd.gr != nil || fd.mp != nil {
-		fd.isSuperKV = true
-		return nil
-	}
+	//// 先确定是否是 cst.SuperKV 类型
+	//var ok bool
+	//if fd.gr, ok = dst.(*gson.GsonRow); !ok {
+	//	if fd.mp, ok = dst.(*cst.KV); !ok {
+	//		if mpt, ok := dst.(*map[string]any); ok {
+	//			*fd.mp = *mpt
+	//		}
+	//	}
+	//}
+	//if fd.gr != nil || fd.mp != nil {
+	//	fd.isSuperKV = true
+	//	return nil
+	//}
 	// 目标对象不是 KV 型，那么后面只能是 List or Struct
 	return fd.subDecode.initListStruct(dst)
 }
@@ -119,5 +120,6 @@ func (sd *subDecode) warpErrorCode(errCode int) error {
 	}
 
 	errMsg := fmt.Sprintf("jsonx: error pos: %d, near %q of ( %s )", sta, sd.str[sta], sd.str[sta:end])
+	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(sd.str[sta]), " of (", sd.str[sta:end], ")"}, "")
 	return errors.New(errMsg)
 }

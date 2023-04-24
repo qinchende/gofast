@@ -38,7 +38,7 @@ var (
 	configStructOptions = &BindOptions{
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
-		CacheSchema:  false,
+		CacheSchema:  true,
 		UseFieldName: true,
 		UseDefValue:  true,
 		UseValid:     true,
@@ -52,7 +52,7 @@ const (
 )
 
 // 使用什么典型配置来解析验证数据
-func matchOptions(like int8) (opt *BindOptions) {
+func AsOptions(like int8) (opt *BindOptions) {
 	switch like {
 	case LikeLoadDB:
 		opt = dbStructOptions

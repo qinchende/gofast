@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"golang.org/x/exp/constraints"
 	"reflect"
 	"sync"
 	"unsafe"
@@ -81,9 +82,7 @@ func (sd *subDecode) flushListPool() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func sliceSetNum[T int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64 | float32 | float64,
-	T2 int64 | float64](val []T2, arr *listPost) {
-
+func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](val []T2, arr *listPost) {
 	size := len(val)
 
 	// 如果是数组 +++++++++++++++++++++++++
