@@ -44,9 +44,9 @@ type listPost struct {
 
 // 解析Struct对象当前的meta信息
 type structPost struct {
-	objPtr uintptr           // 数组首值地址
-	refVal reflect.Value     // 反射值
-	ss     *dts.StructSchema // 目标值是一个Struct时候
+	objPtr uintptr // 数组首值地址
+	//refVal reflect.Value     // 反射值
+	ss *dts.StructSchema // 目标值是一个Struct时候
 }
 
 //func (sd *structPost) setStringByIndex(idx int, val string) {
@@ -112,7 +112,7 @@ func (sd *subDecode) initStructMeta(rfVal reflect.Value) error {
 	o := &shareObj
 
 	// 先假设用Input模式来解JSON
-	o.refVal = rfVal
+	//o.refVal = rfVal
 	o.ss = dts.SchemaForInputByType(rfVal.Type())
 	o.objPtr = rfVal.Addr().Pointer()
 

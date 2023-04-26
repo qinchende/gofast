@@ -8,6 +8,7 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/gson"
 	"io"
+	"reflect"
 )
 
 func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
@@ -22,12 +23,15 @@ func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
 	return decodeFromString(dst, lang.BTS(bytes))
 }
 
+var shareDecode = fastDecode{}
+
 func decodeFromString(dst any, source string) (err error) {
 	if len(source) > maxJsonLength {
 		return errJsonTooLarge
 	}
 
-	fd := fastDecode{}
+	//fd := fastDecode{}
+	fd := &shareDecode
 	if err = fd.init(dst, source); err != nil {
 		return
 	}
@@ -78,7 +82,7 @@ func (fd *fastDecode) init(dst any, src string) error {
 
 	// subDecode
 	fd.str = src
-	//fd.scan = 0
+	fd.scan = 0
 
 	//// 先确定是否是 cst.SuperKV 类型
 	//var ok bool
@@ -94,7 +98,14 @@ func (fd *fastDecode) init(dst any, src string) error {
 	//	return nil
 	//}
 	// 目标对象不是 KV 型，那么后面只能是 List or Struct
-	return fd.subDecode.initListStruct(dst)
+	//return fd.subDecode.initListStruct(dst)
+
+	if fd.subDecode.obj == nil {
+		_ = fd.subDecode.initListStruct(dst)
+	} else {
+		fd.subDecode.obj.objPtr = reflect.ValueOf(dst).Elem().Addr().Pointer()
+	}
+	return nil
 }
 
 func (sd *subDecode) getPool() {

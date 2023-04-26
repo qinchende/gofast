@@ -26,7 +26,7 @@ type GsonRow struct {
 // TODO: 在这种模式下，GsonRow中的Cls必须是已经按照字符串长度从小到大排好序的
 // 实现接口 cst.SuperKV
 func (gr *GsonRow) Get(k string) (v any, ok bool) {
-	idx := lang.SearchSortStrings(gr.Cls, k)
+	idx := lang.SearchSorted(gr.Cls, k)
 	if idx < 0 {
 		return nil, false
 	}
@@ -34,14 +34,14 @@ func (gr *GsonRow) Get(k string) (v any, ok bool) {
 }
 
 func (gr *GsonRow) Del(k string) {
-	idx := lang.SearchSortStrings(gr.Cls, k)
+	idx := lang.SearchSorted(gr.Cls, k)
 	if idx >= 0 {
 		gr.Row[idx] = nil
 	}
 }
 
 func (gr *GsonRow) Set(k string, v any) {
-	idx := lang.SearchSortStrings(gr.Cls, k)
+	idx := lang.SearchSorted(gr.Cls, k)
 	if idx >= 0 {
 		gr.Row[idx] = v
 	}
@@ -60,11 +60,11 @@ func (gr *GsonRow) Init(cls []string) {
 }
 
 func (gr *GsonRow) KeyIndex(k string) int {
-	return lang.SearchSortStrings(gr.Cls, k)
+	return lang.SearchSorted(gr.Cls, k)
 }
 
 func (gr *GsonRow) GetString(k string) (v string, ok bool) {
-	idx := lang.SearchSortStrings(gr.Cls, k)
+	idx := lang.SearchSorted(gr.Cls, k)
 	if idx < 0 || gr.Row[idx] == nil {
 		return "", false
 	}
@@ -91,7 +91,7 @@ func (gr *GsonRow) GetValue(idx int) any {
 
 // 绕一圈，主要是为了避免对象分配，提高性能。
 func (gr *GsonRow) SetString(k string, v string) {
-	idx := lang.SearchSortStrings(gr.Cls, k)
+	idx := lang.SearchSorted(gr.Cls, k)
 	if idx >= 0 {
 		gr.values[idx] = v
 		gr.Row[idx] = &gr.values[idx]

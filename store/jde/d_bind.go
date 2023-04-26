@@ -4,21 +4,21 @@ package jde
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //go:inline
 func (sd *subDecode) setSkip() {
-	if sd.keyIdx = sd.obj.ss.KeyIndex(sd.key); sd.keyIdx < 0 {
+	if sd.keyIdx = sd.obj.ss.ColumnIndex(sd.key); sd.keyIdx < 0 {
 		sd.skipValue = true
 	}
 	return
 	////
 	//// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
 	//if sd.gr != nil {
-	//	if sd.keyIdx = sd.gr.KeyIndex(sd.key); sd.keyIdx < 0 {
+	//	if sd.keyIdx = sd.gr.ColumnIndex(sd.key); sd.keyIdx < 0 {
 	//		sd.skipValue = true
 	//	}
 	//	return
 	//}
 	//// 如果是 struct ，就找找是否支持这个字段
 	//if sd.isStruct {
-	//	if sd.keyIdx = sd.obj.ss.KeyIndex(sd.key); sd.keyIdx < 0 {
+	//	if sd.keyIdx = sd.obj.ss.ColumnIndex(sd.key); sd.keyIdx < 0 {
 	//		sd.skipValue = true
 	//	}
 	//	return
