@@ -20,21 +20,45 @@ func SortByLen(keys []string) {
 
 // list必须是按字符串长度从小到大排序好的数组，而且不能有空字符串，数据量不可太大
 // 匹配到就返回索引，没找到就返回-1
-func SearchSortStrings(list []string, str string) int {
-	for i := range list {
-		if len(list[i]) < len(str) {
+//go:inline
+func SearchSorted(items []string, str string) int {
+	for i := 0; i < len(items); i++ {
+		item := items[i]
+
+		if len(item) < len(str) {
 			continue
 		}
-		if len(list[i]) > len(str) {
+		if len(item) > len(str) {
 			break
 		}
+
 		// 如果首尾字符相同，然后再全量比较
-		if list[i][0] == str[0] {
-			if list[i][len(list[i])-1] == str[len(str)-1] {
-				if list[i] == str {
+		if item[0] == str[0] {
+			if item[len(item)-1] == str[len(str)-1] {
+				if item == str {
 					return i
 				}
 			}
+		}
+	}
+	return -1
+}
+
+//go:inline
+func SearchSortedSkip(items []string, i int, str string) int {
+	for ; i < len(items); i++ {
+		item := items[i]
+
+		if item[0] == str[0] {
+			if item[len(item)-1] == str[len(str)-1] {
+				if item == str {
+					return i
+				}
+			}
+		}
+
+		if len(item) > len(str) {
+			break
 		}
 	}
 	return -1

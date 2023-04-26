@@ -72,10 +72,20 @@ func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ss *StructSchema) KeyIndex(k string) int {
-	idx := lang.SearchSortStrings(ss.columnsKV.items, k)
-	if idx < 0 {
+func (ss *StructSchema) ColumnIndex(k string) int {
+	kv := ss.columnTips
+	if idx := lang.SearchSortedSkip(kv.items, int(kv.lenOff[len(k)]), k); idx < 0 {
 		return -1
+	} else {
+		return int(kv.idxes[idx])
 	}
-	return ss.columnsKV.idxes[idx]
+}
+
+func (ss *StructSchema) FieldIndex(k string) int {
+	kv := ss.fieldTips
+	if idx := lang.SearchSortedSkip(kv.items, int(kv.lenOff[len(k)]), k); idx < 0 {
+		return -1
+	} else {
+		return int(kv.idxes[idx])
+	}
 }

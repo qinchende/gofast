@@ -6,15 +6,13 @@ import (
 	"reflect"
 )
 
-type scanFunc func() int
-
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
 func (sd *subDecode) scanJson() (err int) {
 	// 万一解析过程中异常，这里统一截获处理，返回解析错误
 	defer func() {
 		if pic := recover(); pic != nil {
-			fmt.Println(pic)
+			fmt.Println(pic) // 调试的时候打印错误信息
 			err = errJson
 		}
 	}()
@@ -213,7 +211,7 @@ func (sd *subDecode) scanList() (err int) {
 	return
 }
 
-func (sd *subDecode) scanArrItems(scanValue scanFunc) (err int) {
+func (sd *subDecode) scanArrItems(scanValue func() int) (err int) {
 	first := true
 	for {
 		sd.skipBlank()
