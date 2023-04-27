@@ -17,9 +17,9 @@ type fastPool struct {
 	bufBol []bool
 	bufAny []any
 
-	// ++++++++++++
-	arr listPost
-	obj structPost
+	//// ++++++++++++
+	//arr listPost
+	//obj structPost
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -46,50 +46,50 @@ func (sd *subDecode) flushListPool() {
 	//	return
 	//}
 
-	switch sd.arr.itemKind {
+	switch sd.dm.itemKind {
 	case reflect.Int:
-		sliceSetNum[int, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[int, int64](sd.pl.bufI64, sd)
 	case reflect.Int8:
-		sliceSetNum[int8, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[int8, int64](sd.pl.bufI64, sd)
 	case reflect.Int16:
-		sliceSetNum[int16, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[int16, int64](sd.pl.bufI64, sd)
 	case reflect.Int32:
-		sliceSetNum[int32, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[int32, int64](sd.pl.bufI64, sd)
 	case reflect.Int64:
-		sliceSetNum[int64, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[int64, int64](sd.pl.bufI64, sd)
 
 	case reflect.Uint:
-		sliceSetNum[int, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[int, int64](sd.pl.bufI64, sd)
 	case reflect.Uint8:
-		sliceSetNum[uint8, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[uint8, int64](sd.pl.bufI64, sd)
 	case reflect.Uint16:
-		sliceSetNum[uint16, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[uint16, int64](sd.pl.bufI64, sd)
 	case reflect.Uint32:
-		sliceSetNum[uint32, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[uint32, int64](sd.pl.bufI64, sd)
 	case reflect.Uint64:
-		sliceSetNum[uint64, int64](sd.pl.bufI64, sd.arr)
+		sliceSetNum[uint64, int64](sd.pl.bufI64, sd)
 
 	case reflect.Float32:
-		sliceSetNum[float32, float64](sd.pl.bufF64, sd.arr)
+		sliceSetNum[float32, float64](sd.pl.bufF64, sd)
 	case reflect.Float64:
-		sliceSetNum[float64, float64](sd.pl.bufF64, sd.arr)
+		sliceSetNum[float64, float64](sd.pl.bufF64, sd)
 
 	case reflect.String:
-		sliceSetString(sd.pl.bufStr, sd.arr)
+		sliceSetString(sd.pl.bufStr, sd)
 	case reflect.Interface:
-		sliceSetString(sd.pl.bufStr, sd.arr)
+		sliceSetString(sd.pl.bufStr, sd)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](val []T2, arr *listPost) {
+func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](val []T2, sb *subDecode) {
 	size := len(val)
 
 	// 如果是数组 +++++++++++++++++++++++++
-	if !arr.isPtr && arr.arrLen > 0 {
+	if !sb.dm.isPtr && sb.arrLen > 0 {
 		dstArr := []T{}
 		bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstArr))
-		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&arr.dst)).ptr), size, size
+		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&sb.dst)).ptr), size, size
 
 		for i := 0; i < size; i++ {
 			dstArr[i] = T(val[i])
@@ -102,14 +102,14 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 	for i := 0; i < len(newArr); i++ {
 		newArr[i] = T(val[i])
 	}
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]T)) = newArr
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]T)) = newArr
 		return
 	}
 
 	// 第一级指针
 	var newArrPtr1 []*T
-	//if arr.ptrLevel == 1 && arr.isPtr {
+	//if sb.dm.ptrLevel == 1 && arr.isPtr {
 	//	//newArrPtr1 =
 	//
 	//	bh := (*reflect.SliceHeader)(unsafe.Pointer(&newArrPtr1))
@@ -119,16 +119,16 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 	//		newArrPtr1[i] = &newArr[i]
 	//	}
 	//
-	//	arr.ptrLevel = 0
+	//	sb.dm.ptrLevel = 0
 	//	return
 	//}
 	newArrPtr1 = make([]*T, size)
 	for i := 0; i < len(newArr); i++ {
 		newArrPtr1[i] = &newArr[i]
 	}
-	arr.ptrLevel--
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]*T)) = newArrPtr1
+	sb.dm.ptrLevel--
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]*T)) = newArrPtr1
 		return
 	}
 
@@ -137,9 +137,9 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 	for i := 0; i < len(newArrPtr1); i++ {
 		newArrPtr2[i] = &newArrPtr1[i]
 	}
-	arr.ptrLevel--
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]**T)) = newArrPtr2
+	sb.dm.ptrLevel--
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]**T)) = newArrPtr2
 		return
 	}
 
@@ -148,30 +148,30 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 	for i := 0; i < len(newArrPtr2); i++ {
 		newArrPtr3[i] = &newArrPtr2[i]
 	}
-	arr.ptrLevel--
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]***T)) = newArrPtr3
+	sb.dm.ptrLevel--
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]***T)) = newArrPtr3
 	}
 	return
 }
 
-func sliceSetString(val []string, arr *listPost) {
+func sliceSetString(val []string, sb *subDecode) {
 	size := len(val)
 
 	// 如果是数组 +++++++++++++++++++++++++
-	if !arr.isPtr && arr.arrLen > 0 {
+	if !sb.dm.isPtr && sb.arrLen > 0 {
 		dstArr := []string{}
 		bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstArr))
-		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&arr.dst)).ptr), size, size
+		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&sb.dst)).ptr), size, size
 		copy(dstArr, val)
 		return
 	}
 
 	newArr := make([]string, size)
 	copy(newArr, val)
-	if arr.ptrLevel <= 0 {
+	if sb.dm.ptrLevel <= 0 {
 		// arr.refVal.Set(reflect.ValueOf(newArr))
-		*(arr.dst.(*[]string)) = newArr
+		*(sb.dst.(*[]string)) = newArr
 		return
 	}
 
@@ -180,9 +180,9 @@ func sliceSetString(val []string, arr *listPost) {
 	for i := 0; i < len(newArr); i++ {
 		newArrPtr1[i] = &newArr[i]
 	}
-	arr.ptrLevel--
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]*string)) = newArrPtr1
+	sb.dm.ptrLevel--
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]*string)) = newArrPtr1
 		return
 	}
 
@@ -191,9 +191,9 @@ func sliceSetString(val []string, arr *listPost) {
 	for i := 0; i < len(newArrPtr1); i++ {
 		newArrPtr2[i] = &newArrPtr1[i]
 	}
-	arr.ptrLevel--
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]**string)) = newArrPtr2
+	sb.dm.ptrLevel--
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]**string)) = newArrPtr2
 		return
 	}
 
@@ -202,9 +202,39 @@ func sliceSetString(val []string, arr *listPost) {
 	for i := 0; i < len(newArrPtr2); i++ {
 		newArrPtr3[i] = &newArrPtr2[i]
 	}
-	arr.ptrLevel--
-	if arr.ptrLevel <= 0 {
-		*(arr.dst.(*[]***string)) = newArrPtr3
+	sb.dm.ptrLevel--
+	if sb.dm.ptrLevel <= 0 {
+		*(sb.dst.(*[]***string)) = newArrPtr3
 	}
 	return
+}
+
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// cached sub decode
+//var cachedFastDecode sync.Map
+//
+//func cacheSetFastDecode(typ reflect.Type, val *fastDecode) {
+//	cachedFastDecode.Store(typ, val)
+//}
+//
+//func cacheGetFastDecode(typ reflect.Type) *fastDecode {
+//	if ret, ok := cachedFastDecode.Load(typ); ok {
+//		return ret.(*fastDecode)
+//	}
+//	return nil
+//}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// cached sub decode
+var cachedDestMeta sync.Map
+
+func cacheSetMeta(typ *dataType, val *destMeta) {
+	cachedDestMeta.Store(typ, val)
+}
+
+func cacheGetMeta(typ *dataType) *destMeta {
+	if ret, ok := cachedDestMeta.Load(typ); ok {
+		return ret.(*destMeta)
+	}
+	return nil
 }

@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/skill/iox"
 	"github.com/qinchende/gofast/skill/lang"
 	"io"
 	"net/http"
@@ -54,4 +55,25 @@ func EncodeToString(v any) (string, error) {
 
 func EncodeIndent(v any, prefix, indent string) ([]byte, error) {
 	return nil, nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// private enter
+func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
+	// 一次性读取完成，或者遇到EOF标记或者其它错误
+	if ctSize > maxJsonLength {
+		ctSize = maxJsonLength
+	}
+	bytes, err1 := iox.ReadAll(reader, ctSize)
+	if err1 != nil {
+		return err1
+	}
+	return decodeFromString(dst, lang.BTS(bytes))
+}
+
+func decodeFromString(dst any, source string) (err error) {
+	if len(source) > maxJsonLength {
+		return errJsonTooLarge
+	}
+	return startDecode(dst, source)
 }

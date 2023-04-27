@@ -120,10 +120,8 @@ func (sd *subDecode) scanKVItem() (err int) {
 	}
 
 	// C: 找 value string，然后绑定
-	sd.setSkip()
-	err = sd.scanObjValue()
-	sd.skipValue = false
-	return
+	sd.checkSkip()
+	return sd.scanObjValue()
 }
 
 func (sd *subDecode) scanSubObject() (err int) {
@@ -192,22 +190,21 @@ func (sd *subDecode) scanSubObject() (err int) {
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
 func (sd *subDecode) scanList() (err int) {
-	if !sd.isList {
+	if !sd.dm.isList {
 		return errList
 	}
 
 	// 根据目标值类型，直接匹配，提高效率
 	switch {
-	case isNumKind(sd.arr.itemKind) == true:
+	case isNumKind(sd.dm.itemKind) == true:
 		err = sd.scanArrItems(sd.scanNumValue)
-	case sd.arr.itemKind == reflect.String:
+	case sd.dm.itemKind == reflect.String:
 		err = sd.scanArrItems(sd.scanStrVal)
-	case sd.arr.itemKind == reflect.Bool:
+	case sd.dm.itemKind == reflect.Bool:
 		err = sd.scanArrItems(sd.scanBoolVal)
 	default:
 		err = sd.scanArrItems(sd.scanObjValue)
 	}
-	sd.skipValue = false
 	return
 }
 
