@@ -4,7 +4,6 @@ import (
 	"errors"
 	"math"
 	"reflect"
-	"unsafe"
 )
 
 const (
@@ -42,12 +41,6 @@ const (
 
 	//errNotSupportType int = -13
 )
-
-type dataType struct{}
-type emptyInterface struct {
-	typ *dataType
-	ptr unsafe.Pointer
-}
 
 //type bindValue[T1 int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64 | float32 | float64, T2 int64 | float64] func(T2)
 
