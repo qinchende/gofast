@@ -10,7 +10,7 @@ import (
 //go:inline
 func (sd *subDecode) checkSkip() {
 	// 如果是 struct ，就找找是否支持这个字段
-	if sd.dm.isStruct {
+	if sd.isStruct {
 		if sd.keyIdx = sd.dm.ss.ColumnIndex(sd.key); sd.keyIdx < 0 {
 			sd.skipValue = true
 		} else {
@@ -38,9 +38,8 @@ func (sd *subDecode) isSkip() bool {
 //go:inline
 func (sd *subDecode) bindString(val string) (err int) {
 	// 如果是 struct
-	if sd.dm.isStruct {
+	if sd.isStruct {
 		sd.dm.ss.BindString(sd.dstPtr, sd.keyIdx, val)
-		//sd.obj.setStringByIndex(sd.keyIdx, val)
 		return noErr
 	}
 
@@ -54,19 +53,20 @@ func (sd *subDecode) bindString(val string) (err int) {
 	}
 
 	// 如果是数组
-	if sd.dm.isList {
-		if !allowStr(sd.dm.itemKind) {
-			return errList
-		}
-		if sd.dm.isArray {
-			if len(sd.pl.bufStr) >= sd.arrLen {
+	if sd.isList {
+		// 如果是定长的数组，而且值不是指针类型，可以直接设置值
+		if sd.isArray && !sd.isPtr {
+			if sd.arrIdx >= sd.dm.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
-			//if !sd.arr.isPtr {
-			//	bindArrValue[string](sd.arr, val)
-			//	return noErr
-			//}
+			bindArrValue[string](sd, val)
+			return noErr
+		}
+
+		if len(sd.pl.bufStr) >= sd.dm.arrLen {
+			sd.skipValue = true
+			return noErr
 		}
 		sd.pl.bufStr = append(sd.pl.bufStr, val)
 		return noErr
@@ -78,9 +78,8 @@ func (sd *subDecode) bindString(val string) (err int) {
 //go:inline
 func (sd *subDecode) bindBool(val bool) (err int) {
 	// 如果是 struct
-	if sd.dm.isStruct {
+	if sd.isStruct {
 		sd.dm.ss.BindBool(sd.dstPtr, sd.keyIdx, val)
-		//sd.dm.setBoolByIndex(sd.keyIdx, val)
 		return noErr
 	}
 
@@ -94,12 +93,9 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 	}
 
 	// 如果是数组
-	if sd.dm.isList {
-		if !allowBool(sd.dm.itemKind) {
-			return errList
-		}
-		if sd.dm.isArray {
-			if len(sd.pl.bufStr) >= sd.arrLen {
+	if sd.isList {
+		if sd.isArray {
+			if len(sd.pl.bufStr) >= sd.dm.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
@@ -114,12 +110,11 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 //go:inline
 func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 	// 如果是 struct
-	if sd.dm.isStruct {
+	if sd.isStruct {
 		if num, err1 := parseInt(val); err < 0 {
 			return err1
 		} else {
 			sd.dm.ss.BindInt(sd.dstPtr, sd.keyIdx, num)
-			//sd.dm.setIntByIndex(sd.keyIdx, num)
 		}
 		return noErr
 	}
@@ -134,11 +129,11 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 	}
 
 	// 如果是数组
-	if sd.dm.isList {
+	if sd.isList {
 		// 如果目标是 any 值
 		if sd.dm.itemKind == reflect.Interface {
-			if sd.dm.isArray {
-				if len(sd.pl.bufStr) >= sd.arrLen {
+			if sd.isArray {
+				if len(sd.pl.bufStr) >= sd.dm.arrLen {
 					sd.skipValue = true
 					return noErr
 				}
@@ -162,7 +157,7 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 			//	return noErr
 			//}
 
-			if len(sd.pl.bufI64) >= sd.arrLen {
+			if len(sd.pl.bufI64) >= sd.dm.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
@@ -174,7 +169,7 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 			}
 
 		} else if allowFloat(sd.dm.itemKind) {
-			if sd.dm.isArray && len(sd.pl.bufF64) >= sd.arrLen {
+			if sd.isArray && len(sd.pl.bufF64) >= sd.dm.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
@@ -197,7 +192,7 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 
 func (sd *subDecode) bindNull() (err int) {
 	// 如果是数组
-	if sd.dm.isList {
+	if sd.isList {
 		return noErr
 	}
 

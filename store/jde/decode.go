@@ -17,25 +17,23 @@ type emptyInterface struct {
 }
 
 type fastDecode struct {
-	//source    string // 原始字符串
-	//dst       any    // 指向原始目标值
 	subDecode // 当前解析片段，用于递归
 }
 
 type subDecode struct {
 	pl *fastPool
 
-	// 直接两种 SupperKV
+	// 直接两种 SupperKV +++++++++++
 	mp *cst.KV       // 解析到map
 	gr *gson.GsonRow // 解析到GsonRow
 
-	// 或者 Struct | Slice,Array
+	// Struct | Slice,Array ++++++++
 	dm     *destMeta
 	dst    any     // 原始值
 	dstPtr uintptr // 数组首值地址
-	arrLen int     // 数组长度
 	arrIdx int     // 数组索引
 
+	// 当前解析JSON的状态信息 ++++++
 	str    string // 本段字符串
 	scan   int    // 自己的扫描进度，当解析错误时，这个就是定位
 	key    string // 当前KV对的Key值
@@ -44,6 +42,7 @@ type subDecode struct {
 	skipValue bool // 跳过当前要解析的值
 	skipTotal bool // 跳过所有项目
 	isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
+	destStatus
 }
 
 type destMeta struct {
@@ -54,12 +53,17 @@ type destMeta struct {
 	itemType reflect.Type
 	itemKind reflect.Kind
 	itemSize int // item类型对应的内存字节大小
+	arrLen   int // 数组长度
 
+	destStatus
 	ptrLevel uint8
-	isPtr    bool
+}
+
+type destStatus struct {
 	isList   bool // 区分 [] 或者 {}
 	isArray  bool // 不是slice
 	isStruct bool // {} 可能目标是 一个 struct 对象
+	isPtr    bool
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -76,8 +80,9 @@ func startDecode(dst any, source string) (err error) {
 		return
 	}
 
+	fd.getPool()
 	errCode := fd.scanJson()
-	//fd.putPool()
+	fd.putPool()
 	return fd.warpErrorCode(errCode)
 }
 
@@ -94,7 +99,7 @@ func (sd *subDecode) initDecode(dst any) (err error) {
 
 	if sd.gr != nil || sd.mp != nil {
 		sd.isSuperKV = true
-		return nil
+		return
 	}
 
 	// 目标对象不是 KV 型，那么后面只能是 List or Struct
@@ -108,16 +113,14 @@ func (sd *subDecode) initDecode(dst any) (err error) {
 		}
 		cacheSetMeta(ei.typ, sd.dm)
 	}
+	sd.destStatus = sd.dm.destStatus
 
 	// 当前值的地址等信息
-	if sd.dm.isList {
-		sd.dst = dst
-		if sd.dm.isArray {
-			sd.arrLen = reflect.Indirect(reflect.ValueOf(dst)).Len()
-		}
-	}
 	sd.dstPtr = uintptr(ei.ptr)
-	return nil
+	if sd.isList {
+		sd.dst = dst
+	}
+	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -149,6 +152,8 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 		// 进一步初始化数组
 		if kd == reflect.Array {
 			sd.initArrayMeta()
+			sd.dm.arrLen = rfVal.Len()
+
 		}
 	default:
 		return errValueType
@@ -165,19 +170,19 @@ func (sd *subDecode) initStructMeta(rfType reflect.Type) error {
 func (sd *subDecode) initListMeta(rfType reflect.Type) error {
 	sd.dm.isList = true
 
-	a := sd.dm
-	a.listType = rfType
-	a.itemType = a.listType.Elem()
-	a.itemKind = a.itemType.Kind()
+	sd.dm.listType = rfType
+	sd.dm.listKind = rfType.Kind()
+	sd.dm.itemType = sd.dm.listType.Elem()
+	sd.dm.itemKind = sd.dm.itemType.Kind()
 
 peelPtr:
-	if a.itemKind == reflect.Pointer {
-		a.itemType = a.itemType.Elem()
-		a.itemKind = a.itemType.Kind()
-		a.isPtr = true
-		a.ptrLevel++
-		// TODO：指针嵌套不能超过3层
-		if a.ptrLevel > 3 {
+	if sd.dm.itemKind == reflect.Pointer {
+		sd.dm.itemType = sd.dm.itemType.Elem()
+		sd.dm.itemKind = sd.dm.itemType.Kind()
+		sd.dm.isPtr = true
+		sd.dm.ptrLevel++
+		// TODO：指针嵌套不能超过3层，这种很少见，真遇到，自己后期再处理
+		if sd.dm.ptrLevel > 3 {
 			return errPtrLevel
 		}
 		goto peelPtr
@@ -187,23 +192,24 @@ peelPtr:
 
 func (sd *subDecode) initArrayMeta() {
 	sd.dm.isArray = true
-
-	sd.arrIdx = 0
 	if sd.dm.isPtr {
 		return
 	}
 	sd.dm.itemSize = int(sd.dm.itemType.Size())
 }
 
-//func (sd *subDecode) getPool() {
-//	if sd.pl == nil {
-//		sd.pl = jdePool.Get().(*fastPool)
-//	}
-//}
-//
-//func (sd *subDecode) putPool() {
-//	jdePool.Put(sd.pl)
-//}
+func (sd *subDecode) getPool() {
+	if sd.isList && sd.pl == nil {
+		sd.pl = jdePool.Get().(*fastPool)
+	}
+}
+
+func (sd *subDecode) putPool() {
+	if sd.isList {
+		jdePool.Put(sd.pl)
+		//sd.pl = nil
+	}
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) warpErrorCode(errCode int) error {
