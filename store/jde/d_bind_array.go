@@ -1,10 +1,13 @@
 package jde
 
-//
-//func bindArrValue[T string | bool | float32 | float64](a *listPost, v T) {
-//	*(*T)(unsafe.Pointer(a.arrPtr + uintptr(a.arrIdx*a.itemSize))) = v
-//	a.arrIdx++
-//}
+import "unsafe"
+
+//go:inline
+func bindArrValue[T string | bool | float32 | float64](sd *subDecode, v T) {
+	*(*T)(unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.itemSize))) = v
+	sd.arrIdx++
+}
+
 //
 //var (
 //	kindIntFunc = [27]arrIntFunc{

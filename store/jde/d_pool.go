@@ -7,19 +7,30 @@ import (
 	"unsafe"
 )
 
+// cached dest value meta info
+var cachedDestMeta sync.Map
+
+func cacheSetMeta(typ *dataType, val *destMeta) {
+	cachedDestMeta.Store(typ, val)
+}
+
+func cacheGetMeta(typ *dataType) *destMeta {
+	if ret, ok := cachedDestMeta.Load(typ); ok {
+		return ret.(*destMeta)
+	}
+	return nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 var jdePool = sync.Pool{New: func() any { return &fastPool{} }}
 
-// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致后面一致不释放的问题
+// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
 type fastPool struct {
 	bufI64 []int64
 	bufF64 []float64
 	bufStr []string
 	bufBol []bool
 	bufAny []any
-
-	//// ++++++++++++
-	//arr listPost
-	//obj structPost
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -42,9 +53,10 @@ func (sd *subDecode) resetListPool() {
 }
 
 func (sd *subDecode) flushListPool() {
-	//if sd.isArray && !sd.arr.isPtr {
-	//	return
-	//}
+	// 如果是定长数组，不会用到缓冲池，不需要转储
+	if sd.isArray && !sd.isPtr {
+		return
+	}
 
 	switch sd.dm.itemKind {
 	case reflect.Int:
@@ -82,53 +94,29 @@ func (sd *subDecode) flushListPool() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](val []T2, sb *subDecode) {
+func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](val []T2, sd *subDecode) {
 	size := len(val)
 
-	// 如果是数组 +++++++++++++++++++++++++
-	if !sb.dm.isPtr && sb.arrLen > 0 {
-		dstArr := []T{}
-		bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstArr))
-		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&sb.dst)).ptr), size, size
-
-		for i := 0; i < size; i++ {
-			dstArr[i] = T(val[i])
-		}
-		return
-	}
-
+	ptrLevel := sd.dm.ptrLevel
 	// 如果是 Slice ++++++++++++++++++++++
 	newArr := make([]T, size)
 	for i := 0; i < len(newArr); i++ {
 		newArr[i] = T(val[i])
 	}
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]T)) = newArr
+	if ptrLevel <= 0 {
+		*(sd.dst.(*[]T)) = newArr
 		return
 	}
 
 	// 第一级指针
 	var newArrPtr1 []*T
-	//if sb.dm.ptrLevel == 1 && arr.isPtr {
-	//	//newArrPtr1 =
-	//
-	//	bh := (*reflect.SliceHeader)(unsafe.Pointer(&newArrPtr1))
-	//	bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&arr.dst)).ptr), size, size
-	//
-	//	for i := 0; i < size; i++ {
-	//		newArrPtr1[i] = &newArr[i]
-	//	}
-	//
-	//	sb.dm.ptrLevel = 0
-	//	return
-	//}
 	newArrPtr1 = make([]*T, size)
 	for i := 0; i < len(newArr); i++ {
 		newArrPtr1[i] = &newArr[i]
 	}
-	sb.dm.ptrLevel--
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]*T)) = newArrPtr1
+	ptrLevel--
+	if ptrLevel <= 0 {
+		*(sd.dst.(*[]*T)) = newArrPtr1
 		return
 	}
 
@@ -137,104 +125,65 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 	for i := 0; i < len(newArrPtr1); i++ {
 		newArrPtr2[i] = &newArrPtr1[i]
 	}
-	sb.dm.ptrLevel--
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]**T)) = newArrPtr2
+	ptrLevel--
+	if ptrLevel <= 0 {
+		*(sd.dst.(*[]**T)) = newArrPtr2
 		return
 	}
 
-	// 第三级指针
-	newArrPtr3 := make([]***T, size)
-	for i := 0; i < len(newArrPtr2); i++ {
-		newArrPtr3[i] = &newArrPtr2[i]
-	}
-	sb.dm.ptrLevel--
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]***T)) = newArrPtr3
-	}
 	return
 }
 
-func sliceSetString(val []string, sb *subDecode) {
-	size := len(val)
+func sliceSetString(val []string, sd *subDecode) {
+	ptrLevel := sd.dm.ptrLevel
 
-	// 如果是数组 +++++++++++++++++++++++++
-	if !sb.dm.isPtr && sb.arrLen > 0 {
-		dstArr := []string{}
-		bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstArr))
-		bh.Data, bh.Len, bh.Cap = uintptr((*emptyInterface)(unsafe.Pointer(&sb.dst)).ptr), size, size
-		copy(dstArr, val)
-		return
-	}
-
-	newArr := make([]string, size)
+	// 如果绑定对象是字符串切片
+	newArr := make([]string, len(val))
 	copy(newArr, val)
-	if sb.dm.ptrLevel <= 0 {
-		// arr.refVal.Set(reflect.ValueOf(newArr))
-		*(sb.dst.(*[]string)) = newArr
+	if ptrLevel <= 0 {
+		*(sd.dst.(*[]string)) = newArr
 		return
 	}
 
-	// 第一级指针
-	newArrPtr1 := make([]*string, size)
-	for i := 0; i < len(newArr); i++ {
-		newArrPtr1[i] = &newArr[i]
-	}
-	sb.dm.ptrLevel--
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]*string)) = newArrPtr1
+	// 一级指针
+	ptrLevel--
+	ret1 := copyStrSlice[string](sd, ptrLevel, newArr)
+	if ret1 == nil {
 		return
 	}
 
-	// 第二级指针
-	newArrPtr2 := make([]**string, size)
-	for i := 0; i < len(newArrPtr1); i++ {
-		newArrPtr2[i] = &newArrPtr1[i]
-	}
-	sb.dm.ptrLevel--
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]**string)) = newArrPtr2
+	// 二级指针
+	ptrLevel--
+	ret2 := copyStrSlice[*string](sd, ptrLevel, ret1)
+	if ret2 == nil {
 		return
 	}
 
-	// 第三级指针
-	newArrPtr3 := make([]***string, size)
-	for i := 0; i < len(newArrPtr2); i++ {
-		newArrPtr3[i] = &newArrPtr2[i]
-	}
-	sb.dm.ptrLevel--
-	if sb.dm.ptrLevel <= 0 {
-		*(sb.dst.(*[]***string)) = newArrPtr3
-	}
+	// 三级指针
+	ptrLevel--
+	_ = copyStrSlice[**string](sd, ptrLevel, ret2)
 	return
 }
 
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// cached sub decode
-//var cachedFastDecode sync.Map
-//
-//func cacheSetFastDecode(typ reflect.Type, val *fastDecode) {
-//	cachedFastDecode.Store(typ, val)
-//}
-//
-//func cacheGetFastDecode(typ reflect.Type) *fastDecode {
-//	if ret, ok := cachedFastDecode.Load(typ); ok {
-//		return ret.(*fastDecode)
-//	}
-//	return nil
-//}
+func copyStrSlice[T string | *string | **string](sd *subDecode, ptrLevel uint8, arr []T) []*T {
+	size := len(arr)
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// cached sub decode
-var cachedDestMeta sync.Map
-
-func cacheSetMeta(typ *dataType, val *destMeta) {
-	cachedDestMeta.Store(typ, val)
-}
-
-func cacheGetMeta(typ *dataType) *destMeta {
-	if ret, ok := cachedDestMeta.Load(typ); ok {
-		return ret.(*destMeta)
+	newArr := make([]*T, size)
+	for i := 0; i < size; i++ {
+		newArr[i] = &arr[i]
 	}
-	return nil
+
+	if ptrLevel <= 0 {
+		if sd.isArray {
+			dstSnap := []*T{}
+			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
+			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
+			copy(dstSnap, newArr)
+		} else {
+			*(sd.dst.(*[]*T)) = newArr
+		}
+		return nil
+	} else {
+		return newArr
+	}
 }

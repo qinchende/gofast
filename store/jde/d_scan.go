@@ -32,7 +32,7 @@ func (sd *subDecode) scanJson() (err int) {
 
 // 只支持 } ] l 三个字符判断
 func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
-	// 去掉尾部的空字符
+	// 去掉尾部的空白字符
 	for i := len(sd.str) - 1; i > 0; i-- {
 		if !isBlankChar[sd.str[i]] {
 			if sd.str[i] != ch {
@@ -56,9 +56,6 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 		sd.flushListPool()
 	} else {
 		err = sd.skipMatch(bytesNull)
-	}
-	if err == scanEOF {
-		return noErr
 	}
 	return
 }
@@ -190,7 +187,7 @@ func (sd *subDecode) scanSubObject() (err int) {
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
 func (sd *subDecode) scanList() (err int) {
-	if !sd.dm.isList {
+	if !sd.isList {
 		return errList
 	}
 
