@@ -12,13 +12,6 @@ import (
 	"sync"
 )
 
-type stringsTips struct {
-	items  []string
-	idxes  []uint8
-	lenOff []uint8
-	//addrOff []int
-}
-
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type StructSchema struct {
 	columns     []string        // 按顺序存放的tag列名
@@ -28,6 +21,13 @@ type StructSchema struct {
 
 	columnTips stringsTips // pms_name index
 	fieldTips  stringsTips // field_name index
+}
+
+type stringsTips struct {
+	items  []string
+	idxes  []uint8
+	lenOff []uint8
+	//addrOff []int
 }
 
 type fieldOptions struct {

@@ -52,8 +52,11 @@ type destMeta struct {
 	listKind reflect.Kind
 	itemType reflect.Type
 	itemKind reflect.Kind
-	itemSize int // item类型对应的内存字节大小
-	arrLen   int // 数组长度
+	itemSize int // item类型对应的内存字节大小，数组时此值才有意义
+	arrLen   int // 数组长度，数组时此值才有意义
+
+	arrSetInt   arrIntFunc
+	arrSetFloat arrFloatFunc
 
 	destStatus
 	ptrLevel uint8
@@ -63,6 +66,7 @@ type destStatus struct {
 	isList   bool // 区分 [] 或者 {}
 	isArray  bool // 不是slice
 	isStruct bool // {} 可能目标是 一个 struct 对象
+	isAny    bool
 	isPtr    bool
 }
 
@@ -153,7 +157,6 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 		if kd == reflect.Array {
 			sd.initArrayMeta()
 			sd.dm.arrLen = rfVal.Len()
-
 		}
 	default:
 		return errValueType
@@ -187,6 +190,11 @@ peelPtr:
 		}
 		goto peelPtr
 	}
+
+	// 是否是interface类型
+	if sd.dm.itemKind == reflect.Interface {
+		sd.dm.isAny = true
+	}
 	return nil
 }
 
@@ -196,6 +204,13 @@ func (sd *subDecode) initArrayMeta() {
 		return
 	}
 	sd.dm.itemSize = int(sd.dm.itemType.Size())
+
+	// int 或者 float 需要不同的方法设置值
+	if allowInt(sd.dm.itemKind) {
+		sd.dm.arrSetInt = setIntFunc(sd.dm.itemKind)
+	} else if allowFloat(sd.dm.itemKind) {
+		sd.dm.arrSetFloat = setFloatFunc(sd.dm.itemKind)
+	}
 }
 
 func (sd *subDecode) getPool() {

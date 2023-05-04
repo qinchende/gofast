@@ -55,7 +55,7 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 		}
 		sd.flushListPool()
 	} else {
-		err = sd.skipMatch(bytesNull)
+		err = sd.skipMatchNull()
 	}
 	return
 }
@@ -253,10 +253,24 @@ func (sd *subDecode) scanStrVal() (err int) {
 }
 
 func (sd *subDecode) scanBoolVal() (err int) {
-	if sd.isSkip() {
-		return noErr
+	switch sd.str[sd.scan] {
+	case 't':
+		if err = sd.skipMatchTrue(); err < 0 {
+			return
+		} else if sd.isSkip() {
+			return noErr
+		}
+		return sd.bindBool(true)
+	case 'f':
+		if err = sd.skipMatchFalse(); err < 0 {
+			return
+		} else if sd.isSkip() {
+			return noErr
+		}
+		return sd.bindBool(false)
+	default:
+		return errBool
 	}
-	return noErr
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -385,21 +399,21 @@ func (sd *subDecode) scanNoQuoteValue() (err int) {
 	case (c >= '0' && c <= '9') || c == '-':
 		return sd.scanNumValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
 	case c == 'f':
-		if err = sd.skipMatch(bytesFalse); err < 0 {
+		if err = sd.skipMatchFalse(); err < 0 {
 			return
 		} else if sd.isSkip() {
 			return noErr
 		}
 		return sd.bindBool(false)
 	case c == 't':
-		if err = sd.skipMatch(bytesTrue); err < 0 {
+		if err = sd.skipMatchTrue(); err < 0 {
 			return
 		} else if sd.isSkip() {
 			return noErr
 		}
 		return sd.bindBool(true)
 	case c == 'n':
-		if err = sd.skipMatch(bytesNull); err < 0 {
+		if err = sd.skipMatchTrue(); err < 0 {
 			return
 		} else if sd.isSkip() {
 			return noErr
@@ -418,13 +432,25 @@ func (sd *subDecode) skipBlank() {
 	}
 }
 
-func (sd *subDecode) skipMatch(match string) int {
-	pos := sd.scan + len(match)
-	if pos > len(sd.str) {
-		return errMismatch
+func (sd *subDecode) skipMatchNull() int {
+	if sd.str[sd.scan+1:sd.scan+4] == "ull" {
+		sd.scan += 4
+		return noErr
 	}
-	if sd.str[sd.scan:pos] == match {
-		sd.scan = pos
+	return errMismatch
+}
+
+func (sd *subDecode) skipMatchTrue() int {
+	if sd.str[sd.scan+1:sd.scan+4] == "rue" {
+		sd.scan += 4
+		return noErr
+	}
+	return errMismatch
+}
+
+func (sd *subDecode) skipMatchFalse() int {
+	if sd.str[sd.scan+1:sd.scan+5] == "alse" {
+		sd.scan += 5
 		return noErr
 	}
 	return errMismatch
