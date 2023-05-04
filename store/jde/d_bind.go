@@ -1,13 +1,11 @@
 package jde
 
 import (
-	"reflect"
 	"strconv"
 )
 
 // skip some items
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//go:inline
 func (sd *subDecode) checkSkip() {
 	// 如果是 struct ，就找找是否支持这个字段
 	if sd.isStruct {
@@ -35,7 +33,6 @@ func (sd *subDecode) isSkip() bool {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//go:inline
 func (sd *subDecode) bindString(val string) (err int) {
 	// 如果是 struct
 	if sd.isStruct {
@@ -60,22 +57,24 @@ func (sd *subDecode) bindString(val string) (err int) {
 				sd.skipValue = true
 				return noErr
 			}
-			bindArrValue[string](sd, val)
+			if sd.isAny {
+				bindArrValue[any](sd, val)
+			} else {
+				bindArrValue[string](sd, val)
+			}
 			return noErr
 		}
-
-		if len(sd.pl.bufStr) >= sd.dm.arrLen {
-			sd.skipValue = true
-			return noErr
+		if sd.isAny {
+			sd.pl.bufAny = append(sd.pl.bufAny, val)
+		} else {
+			sd.pl.bufStr = append(sd.pl.bufStr, val)
 		}
-		sd.pl.bufStr = append(sd.pl.bufStr, val)
 		return noErr
 	}
 
 	return noErr
 }
 
-//go:inline
 func (sd *subDecode) bindBool(val bool) (err int) {
 	// 如果是 struct
 	if sd.isStruct {
@@ -94,20 +93,29 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 
 	// 如果是数组
 	if sd.isList {
-		if sd.isArray {
-			if len(sd.pl.bufStr) >= sd.dm.arrLen {
+		if sd.isArray && !sd.isPtr {
+			if sd.arrIdx >= sd.dm.arrLen {
 				sd.skipValue = true
 				return noErr
 			}
+			if sd.isAny {
+				bindArrValue[any](sd, val)
+			} else {
+				bindArrValue[bool](sd, val)
+			}
+			return noErr
 		}
-		sd.pl.bufBol = append(sd.pl.bufBol, val)
+		if sd.isAny {
+			sd.pl.bufAny = append(sd.pl.bufAny, val)
+		} else {
+			sd.pl.bufBol = append(sd.pl.bufBol, val)
+		}
 		return noErr
 	}
 
 	return noErr
 }
 
-//go:inline
 func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 	// 如果是 struct
 	if sd.isStruct {
@@ -130,62 +138,70 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 
 	// 如果是数组
 	if sd.isList {
-		// 如果目标是 any 值
-		if sd.dm.itemKind == reflect.Interface {
-			if sd.isArray {
-				if len(sd.pl.bufStr) >= sd.dm.arrLen {
+		if allowInt(sd.dm.itemKind) {
+			if sd.isArray && !sd.isPtr {
+				if sd.arrIdx >= sd.dm.arrLen {
 					sd.skipValue = true
 					return noErr
 				}
-			}
-			sd.pl.bufStr = append(sd.pl.bufStr, val)
-			return noErr
-		}
 
-		if allowInt(sd.dm.itemKind) {
-			//if sd.isArray && !sd.arr.isPtr {
-			//	if sd.arr.arrIdx >= sd.arr.arrLen {
-			//		sd.skipValue = true
-			//		return noErr
-			//	}
-			//
-			//	if num, err1 := parseInt(val); err < 0 {
-			//		return err1
-			//	} else {
-			//		sd.arr.arrIntFunc(sd.arr, num)
-			//	}
-			//	return noErr
-			//}
-
-			if len(sd.pl.bufI64) >= sd.dm.arrLen {
-				sd.skipValue = true
+				if i64, err1 := parseInt(val); err1 < 0 {
+					return errNumberFmt
+				} else {
+					if sd.isAny {
+						bindArrValue[any](sd, i64)
+					} else {
+						sd.dm.arrSetInt(sd, i64)
+					}
+				}
 				return noErr
 			}
 
 			if num, err1 := parseInt(val); err < 0 {
 				return err1
 			} else {
-				sd.pl.bufI64 = append(sd.pl.bufI64, num)
+				if sd.isAny {
+					sd.pl.bufAny = append(sd.pl.bufAny, num)
+				} else {
+					sd.pl.bufI64 = append(sd.pl.bufI64, num)
+				}
 			}
 
 		} else if allowFloat(sd.dm.itemKind) {
-			if sd.isArray && len(sd.pl.bufF64) >= sd.dm.arrLen {
-				sd.skipValue = true
+			if sd.isArray && !sd.isPtr {
+				if sd.arrIdx >= sd.dm.arrLen {
+					sd.skipValue = true
+					return noErr
+				}
+
+				if f64, err1 := strconv.ParseFloat(val, 64); err1 != nil {
+					return errNumberFmt
+				} else {
+					if sd.isAny {
+						bindArrValue[any](sd, f64)
+					} else {
+						sd.dm.arrSetFloat(sd, f64)
+					}
+				}
 				return noErr
 			}
+
 			if num, err1 := strconv.ParseFloat(val, 64); err1 != nil {
 				return errNumberFmt
 			} else {
-				sd.pl.bufF64 = append(sd.pl.bufF64, num)
+				if sd.isAny {
+					sd.pl.bufAny = append(sd.pl.bufAny, num)
+				} else {
+					sd.pl.bufF64 = append(sd.pl.bufF64, num)
+				}
 			}
 
 		} else {
 			return errList
 		}
+
 		return noErr
 	}
-
-	// 如果是 struct
 
 	return noErr
 }

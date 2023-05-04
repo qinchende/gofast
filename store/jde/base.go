@@ -11,12 +11,6 @@ const (
 )
 
 const (
-	bytesNull  = "null"
-	bytesTrue  = "true"
-	bytesFalse = "false"
-)
-
-const (
 	noErr        int = 0  // 没有错误
 	scanEOF      int = -1 // 扫描结束
 	errNormal    int = -2 // 没找到期望的字符
@@ -36,8 +30,7 @@ const (
 	errNull      int = -16
 	errObject    int = -17
 	errList      int = -18
-	errTrue      int = -19
-	errFalse     int = -20
+	errBool      int = -19
 
 	//errNotSupportType int = -13
 )

@@ -23,7 +23,6 @@ var (
 	pow10u64Len = len(pow10u64)
 )
 
-//go:inline
 func parseUint(b string) (uint64, int) {
 	maxDigit := len(b)
 	if maxDigit > pow10u64Len {
@@ -46,7 +45,6 @@ var (
 	pow10i64Len = len(pow10i64)
 )
 
-//go:inline
 func parseInt(b string) (int64, int) {
 	isNegative := false
 	if b[0] == '-' {
