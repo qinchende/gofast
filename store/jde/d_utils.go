@@ -23,10 +23,10 @@ var (
 	pow10u64Len = len(pow10u64)
 )
 
-func parseUint(b string) (uint64, int) {
+func parseUint(b string) uint64 {
 	maxDigit := len(b)
 	if maxDigit > pow10u64Len {
-		return 0, errNumberFmt
+		panic(errNumberFmt)
 	}
 	sum := uint64(0)
 	for i := 0; i < maxDigit; i++ {
@@ -34,7 +34,7 @@ func parseUint(b string) (uint64, int) {
 		digitValue := pow10u64[maxDigit-i-1]
 		sum += c * digitValue
 	}
-	return sum, noErr
+	return sum
 }
 
 var (
@@ -45,7 +45,7 @@ var (
 	pow10i64Len = len(pow10i64)
 )
 
-func parseInt(b string) (int64, int) {
+func parseInt(b string) int64 {
 	isNegative := false
 	if b[0] == '-' {
 		b = b[1:]
@@ -53,7 +53,7 @@ func parseInt(b string) (int64, int) {
 	}
 	maxDigit := len(b)
 	if maxDigit > pow10i64Len {
-		return 0, errNumberFmt
+		panic(errNumberFmt)
 	}
 	sum := int64(0)
 	for i := 0; i < maxDigit; i++ {
@@ -62,9 +62,9 @@ func parseInt(b string) (int64, int) {
 		sum += c * digitValue
 	}
 	if isNegative {
-		return -1 * sum, noErr
+		return -1 * sum
 	}
-	return sum, noErr
+	return sum
 }
 
 //// 检查科学计数法（e|E）后面的字符串合法性

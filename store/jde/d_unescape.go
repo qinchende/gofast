@@ -4,7 +4,7 @@ import "github.com/qinchende/gofast/skill/lang"
 
 // 肯定是 "*?" 的字符串
 // 这是零新增内存方案，直接移动原始[]byte。还可以用共享内存方案实现
-func (sd *subDecode) unescapeString(start, end int) (val string, err int) {
+func (sd *subDecode) unescapeString(start, end int) (val string) {
 	str := sd.str[start:end]
 
 	var bs []byte
@@ -48,7 +48,7 @@ func (sd *subDecode) unescapeString(start, end int) (val string, err int) {
 			default:
 				//case '\'': // 这种情况认为是错误
 				sd.scan = start + i
-				return "", errChar
+				panic(errChar)
 			}
 
 			//// Quote, control characters are invalid.
@@ -88,10 +88,10 @@ func (sd *subDecode) unescapeString(start, end int) (val string, err int) {
 	for i := end; i < len(str); i++ {
 		bs = append(bs, ' ') // 填充空格
 	}
-	return str[1 : end-1], noErr
+	return str[1 : end-1]
 }
 
-func (sd *subDecode) unescapeCopy(str string) (ret string, inShare bool, err int) {
+func (sd *subDecode) unescapeCopy(str string) (ret string, inShare bool) {
 	var newStr []byte
 	var step int
 	var hasSlash bool
@@ -148,7 +148,7 @@ func (sd *subDecode) unescapeCopy(str string) (ret string, inShare bool, err int
 				step++
 			case 'u': // TODO: uft8编码字符有待转换
 			default:
-				return "", false, errJson
+				panic(errJson)
 			}
 			continue
 		}
@@ -169,9 +169,9 @@ func (sd *subDecode) unescapeCopy(str string) (ret string, inShare bool, err int
 		//	w += utf8.EncodeRune(b[w:], rr)
 	}
 	if hasSlash {
-		return lang.BTS(newStr[:step]), inShare, noErr
+		return lang.BTS(newStr[:step]), inShare
 	}
-	return str, false, noErr
+	return str, false
 }
 func cloneString(src string) string {
 	tmp := make([]byte, len(src))

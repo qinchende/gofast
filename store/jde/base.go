@@ -10,27 +10,29 @@ const (
 	maxJsonLength = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
 )
 
+type errType int
+
 const (
-	noErr        int = 0  // 没有错误
-	scanEOF      int = -1 // 扫描结束
-	errNormal    int = -2 // 没找到期望的字符
-	errJson      int = -3 // 非法JSON格式
-	errChar      int = -4 // 非预期的字符
-	errEscape    int = -5
-	errUnicode   int = -6
-	errOverflow  int = -7
-	errNumberFmt int = -8
-	errExceedMax int = -9
-	errInfinity  int = -10
-	errMismatch  int = -11
-	errUTF8      int = -12
-	errKey       int = -13
-	errValue     int = -14
-	errKV        int = -15
-	errNull      int = -16
-	errObject    int = -17
-	errList      int = -18
-	errBool      int = -19
+	noErr        errType = 0  // 没有错误
+	scanEOF      errType = -1 // 扫描结束
+	errNormal    errType = -2 // 没找到期望的字符
+	errJson      errType = -3 // 非法JSON格式
+	errChar      errType = -4 // 非预期的字符
+	errEscape    errType = -5
+	errUnicode   errType = -6
+	errOverflow  errType = -7
+	errNumberFmt errType = -8
+	errExceedMax errType = -9
+	errInfinity  errType = -10
+	errMismatch  errType = -11
+	errUTF8      errType = -12
+	errKey       errType = -13
+	errValue     errType = -14
+	errKV        errType = -15
+	errNull      errType = -16
+	errObject    errType = -17
+	errList      errType = -18
+	errBool      errType = -19
 
 	//errNotSupportType int = -13
 )
