@@ -8,12 +8,17 @@ import (
 
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
-func (sd *subDecode) scanJson() (err int) {
-	// 万一解析过程中异常，这里统一截获处理，返回解析错误
+func (sd *subDecode) scanJson() (err errType) {
+	// 解析过程中异常，这里统一截获处理，返回解析错误编号
 	defer func() {
 		if pic := recover(); pic != nil {
-			fmt.Println(pic) // 调试的时候打印错误信息
-			err = errJson
+			if code, ok := pic.(errType); ok {
+				err = code
+			} else {
+				// 调试的时候打印错误信息
+				fmt.Println(pic)
+				err = errJson
+			}
 		}
 	}()
 
@@ -21,23 +26,26 @@ func (sd *subDecode) scanJson() (err int) {
 
 	switch sd.str[sd.scan] {
 	case '{':
-		return sd.scanJsonEnd('}')
+		sd.scanJsonEnd('}')
+		return
 	case '[':
-		return sd.scanJsonEnd(']')
+		sd.scanJsonEnd(']')
+		return
 	case 'n':
-		return sd.scanJsonEnd('l')
+		sd.scanJsonEnd('l')
+		return
 	}
 	return errJson
 }
 
 // 只支持 } ] l 三个字符判断
-func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
+func (sd *subDecode) scanJsonEnd(ch byte) {
 	// 去掉尾部的空白字符
 	for i := len(sd.str) - 1; i > 0; i-- {
 		if !isBlankChar[sd.str[i]] {
 			if sd.str[i] != ch {
 				sd.scan = i
-				return errChar
+				panic(errChar)
 			}
 			sd.str = sd.str[:i+1]
 			break
@@ -46,24 +54,21 @@ func (sd *subDecode) scanJsonEnd(ch byte) (err int) {
 
 	if ch == '}' {
 		sd.scan++
-		err = sd.scanObject()
+		sd.scanObject()
 	} else if ch == ']' {
 		sd.resetListPool()
 		sd.scan++
-		if err = sd.scanList(); err < 0 {
-			return err
-		}
+		sd.scanList()
 		sd.flushListPool()
 	} else {
-		err = sd.skipMatchNull()
+		sd.skipNull()
 	}
-	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 前提：sd.str 肯定是 { 字符后面的字符串
 // 返回 } 后面一个字符的 index
-func (sd *subDecode) scanObject() (err int) {
+func (sd *subDecode) scanObject() {
 	first := true
 	for {
 		sd.skipBlank()
@@ -71,7 +76,7 @@ func (sd *subDecode) scanObject() (err int) {
 		switch c := sd.str[sd.scan]; c {
 		case '}':
 			sd.scan++
-			return noErr
+			return
 		case ',':
 			sd.scan++
 			sd.skipBlank()
@@ -81,28 +86,21 @@ func (sd *subDecode) scanObject() (err int) {
 				first = false
 				goto scanKVPair
 			}
-			return errChar
+			panic(errChar)
 		}
 
 	scanKVPair:
-		if err = sd.scanKVItem(); err < 0 {
-			return
-		}
+		sd.scanKVItem()
 	}
 }
 
 // 必须是k:v, ...形式。不能为空，而且前面空字符已跳过，否则错误
-func (sd *subDecode) scanKVItem() (err int) {
+func (sd *subDecode) scanKVItem() {
 	// A: 找 key 字符串
-	var slash bool
 	start := sd.scan
-	if slash, err = sd.scanQuoteString(); err < 0 {
-		return
-	}
+	slash := sd.scanQuoteString()
 	if slash {
-		if sd.key, err = sd.unescapeString(start, sd.scan); err < 0 {
-			return
-		}
+		sd.key = sd.unescapeString(start, sd.scan)
 	} else {
 		sd.key = sd.str[start+1 : sd.scan-1]
 	}
@@ -113,15 +111,15 @@ func (sd *subDecode) scanKVItem() (err int) {
 		sd.scan++
 		sd.skipBlank()
 	} else {
-		return errChar
+		panic(errChar)
 	}
 
 	// C: 找 value string，然后绑定
 	sd.checkSkip()
-	return sd.scanObjValue()
+	sd.scanObjValue()
 }
 
-func (sd *subDecode) scanSubObject() (err int) {
+func (sd *subDecode) scanSubObject() {
 	sub := subDecode{
 		str:       sd.str,
 		scan:      sd.scan,
@@ -137,11 +135,11 @@ func (sd *subDecode) scanSubObject() (err int) {
 		sd.mp.Set(sd.key, sub.mp)
 	}
 
-	err = sub.scanObject()
-	if err < 0 {
-		sd.scan = sub.scan
-		return
-	}
+	sub.scanObject()
+	//if err < 0 {
+	//	sd.scan = sub.scan
+	//	return
+	//}
 
 	if sd.gr != nil && sd.skipValue == false {
 		val := sd.str[sd.scan-1 : sub.scan]
@@ -186,26 +184,25 @@ func (sd *subDecode) scanSubObject() (err int) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
-func (sd *subDecode) scanList() (err int) {
+func (sd *subDecode) scanList() {
 	if !sd.isList {
-		return errList
+		panic(errList)
 	}
 
 	// 根据目标值类型，直接匹配，提高效率
 	switch {
 	case isNumKind(sd.dm.itemKind) == true:
-		err = sd.scanArrItems(sd.scanNumValue)
+		sd.scanArrItems(sd.scanNumValue)
 	case sd.dm.itemKind == reflect.String:
-		err = sd.scanArrItems(sd.scanStrVal)
+		sd.scanArrItems(sd.scanStrVal)
 	case sd.dm.itemKind == reflect.Bool:
-		err = sd.scanArrItems(sd.scanBoolVal)
+		sd.scanArrItems(sd.scanBoolVal)
 	default:
-		err = sd.scanArrItems(sd.scanObjValue)
+		sd.scanArrItems(sd.scanObjValue)
 	}
-	return
 }
 
-func (sd *subDecode) scanArrItems(scanValue func() int) (err int) {
+func (sd *subDecode) scanArrItems(scanValue func()) {
 	first := true
 	for {
 		sd.skipBlank()
@@ -213,7 +210,7 @@ func (sd *subDecode) scanArrItems(scanValue func() int) (err int) {
 		switch c := sd.str[sd.scan]; c {
 		case ']':
 			sd.scan++
-			return noErr
+			return
 		case ',':
 			sd.scan++
 			sd.skipBlank()
@@ -221,104 +218,96 @@ func (sd *subDecode) scanArrItems(scanValue func() int) (err int) {
 			if first {
 				first = false
 			} else {
-				return errChar
+				panic(errChar)
 			}
 		}
 
-		if err = scanValue(); err < 0 {
-			return
-		}
+		scanValue()
 	}
 }
 
-func (sd *subDecode) scanStrVal() (err int) {
+func (sd *subDecode) scanStrVal() {
 	start := sd.scan
 
-	var slash bool
-	if slash, err = sd.scanQuoteString(); err < 0 {
+	slash := sd.scanQuoteString()
+	if sd.skipValue {
 		return
-	} else if sd.isSkip() {
-		return noErr
 	}
 
-	var val string
 	if slash {
-		if val, err = sd.unescapeString(start, sd.scan); err < 0 {
-			return
-		}
+		sd.bindString(sd.unescapeString(start, sd.scan))
 	} else {
-		val = sd.str[start+1 : sd.scan-1]
+		sd.bindString(sd.str[start+1 : sd.scan-1])
 	}
-	return sd.bindString(val)
 }
 
-func (sd *subDecode) scanBoolVal() (err int) {
+func (sd *subDecode) scanBoolVal() {
 	switch sd.str[sd.scan] {
 	case 't':
-		if err = sd.skipMatchTrue(); err < 0 {
+		sd.skipTrue()
+		if sd.skipValue {
 			return
-		} else if sd.isSkip() {
-			return noErr
 		}
-		return sd.bindBool(true)
+		sd.bindBool(true)
 	case 'f':
-		if err = sd.skipMatchFalse(); err < 0 {
+		sd.skipFalse()
+		if sd.skipValue {
 			return
-		} else if sd.isSkip() {
-			return noErr
 		}
-		return sd.bindBool(false)
+		sd.bindBool(false)
 	default:
-		return errBool
+		panic(errBool)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) scanQuoteString() (slash bool, err int) {
-	if sd.str[sd.scan] != '"' {
-		return false, errChar
+func (sd *subDecode) scanQuoteString() (slash bool) {
+	pos := sd.scan
+	if sd.str[pos] != '"' {
+		panic(errChar)
 	}
 
 	for {
-		sd.scan++
+		pos++
 
-		switch c := sd.str[sd.scan]; {
+		switch c := sd.str[pos]; {
 		//case c < ' ':
-		//	return false, errChar
+		//	sd.scan = pos
+		//	panic(errChar)
 		case c == '"':
-			sd.scan++
-			return slash, noErr
+			sd.scan = pos + 1
+			return
 		case c == '\\':
 			slash = true
-			sd.scan++
-			c = sd.str[sd.scan]
+			pos++
+			c = sd.str[pos]
 			if c < ' ' {
-				return false, errChar
+				sd.scan = pos
+				panic(errChar)
 			}
 		}
 	}
 }
 
-func (sd *subDecode) scanObjValue() (err int) {
+func (sd *subDecode) scanObjValue() {
 	switch sd.str[sd.scan] {
 	case '{':
 		sd.scan++
-		err = sd.scanSubObject()
+		sd.scanSubObject()
 	case '[':
 		sd.scan++
 		//err = sd.scanSubArray()
 	case '"':
-		err = sd.scanStrVal()
+		sd.scanStrVal()
 	default:
-		err = sd.scanNoQuoteValue()
+		sd.scanNoQuoteValue()
 	}
-	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
-func (sd *subDecode) scanNumValue() int {
+func (sd *subDecode) scanNumValue() {
 	start := sd.scan
 	var startZero, hasDot, needNum bool
 
@@ -329,7 +318,7 @@ func (sd *subDecode) scanNumValue() int {
 	}
 
 	if c < '0' || c > '9' {
-		return errNumberFmt
+		panic(errNumberFmt)
 	}
 
 	// 0开头的数字，只能是：0 | 0.x | 0e | 0E
@@ -348,19 +337,19 @@ loopNum:
 			case '.', 'e', 'E':
 				startZero = false
 			default:
-				return errNumberFmt
+				panic(errNumberFmt)
 			}
 		}
 
 		if c == '.' {
 			if hasDot == true {
-				return errNumberFmt
+				panic(errNumberFmt)
 			}
 			hasDot = true
 			needNum = true
 		} else if c == 'e' || c == 'E' {
 			if needNum {
-				return errNumberFmt
+				panic(errNumberFmt)
 			}
 			needNum = true
 
@@ -385,73 +374,69 @@ loopNum:
 	}
 
 	if needNum {
-		return errNumberFmt
+		panic(errNumberFmt)
 	}
 
-	if sd.isSkip() {
-		return noErr
+	if sd.skipValue {
+		return
 	}
-	return sd.bindNumber(sd.str[start:sd.scan], hasDot)
+	sd.bindNumber(sd.str[start:sd.scan])
 }
 
-func (sd *subDecode) scanNoQuoteValue() (err int) {
+func (sd *subDecode) scanNoQuoteValue() {
 	switch c := sd.str[sd.scan]; {
 	case (c >= '0' && c <= '9') || c == '-':
-		return sd.scanNumValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
+		sd.scanNumValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
 	case c == 'f':
-		if err = sd.skipMatchFalse(); err < 0 {
+		sd.skipFalse()
+		if sd.skipValue {
 			return
-		} else if sd.isSkip() {
-			return noErr
 		}
-		return sd.bindBool(false)
+		sd.bindBool(false)
 	case c == 't':
-		if err = sd.skipMatchTrue(); err < 0 {
+		sd.skipTrue()
+		if sd.skipValue {
 			return
-		} else if sd.isSkip() {
-			return noErr
 		}
-		return sd.bindBool(true)
+		sd.bindBool(true)
 	case c == 'n':
-		if err = sd.skipMatchTrue(); err < 0 {
+		sd.skipTrue()
+		if sd.skipValue {
 			return
-		} else if sd.isSkip() {
-			return noErr
 		}
-		return sd.bindNull()
+		sd.bindNull()
+	default:
+		panic(errValue)
 	}
-
-	return errValue
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//go:inline
 func (sd *subDecode) skipBlank() {
 	for isBlankChar[sd.str[sd.scan]] {
 		sd.scan++
 	}
 }
 
-func (sd *subDecode) skipMatchNull() int {
+func (sd *subDecode) skipNull() {
 	if sd.str[sd.scan+1:sd.scan+4] == "ull" {
 		sd.scan += 4
-		return noErr
+		return
 	}
-	return errMismatch
+	panic(errNull)
 }
 
-func (sd *subDecode) skipMatchTrue() int {
+func (sd *subDecode) skipTrue() {
 	if sd.str[sd.scan+1:sd.scan+4] == "rue" {
 		sd.scan += 4
-		return noErr
+		return
 	}
-	return errMismatch
+	panic(errBool)
 }
 
-func (sd *subDecode) skipMatchFalse() int {
+func (sd *subDecode) skipFalse() {
 	if sd.str[sd.scan+1:sd.scan+5] == "alse" {
 		sd.scan += 5
-		return noErr
+		return
 	}
-	return errMismatch
+	panic(errBool)
 }

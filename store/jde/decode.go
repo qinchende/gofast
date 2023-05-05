@@ -55,8 +55,8 @@ type destMeta struct {
 	itemSize int // item类型对应的内存字节大小，数组时此值才有意义
 	arrLen   int // 数组长度，数组时此值才有意义
 
-	arrSetInt   arrIntFunc
-	arrSetFloat arrFloatFunc
+	//arrSetInt   arrIntFunc
+	//arrSetFloat arrFloatFunc
 
 	destStatus
 	ptrLevel uint8
@@ -205,12 +205,12 @@ func (sd *subDecode) initArrayMeta() {
 	}
 	sd.dm.itemSize = int(sd.dm.itemType.Size())
 
-	// int 或者 float 需要不同的方法设置值
-	if allowInt(sd.dm.itemKind) {
-		sd.dm.arrSetInt = setIntFunc(sd.dm.itemKind)
-	} else if allowFloat(sd.dm.itemKind) {
-		sd.dm.arrSetFloat = setFloatFunc(sd.dm.itemKind)
-	}
+	//// int 或者 float 需要不同的方法设置值
+	//if allowInt(sd.dm.itemKind) {
+	//	sd.dm.arrSetInt = setIntFunc(sd.dm.itemKind)
+	//} else if allowFloat(sd.dm.itemKind) {
+	//	sd.dm.arrSetFloat = setFloatFunc(sd.dm.itemKind)
+	//}
 }
 
 func (sd *subDecode) getPool() {
@@ -227,7 +227,7 @@ func (sd *subDecode) putPool() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) warpErrorCode(errCode int) error {
+func (sd *subDecode) warpErrorCode(errCode errType) error {
 	if errCode >= 0 {
 		return nil
 	}

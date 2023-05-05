@@ -27,26 +27,26 @@ func (sd *subDecode) checkSkip() {
 	}
 }
 
-//go:inline
-func (sd *subDecode) isSkip() bool {
-	return sd.skipValue || sd.skipTotal
-}
+////go:inline
+//func (sd *subDecode) isSkip() bool {
+//	return sd.skipValue || sd.skipTotal
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) bindString(val string) (err int) {
+func (sd *subDecode) bindString(val string) {
 	// 如果是 struct
 	if sd.isStruct {
 		sd.dm.ss.BindString(sd.dstPtr, sd.keyIdx, val)
-		return noErr
+		return
 	}
 
 	if sd.isSuperKV {
 		if sd.gr != nil {
 			sd.gr.SetStringByIndex(sd.keyIdx, val)
-			return noErr
+			return
 		}
 		sd.mp.Set(sd.key, val)
-		return noErr
+		return
 	}
 
 	// 如果是数组
@@ -55,40 +55,34 @@ func (sd *subDecode) bindString(val string) (err int) {
 		if sd.isArray && !sd.isPtr {
 			if sd.arrIdx >= sd.dm.arrLen {
 				sd.skipValue = true
-				return noErr
+				return
 			}
-			if sd.isAny {
-				bindArrValue[any](sd, val)
-			} else {
-				bindArrValue[string](sd, val)
-			}
-			return noErr
+			sd.bindStringArr(val)
+			return
 		}
 		if sd.isAny {
 			sd.pl.bufAny = append(sd.pl.bufAny, val)
 		} else {
 			sd.pl.bufStr = append(sd.pl.bufStr, val)
 		}
-		return noErr
+		return
 	}
-
-	return noErr
 }
 
-func (sd *subDecode) bindBool(val bool) (err int) {
+func (sd *subDecode) bindBool(val bool) {
 	// 如果是 struct
 	if sd.isStruct {
 		sd.dm.ss.BindBool(sd.dstPtr, sd.keyIdx, val)
-		return noErr
+		return
 	}
 
 	if sd.isSuperKV {
 		if sd.gr != nil {
 			sd.gr.SetByIndex(sd.keyIdx, val)
-			return noErr
+			return
 		}
 		sd.mp.Set(sd.key, val)
-		return noErr
+		return
 	}
 
 	// 如果是数组
@@ -96,98 +90,77 @@ func (sd *subDecode) bindBool(val bool) (err int) {
 		if sd.isArray && !sd.isPtr {
 			if sd.arrIdx >= sd.dm.arrLen {
 				sd.skipValue = true
-				return noErr
+				return
 			}
-			if sd.isAny {
-				bindArrValue[any](sd, val)
-			} else {
-				bindArrValue[bool](sd, val)
-			}
-			return noErr
+			sd.bindBoolArr(val)
+			return
 		}
 		if sd.isAny {
 			sd.pl.bufAny = append(sd.pl.bufAny, val)
 		} else {
 			sd.pl.bufBol = append(sd.pl.bufBol, val)
 		}
-		return noErr
+		return
 	}
 
-	return noErr
+	return
 }
 
-func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
+func (sd *subDecode) bindNumber(val string) {
 	// 如果是 struct
 	if sd.isStruct {
-		if num, err1 := parseInt(val); err < 0 {
-			return err1
-		} else {
-			sd.dm.ss.BindInt(sd.dstPtr, sd.keyIdx, num)
-		}
-		return noErr
+		sd.dm.ss.BindInt(sd.dstPtr, sd.keyIdx, parseInt(val))
+		return
 	}
 
 	if sd.isSuperKV {
 		if sd.gr != nil {
 			sd.gr.SetStringByIndex(sd.keyIdx, val)
-			return noErr
+			return
 		}
 		sd.mp.Set(sd.key, val)
-		return noErr
+		return
 	}
 
 	// 如果是数组
 	if sd.isList {
+		// 只能是整形
 		if allowInt(sd.dm.itemKind) {
 			if sd.isArray && !sd.isPtr {
 				if sd.arrIdx >= sd.dm.arrLen {
 					sd.skipValue = true
-					return noErr
+					return
 				}
-
-				if i64, err1 := parseInt(val); err1 < 0 {
-					return errNumberFmt
-				} else {
-					if sd.isAny {
-						bindArrValue[any](sd, i64)
-					} else {
-						sd.dm.arrSetInt(sd, i64)
-					}
-				}
-				return noErr
+				sd.bindIntArr(parseInt(val))
+				return
 			}
 
-			if num, err1 := parseInt(val); err < 0 {
-				return err1
+			if sd.isAny {
+				sd.pl.bufAny = append(sd.pl.bufAny, parseInt(val))
 			} else {
-				if sd.isAny {
-					sd.pl.bufAny = append(sd.pl.bufAny, num)
-				} else {
-					sd.pl.bufI64 = append(sd.pl.bufI64, num)
-				}
+				sd.pl.bufI64 = append(sd.pl.bufI64, parseInt(val))
 			}
+			return
+		}
 
-		} else if allowFloat(sd.dm.itemKind) {
+		// 只能是整形
+		if allowFloat(sd.dm.itemKind) {
 			if sd.isArray && !sd.isPtr {
 				if sd.arrIdx >= sd.dm.arrLen {
 					sd.skipValue = true
-					return noErr
+					return
 				}
 
 				if f64, err1 := strconv.ParseFloat(val, 64); err1 != nil {
-					return errNumberFmt
+					panic(errNumberFmt)
 				} else {
-					if sd.isAny {
-						bindArrValue[any](sd, f64)
-					} else {
-						sd.dm.arrSetFloat(sd, f64)
-					}
+					sd.bindFloatArr(f64)
 				}
-				return noErr
+				return
 			}
 
 			if num, err1 := strconv.ParseFloat(val, 64); err1 != nil {
-				return errNumberFmt
+				panic(errNumberFmt)
 			} else {
 				if sd.isAny {
 					sd.pl.bufAny = append(sd.pl.bufAny, num)
@@ -195,24 +168,21 @@ func (sd *subDecode) bindNumber(val string, hasDot bool) (err int) {
 					sd.pl.bufF64 = append(sd.pl.bufF64, num)
 				}
 			}
-
-		} else {
-			return errList
+			return
 		}
 
-		return noErr
+		// 错误
+		panic(errList)
 	}
-
-	return noErr
 }
 
-func (sd *subDecode) bindNull() (err int) {
+func (sd *subDecode) bindNull() {
 	// 如果是数组
 	if sd.isList {
-		return noErr
+		return
 	}
 
 	// 如果是 struct
 
-	return noErr
+	return
 }

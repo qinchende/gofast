@@ -35,16 +35,6 @@ type fastPool struct {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
-	//if isNumKind(sd.arr.itemKind) {
-	//	sd.pl.bufI64 = sd.pl.bufI64[0:0]
-	//	sd.pl.bufF64 = sd.pl.bufF64[0:0]
-	//	sd.pl.bufStr = sd.pl.bufStr[0:0]
-	//} else {
-	//	sd.pl.bufStr = sd.pl.bufStr[0:0]
-	//	sd.pl.bufBol = sd.pl.bufBol[0:0]
-	//	sd.pl.bufAny = sd.pl.bufAny[0:0]
-	//}
-
 	sd.pl.bufI64 = sd.pl.bufI64[0:0]
 	sd.pl.bufF64 = sd.pl.bufF64[0:0]
 	sd.pl.bufStr = sd.pl.bufStr[0:0]
