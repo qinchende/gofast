@@ -79,7 +79,6 @@ func startDecode(dst any, source string) (err error) {
 
 	fd := &fastDecode{}
 	fd.str = source
-	fd.scan = 0
 	if err = fd.initDecode(dst); err != nil {
 		return
 	}

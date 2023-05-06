@@ -1,6 +1,37 @@
 package jde
 
-import "github.com/qinchende/gofast/skill/lang"
+import (
+	"github.com/qinchende/gofast/skill/lang"
+	"reflect"
+	"unsafe"
+)
+
+var bs = []byte{}
+
+func (sd *subDecode) unescapeEnd() int {
+	last := sd.pl.escPos[0]
+
+	sh := *(*reflect.StringHeader)(unsafe.Pointer(&sd.str))
+	bh := (*reflect.SliceHeader)(unsafe.Pointer(&bs))
+	bh.Data, bh.Len, bh.Cap = sh.Data, last, sd.scan
+
+	for i := 0; i < len(sd.pl.escPos); i++ {
+		if last < sd.pl.escPos[i] {
+			bs = append(bs, sd.str[last:sd.pl.escPos[i]]...)
+		}
+
+		last = sd.pl.escPos[i] + 1
+		bs = append(bs, unescapeChar[sd.str[last]])
+		//bs[last-1] = unescapeChar[sd.str[last]]
+		last++
+	}
+
+	if last < sd.scan {
+		bs = append(bs, sd.str[last:sd.scan]...)
+	}
+
+	return len(bs) - 1
+}
 
 // 肯定是 "*?" 的字符串
 // 这是零新增内存方案，直接移动原始[]byte。还可以用共享内存方案实现
@@ -173,6 +204,7 @@ func (sd *subDecode) unescapeCopy(str string) (ret string, inShare bool) {
 	}
 	return str, false
 }
+
 func cloneString(src string) string {
 	tmp := make([]byte, len(src))
 	copy(tmp, src)
