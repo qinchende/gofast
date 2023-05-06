@@ -33,14 +33,7 @@ const (
 	errObject    errType = -17
 	errList      errType = -18
 	errBool      errType = -19
-
-	//errNotSupportType int = -13
 )
-
-//type bindValue[T1 int8 | int16 | int32 | int | int64 | uint8 | uint16 | uint32 | uint | uint64 | float32 | float64, T2 int64 | float64] func(T2)
-
-//type bindI64Value func(int64)
-//type bindF64Value func(float64)
 
 //var errorStrings = []string{
 //	0:                      "ok",
@@ -89,6 +82,17 @@ var (
 		'\r': true,
 		'\t': true,
 	}
+
+	unescapeChar = [256]byte{
+		'"':  '"',
+		'\\': '\\',
+		'/':  '/',
+		'b':  '\b',
+		'f':  '\f',
+		'n':  '\n',
+		'r':  '\r',
+		't':  '\t',
+	}
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -135,5 +139,3 @@ func allowStr(k reflect.Kind) bool {
 func allowBool(k reflect.Kind) bool {
 	return (1<<k)&receiveBoolMask != 0
 }
-
-// ++++++++++++++++++++++++++++++++++

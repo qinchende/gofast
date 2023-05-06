@@ -22,7 +22,9 @@ func (sd *subDecode) scanJson() (err errType) {
 		}
 	}()
 
-	sd.skipBlank()
+	for isBlankChar[sd.str[sd.scan]] {
+		sd.scan++
+	}
 
 	switch sd.str[sd.scan] {
 	case '{':
@@ -71,7 +73,9 @@ func (sd *subDecode) scanJsonEnd(ch byte) {
 func (sd *subDecode) scanObject() {
 	first := true
 	for {
-		sd.skipBlank()
+		for isBlankChar[sd.str[sd.scan]] {
+			sd.scan++
+		}
 
 		switch c := sd.str[sd.scan]; c {
 		case '}':
@@ -79,7 +83,9 @@ func (sd *subDecode) scanObject() {
 			return
 		case ',':
 			sd.scan++
-			sd.skipBlank()
+			for isBlankChar[sd.str[sd.scan]] {
+				sd.scan++
+			}
 			goto scanKVPair
 		default:
 			if first {
@@ -100,16 +106,21 @@ func (sd *subDecode) scanKVItem() {
 	start := sd.scan
 	slash := sd.scanQuoteString()
 	if slash {
-		sd.key = sd.unescapeString(start, sd.scan)
+		//sd.key = sd.unescapeString(start, sd.scan)
+		sd.key = sd.str[start+1 : sd.unescapeEnd()]
 	} else {
 		sd.key = sd.str[start+1 : sd.scan-1]
 	}
 
 	// B: 跳过冒号
-	sd.skipBlank()
+	for isBlankChar[sd.str[sd.scan]] {
+		sd.scan++
+	}
 	if sd.str[sd.scan] == ':' {
 		sd.scan++
-		sd.skipBlank()
+		for isBlankChar[sd.str[sd.scan]] {
+			sd.scan++
+		}
 	} else {
 		panic(errChar)
 	}
@@ -205,37 +216,45 @@ func (sd *subDecode) scanList() {
 func (sd *subDecode) scanArrItems(scanValue func()) {
 	first := true
 	for {
-		sd.skipBlank()
+		pos := sd.scan
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
 
-		switch c := sd.str[sd.scan]; c {
+		switch c := sd.str[pos]; c {
 		case ']':
-			sd.scan++
+			sd.scan = pos + 1
 			return
 		case ',':
-			sd.scan++
-			sd.skipBlank()
+			pos++
+			for isBlankChar[sd.str[pos]] {
+				pos++
+			}
 		default:
 			if first {
 				first = false
 			} else {
+				sd.scan = pos
 				panic(errChar)
 			}
 		}
 
+		sd.scan = pos
 		scanValue()
 	}
 }
 
 func (sd *subDecode) scanStrVal() {
-	start := sd.scan
-
-	slash := sd.scanQuoteString()
 	if sd.skipValue {
+		sd.skipQuoteString()
 		return
 	}
 
+	start := sd.scan
+	slash := sd.scanQuoteString()
 	if slash {
-		sd.bindString(sd.unescapeString(start, sd.scan))
+		//sd.bindString(sd.unescapeString(start, sd.scan))
+		sd.bindString(sd.str[start+1 : sd.unescapeEnd()])
 	} else {
 		sd.bindString(sd.str[start+1 : sd.scan-1])
 	}
@@ -278,13 +297,35 @@ func (sd *subDecode) scanQuoteString() (slash bool) {
 			sd.scan = pos + 1
 			return
 		case c == '\\':
-			slash = true
-			pos++
-			c = sd.str[pos]
-			if c < ' ' {
-				sd.scan = pos
-				panic(errChar)
+			if !slash {
+				slash = true
+				sd.pl.escPos = sd.pl.escPos[0:0]
 			}
+			sd.pl.escPos = append(sd.pl.escPos, pos)
+			pos++
+			//c = sd.str[pos]
+			//if c < ' ' {
+			//	sd.scan = pos
+			//	panic(errChar)
+			//}
+		}
+	}
+}
+
+func (sd *subDecode) skipQuoteString() {
+	pos := sd.scan
+	if sd.str[pos] != '"' {
+		panic(errChar)
+	}
+
+	for {
+		pos++
+		switch c := sd.str[pos]; {
+		case c == '"':
+			sd.scan = pos + 1
+			return
+		case c == '\\':
+			pos++
 		}
 	}
 }
@@ -308,38 +349,39 @@ func (sd *subDecode) scanObjValue() {
 // 匹配一个数值，不带有正负号前缀。
 // 0.234 | 234.23 | 23424 | 3.8e+07
 func (sd *subDecode) scanNumValue() {
-	start := sd.scan
-	var startZero, hasDot, needNum bool
+	pos := sd.scan
+	start := pos
+	var hasDot, needNum bool
 
-	c := sd.str[sd.scan]
+	c := sd.str[pos]
 	if c == '-' {
-		sd.scan++
-		c = sd.str[sd.scan]
+		pos++
+		c = sd.str[pos]
 	}
 
-	if c < '0' || c > '9' {
-		panic(errNumberFmt)
-	}
+	//if c < '0' || c > '9' {
+	//	panic(errNumberFmt)
+	//}
 
 	// 0开头的数字，只能是：0 | 0.x | 0e | 0E
 	if c == '0' {
-		startZero = true
+		pos++
+		c = sd.str[pos]
+
+		switch c {
+		case '.', 'e', 'E':
+			goto loopNum
+		default:
+			goto over
+		}
 	}
-	sd.scan++
+	//pos++
+	needNum = true
 
 loopNum:
 	for {
-		c = sd.str[sd.scan]
-		sd.scan++
-
-		if startZero {
-			switch c {
-			case '.', 'e', 'E':
-				startZero = false
-			default:
-				panic(errNumberFmt)
-			}
-		}
+		c = sd.str[pos]
+		pos++
 
 		if c == '.' {
 			if hasDot == true {
@@ -353,20 +395,20 @@ loopNum:
 			}
 			needNum = true
 
-			c := sd.str[sd.scan]
+			c := sd.str[pos]
 			if c == '-' || c == '+' {
-				sd.scan++
+				pos++
 			}
 			for {
-				if c = sd.str[sd.scan]; c < '0' || c > '9' {
+				if c = sd.str[pos]; c < '0' || c > '9' {
 					break loopNum
 				} else {
 					needNum = false
 				}
-				sd.scan++
+				pos++
 			}
 		} else if c < '0' || c > '9' {
-			sd.scan--
+			pos--
 			break
 		} else {
 			needNum = false
@@ -377,10 +419,12 @@ loopNum:
 		panic(errNumberFmt)
 	}
 
+over:
+	sd.scan = pos
 	if sd.skipValue {
 		return
 	}
-	sd.bindNumber(sd.str[start:sd.scan])
+	sd.bindNumber(sd.str[start:pos])
 }
 
 func (sd *subDecode) scanNoQuoteValue() {
@@ -400,7 +444,7 @@ func (sd *subDecode) scanNoQuoteValue() {
 		}
 		sd.bindBool(true)
 	case c == 'n':
-		sd.skipTrue()
+		sd.skipNull()
 		if sd.skipValue {
 			return
 		}
@@ -411,14 +455,9 @@ func (sd *subDecode) scanNoQuoteValue() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) skipBlank() {
-	for isBlankChar[sd.str[sd.scan]] {
-		sd.scan++
-	}
-}
-
 func (sd *subDecode) skipNull() {
-	if sd.str[sd.scan+1:sd.scan+4] == "ull" {
+	s := sd.scan + 1
+	if sd.str[s:s+3] == "ull" {
 		sd.scan += 4
 		return
 	}
@@ -426,7 +465,8 @@ func (sd *subDecode) skipNull() {
 }
 
 func (sd *subDecode) skipTrue() {
-	if sd.str[sd.scan+1:sd.scan+4] == "rue" {
+	s := sd.scan + 1
+	if sd.str[s:s+3] == "rue" {
 		sd.scan += 4
 		return
 	}
@@ -434,7 +474,8 @@ func (sd *subDecode) skipTrue() {
 }
 
 func (sd *subDecode) skipFalse() {
-	if sd.str[sd.scan+1:sd.scan+5] == "alse" {
+	s := sd.scan + 1
+	if sd.str[s:s+4] == "alse" {
 		sd.scan += 5
 		return
 	}
