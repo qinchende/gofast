@@ -1,17 +1,6 @@
 package jde
 
-// ++++++++++++++++++++++++++++++++++++++需要转义的字符
-// \\ 反斜杠
-// \" 双引号
-// \' 单引号 （没有这个）
-// \/ 正斜杠
-// \b 退格符
-// \f 换页符
-// \t 制表符
-// \n 换行符
-// \r 回车符
-// \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
-// +++++++++++++++++++++++++++++++++++++++++++++++++++
+import "strconv"
 
 // fast number value parser
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -23,14 +12,14 @@ var (
 	pow10u64Len = len(pow10u64)
 )
 
-func parseUint(b string) uint64 {
-	maxDigit := len(b)
+func parseUint(s string) uint64 {
+	maxDigit := len(s)
 	if maxDigit > pow10u64Len {
 		panic(errNumberFmt)
 	}
 	sum := uint64(0)
 	for i := 0; i < maxDigit; i++ {
-		c := uint64(b[i]) - 48
+		c := uint64(s[i]) - 48
 		digitValue := pow10u64[maxDigit-i-1]
 		sum += c * digitValue
 	}
@@ -45,19 +34,19 @@ var (
 	pow10i64Len = len(pow10i64)
 )
 
-func parseInt(b string) int64 {
+func parseInt(s string) int64 {
 	isNegative := false
-	if b[0] == '-' {
-		b = b[1:]
+	if s[0] == '-' {
+		s = s[1:]
 		isNegative = true
 	}
-	maxDigit := len(b)
+	maxDigit := len(s)
 	if maxDigit > pow10i64Len {
 		panic(errNumberFmt)
 	}
 	sum := int64(0)
 	for i := 0; i < maxDigit; i++ {
-		c := int64(b[i]) - 48
+		c := int64(s[i]) - 48
 		digitValue := pow10i64[maxDigit-i-1]
 		sum += c * digitValue
 	}
@@ -65,6 +54,15 @@ func parseInt(b string) int64 {
 		return -1 * sum
 	}
 	return sum
+}
+
+//go:inline
+func parseFloat(s string) float64 {
+	if f64, err := strconv.ParseFloat(s, 64); err != nil {
+		panic(errNumberFmt)
+	} else {
+		return f64
+	}
 }
 
 //// 检查科学计数法（e|E）后面的字符串合法性

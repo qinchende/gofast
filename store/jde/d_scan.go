@@ -358,11 +358,6 @@ func (sd *subDecode) scanNumValue() {
 		pos++
 		c = sd.str[pos]
 	}
-
-	//if c < '0' || c > '9' {
-	//	panic(errNumberFmt)
-	//}
-
 	// 0开头的数字，只能是：0 | 0.x | 0e | 0E
 	if c == '0' {
 		pos++
@@ -375,7 +370,6 @@ func (sd *subDecode) scanNumValue() {
 			goto over
 		}
 	}
-	//pos++
 	needNum = true
 
 loopNum:
@@ -411,7 +405,7 @@ loopNum:
 			pos--
 			break
 		} else {
-			needNum = false
+			needNum = false // 到这里，字符肯定是数字
 		}
 	}
 
@@ -427,9 +421,61 @@ over:
 	sd.bindNumber(sd.str[start:pos])
 }
 
+func (sd *subDecode) scanIntValue() {
+	pos := sd.scan
+	start := pos
+
+	c := sd.str[pos]
+	if c == '-' {
+		pos++
+		c = sd.str[pos]
+	}
+	if c == '0' {
+		pos++
+		goto over
+	}
+	for {
+		if c < '0' || c > '9' {
+			break
+		}
+		pos++
+		c = sd.str[pos]
+	}
+over:
+	sd.scan = pos
+	if sd.skipValue {
+		return
+	}
+	sd.bindNumber(sd.str[start:pos])
+}
+
+func (sd *subDecode) scanUintValue() {
+	pos := sd.scan
+	start := pos
+
+	c := sd.str[pos]
+	if c == '0' {
+		pos++
+		goto over
+	}
+	for {
+		if c < '0' || c > '9' {
+			break
+		}
+		pos++
+		c = sd.str[pos]
+	}
+over:
+	sd.scan = pos
+	if sd.skipValue {
+		return
+	}
+	sd.bindNumber(sd.str[start:pos])
+}
+
 func (sd *subDecode) scanNoQuoteValue() {
 	switch c := sd.str[sd.scan]; {
-	case (c >= '0' && c <= '9') || c == '-':
+	case c >= '0' && c <= '9', c == '-':
 		sd.scanNumValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
 	case c == 'f':
 		sd.skipFalse()

@@ -27,17 +27,18 @@ var jdePool = sync.Pool{New: func() any { return &fastPool{} }}
 // TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
 type fastPool struct {
 	bufI64 []int64
+	bufU64 []uint64
 	bufF64 []float64
 	bufStr []string
 	bufBol []bool
 	bufAny []any
-
-	escPos []int
+	escPos []int // 存放转义字符'\'的索引位置
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
 	sd.pl.bufI64 = sd.pl.bufI64[0:0]
+	sd.pl.bufU64 = sd.pl.bufU64[0:0]
 	sd.pl.bufF64 = sd.pl.bufF64[0:0]
 	sd.pl.bufStr = sd.pl.bufStr[0:0]
 	sd.pl.bufBol = sd.pl.bufBol[0:0]
@@ -130,28 +131,29 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 	return
 }
 
-func copyNumSlice[T string | *string | **string](sd *subDecode, ptrLevel uint8, arr []T) []*T {
-	size := len(arr)
-
-	newArr := make([]*T, size)
-	for i := 0; i < size; i++ {
-		newArr[i] = &arr[i]
-	}
-
-	if ptrLevel <= 0 {
-		if sd.isArray {
-			dstSnap := []*T{}
-			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
-			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
-			copy(dstSnap, newArr)
-		} else {
-			*(sd.dst.(*[]*T)) = newArr
-		}
-		return nil
-	} else {
-		return newArr
-	}
-}
+//
+//func copyNumSlice[T string | *string | **string](sd *subDecode, ptrLevel uint8, arr []T) []*T {
+//	size := len(arr)
+//
+//	newArr := make([]*T, size)
+//	for i := 0; i < size; i++ {
+//		newArr[i] = &arr[i]
+//	}
+//
+//	if ptrLevel <= 0 {
+//		if sd.isArray {
+//			dstSnap := []*T{}
+//			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
+//			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
+//			copy(dstSnap, newArr)
+//		} else {
+//			*(sd.dst.(*[]*T)) = newArr
+//		}
+//		return nil
+//	} else {
+//		return newArr
+//	}
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 字符串处理

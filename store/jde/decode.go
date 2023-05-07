@@ -55,11 +55,11 @@ type destMeta struct {
 	itemSize int // item类型对应的内存字节大小，数组时此值才有意义
 	arrLen   int // 数组长度，数组时此值才有意义
 
-	//arrSetInt   arrIntFunc
-	//arrSetFloat arrFloatFunc
-
 	destStatus
 	ptrLevel uint8
+
+	//arrSetInt   arrIntFunc
+	//arrSetFloat arrFloatFunc
 }
 
 type destStatus struct {
