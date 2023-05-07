@@ -1,9 +1,5 @@
 package jde
 
-import (
-	"strconv"
-)
-
 // skip some items
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) checkSkip() {
@@ -26,11 +22,6 @@ func (sd *subDecode) checkSkip() {
 		return
 	}
 }
-
-////go:inline
-//func (sd *subDecode) isSkip() bool {
-//	return sd.skipValue || sd.skipTotal
-//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) bindString(val string) {
@@ -122,57 +113,97 @@ func (sd *subDecode) bindNumber(val string) {
 		return
 	}
 
-	// 如果是数组
-	if sd.isList {
-		// 只能是整形
-		if allowInt(sd.dm.itemKind) {
-			if sd.isArray && !sd.isPtr {
-				if sd.arrIdx >= sd.dm.arrLen {
-					sd.skipValue = true
-					return
-				}
-				sd.bindIntArr(parseInt(val))
-				return
-			}
+	//// 如果是数组
+	//if sd.isList {
+	//	if allowInt(sd.dm.itemKind) {
+	//		if sd.isArray && !sd.isPtr {
+	//			if sd.arrIdx >= sd.dm.arrLen {
+	//				sd.skipValue = true
+	//				return
+	//			}
+	//			sd.bindIntArr(parseInt(val))
+	//			return
+	//		}
+	//
+	//		if sd.isAny {
+	//			sd.pl.bufAny = append(sd.pl.bufAny, parseInt(val))
+	//		} else {
+	//			sd.pl.bufI64 = append(sd.pl.bufI64, parseInt(val))
+	//		}
+	//		return
+	//	}
+	//
+	//	if allowFloat(sd.dm.itemKind) {
+	//		if sd.isArray && !sd.isPtr {
+	//			if sd.arrIdx >= sd.dm.arrLen {
+	//				sd.skipValue = true
+	//				return
+	//			}
+	//			sd.bindFloatArr(parseFloat(val))
+	//			return
+	//		}
+	//
+	//		if sd.isAny {
+	//			sd.pl.bufAny = append(sd.pl.bufAny, parseFloat(val))
+	//		} else {
+	//			sd.pl.bufF64 = append(sd.pl.bufF64, parseFloat(val))
+	//		}
+	//		return
+	//	}
+	//
+	//	// 错误
+	//	panic(errList)
+	//}
+}
 
-			if sd.isAny {
-				sd.pl.bufAny = append(sd.pl.bufAny, parseInt(val))
-			} else {
-				sd.pl.bufI64 = append(sd.pl.bufI64, parseInt(val))
-			}
+func (sd *subDecode) bindInt(val string) {
+	if sd.isArray && !sd.isPtr {
+		if sd.arrIdx >= sd.dm.arrLen {
+			sd.skipValue = true
 			return
 		}
+		sd.bindIntArr(parseInt(val))
+		return
+	}
 
-		// 只能是整形
-		if allowFloat(sd.dm.itemKind) {
-			if sd.isArray && !sd.isPtr {
-				if sd.arrIdx >= sd.dm.arrLen {
-					sd.skipValue = true
-					return
-				}
+	if sd.isAny {
+		sd.pl.bufAny = append(sd.pl.bufAny, parseInt(val))
+	} else {
+		sd.pl.bufI64 = append(sd.pl.bufI64, parseInt(val))
+	}
+}
 
-				if f64, err1 := strconv.ParseFloat(val, 64); err1 != nil {
-					panic(errNumberFmt)
-				} else {
-					sd.bindFloatArr(f64)
-				}
-				return
-			}
-
-			if num, err1 := strconv.ParseFloat(val, 64); err1 != nil {
-				panic(errNumberFmt)
-			} else {
-				if sd.isAny {
-					sd.pl.bufAny = append(sd.pl.bufAny, num)
-				} else {
-					sd.pl.bufF64 = append(sd.pl.bufF64, num)
-				}
-			}
+func (sd *subDecode) bindUint(val string) {
+	if sd.isArray && !sd.isPtr {
+		if sd.arrIdx >= sd.dm.arrLen {
+			sd.skipValue = true
 			return
 		}
+		sd.bindUintArr(parseUint(val))
+		return
+	}
 
-		// 错误
-		panic(errList)
+	if sd.isAny {
+		sd.pl.bufAny = append(sd.pl.bufAny, parseInt(val))
+	} else {
+		sd.pl.bufU64 = append(sd.pl.bufU64, parseUint(val))
+	}
+}
+
+func (sd *subDecode) bindFloat(val string) {
+	if sd.isArray && !sd.isPtr {
+		if sd.arrIdx >= sd.dm.arrLen {
+			sd.skipValue = true
+			return
+		}
+		sd.bindFloatArr(parseFloat(val))
+		return
+	}
+
+	if sd.isAny {
+		sd.pl.bufAny = append(sd.pl.bufAny, parseFloat(val))
+	} else {
+		sd.pl.bufF64 = append(sd.pl.bufF64, parseFloat(val))
 	}
 }
 

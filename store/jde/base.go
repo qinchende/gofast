@@ -83,7 +83,20 @@ var (
 		'\t': true,
 	}
 
+	// ++++++++++++++++++++++++++++++++++++++需要转义的字符
+	// \\ 反斜杠
+	// \" 双引号
+	// \' 单引号 （没有这个）
+	// \/ 正斜杠
+	// \b 退格符
+	// \f 换页符
+	// \t 制表符
+	// \n 换行符
+	// \r 回车符
+	// \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
+	// +++++++++++++++++++++++++++++++++++++++++++++++++++
 	unescapeChar = [256]byte{
+		'u':  'u',
 		'"':  '"',
 		'\\': '\\',
 		'/':  '/',
@@ -101,6 +114,8 @@ const (
 	kindsCount       = 27
 	isBaseTypeMask   = 17956862 // 0001 0001 0001 1111 1111 1111 1110
 	isNumKindMask    = 131068   // 0000 0000 0001 1111 1111 1111 1100
+	isIntKindMask    = 124      // 0000 0000 0000 0000 0000 0111 1100
+	isUintKindMask   = 8064     // 0000 0000 0000 0001 1111 1000 0000
 	receiveNumMask   = 1179644  // 0000 0001 0001 1111 1111 1111 1100
 	receiveIntMask   = 1056764  // 0000 0001 0000 0001 1111 1111 1100
 	receiveFloatMask = 1073152  // 0000 0001 0000 0110 0000 0000 0000
@@ -111,6 +126,16 @@ const (
 //go:inline
 func isNumKind(k reflect.Kind) bool {
 	return (1<<k)&isNumKindMask != 0
+}
+
+//go:inline
+func isIntKind(k reflect.Kind) bool {
+	return (1<<k)&isIntKindMask != 0
+}
+
+//go:inline
+func isUintKind(k reflect.Kind) bool {
+	return (1<<k)&isUintKindMask != 0
 }
 
 // 变量是否接收对应的值类型 ++++++++++++
