@@ -65,6 +65,23 @@ func parseFloat(s string) float64 {
 	}
 }
 
+//func (sd *subDecode) skipQuoteString() {
+//	pos := sd.scan
+//	//if sd.str[pos] != '"' {
+//	//	panic(errChar)
+//	//}
+//	for {
+//		pos++
+//		switch c := sd.str[pos]; {
+//		case c == '"':
+//			sd.scan = pos + 1
+//			return
+//		case c == '\\':
+//			pos++
+//		}
+//	}
+//}
+
 //// 检查科学计数法（e|E）后面的字符串合法性
 //func (sd *subDecode) scanScientificNumberTail() int {
 //	c := sd.str[sd.scan]
