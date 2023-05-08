@@ -58,10 +58,8 @@ func (sd *subDecode) scanJsonEnd(ch byte) {
 		sd.scan++
 		sd.scanObject()
 	} else if ch == ']' {
-		sd.resetListPool()
 		sd.scan++
 		sd.scanList()
-		sd.flushListPool()
 	} else {
 		sd.skipNull()
 	}
@@ -104,6 +102,9 @@ func (sd *subDecode) scanObject() {
 func (sd *subDecode) scanKVItem() {
 	// A: 找 key 字符串
 	start := sd.scan
+	if sd.str[start] != '"' {
+		panic(errChar)
+	}
 	slash := sd.scanQuoteString()
 	if slash {
 		//sd.key = sd.unescapeString(start, sd.scan)
@@ -200,17 +201,27 @@ func (sd *subDecode) scanList() {
 		panic(errList)
 	}
 
-	// 根据目标值类型，直接匹配，提高效率
-	switch {
-	case isNumKind(sd.dm.itemKind) == true:
+	// A. 可能需要用到缓冲池记录临时数据
+	sd.resetListPool()
+
+	// B. 根据目标值类型，直接匹配，提高性能
+	switch sd.dm.itemKind {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		sd.scanArrItems(sd.scanIntValue)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		sd.scanArrItems(sd.scanUintValue)
+	case reflect.Float32, reflect.Float64:
 		sd.scanArrItems(sd.scanNumValue)
-	case sd.dm.itemKind == reflect.String:
-		sd.scanArrItems(sd.scanStrVal)
-	case sd.dm.itemKind == reflect.Bool:
-		sd.scanArrItems(sd.scanBoolVal)
+	case reflect.String:
+		sd.scanArrItems(sd.scanStrKindValue)
+	case reflect.Bool:
+		sd.scanArrItems(sd.scanBoolValue)
 	default:
 		sd.scanArrItems(sd.scanObjValue)
 	}
+
+	// C. 将解析好的数据一次性绑定到对象上
+	sd.flushListPool()
 }
 
 func (sd *subDecode) scanArrItems(scanValue func()) {
@@ -221,22 +232,20 @@ func (sd *subDecode) scanArrItems(scanValue func()) {
 			pos++
 		}
 
-		switch c := sd.str[pos]; c {
-		case ']':
-			sd.scan = pos + 1
-			return
-		case ',':
+		// 不用switch, 比较顺序相对比较明确
+		if c := sd.str[pos]; c == ',' {
 			pos++
 			for isBlankChar[sd.str[pos]] {
 				pos++
 			}
-		default:
-			if first {
-				first = false
-			} else {
-				sd.scan = pos
-				panic(errChar)
-			}
+		} else if c == ']' {
+			sd.scan = pos + 1
+			return
+		} else if first {
+			first = false
+		} else {
+			sd.scan = pos
+			panic(errChar)
 		}
 
 		sd.scan = pos
@@ -244,23 +253,43 @@ func (sd *subDecode) scanArrItems(scanValue func()) {
 	}
 }
 
-func (sd *subDecode) scanStrVal() {
+func (sd *subDecode) scanQuoteStrValue() {
+	pos := sd.scan
+
 	if sd.skipValue {
-		sd.skipQuoteString()
-		return
+		for {
+			pos++
+			switch c := sd.str[pos]; {
+			case c == '"':
+				sd.scan = pos + 1
+				return
+			case c == '\\':
+				pos++
+			}
+		}
+		// return 其实到不了这里
 	}
 
-	start := sd.scan
+	pos++
 	slash := sd.scanQuoteString()
 	if slash {
 		//sd.bindString(sd.unescapeString(start, sd.scan))
-		sd.bindString(sd.str[start+1 : sd.unescapeEnd()])
+		sd.bindString(sd.str[pos:sd.unescapeEnd()])
 	} else {
-		sd.bindString(sd.str[start+1 : sd.scan-1])
+		sd.bindString(sd.str[pos : sd.scan-1])
 	}
 }
 
-func (sd *subDecode) scanBoolVal() {
+func (sd *subDecode) scanStrKindValue() {
+	switch sd.str[sd.scan] {
+	case '"':
+		sd.scanQuoteStrValue()
+	default:
+		sd.scanNullValue()
+	}
+}
+
+func (sd *subDecode) scanBoolValue() {
 	switch sd.str[sd.scan] {
 	case 't':
 		sd.skipTrue()
@@ -275,17 +304,13 @@ func (sd *subDecode) scanBoolVal() {
 		}
 		sd.bindBool(false)
 	default:
-		panic(errBool)
+		sd.scanNullValue()
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) scanQuoteString() (slash bool) {
 	pos := sd.scan
-	if sd.str[pos] != '"' {
-		panic(errChar)
-	}
-
 	for {
 		pos++
 
@@ -312,42 +337,38 @@ func (sd *subDecode) scanQuoteString() (slash bool) {
 	}
 }
 
-func (sd *subDecode) skipQuoteString() {
-	pos := sd.scan
-	if sd.str[pos] != '"' {
-		panic(errChar)
-	}
-
-	for {
-		pos++
-		switch c := sd.str[pos]; {
-		case c == '"':
-			sd.scan = pos + 1
-			return
-		case c == '\\':
-			pos++
-		}
-	}
-}
-
 func (sd *subDecode) scanObjValue() {
-	switch sd.str[sd.scan] {
-	case '{':
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
 		sd.scan++
 		sd.scanSubObject()
-	case '[':
+	case c == '[':
 		sd.scan++
 		//err = sd.scanSubArray()
-	case '"':
-		sd.scanStrVal()
+	case c == '"':
+		sd.scanQuoteStrValue()
+	case c >= '0' && c <= '9', c == '-':
+		sd.scanNumValue()
+	case c == 't':
+		sd.skipTrue()
+		if sd.skipValue {
+			return
+		}
+		sd.bindBool(true)
+	case c == 'f':
+		sd.skipFalse()
+		if sd.skipValue {
+			return
+		}
+		sd.bindBool(false)
 	default:
-		sd.scanNoQuoteValue()
+		sd.scanNullValue()
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 匹配一个数值，不带有正负号前缀。
-// 0.234 | 234.23 | 23424 | 3.8e+07
+// 匹配一个数值，对应于float类型
+// 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
 func (sd *subDecode) scanNumValue() {
 	pos := sd.scan
 	start := pos
@@ -415,10 +436,19 @@ loopNum:
 
 over:
 	sd.scan = pos
+	// 还剩下最后一种可能：null
+	if start == pos {
+		sd.scanNullValue()
+		return
+	}
 	if sd.skipValue {
 		return
 	}
-	sd.bindNumber(sd.str[start:pos])
+	if sd.isList {
+		sd.bindFloatList(sd.str[start:pos])
+	} else {
+		sd.bindNumber(sd.str[start:pos])
+	}
 }
 
 func (sd *subDecode) scanIntValue() {
@@ -443,10 +473,15 @@ func (sd *subDecode) scanIntValue() {
 	}
 over:
 	sd.scan = pos
+	// 还剩下最后一种可能：null
+	if start == pos {
+		sd.scanNullValue()
+		return
+	}
 	if sd.skipValue {
 		return
 	}
-	sd.bindNumber(sd.str[start:pos])
+	sd.bindIntList(sd.str[start:pos])
 }
 
 func (sd *subDecode) scanUintValue() {
@@ -467,37 +502,28 @@ func (sd *subDecode) scanUintValue() {
 	}
 over:
 	sd.scan = pos
+	// 还剩下最后一种可能：null
+	if start == pos {
+		sd.scanNullValue()
+		return
+	}
 	if sd.skipValue {
 		return
 	}
-	sd.bindNumber(sd.str[start:pos])
+	sd.bindUintList(sd.str[start:pos])
 }
 
-func (sd *subDecode) scanNoQuoteValue() {
-	switch c := sd.str[sd.scan]; {
-	case c >= '0' && c <= '9', c == '-':
-		sd.scanNumValue() // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
-	case c == 'f':
-		sd.skipFalse()
-		if sd.skipValue {
-			return
-		}
-		sd.bindBool(false)
-	case c == 't':
-		sd.skipTrue()
-		if sd.skipValue {
-			return
-		}
-		sd.bindBool(true)
-	case c == 'n':
-		sd.skipNull()
+func (sd *subDecode) scanNullValue() {
+	s := sd.scan
+	if sd.str[s:s+4] == "null" {
+		sd.scan += 4
 		if sd.skipValue {
 			return
 		}
 		sd.bindNull()
-	default:
-		panic(errValue)
+		return
 	}
+	panic(errChar)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -525,5 +551,4 @@ func (sd *subDecode) skipFalse() {
 		sd.scan += 5
 		return
 	}
-	panic(errBool)
 }

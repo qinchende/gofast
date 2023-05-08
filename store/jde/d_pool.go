@@ -32,11 +32,15 @@ type fastPool struct {
 	bufStr []string
 	bufBol []bool
 	bufAny []any
+
 	escPos []int // 存放转义字符'\'的索引位置
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
+	if sd.isArrBind {
+		return
+	}
 	sd.pl.bufI64 = sd.pl.bufI64[0:0]
 	sd.pl.bufU64 = sd.pl.bufU64[0:0]
 	sd.pl.bufF64 = sd.pl.bufF64[0:0]
@@ -47,7 +51,7 @@ func (sd *subDecode) resetListPool() {
 
 func (sd *subDecode) flushListPool() {
 	// 如果是定长数组，不会用到缓冲池，不需要转储
-	if sd.isArray && !sd.isPtr {
+	if sd.isArrBind {
 		return
 	}
 
@@ -64,15 +68,15 @@ func (sd *subDecode) flushListPool() {
 		sliceSetNum[int64, int64](sd.pl.bufI64, sd)
 
 	case reflect.Uint:
-		sliceSetNum[int, int64](sd.pl.bufI64, sd)
+		sliceSetNum[int, uint64](sd.pl.bufU64, sd)
 	case reflect.Uint8:
-		sliceSetNum[uint8, int64](sd.pl.bufI64, sd)
+		sliceSetNum[uint8, uint64](sd.pl.bufU64, sd)
 	case reflect.Uint16:
-		sliceSetNum[uint16, int64](sd.pl.bufI64, sd)
+		sliceSetNum[uint16, uint64](sd.pl.bufU64, sd)
 	case reflect.Uint32:
-		sliceSetNum[uint32, int64](sd.pl.bufI64, sd)
+		sliceSetNum[uint32, uint64](sd.pl.bufU64, sd)
 	case reflect.Uint64:
-		sliceSetNum[uint64, int64](sd.pl.bufI64, sd)
+		sliceSetNum[uint64, uint64](sd.pl.bufU64, sd)
 
 	case reflect.Float32:
 		sliceSetNum[float32, float64](sd.pl.bufF64, sd)
@@ -91,7 +95,7 @@ func (sd *subDecode) flushListPool() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 整形和浮点型
-func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](val []T2, sd *subDecode) {
+func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | float64](val []T2, sd *subDecode) {
 	size := len(val)
 
 	ptrLevel := sd.dm.ptrLevel
@@ -141,7 +145,7 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | float64](
 //	}
 //
 //	if ptrLevel <= 0 {
-//		if sd.isArray {
+//		if sd.dm.arrLen > 0 {
 //			dstSnap := []*T{}
 //			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
 //			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
@@ -260,7 +264,7 @@ func copySlice[T string | *string | **string | bool | *bool | **bool | any | *an
 	}
 
 	if ptrLevel <= 0 {
-		if sd.isArray {
+		if sd.dm.arrLen > 0 {
 			dstSnap := []*T{}
 			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
 			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size

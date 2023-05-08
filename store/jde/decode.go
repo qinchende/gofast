@@ -52,8 +52,8 @@ type destMeta struct {
 	listKind reflect.Kind
 	itemType reflect.Type
 	itemKind reflect.Kind
-	itemSize int // item类型对应的内存字节大小，数组时此值才有意义
-	arrLen   int // 数组长度，数组时此值才有意义
+	itemSize int // 数组属性，item类型对应的内存字节大小
+	arrLen   int // 数组属性，数组长度
 
 	destStatus
 	ptrLevel uint8
@@ -63,11 +63,11 @@ type destMeta struct {
 }
 
 type destStatus struct {
-	isList   bool // 区分 [] 或者 {}
-	isArray  bool // 不是slice
-	isStruct bool // {} 可能目标是 一个 struct 对象
-	isAny    bool
-	isPtr    bool
+	isList    bool // 区分 [] 或者 {}
+	isStruct  bool // {} 可能目标是 一个 struct 对象
+	isAny     bool
+	isPtr     bool
+	isArrBind bool //isArray  bool // 不是slice
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -127,8 +127,6 @@ func (sd *subDecode) initDecode(dst any) (err error) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 绑定 array
-
 // 如果不是map和*GsonRow，只能是 Array|Slice|Struct
 func (sd *subDecode) buildMeta(dst any) (err error) {
 	sd.dm = &destMeta{}
@@ -198,10 +196,10 @@ peelPtr:
 }
 
 func (sd *subDecode) initArrayMeta() {
-	sd.dm.isArray = true
 	if sd.dm.isPtr {
 		return
 	}
+	sd.dm.isArrBind = true
 	sd.dm.itemSize = int(sd.dm.itemType.Size())
 
 	//// int 或者 float 需要不同的方法设置值
