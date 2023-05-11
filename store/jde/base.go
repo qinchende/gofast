@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	ptrByteSize   = 8
 	maxJsonLength = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
 )
 
@@ -23,7 +24,7 @@ const (
 	errOverflow  errType = -7
 	errNumberFmt errType = -8
 	errExceedMax errType = -9
-	errInfinity  errType = -10
+	errInfinity  errType = -10 // 超出限制
 	errMismatch  errType = -11
 	errUTF8      errType = -12
 	errKey       errType = -13

@@ -69,6 +69,10 @@ func (sd *subDecode) scanJsonEnd(ch byte) {
 // 前提：sd.str 肯定是 { 字符后面的字符串
 // 返回 } 后面一个字符的 index
 func (sd *subDecode) scanObject() {
+	if sd.isList {
+		panic(errObject)
+	}
+
 	first := true
 	for {
 		for isBlankChar[sd.str[sd.scan]] {
@@ -162,6 +166,40 @@ func (sd *subDecode) scanSubObject() {
 	return
 }
 
+func (sd *subDecode) scanObjValue() {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		sd.scan++
+		sd.scanSubObject()
+	case c == '[':
+		sd.scan++
+		//err = sd.scanSubArray()
+	case c == '"':
+		sd.scanQuoteStrValue()
+	case c >= '0' && c <= '9', c == '-':
+		sd.scanNumValue()
+	case c == 't':
+		sd.skipTrue()
+		if sd.skipValue {
+			return
+		}
+		sd.bindBool(true)
+	case c == 'f':
+		sd.skipFalse()
+		if sd.skipValue {
+			return
+		}
+		sd.bindBool(false)
+	default:
+		sd.skipNull()
+		if sd.skipValue {
+			return
+		}
+		sd.bindBoolNull()
+	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //func (sd *subDecode) scanSubArray(key string) (val string, err int) {
 //	sub := subDecode{
 //		str:       sd.str,
@@ -193,7 +231,6 @@ func (sd *subDecode) scanSubObject() {
 //	return
 //}
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
 func (sd *subDecode) scanList() {
@@ -214,8 +251,6 @@ func (sd *subDecode) scanList() {
 		sd.scanArrItems(sd.scanNumValue)
 	case reflect.String:
 		sd.scanArrItems(sd.scanStrKindValue)
-	case reflect.Bool:
-		sd.scanArrItems(sd.scanBoolValue)
 	default:
 		sd.scanArrItems(sd.scanObjValue)
 	}
@@ -225,32 +260,44 @@ func (sd *subDecode) scanList() {
 }
 
 func (sd *subDecode) scanArrItems(scanValue func()) {
-	first := true
+	pos := sd.scan
+
+	for isBlankChar[sd.str[pos]] {
+		pos++
+	}
+	c := sd.str[pos]
+	if c == ',' {
+		goto errChar
+	}
+
 	for {
-		pos := sd.scan
+		// 不用switch, 比较顺序相对比较明确
+		if c == ',' {
+			pos++
+		} else if c == ']' {
+			sd.scan = pos + 1
+			return
+		} else if sd.arrIdx > 0 {
+			goto errChar
+		}
+
 		for isBlankChar[sd.str[pos]] {
 			pos++
 		}
 
-		// 不用switch, 比较顺序相对比较明确
-		if c := sd.str[pos]; c == ',' {
-			pos++
-			for isBlankChar[sd.str[pos]] {
-				pos++
-			}
-		} else if c == ']' {
-			sd.scan = pos + 1
-			return
-		} else if first {
-			first = false
-		} else {
-			sd.scan = pos
-			panic(errChar)
-		}
-
 		sd.scan = pos
 		scanValue()
+		pos = sd.scan
+
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
+		c = sd.str[pos]
 	}
+
+errChar:
+	sd.scan = pos
+	panic(errChar)
 }
 
 func (sd *subDecode) scanQuoteStrValue() {
@@ -285,7 +332,11 @@ func (sd *subDecode) scanStrKindValue() {
 	case '"':
 		sd.scanQuoteStrValue()
 	default:
-		sd.scanNullValue()
+		sd.skipNull()
+		if sd.skipValue {
+			return
+		}
+		sd.bindStringNull()
 	}
 }
 
@@ -297,6 +348,7 @@ func (sd *subDecode) scanBoolValue() {
 			return
 		}
 		sd.bindBool(true)
+		return
 	case 'f':
 		sd.skipFalse()
 		if sd.skipValue {
@@ -304,7 +356,11 @@ func (sd *subDecode) scanBoolValue() {
 		}
 		sd.bindBool(false)
 	default:
-		sd.scanNullValue()
+		sd.skipNull()
+		if sd.skipValue {
+			return
+		}
+		sd.bindBoolNull()
 	}
 }
 
@@ -334,35 +390,6 @@ func (sd *subDecode) scanQuoteString() (slash bool) {
 			//	panic(errChar)
 			//}
 		}
-	}
-}
-
-func (sd *subDecode) scanObjValue() {
-	switch c := sd.str[sd.scan]; {
-	case c == '{':
-		sd.scan++
-		sd.scanSubObject()
-	case c == '[':
-		sd.scan++
-		//err = sd.scanSubArray()
-	case c == '"':
-		sd.scanQuoteStrValue()
-	case c >= '0' && c <= '9', c == '-':
-		sd.scanNumValue()
-	case c == 't':
-		sd.skipTrue()
-		if sd.skipValue {
-			return
-		}
-		sd.bindBool(true)
-	case c == 'f':
-		sd.skipFalse()
-		if sd.skipValue {
-			return
-		}
-		sd.bindBool(false)
-	default:
-		sd.scanNullValue()
 	}
 }
 
@@ -438,17 +465,17 @@ over:
 	sd.scan = pos
 	// 还剩下最后一种可能：null
 	if start == pos {
-		sd.scanNullValue()
+		sd.skipNull()
+		if sd.skipValue {
+			return
+		}
+		sd.bindNumberNull()
 		return
 	}
 	if sd.skipValue {
 		return
 	}
-	if sd.isList {
-		sd.bindFloatList(sd.str[start:pos])
-	} else {
-		sd.bindNumber(sd.str[start:pos])
-	}
+	sd.bindNumber(sd.str[start:pos])
 }
 
 func (sd *subDecode) scanIntValue() {
@@ -473,9 +500,13 @@ func (sd *subDecode) scanIntValue() {
 	}
 over:
 	sd.scan = pos
-	// 还剩下最后一种可能：null
+	// 还剩下最后一种可能：null +++
 	if start == pos {
-		sd.scanNullValue()
+		sd.skipNull()
+		if sd.skipValue {
+			return
+		}
+		sd.bindIntNull()
 		return
 	}
 	if sd.skipValue {
@@ -504,26 +535,17 @@ over:
 	sd.scan = pos
 	// 还剩下最后一种可能：null
 	if start == pos {
-		sd.scanNullValue()
+		sd.skipNull()
+		if sd.skipValue {
+			return
+		}
+		sd.bindUintNull()
 		return
 	}
 	if sd.skipValue {
 		return
 	}
 	sd.bindUintList(sd.str[start:pos])
-}
-
-func (sd *subDecode) scanNullValue() {
-	s := sd.scan
-	if sd.str[s:s+4] == "null" {
-		sd.scan += 4
-		if sd.skipValue {
-			return
-		}
-		sd.bindNull()
-		return
-	}
-	panic(errChar)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

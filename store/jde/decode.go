@@ -57,13 +57,11 @@ type destMeta struct {
 
 	destStatus
 	ptrLevel uint8
-
-	//arrSetInt   arrIntFunc
-	//arrSetFloat arrFloatFunc
 }
 
 type destStatus struct {
 	isList    bool // 区分 [] 或者 {}
+	isArray   bool
 	isStruct  bool // {} 可能目标是 一个 struct 对象
 	isAny     bool
 	isPtr     bool
@@ -196,18 +194,12 @@ peelPtr:
 }
 
 func (sd *subDecode) initArrayMeta() {
+	sd.dm.isArray = true
 	if sd.dm.isPtr {
 		return
 	}
 	sd.dm.isArrBind = true
 	sd.dm.itemSize = int(sd.dm.itemType.Size())
-
-	//// int 或者 float 需要不同的方法设置值
-	//if allowInt(sd.dm.itemKind) {
-	//	sd.dm.arrSetInt = setIntFunc(sd.dm.itemKind)
-	//} else if allowFloat(sd.dm.itemKind) {
-	//	sd.dm.arrSetFloat = setFloatFunc(sd.dm.itemKind)
-	//}
 }
 
 func (sd *subDecode) getPool() {
