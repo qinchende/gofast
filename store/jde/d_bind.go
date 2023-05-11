@@ -23,7 +23,7 @@ func (sd *subDecode) checkSkip() {
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) bindString(val string) {
 	// 如果是 struct
 	if sd.isStruct {
@@ -97,6 +97,8 @@ func (sd *subDecode) bindBool(val bool) {
 	return
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// numbers
 func (sd *subDecode) bindNumber(val string) {
 	// 如果是 struct
 	if sd.isStruct {
@@ -111,6 +113,10 @@ func (sd *subDecode) bindNumber(val string) {
 		}
 		sd.mp.Set(sd.key, val)
 		return
+	}
+
+	if sd.isList {
+		sd.bindFloatList(val)
 	}
 }
 
@@ -165,22 +171,137 @@ func (sd *subDecode) bindFloatList(val string) {
 	}
 }
 
-func (sd *subDecode) bindNull() {
-	// 如果是数组
+// null value
+// 分不同函数，避免分支条件判断影响性能
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) bindIntNull() {
+	if sd.isArrBind {
+		if sd.arrIdx >= sd.dm.arrLen {
+			sd.skipValue = true
+			return
+		}
+		sd.arrIdx++
+		return
+	}
+	if sd.isAny {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufAny))
+		}
+		sd.pl.bufAny = append(sd.pl.bufAny, nil)
+	} else {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufI64))
+		}
+		sd.pl.bufI64 = append(sd.pl.bufI64, 0)
+	}
+}
+
+func (sd *subDecode) bindUintNull() {
+	if sd.isArrBind {
+		if sd.arrIdx >= sd.dm.arrLen {
+			sd.skipValue = true
+			return
+		}
+		sd.arrIdx++
+		return
+	}
+	if sd.isAny {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufAny))
+		}
+		sd.pl.bufAny = append(sd.pl.bufAny, nil)
+	} else {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufU64))
+		}
+		sd.pl.bufU64 = append(sd.pl.bufU64, 0)
+	}
+}
+
+func (sd *subDecode) bindFloatNull() {
+	if sd.isArrBind {
+		if sd.arrIdx >= sd.dm.arrLen {
+			sd.skipValue = true
+			return
+		}
+		sd.arrIdx++
+		return
+	}
+
+	if sd.isAny {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufAny))
+		}
+		sd.pl.bufAny = append(sd.pl.bufAny, nil)
+	} else {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufF64))
+		}
+		sd.pl.bufF64 = append(sd.pl.bufF64, 0)
+	}
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) bindNumberNull() {
+	sd.bindNull(func() {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufF64))
+		}
+		sd.pl.bufF64 = append(sd.pl.bufF64, 0)
+	})
+}
+
+func (sd *subDecode) bindStringNull() {
+	sd.bindNull(func() {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufStr))
+		}
+		sd.pl.bufStr = append(sd.pl.bufStr, "")
+	})
+}
+
+func (sd *subDecode) bindBoolNull() {
+	sd.bindNull(func() {
+		if sd.isPtr {
+			sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufBol))
+		}
+		sd.pl.bufBol = append(sd.pl.bufBol, false)
+	})
+}
+
+// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) bindNull(fn func()) {
 	if sd.isList {
 		if sd.isArrBind {
 			if sd.arrIdx >= sd.dm.arrLen {
 				sd.skipValue = true
 				return
 			}
-			sd.bindIntArr(0)
+			sd.arrIdx++
 			return
 		}
 		if sd.isAny {
-			sd.pl.bufAny = append(sd.pl.bufAny, 0)
+			if sd.isPtr {
+				sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufAny))
+			}
+			sd.pl.bufAny = append(sd.pl.bufAny, nil)
 		} else {
-			sd.pl.bufI64 = append(sd.pl.bufI64, 0)
+			fn()
 		}
 		return
 	}
+
+	if sd.isSuperKV {
+		if sd.gr != nil {
+			sd.gr.SetByIndex(sd.keyIdx, nil)
+			return
+		}
+		sd.mp.Set(sd.key, nil)
+		return
+	}
+
+	//// 如果是 struct，字段是默认值，相当于啥也不做
+	//if sd.isStruct {
+	//	return
+	//}
 }
