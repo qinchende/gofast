@@ -9,6 +9,7 @@ func (ss *StructSchema) BindString(ptr uintptr, idx int, val string) {
 
 func (ss *StructSchema) BindBool(ptr uintptr, idx int, val bool) {
 	offset := ss.fieldsOpts[idx].sField.Offset
+	
 	*(*bool)(unsafe.Pointer(ptr + offset)) = val
 }
 
