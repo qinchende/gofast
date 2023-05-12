@@ -4,6 +4,7 @@ import (
 	"errors"
 	"math"
 	"reflect"
+	"unsafe"
 )
 
 const (
@@ -106,6 +107,31 @@ var (
 		'n':  '\n',
 		'r':  '\r',
 		't':  '\t',
+	}
+
+	zeroNumValue = 0
+	numUPtrVal   = *(*unsafe.Pointer)(reflect.ValueOf(&zeroNumValue).UnsafePointer())
+
+	zeroBolValue = false
+	bolUPtrVal   = *(*unsafe.Pointer)(reflect.ValueOf(&zeroBolValue).UnsafePointer())
+
+	zeroStrValue = new(string)
+	strUPtrVal   = *(*unsafe.Pointer)(reflect.ValueOf(&zeroStrValue).UnsafePointer())
+
+	zeroValues = [27]unsafe.Pointer{
+		reflect.Int:     numUPtrVal,
+		reflect.Int8:    numUPtrVal,
+		reflect.Int16:   numUPtrVal,
+		reflect.Int32:   numUPtrVal,
+		reflect.Int64:   numUPtrVal,
+		reflect.Uint8:   numUPtrVal,
+		reflect.Uint16:  numUPtrVal,
+		reflect.Uint32:  numUPtrVal,
+		reflect.Uint64:  numUPtrVal,
+		reflect.Float32: numUPtrVal,
+		reflect.Float64: numUPtrVal,
+		reflect.Bool:    bolUPtrVal,
+		reflect.String:  strUPtrVal,
 	}
 )
 

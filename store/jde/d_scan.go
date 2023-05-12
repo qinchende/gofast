@@ -74,19 +74,21 @@ func (sd *subDecode) scanObject() {
 	}
 
 	first := true
+	pos := sd.scan
 	for {
-		for isBlankChar[sd.str[sd.scan]] {
-			sd.scan++
+		if isBlankChar[sd.str[pos]] {
+			pos++
+			continue
 		}
 
-		switch c := sd.str[sd.scan]; c {
+		switch c := sd.str[pos]; c {
 		case '}':
-			sd.scan++
+			sd.scan = pos + 1
 			return
 		case ',':
-			sd.scan++
-			for isBlankChar[sd.str[sd.scan]] {
-				sd.scan++
+			pos++
+			for isBlankChar[sd.str[pos]] {
+				pos++
 			}
 			goto scanKVPair
 		default:
@@ -94,45 +96,48 @@ func (sd *subDecode) scanObject() {
 				first = false
 				goto scanKVPair
 			}
+			sd.scan = pos
 			panic(errChar)
 		}
 
 	scanKVPair:
-		sd.scanKVItem()
-	}
-}
-
-// 必须是k:v, ...形式。不能为空，而且前面空字符已跳过，否则错误
-func (sd *subDecode) scanKVItem() {
-	// A: 找 key 字符串
-	start := sd.scan
-	if sd.str[start] != '"' {
-		panic(errChar)
-	}
-	slash := sd.scanQuoteString()
-	if slash {
-		//sd.key = sd.unescapeString(start, sd.scan)
-		sd.key = sd.str[start+1 : sd.unescapeEnd()]
-	} else {
-		sd.key = sd.str[start+1 : sd.scan-1]
-	}
-
-	// B: 跳过冒号
-	for isBlankChar[sd.str[sd.scan]] {
-		sd.scan++
-	}
-	if sd.str[sd.scan] == ':' {
-		sd.scan++
-		for isBlankChar[sd.str[sd.scan]] {
-			sd.scan++
+		// A: 找 key 字符串
+		start := pos
+		if sd.str[start] != '"' {
+			sd.scan = pos
+			panic(errChar)
 		}
-	} else {
-		panic(errChar)
-	}
 
-	// C: 找 value string，然后绑定
-	sd.checkSkip()
-	sd.scanObjValue()
+		sd.scan = pos
+		slash := sd.scanQuoteString()
+		pos = sd.scan
+
+		if slash {
+			sd.key = sd.str[start+1 : sd.unescapeEnd()]
+		} else {
+			sd.key = sd.str[start+1 : pos-1]
+		}
+
+		// B: 跳过冒号
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
+		if sd.str[pos] == ':' {
+			pos++
+			for isBlankChar[sd.str[pos]] {
+				pos++
+			}
+		} else {
+			sd.scan = pos
+			panic(errChar)
+		}
+
+		// C: 找 value string，然后绑定
+		sd.checkSkip()
+		sd.scan = pos
+		sd.scanObjValue()
+		pos = sd.scan
+	}
 }
 
 func (sd *subDecode) scanSubObject() {
@@ -275,6 +280,10 @@ func (sd *subDecode) scanArrItems(scanValue func()) {
 		if c == ',' {
 			pos++
 		} else if c == ']' {
+			// 数组多余的部分需要重置成类型零值
+			if sd.arrIdx < sd.dm.arrLen {
+				sd.resetArrLeftItems()
+			}
 			sd.scan = pos + 1
 			return
 		} else if sd.arrIdx > 0 {
@@ -320,7 +329,6 @@ func (sd *subDecode) scanQuoteStrValue() {
 	pos++
 	slash := sd.scanQuoteString()
 	if slash {
-		//sd.bindString(sd.unescapeString(start, sd.scan))
 		sd.bindString(sd.str[pos:sd.unescapeEnd()])
 	} else {
 		sd.bindString(sd.str[pos : sd.scan-1])

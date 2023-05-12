@@ -115,3 +115,10 @@ func (sd *subDecode) bindFloatArr(v float64) {
 errPanic:
 	panic(errInfinity)
 }
+
+func (sd *subDecode) resetArrLeftItems() {
+	dfValue := zeroValues[sd.dm.itemKind]
+	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
+		*(*unsafe.Pointer)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.dm.itemSize))) = dfValue
+	}
+}

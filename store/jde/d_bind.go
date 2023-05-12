@@ -1,7 +1,6 @@
 package jde
 
 // skip some items
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) checkSkip() {
 	// 如果是 struct ，就找找是否支持这个字段
 	if sd.isStruct {
@@ -23,7 +22,7 @@ func (sd *subDecode) checkSkip() {
 	}
 }
 
-// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) bindString(val string) {
 	// 如果是 struct
 	if sd.isStruct {
@@ -97,7 +96,6 @@ func (sd *subDecode) bindBool(val bool) {
 	return
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // numbers
 func (sd *subDecode) bindNumber(val string) {
 	// 如果是 struct
@@ -120,6 +118,7 @@ func (sd *subDecode) bindNumber(val string) {
 	}
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) bindIntList(val string) {
 	if sd.isArrBind {
 		if sd.arrIdx >= sd.dm.arrLen {

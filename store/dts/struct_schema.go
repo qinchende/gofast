@@ -19,8 +19,8 @@ type StructSchema struct {
 	fieldsIndex [][]int         // reflect fields index
 	fieldsOpts  []*fieldOptions // 字段的属性
 
-	columnTips stringsTips // pms_name index
-	fieldTips  stringsTips // field_name index
+	cTips stringsTips // pms_name index
+	fTips stringsTips // field_name index
 }
 
 type stringsTips struct {
@@ -75,52 +75,52 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	copy(ss.fieldsOpts, fOptions)
 
 	// 方便检索字符串项，这里做一些数据冗余的优化处理
-	ss.columnTips.items = make([]string, len(fColumns))
-	ss.columnTips.idxes = make([]uint8, len(fColumns))
+	ss.cTips.items = make([]string, len(fColumns))
+	ss.cTips.idxes = make([]uint8, len(fColumns))
 
-	copy(ss.columnTips.items, ss.columns)
-	lang.SortByLen(ss.columnTips.items)
-	lastLen := len(ss.columnTips.items[len(ss.columnTips.items)-1])
+	copy(ss.cTips.items, ss.columns)
+	lang.SortByLen(ss.cTips.items)
+	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1])
 	if lastLen > math.MaxUint8 {
 		panic("Struct has field large the 256 chars")
 	}
-	ss.columnTips.lenOff = make([]uint8, lastLen+1)
+	ss.cTips.lenOff = make([]uint8, lastLen+1)
 	lastLen = 0
 
-	for idx, item := range ss.columnTips.items {
+	for idx, item := range ss.cTips.items {
 		if lastLen != len(item) {
-			ss.columnTips.lenOff[len(item)] = uint8(idx)
+			ss.cTips.lenOff[len(item)] = uint8(idx)
 			lastLen = len(item)
 		}
 		for sIdx := range ss.columns {
 			if item == ss.columns[sIdx] {
-				ss.columnTips.idxes[idx] = uint8(sIdx)
+				ss.cTips.idxes[idx] = uint8(sIdx)
 				break
 			}
 		}
 	}
 
 	// +++++++++++++++
-	ss.fieldTips.items = make([]string, len(fFields))
-	ss.fieldTips.idxes = make([]uint8, len(fFields))
+	ss.fTips.items = make([]string, len(fFields))
+	ss.fTips.idxes = make([]uint8, len(fFields))
 
-	copy(ss.fieldTips.items, ss.fields)
-	lang.SortByLen(ss.fieldTips.items)
-	lastLen = len(ss.fieldTips.items[len(ss.fieldTips.items)-1])
+	copy(ss.fTips.items, ss.fields)
+	lang.SortByLen(ss.fTips.items)
+	lastLen = len(ss.fTips.items[len(ss.fTips.items)-1])
 	if lastLen > math.MaxUint8 {
 		panic("Struct has field large the 256 chars")
 	}
-	ss.fieldTips.lenOff = make([]uint8, lastLen+1)
+	ss.fTips.lenOff = make([]uint8, lastLen+1)
 	lastLen = 0
 
-	for idx, item := range ss.fieldTips.items {
+	for idx, item := range ss.fTips.items {
 		if lastLen != len(item) {
-			ss.fieldTips.lenOff[len(item)] = uint8(idx)
+			ss.fTips.lenOff[len(item)] = uint8(idx)
 			lastLen = len(item)
 		}
 		for sIdx := range ss.fields {
 			if item == ss.fields[sIdx] {
-				ss.fieldTips.idxes[idx] = uint8(sIdx)
+				ss.fTips.idxes[idx] = uint8(sIdx)
 				break
 			}
 		}
