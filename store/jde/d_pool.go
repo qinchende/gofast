@@ -55,7 +55,6 @@ func (sd *subDecode) resetListPool() {
 func (sd *subDecode) flushListPool() {
 	// 如果是定长数组，不会用到缓冲池，不需要转储
 	if sd.isArrBind {
-		// TODO: 数组不足的要补充类型的默认值
 		return
 	}
 
@@ -120,7 +119,10 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = &newArr[i]
 		}
 		for i := 0; i < len(sd.pl.nilPos); i++ {
-			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.pl.nilPos[i])))) = nil
+			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(sd.pl.nilPos[i]*ptrByteSize)))) = nil
+		}
+		for i := size; i < sd.dm.arrLen; i++ {
+			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
 		}
 		return
 	}
@@ -145,7 +147,10 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = &newArrPtr1[i]
 		}
 		for i := 0; i < len(sd.pl.nilPos); i++ {
-			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.pl.nilPos[i])))) = nil
+			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(sd.pl.nilPos[i]*ptrByteSize)))) = nil
+		}
+		for i := size; i < sd.dm.arrLen; i++ {
+			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
 		}
 		return
 	}
@@ -302,6 +307,10 @@ func copySlice[T string | *string | **string | bool | *bool | **bool | any | *an
 			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
 			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
 			copy(dstSnap, newArr)
+			// array，没有匹配到值的项，给初始化了nil
+			for i := size; i < sd.dm.arrLen; i++ {
+				*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
+			}
 		} else {
 			*(sd.dst.(*[]*T)) = newArr
 		}
