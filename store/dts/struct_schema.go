@@ -14,25 +14,31 @@ import (
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type StructSchema struct {
-	columns     []string        // 按顺序存放的tag列名
-	fields      []string        // 按顺序存放的字段名
+	columns []string    // 按顺序存放的tag列名
+	fields  []string    // 按顺序存放的字段名
+	cTips   stringsTips // pms_name index
+	fTips   stringsTips // field_name index
+
 	fieldsIndex [][]int         // reflect fields index
 	fieldsOpts  []*fieldOptions // 字段的属性
-
-	cTips stringsTips // pms_name index
-	fTips stringsTips // field_name index
+	fieldsKind  []reflect.Kind
+	fieldsPtr   []uintptr
+	binds       []BindValue
 }
 
 type stringsTips struct {
 	items  []string
 	idxes  []uint8
 	lenOff []uint8
-	//addrOff []int
 }
 
 type fieldOptions struct {
 	valid  *validx.ValidOptions // 验证
 	sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
+}
+
+type BindValue interface {
+	BindInt()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -73,6 +79,14 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	copy(ss.fieldsIndex, fIndexes)
 	ss.fieldsOpts = make([]*fieldOptions, len(fOptions))
 	copy(ss.fieldsOpts, fOptions)
+
+	// 抽取出字段的类型和偏移地址
+	ss.fieldsKind = make([]reflect.Kind, len(fOptions))
+	ss.fieldsPtr = make([]uintptr, len(fOptions))
+	for i := range fOptions {
+		ss.fieldsKind[i] = fOptions[i].sField.Type.Kind()
+		ss.fieldsPtr[i] = fOptions[i].sField.Offset
+	}
 
 	// 方便检索字符串项，这里做一些数据冗余的优化处理
 	ss.cTips.items = make([]string, len(fColumns))

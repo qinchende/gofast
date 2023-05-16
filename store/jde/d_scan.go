@@ -133,7 +133,7 @@ func (sd *subDecode) scanObject() {
 		}
 
 		// C: 找 value string，然后绑定
-		sd.checkSkip()
+		sd.checkSkip() // 确定key是否存在，以及索引位置
 		sd.scan = pos
 		sd.scanObjValue()
 		pos = sd.scan
@@ -256,6 +256,10 @@ func (sd *subDecode) scanList() {
 		sd.scanArrItems(sd.scanNumValue)
 	case reflect.String:
 		sd.scanArrItems(sd.scanStrKindValue)
+	case reflect.Slice, reflect.Array:
+		sd.scanSubObject()
+	case reflect.Struct:
+		sd.scanSubObject()
 	default:
 		sd.scanArrItems(sd.scanObjValue)
 	}
@@ -320,10 +324,9 @@ func (sd *subDecode) scanQuoteStrValue() {
 				sd.scan = pos + 1
 				return
 			case c == '\\':
-				pos++
+				pos++ // 跳过 '\' 后面的一个字符
 			}
 		}
-		// return 其实到不了这里
 	}
 
 	pos++

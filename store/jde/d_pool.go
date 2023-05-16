@@ -307,7 +307,7 @@ func copySlice[T string | *string | **string | bool | *bool | **bool | any | *an
 			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
 			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
 			copy(dstSnap, newArr)
-			// array，没有匹配到值的项，给初始化了nil
+			// array，没有匹配到值的项，给初始化为nil
 			for i := size; i < sd.dm.arrLen; i++ {
 				*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
 			}
