@@ -7,8 +7,9 @@ import (
 	"unsafe"
 )
 
-// cached dest value meta info
-var cachedDestMeta sync.Map
+var jdeDecPool = sync.Pool{New: func() any { return &subDecode{} }}
+var jdeBufPool = sync.Pool{New: func() any { return &fastPool{} }}
+var cachedDestMeta sync.Map // cached dest value meta info
 
 func cacheSetMeta(typ *dataType, val *destMeta) {
 	cachedDestMeta.Store(typ, val)
@@ -20,9 +21,6 @@ func cacheGetMeta(typ *dataType) *destMeta {
 	}
 	return nil
 }
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-var jdePool = sync.Pool{New: func() any { return &fastPool{} }}
 
 // TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
 type fastPool struct {

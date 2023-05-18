@@ -7,24 +7,26 @@ import (
 )
 
 func (ss *StructSchema) BindString(ptr uintptr, idx int, v string) {
-	if ss.fieldsKind[idx] == reflect.Interface {
-		*(*any)(unsafe.Pointer(ptr + ss.fieldsPtr[idx])) = v
-	} else {
-		*(*string)(unsafe.Pointer(ptr + ss.fieldsPtr[idx])) = v
+	p := unsafe.Pointer(ptr + ss.FieldsOffset[idx])
+	switch ss.FieldsKind[idx] {
+	case reflect.Interface:
+		*(*any)(p) = v
+	case reflect.String:
+		*(*string)(p) = v
 	}
 }
 
 func (ss *StructSchema) BindBool(ptr uintptr, idx int, v bool) {
-	if ss.fieldsKind[idx] == reflect.Interface {
-		*(*any)(unsafe.Pointer(ptr + ss.fieldsPtr[idx])) = v
+	if ss.FieldsKind[idx] == reflect.Interface {
+		*(*any)(unsafe.Pointer(ptr + ss.FieldsOffset[idx])) = v
 	} else {
-		*(*bool)(unsafe.Pointer(ptr + ss.fieldsPtr[idx])) = v
+		*(*bool)(unsafe.Pointer(ptr + ss.FieldsOffset[idx])) = v
 	}
 }
 
 func (ss *StructSchema) BindInt(ptr uintptr, idx int, v int64) {
-	p := unsafe.Pointer(ptr + ss.fieldsPtr[idx])
-	switch ss.fieldsKind[idx] {
+	p := unsafe.Pointer(ptr + ss.FieldsOffset[idx])
+	switch ss.FieldsKind[idx] {
 	case reflect.Int:
 		*(*int)(p) = int(v)
 	case reflect.Int8:
@@ -54,8 +56,8 @@ errPanic:
 }
 
 func (ss *StructSchema) BindUint(ptr uintptr, idx int, v uint64) {
-	p := unsafe.Pointer(ptr + ss.fieldsPtr[idx])
-	switch ss.fieldsKind[idx] {
+	p := unsafe.Pointer(ptr + ss.FieldsOffset[idx])
+	switch ss.FieldsKind[idx] {
 	case reflect.Uint:
 		*(*uint)(p) = uint(v)
 	case reflect.Uint8:
@@ -85,8 +87,8 @@ errPanic:
 }
 
 func (ss *StructSchema) BindFloat(ptr uintptr, idx int, v float64) {
-	p := unsafe.Pointer(ptr + ss.fieldsPtr[idx])
-	switch ss.fieldsKind[idx] {
+	p := unsafe.Pointer(ptr + ss.FieldsOffset[idx])
+	switch ss.FieldsKind[idx] {
 	case reflect.Float32:
 		if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
 			goto errPanic
@@ -113,8 +115,8 @@ func (ss *StructSchema) BindField(ptr uintptr, k string, v any) {
 }
 
 func (ss *StructSchema) BindValue(ptr uintptr, idx int, v any) {
-	p := unsafe.Pointer(ptr + ss.fieldsPtr[idx])
-	switch ss.fieldsKind[idx] {
+	p := unsafe.Pointer(ptr + ss.FieldsOffset[idx])
+	switch ss.FieldsKind[idx] {
 	case reflect.Int:
 		*(*int)(p) = v.(int)
 	case reflect.Int8:

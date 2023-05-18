@@ -12,14 +12,15 @@ const (
 )
 
 var (
-	errorNilValue      = errors.New("Value is nil.")
-	errorConvertValue  = errors.New("Value convert error.")
-	errorNumOutOfRange = errors.New("Number out of range.")
+	errNilValue      = errors.New("Value is nil")
+	errConvertValue  = errors.New("Value convert error")
+	errNumOutOfRange = errors.New("Number out of range")
+	errNumberFmt     = errors.New("Error number format")
 )
 
 func ToBool(v any) (b bool, err error) {
 	if v == nil {
-		return false, errorNilValue
+		return false, errNilValue
 	}
 
 	switch vt := v.(type) {
@@ -30,14 +31,14 @@ func ToBool(v any) (b bool, err error) {
 	case []byte:
 		b, err = strconv.ParseBool(string(vt))
 	default:
-		err = errorConvertValue
+		err = errConvertValue
 	}
 	return
 }
 
 func ToTime(layout string, v any) (tm *time.Time, err error) {
 	if v == nil {
-		return nil, errorNilValue
+		return nil, errNilValue
 	}
 	if layout == "" {
 		layout = timeFormat
@@ -55,14 +56,14 @@ func ToTime(layout string, v any) (tm *time.Time, err error) {
 		err = err2
 		tm = &tm2
 	default:
-		err = errorConvertValue
+		err = errConvertValue
 	}
 	return
 }
 
 func ToDuration(v any) (dr time.Duration, err error) {
 	if v == nil {
-		return 0, errorNilValue
+		return 0, errNilValue
 	}
 
 	switch vt := v.(type) {
@@ -73,7 +74,7 @@ func ToDuration(v any) (dr time.Duration, err error) {
 	case []byte:
 		dr, err = time.ParseDuration(string(vt))
 	default:
-		err = errorConvertValue
+		err = errConvertValue
 	}
 	return
 }

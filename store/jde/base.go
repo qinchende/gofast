@@ -35,6 +35,7 @@ const (
 	errObject    errType = -17
 	errList      errType = -18
 	errBool      errType = -19
+	errSupport   errType = -20
 )
 
 //var errorStrings = []string{

@@ -21,9 +21,9 @@ type StructSchema struct {
 
 	fieldsIndex [][]int         // reflect fields index
 	fieldsOpts  []*fieldOptions // 字段的属性
-	fieldsKind  []reflect.Kind
-	fieldsPtr   []uintptr
-	binds       []BindValue
+
+	FieldsKind   []reflect.Kind
+	FieldsOffset []uintptr
 }
 
 type stringsTips struct {
@@ -35,10 +35,6 @@ type stringsTips struct {
 type fieldOptions struct {
 	valid  *validx.ValidOptions // 验证
 	sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
-}
-
-type BindValue interface {
-	BindInt()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -81,11 +77,11 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	copy(ss.fieldsOpts, fOptions)
 
 	// 抽取出字段的类型和偏移地址
-	ss.fieldsKind = make([]reflect.Kind, len(fOptions))
-	ss.fieldsPtr = make([]uintptr, len(fOptions))
+	ss.FieldsKind = make([]reflect.Kind, len(fOptions))
+	ss.FieldsOffset = make([]uintptr, len(fOptions))
 	for i := range fOptions {
-		ss.fieldsKind[i] = fOptions[i].sField.Type.Kind()
-		ss.fieldsPtr[i] = fOptions[i].sField.Offset
+		ss.FieldsKind[i] = fOptions[i].sField.Type.Kind()
+		ss.FieldsOffset[i] = fOptions[i].sField.Offset
 	}
 
 	// 方便检索字符串项，这里做一些数据冗余的优化处理

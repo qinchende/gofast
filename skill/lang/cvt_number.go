@@ -9,7 +9,7 @@ import (
 // 任意类型的值，转换成 Int64，只要能转，不丢失精度都转，否则给出错误
 func ToInt64(v any) (i64 int64, err error) {
 	if v == nil {
-		return 0, errorNilValue
+		return 0, errNilValue
 	}
 
 	switch vt := v.(type) {
@@ -23,7 +23,7 @@ func ToInt64(v any) (i64 int64, err error) {
 		if vt <= math.MaxInt64 {
 			i64 = int64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case int64:
 		i64 = vt
@@ -31,7 +31,7 @@ func ToInt64(v any) (i64 int64, err error) {
 		if vt <= math.MaxInt64 {
 			i64 = int64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case int32:
 		i64 = int64(vt)
@@ -48,7 +48,7 @@ func ToInt64(v any) (i64 int64, err error) {
 	case []byte:
 		i64, err = strconv.ParseInt(string(vt), 10, 64)
 	default:
-		err = errorConvertValue
+		err = errConvertValue
 	}
 	return
 }
@@ -56,7 +56,7 @@ func ToInt64(v any) (i64 int64, err error) {
 // 任意类型的值，转换成 Int64，只要能转，不丢失精度都转，否则给出错误
 func ToUint64(v any) (ui64 uint64, err error) {
 	if v == nil {
-		return 0, errorNilValue
+		return 0, errNilValue
 	}
 
 	switch vt := v.(type) {
@@ -68,7 +68,7 @@ func ToUint64(v any) (ui64 uint64, err error) {
 		if vt >= 0 {
 			ui64 = uint64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case uint:
 		ui64 = uint64(vt)
@@ -76,7 +76,7 @@ func ToUint64(v any) (ui64 uint64, err error) {
 		if vt >= 0 {
 			ui64 = uint64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case uint64:
 		ui64 = vt
@@ -84,7 +84,7 @@ func ToUint64(v any) (ui64 uint64, err error) {
 		if vt >= 0 {
 			ui64 = uint64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case uint32:
 		ui64 = uint64(vt)
@@ -92,7 +92,7 @@ func ToUint64(v any) (ui64 uint64, err error) {
 		if vt >= 0 {
 			ui64 = uint64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case uint16:
 		ui64 = uint64(vt)
@@ -100,21 +100,21 @@ func ToUint64(v any) (ui64 uint64, err error) {
 		if vt >= 0 {
 			ui64 = uint64(vt)
 		} else {
-			err = errorNumOutOfRange
+			err = errNumOutOfRange
 		}
 	case uint8:
 		ui64 = uint64(vt)
 	case []byte:
 		ui64, err = strconv.ParseUint(string(vt), 10, 64)
 	default:
-		err = errorConvertValue
+		err = errConvertValue
 	}
 	return
 }
 
 func ToFloat64(v any) (f64 float64, err error) {
 	if v == nil {
-		return 0.0, errorNilValue
+		return 0.0, errNilValue
 	}
 
 	switch vt := v.(type) {
@@ -149,7 +149,7 @@ func ToFloat64(v any) (f64 float64, err error) {
 	case []byte:
 		f64, err = strconv.ParseFloat(string(vt), 64)
 	default:
-		err = errorConvertValue
+		err = errConvertValue
 	}
 	return
 }
@@ -160,7 +160,7 @@ func ToFloat32(v any) (f32 float32, err error) {
 	} else if v2 <= math.MaxFloat32 && v2 >= math.SmallestNonzeroFloat32 {
 		return float32(v2), nil
 	} else {
-		return 0.0, errorNumOutOfRange
+		return 0.0, errNumOutOfRange
 	}
 }
 
@@ -170,7 +170,7 @@ func ToInt(v any) (i int, err error) {
 	} else if v2 <= math.MaxInt && v2 >= math.MinInt {
 		return int(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -180,7 +180,7 @@ func ToUint(v any) (ui uint, err error) {
 	} else if v2 <= math.MaxUint {
 		return uint(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -190,7 +190,7 @@ func ToInt32(v any) (i32 int32, err error) {
 	} else if v2 <= math.MaxInt32 && v2 >= math.MinInt32 {
 		return int32(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -200,7 +200,7 @@ func ToUint32(v any) (ui32 uint32, err error) {
 	} else if v2 <= math.MaxUint32 {
 		return uint32(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -210,7 +210,7 @@ func ToInt16(v any) (i16 int16, err error) {
 	} else if v2 <= math.MaxInt16 && v2 >= math.MinInt16 {
 		return int16(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -220,7 +220,7 @@ func ToUint16(v any) (ui16 uint16, err error) {
 	} else if v2 <= math.MaxUint16 {
 		return uint16(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -230,7 +230,7 @@ func ToInt8(v any) (i8 int8, err error) {
 	} else if v2 <= math.MaxInt8 && v2 >= math.MinInt8 {
 		return int8(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
 	}
 }
 
@@ -240,6 +240,69 @@ func ToUint8(v any) (ui8 uint8, err error) {
 	} else if v2 <= math.MaxUint8 {
 		return uint8(v2), nil
 	} else {
-		return 0, errorNumOutOfRange
+		return 0, errNumOutOfRange
+	}
+}
+
+// fast number value parser
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+var (
+	pow10u64 = [...]uint64{
+		1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e07, 1e08, 1e09,
+		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
+	}
+	pow10u64Len = len(pow10u64)
+)
+
+func ParseUint(s string) uint64 {
+	maxDigit := len(s)
+	if maxDigit > pow10u64Len {
+		panic(errNumberFmt)
+	}
+	sum := uint64(0)
+	for i := 0; i < maxDigit; i++ {
+		c := uint64(s[i]) - 48
+		digitValue := pow10u64[maxDigit-i-1]
+		sum += c * digitValue
+	}
+	return sum
+}
+
+var (
+	pow10i64 = [...]int64{
+		1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e07, 1e08, 1e09,
+		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18,
+	}
+	pow10i64Len = len(pow10i64)
+)
+
+func ParseInt(s string) int64 {
+	isNegative := false
+	if s[0] == '-' {
+		s = s[1:]
+		isNegative = true
+	}
+	maxDigit := len(s)
+	if maxDigit > pow10i64Len {
+		panic(errNumberFmt)
+	}
+	sum := int64(0)
+	for i := 0; i < maxDigit; i++ {
+		c := int64(s[i]) - 48
+		digitValue := pow10i64[maxDigit-i-1]
+		sum += c * digitValue
+	}
+	if isNegative {
+		return -1 * sum
+	}
+	return sum
+}
+
+//go:inline
+func ParseFloat(s string) float64 {
+	if f64, err := strconv.ParseFloat(s, 64); err != nil {
+		panic(errNumberFmt)
+	} else {
+		return f64
 	}
 }

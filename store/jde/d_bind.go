@@ -1,5 +1,7 @@
 package jde
 
+import "github.com/qinchende/gofast/skill/lang"
+
 // skip some items
 func (sd *subDecode) checkSkip() {
 	// 如果是 struct ，就找找是否支持这个字段
@@ -11,6 +13,7 @@ func (sd *subDecode) checkSkip() {
 		}
 		return
 	}
+
 	// PS: 可以先判断目标对象是否有这个key，没有就跳过value，解析下一个kv
 	if sd.gr != nil {
 		if sd.keyIdx = sd.gr.KeyIndex(sd.key); sd.keyIdx < 0 {
@@ -100,7 +103,7 @@ func (sd *subDecode) bindBool(val bool) {
 func (sd *subDecode) bindNumber(val string) {
 	// 如果是 struct
 	if sd.isStruct {
-		sd.dm.ss.BindInt(sd.dstPtr, sd.keyIdx, parseInt(val))
+		sd.dm.ss.BindInt(sd.dstPtr, sd.keyIdx, lang.ParseInt(val))
 		return
 	}
 
@@ -125,14 +128,14 @@ func (sd *subDecode) bindIntList(val string) {
 			sd.skipValue = true
 			return
 		}
-		sd.bindIntArr(parseInt(val))
+		sd.bindIntArr(lang.ParseInt(val))
 		return
 	}
 
 	if sd.isAny {
-		sd.pl.bufAny = append(sd.pl.bufAny, parseInt(val))
+		sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseInt(val))
 	} else {
-		sd.pl.bufI64 = append(sd.pl.bufI64, parseInt(val))
+		sd.pl.bufI64 = append(sd.pl.bufI64, lang.ParseInt(val))
 	}
 }
 
@@ -142,14 +145,14 @@ func (sd *subDecode) bindUintList(val string) {
 			sd.skipValue = true
 			return
 		}
-		sd.bindUintArr(parseUint(val))
+		sd.bindUintArr(lang.ParseUint(val))
 		return
 	}
 
 	if sd.isAny {
-		sd.pl.bufAny = append(sd.pl.bufAny, parseUint(val))
+		sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseUint(val))
 	} else {
-		sd.pl.bufU64 = append(sd.pl.bufU64, parseUint(val))
+		sd.pl.bufU64 = append(sd.pl.bufU64, lang.ParseUint(val))
 	}
 }
 
@@ -159,14 +162,14 @@ func (sd *subDecode) bindFloatList(val string) {
 			sd.skipValue = true
 			return
 		}
-		sd.bindFloatArr(parseFloat(val))
+		sd.bindFloatArr(lang.ParseFloat(val))
 		return
 	}
 
 	if sd.isAny {
-		sd.pl.bufAny = append(sd.pl.bufAny, parseFloat(val))
+		sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseFloat(val))
 	} else {
-		sd.pl.bufF64 = append(sd.pl.bufF64, parseFloat(val))
+		sd.pl.bufF64 = append(sd.pl.bufF64, lang.ParseFloat(val))
 	}
 }
 

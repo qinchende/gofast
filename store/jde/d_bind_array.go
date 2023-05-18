@@ -30,9 +30,6 @@ func (sd *subDecode) bindIntArr(v int64) {
 	p := unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.itemSize))
 	switch sd.dm.itemKind {
 	case reflect.Int:
-		//if v < math.MinInt || v > math.MaxInt {
-		//	goto errPanic
-		//}
 		*(*int)(p) = int(v)
 	case reflect.Int8:
 		if v < math.MinInt8 || v > math.MaxInt8 {
@@ -51,8 +48,8 @@ func (sd *subDecode) bindIntArr(v int64) {
 		*(*int32)(p) = int32(v)
 	case reflect.Int64:
 		*(*int64)(p) = v
-		//case reflect.Interface:
-		//	*(*any)(p) = v
+	case reflect.Interface:
+		*(*any)(p) = v
 	}
 	sd.arrIdx++
 	return
@@ -65,9 +62,6 @@ func (sd *subDecode) bindUintArr(v uint64) {
 	p := unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.itemSize))
 	switch sd.dm.itemKind {
 	case reflect.Uint:
-		//if v > math.MaxUint {
-		//	goto errPanic
-		//}
 		*(*uint)(p) = uint(v)
 	case reflect.Uint8:
 		if v > math.MaxUint8 {
@@ -86,8 +80,8 @@ func (sd *subDecode) bindUintArr(v uint64) {
 		*(*uint32)(p) = uint32(v)
 	case reflect.Uint64:
 		*(*uint64)(p) = v
-		//case reflect.Interface:
-		//	*(*any)(p) = v
+	case reflect.Interface:
+		*(*any)(p) = v
 	}
 	sd.arrIdx++
 	return
@@ -106,8 +100,8 @@ func (sd *subDecode) bindFloatArr(v float64) {
 		*(*float32)(p) = float32(v)
 	case reflect.Float64:
 		*(*float64)(p) = v
-		//case reflect.Interface:
-		//	*(*any)(p) = v
+	case reflect.Interface:
+		*(*any)(p) = v
 	}
 	sd.arrIdx++
 	return
