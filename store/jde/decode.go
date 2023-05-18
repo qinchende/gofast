@@ -10,15 +10,17 @@ import (
 	"unsafe"
 )
 
+type structDecode func(sb *subDecode)
+
 type dataType struct{}
 type emptyInterface struct {
 	typ *dataType
 	ptr unsafe.Pointer
 }
 
-type fastDecode struct {
-	subDecode // 当前解析片段，用于递归
-}
+//type fastDecode struct {
+//	subDecode // 当前解析片段，用于递归
+//}
 
 type subDecode struct {
 	pl *fastPool
@@ -45,15 +47,29 @@ type subDecode struct {
 	destStatus
 }
 
+func (sd *subDecode) reset() {
+	sd.pl = nil
+	sd.mp = nil
+	sd.gr = nil
+	sd.dm = nil
+	sd.arrIdx = 0
+	sd.skipTotal = false
+	sd.skipValue = false
+}
+
 type destMeta struct {
-	ss *dts.StructSchema // 目标值是一个Struct时候
+	ss     *dts.StructSchema // 目标值是一个Struct时候
+	ssFunc []structDecode
 
 	listType reflect.Type
 	listKind reflect.Kind
 	itemType reflect.Type
 	itemKind reflect.Kind
+	itemFunc structDecode
 	itemSize int // 数组属性，item类型对应的内存字节大小
 	arrLen   int // 数组属性，数组长度
+
+	nextPtr func(sb *subDecode) uintptr
 
 	destStatus
 	ptrLevel uint8
@@ -75,16 +91,20 @@ func startDecode(dst any, source string) (err error) {
 		return errValueIsNil
 	}
 
-	fd := &fastDecode{}
+	fd := jdeDecPool.Get().(*subDecode)
+	fd.reset()
 	fd.str = source
+	fd.scan = 0
 	if err = fd.initDecode(dst); err != nil {
 		return
 	}
 
-	fd.getPool()
+	//fd.getPool()
 	errCode := fd.scanJson()
-	fd.putPool()
-	return fd.warpErrorCode(errCode)
+	//fd.putPool()
+	err = fd.warpErrorCode(errCode)
+	jdeDecPool.Put(fd)
+	return
 }
 
 func (sd *subDecode) initDecode(dst any) (err error) {
@@ -124,93 +144,15 @@ func (sd *subDecode) initDecode(dst any) (err error) {
 	return
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 如果不是map和*GsonRow，只能是 Array|Slice|Struct
-func (sd *subDecode) buildMeta(dst any) (err error) {
-	sd.dm = &destMeta{}
-
-	rfVal := reflect.ValueOf(dst)
-	if rfVal.Kind() != reflect.Pointer {
-		return errValueMustPtr
-	}
-	rfVal = reflect.Indirect(rfVal)
-
-	rfTyp := rfVal.Type()
-	switch kd := rfTyp.Kind(); kd {
-	case reflect.Struct:
-		if rfTyp.String() == "time.Time" {
-			return errValueType
-		}
-		if err = sd.initStructMeta(rfTyp); err != nil {
-			return
-		}
-	case reflect.Array, reflect.Slice:
-		if err = sd.initListMeta(rfTyp); err != nil {
-			return
-		}
-		// 进一步初始化数组
-		if kd == reflect.Array {
-			sd.initArrayMeta()
-			sd.dm.arrLen = rfVal.Len()
-		}
-	default:
-		return errValueType
-	}
-	return nil
-}
-
-func (sd *subDecode) initStructMeta(rfType reflect.Type) error {
-	sd.dm.isStruct = true
-	sd.dm.ss = dts.SchemaForInputByType(rfType)
-	return nil
-}
-
-func (sd *subDecode) initListMeta(rfType reflect.Type) error {
-	sd.dm.isList = true
-
-	sd.dm.listType = rfType
-	sd.dm.listKind = rfType.Kind()
-	sd.dm.itemType = sd.dm.listType.Elem()
-	sd.dm.itemKind = sd.dm.itemType.Kind()
-
-peelPtr:
-	if sd.dm.itemKind == reflect.Pointer {
-		sd.dm.itemType = sd.dm.itemType.Elem()
-		sd.dm.itemKind = sd.dm.itemType.Kind()
-		sd.dm.isPtr = true
-		sd.dm.ptrLevel++
-		// TODO：指针嵌套不能超过3层，这种很少见，真遇到，自己后期再处理
-		if sd.dm.ptrLevel > 3 {
-			return errPtrLevel
-		}
-		goto peelPtr
-	}
-
-	// 是否是interface类型
-	if sd.dm.itemKind == reflect.Interface {
-		sd.dm.isAny = true
-	}
-	return nil
-}
-
-func (sd *subDecode) initArrayMeta() {
-	sd.dm.isArray = true
-	if sd.dm.isPtr {
-		return
-	}
-	sd.dm.isArrBind = true
-	sd.dm.itemSize = int(sd.dm.itemType.Size())
-}
-
 func (sd *subDecode) getPool() {
 	if sd.isList && sd.pl == nil {
-		sd.pl = jdePool.Get().(*fastPool)
+		sd.pl = jdeBufPool.Get().(*fastPool)
 	}
 }
 
 func (sd *subDecode) putPool() {
 	if sd.isList {
-		jdePool.Put(sd.pl)
+		jdeBufPool.Put(sd.pl)
 		//sd.pl = nil
 	}
 }
