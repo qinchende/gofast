@@ -1,4 +1,221 @@
-package jde
+package decode
+
+//func (sd *subDecode) scanQuoteStrValue() {
+//	pos := sd.scan
+//
+//	if sd.skipValue {
+//		for {
+//			pos++
+//			switch c := sd.str[pos]; {
+//			case c == '"':
+//				sd.scan = pos + 1
+//				return
+//			case c == '\\':
+//				pos++ // 跳过 '\' 后面的一个字符
+//			}
+//		}
+//	}
+//
+//	pos++
+//	slash := sd.scanQuoteStr()
+//	if slash {
+//		sd.bindString(sd.str[pos:sd.unescapeEnd()])
+//	} else {
+//		sd.bindString(sd.str[pos : sd.scan-1])
+//	}
+//}
+//
+//func (sd *subDecode) scanStrKindValue() {
+//	switch sd.str[sd.scan] {
+//	case '"':
+//		sd.scanQuoteStrValue()
+//	default:
+//		sd.skipNull()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindStringNull()
+//	}
+//}
+
+//func (sd *subDecode) scanBoolValue() {
+//	switch sd.str[sd.scan] {
+//	case 't':
+//		sd.skipTrue()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindBool(true)
+//		return
+//	case 'f':
+//		sd.skipFalse()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindBool(false)
+//	default:
+//		sd.skipNull()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindBoolNull()
+//	}
+//}
+
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// 匹配一个数值，对应于float类型
+//// 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
+//func (sd *subDecode) scanNumValue() {
+//	pos := sd.scan
+//	start := pos
+//	var hasDot, needNum bool
+//
+//	c := sd.str[pos]
+//	if c == '-' {
+//		pos++
+//		c = sd.str[pos]
+//	}
+//	// 0开头的数字，只能是：0 | 0.x | 0e | 0E
+//	if c == '0' {
+//		pos++
+//		c = sd.str[pos]
+//
+//		switch c {
+//		case '.', 'e', 'E':
+//			goto loopNum
+//		default:
+//			goto over
+//		}
+//	}
+//	needNum = true
+//
+//loopNum:
+//	for {
+//		c = sd.str[pos]
+//		pos++
+//
+//		if c == '.' {
+//			if hasDot == true {
+//				panic(errNumberFmt)
+//			}
+//			hasDot = true
+//			needNum = true
+//		} else if c == 'e' || c == 'E' {
+//			if needNum {
+//				panic(errNumberFmt)
+//			}
+//			needNum = true
+//
+//			c := sd.str[pos]
+//			if c == '-' || c == '+' {
+//				pos++
+//			}
+//			for {
+//				if c = sd.str[pos]; c < '0' || c > '9' {
+//					break loopNum
+//				} else {
+//					needNum = false
+//				}
+//				pos++
+//			}
+//		} else if c < '0' || c > '9' {
+//			pos--
+//			break
+//		} else {
+//			needNum = false // 到这里，字符肯定是数字
+//		}
+//	}
+//
+//	if needNum {
+//		panic(errNumberFmt)
+//	}
+//
+//over:
+//	sd.scan = pos
+//	// 还剩下最后一种可能：null
+//	if start == pos {
+//		sd.skipNull()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindNumberNull()
+//		return
+//	}
+//	if sd.skipValue {
+//		return
+//	}
+//	sd.bindNumber(sd.str[start:pos])
+//}
+
+//func (sd *subDecode) scanIntValue() {
+//	pos := sd.scan
+//	start := pos
+//
+//	c := sd.str[pos]
+//	if c == '-' {
+//		pos++
+//		c = sd.str[pos]
+//	}
+//	if c == '0' {
+//		pos++
+//		goto over
+//	}
+//	for {
+//		if c < '0' || c > '9' {
+//			break
+//		}
+//		pos++
+//		c = sd.str[pos]
+//	}
+//over:
+//	sd.scan = pos
+//	// 还剩下最后一种可能：null +++
+//	if start == pos {
+//		sd.skipNull()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindIntNull()
+//		return
+//	}
+//	if sd.skipValue {
+//		return
+//	}
+//	sd.bindIntList(sd.str[start:pos])
+//}
+
+//func (sd *subDecode) scanUintValue() {
+//	pos := sd.scan
+//	start := pos
+//
+//	c := sd.str[pos]
+//	if c == '0' {
+//		pos++
+//		goto over
+//	}
+//	for {
+//		if c < '0' || c > '9' {
+//			break
+//		}
+//		pos++
+//		c = sd.str[pos]
+//	}
+//over:
+//	sd.scan = pos
+//	// 还剩下最后一种可能：null
+//	if start == pos {
+//		sd.skipNull()
+//		if sd.skipValue {
+//			return
+//		}
+//		sd.bindUintNull()
+//		return
+//	}
+//	if sd.skipValue {
+//		return
+//	}
+//	sd.bindUintList(sd.str[start:pos])
+//}
 
 //func (sd *subDecode) skipQuoteString() {
 //	pos := sd.scan

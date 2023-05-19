@@ -23,6 +23,7 @@ func bindInt16(ptr uintptr, v int64) {
 	}
 	*(*int16)(unsafe.Pointer(ptr)) = int16(v)
 }
+
 func bindInt32(ptr uintptr, v int64) {
 	if v < math.MinInt32 || v > math.MaxInt32 {
 		panic(errInfinity)
@@ -83,4 +84,15 @@ func bindString(ptr uintptr, v string) {
 
 func bindBool(ptr uintptr, v bool) {
 	*(*bool)(unsafe.Pointer(ptr)) = v
+}
+
+func bindAny(ptr uintptr, v any) {
+	*(*any)(unsafe.Pointer(ptr)) = v
+}
+
+func (sd *subDecode) resetArrLeftItems() {
+	dfValue := zeroValues[sd.dm.itemKind]
+	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
+		*(*unsafe.Pointer)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.dm.itemSize))) = dfValue
+	}
 }

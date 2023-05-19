@@ -90,7 +90,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 
 	copy(ss.cTips.items, ss.columns)
 	lang.SortByLen(ss.cTips.items)
-	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1])
+	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1]) // 最长string长度（最后一个就是最长的）
 	if lastLen > math.MaxUint8 {
 		panic("Struct has field large the 256 chars")
 	}
