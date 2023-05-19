@@ -30,14 +30,13 @@ type fastPool struct {
 	bufStr []string
 	bufBol []bool
 	bufAny []any
-
 	nilPos []int // 指针类型值，可能是nil
 	escPos []int // 存放转义字符'\'的索引位置
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
-	if sd.isArrBind {
+	if sd.dm.isArrBind {
 		return
 	}
 	sd.pl.bufI64 = sd.pl.bufI64[0:0]
@@ -52,7 +51,7 @@ func (sd *subDecode) resetListPool() {
 
 func (sd *subDecode) flushListPool() {
 	// 如果是定长数组，不会用到缓冲池，不需要转储
-	if sd.isArrBind {
+	if sd.dm.isArrBind {
 		return
 	}
 
@@ -112,7 +111,7 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 
 	// 第一级指针
 	ptrLevel--
-	if sd.isArray && ptrLevel <= 0 {
+	if sd.dm.isArray && ptrLevel <= 0 {
 		for i := 0; i < len(newArr); i++ {
 			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = &newArr[i]
 		}
@@ -140,7 +139,7 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 
 	// 第二级指针
 	ptrLevel--
-	if sd.isArray && ptrLevel <= 0 {
+	if sd.dm.isArray && ptrLevel <= 0 {
 		for i := 0; i < len(newArrPtr1); i++ {
 			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = &newArrPtr1[i]
 		}
