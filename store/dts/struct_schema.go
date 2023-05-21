@@ -12,30 +12,47 @@ import (
 	"sync"
 )
 
+// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
+var cachedStructSchemas sync.Map
+
+func cacheSetSchema(typ reflect.Type, val *StructSchema) {
+	cachedStructSchemas.Store(typ, val)
+}
+
+func cacheGetSchema(typ reflect.Type) *StructSchema {
+	if ret, ok := cachedStructSchemas.Load(typ); ok {
+		return ret.(*StructSchema)
+	}
+	return nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 表结构体Schema, 限制表最多127列（用int8计数）
-type StructSchema struct {
-	columns []string    // 按顺序存放的tag列名
-	fields  []string    // 按顺序存放的字段名
-	cTips   stringsTips // pms_name index
-	fTips   stringsTips // field_name index
+type (
+	StructSchema struct {
+		columns []string    // 按顺序存放的tag列名
+		fields  []string    // 按顺序存放的字段名
+		cTips   stringsTips // pms_name index
+		fTips   stringsTips // field_name index
 
-	fieldsIndex [][]int         // reflect fields index
-	fieldsOpts  []*fieldOptions // 字段的属性
+		fieldsIndex [][]int         // reflect fields index
+		fieldsOpts  []*fieldOptions // 字段的属性
 
-	FieldsKind   []reflect.Kind
-	FieldsOffset []uintptr
-}
+		FieldsKind   []reflect.Kind
+		FieldsOffset []uintptr
+	}
 
-type stringsTips struct {
-	items  []string
-	idxes  []uint8
-	lenOff []uint8
-}
+	stringsTips struct {
+		items  []string
+		idxes  []uint8
+		lenOff []uint8
+	}
 
-type fieldOptions struct {
-	valid  *validx.ValidOptions // 验证
-	sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
-}
+	fieldOptions struct {
+		valid  *validx.ValidOptions // 验证
+		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
+	}
+)
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的Schema元数据
@@ -191,19 +208,4 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 		fOptions = append(fOptions, &fieldOptions{valid: vOpt, sField: &fi})
 	}
 	return fColumns, fFields, fIndexes, fOptions
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
-var cachedStructSchemas sync.Map
-
-func cacheSetSchema(typ reflect.Type, val *StructSchema) {
-	cachedStructSchemas.Store(typ, val)
-}
-
-func cacheGetSchema(typ reflect.Type) *StructSchema {
-	if ret, ok := cachedStructSchemas.Load(typ); ok {
-		return ret.(*StructSchema)
-	}
-	return nil
 }

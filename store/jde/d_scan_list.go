@@ -1,7 +1,7 @@
 package jde
 
 func arrItemPtr(sd *subDecode) uintptr {
-	return sd.dstPtr + uintptr(sd.arrIdx*sd.dm.itemSize)
+	return sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

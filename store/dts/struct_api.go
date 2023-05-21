@@ -7,6 +7,8 @@ import (
 	"reflect"
 )
 
+// fetch StructSchema
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Schema(obj any, opts *BindOptions) *StructSchema {
 	if opts.CacheSchema {
 		return fetchSchemaCache(reflect.TypeOf(obj), opts)
@@ -27,7 +29,7 @@ func SchemaForConfig(obj any) *StructSchema {
 	return Schema(obj, configStructOptions)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// ++++++++++++++++++++++++++
 func SchemaByType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	if opts.CacheSchema {
 		return fetchSchemaCache(rTyp, opts)
@@ -48,19 +50,18 @@ func SchemaForConfigByType(rTyp reflect.Type) *StructSchema {
 	return SchemaByType(rTyp, configStructOptions)
 }
 
+// reflect apis
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-// reflect
-func (ss *StructSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ss.fieldsIndex[index]).Interface()
+func (ss *StructSchema) ValueByIndex(rVal *reflect.Value, idx int8) any {
+	return rVal.FieldByIndex(ss.fieldsIndex[idx]).Interface()
 }
 
-func (ss *StructSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ss.fieldsIndex[index]).Addr().Interface()
+func (ss *StructSchema) AddrByIndex(rVal *reflect.Value, idx int8) any {
+	return rVal.FieldByIndex(ss.fieldsIndex[idx]).Addr().Interface()
 }
 
-func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect.Value {
-	idxArr := ss.fieldsIndex[index]
+func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, idx int8) reflect.Value {
+	idxArr := ss.fieldsIndex[idx]
 	if len(idxArr) == 1 {
 		return rVal.Field(idxArr[0])
 	}
@@ -71,6 +72,7 @@ func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, index int8) reflect
 	return tmpVal
 }
 
+// Quick search for structure fields
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ss *StructSchema) ColumnIndex(k string) int {
 	kv := ss.cTips

@@ -223,43 +223,7 @@ func scanListAnyValue(sd *subDecode) {
 
 // ptr +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrValue(sd *subDecode) {
-	switch sd.str[sd.scan] {
-	case 't':
-		sd.skipTrue()
-		bindBool(fieldPtr(sd), true)
-	case 'f':
-		sd.skipFalse()
-		bindBool(fieldPtr(sd), false)
-	default:
-		sd.skipNull()
-	}
-}
+func (sd *subDecode) scanObjPtrValue(fn decodeFunc) decodeFunc {
+	return nil
 
-func scanArrPtrValue(sd *subDecode) {
-	v := false
-	switch sd.str[sd.scan] {
-	case 't':
-		sd.skipTrue()
-		v = true
-	case 'f':
-		sd.skipFalse()
-	default:
-		sd.skipNull()
-	}
-	bindBool(arrItemPtr(sd), v)
-}
-
-func scanListPtrValue(sd *subDecode) {
-	v := false
-	switch sd.str[sd.scan] {
-	case 't':
-		sd.skipTrue()
-		v = true
-	case 'f':
-		sd.skipFalse()
-	default:
-		sd.skipNull()
-	}
-	sd.pl.bufBol = append(sd.pl.bufBol, v)
 }
