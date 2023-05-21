@@ -90,9 +90,10 @@ func bindAny(ptr uintptr, v any) {
 	*(*any)(unsafe.Pointer(ptr)) = v
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetArrLeftItems() {
 	dfValue := zeroValues[sd.dm.itemKind]
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.dm.itemSize))) = dfValue
+		*(*unsafe.Pointer)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.dm.arrItemBytes))) = dfValue
 	}
 }

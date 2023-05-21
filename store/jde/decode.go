@@ -14,61 +14,65 @@ import (
 //	subDecode // 当前解析片段，用于递归
 //}
 
-type decodeFunc func(sb *subDecode)
+type (
+	dataType       struct{}
+	emptyInterface struct {
+		typ *dataType
+		ptr unsafe.Pointer
+	}
 
-type dataType struct{}
-type emptyInterface struct {
-	typ *dataType
-	ptr unsafe.Pointer
-}
+	subDecode struct {
+		pl *fastPool
 
-type subDecode struct {
-	pl *fastPool
+		// 直接两种 SupperKV +++++++++++
+		mp *cst.KV       // 解析到map
+		gr *gson.GsonRow // 解析到GsonRow
 
-	// 直接两种 SupperKV +++++++++++
-	mp *cst.KV       // 解析到map
-	gr *gson.GsonRow // 解析到GsonRow
+		// Struct | Slice,Array ++++++++
+		dm     *destMeta
+		dst    any     // 原始值
+		dstPtr uintptr // 数组首值地址
+		arrIdx int     // 数组索引
 
-	// Struct | Slice,Array ++++++++
-	dm     *destMeta
-	dst    any     // 原始值
-	dstPtr uintptr // 数组首值地址
-	arrIdx int     // 数组索引
+		// 当前解析JSON的状态信息 ++++++
+		str    string // 本段字符串
+		scan   int    // 自己的扫描进度，当解析错误时，这个就是定位
+		keyIdx int    // key index
+		//key    string // 当前KV对的Key值
 
-	// 当前解析JSON的状态信息 ++++++
-	str    string // 本段字符串
-	scan   int    // 自己的扫描进度，当解析错误时，这个就是定位
-	keyIdx int    // key index
-	//key    string // 当前KV对的Key值
+		isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
+		skipValue bool // 跳过当前要解析的值
+		skipTotal bool // 跳过所有项目
+	}
 
-	skipValue bool // 跳过当前要解析的值
-	skipTotal bool // 跳过所有项目
-	isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
-}
+	decodeFunc func(sb *subDecode)
+	decodePtr  func(sd *subDecode) uintptr
+	destMeta   struct {
+		// struct
+		ss        *dts.StructSchema // 目标值是一个Struct时候
+		fieldsDec []decodeFunc
 
-type destMeta struct {
-	// struct
-	ss        *dts.StructSchema // 目标值是一个Struct时候
-	fieldsDec []decodeFunc
+		// array & slice
+		listType reflect.Type
+		listKind reflect.Kind
+		itemType reflect.Type
+		itemKind reflect.Kind
+		itemDec  decodeFunc
 
-	// array & slice
-	listType reflect.Type
-	listKind reflect.Kind
-	itemType reflect.Type
-	itemKind reflect.Kind
-	itemDec  decodeFunc
-	itemSize int // 数组属性，item类型对应的内存字节大小
-	arrLen   int // 数组属性，数组长度
+		// array
+		arrItemBytes int // 数组属性，item类型对应的内存字节大小
+		arrLen       int // 数组属性，数组长度
 
-	// status
-	isList    bool // 区分 [] 或者 {}
-	isArray   bool
-	isStruct  bool // {} 可能目标是 一个 struct 对象
-	isAny     bool
-	isArrBind bool //isArray  bool // 不是slice
-	isPtr     bool
-	ptrLevel  uint8
-}
+		// status
+		isList    bool // 区分 [] 或者 {}
+		isArray   bool
+		isStruct  bool // {} 可能目标是 一个 struct 对象
+		isAny     bool
+		isArrBind bool //isArray  bool // 不是slice
+		isPtr     bool
+		ptrLevel  uint8
+	}
+)
 
 //type destStatus struct {
 //	isList    bool // 区分 [] 或者 {}
@@ -79,14 +83,17 @@ type destMeta struct {
 //	isArrBind bool //isArray  bool // 不是slice
 //}
 
+var _subDecodeDefValues subDecode
+
 func (sd *subDecode) reset() {
-	sd.pl = nil
-	sd.mp = nil
-	sd.gr = nil
-	sd.dm = nil
-	sd.arrIdx = 0
-	sd.skipTotal = false
-	sd.skipValue = false
+	//sd.pl = nil
+	//sd.mp = nil
+	//sd.gr = nil
+	//sd.dm = nil
+	//sd.arrIdx = 0
+	//sd.skipTotal = false
+	//sd.skipValue = false
+	*sd = _subDecodeDefValues
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -202,6 +209,7 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 		// 初始化解析函数 ++++++++++++++++++
 		sd.dm.fieldsDec = make([]decodeFunc, len(sd.dm.ss.FieldsKind))
 		for i := 0; i < len(sd.dm.ss.FieldsKind); i++ {
+
 			switch sd.dm.ss.FieldsKind[i] {
 			case reflect.Int:
 				sd.dm.fieldsDec[i] = scanObjIntValue
@@ -242,7 +250,7 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 			case reflect.Struct:
 
 			case reflect.Pointer:
-
+				sd.dm.fieldsDec[i] = sd.scanObjPtrValue(scanObjAnyValue)
 			}
 		}
 	case reflect.Array, reflect.Slice:
@@ -298,7 +306,7 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 			case reflect.Struct:
 
 			case reflect.Pointer:
-
+				// 不可能
 			}
 
 		} else {
@@ -342,7 +350,7 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 
 			case reflect.Struct:
 			case reflect.Pointer:
-
+				// 已经统一处理
 			}
 
 		}
@@ -372,7 +380,7 @@ peelPtr:
 		sd.dm.itemKind = sd.dm.itemType.Kind()
 		sd.dm.isPtr = true
 		sd.dm.ptrLevel++
-		// TODO：指针嵌套不能超过3层，这种很少见，真遇到，自己后期再处理
+		// TODO：指针嵌套不能超过3层，这种很少见，也就是说此解码方案并不通用
 		if sd.dm.ptrLevel > 3 {
 			return errPtrLevel
 		}
@@ -392,5 +400,5 @@ func (sd *subDecode) initArrayMeta() {
 		return
 	}
 	sd.dm.isArrBind = true
-	sd.dm.itemSize = int(sd.dm.itemType.Size())
+	sd.dm.arrItemBytes = int(sd.dm.itemType.Size())
 }

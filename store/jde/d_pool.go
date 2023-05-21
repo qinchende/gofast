@@ -7,9 +7,11 @@ import (
 	"unsafe"
 )
 
-var jdeDecPool = sync.Pool{New: func() any { return &subDecode{} }}
-var jdeBufPool = sync.Pool{New: func() any { return &fastPool{} }}
-var cachedDestMeta sync.Map // cached dest value meta info
+var (
+	jdeDecPool     = sync.Pool{New: func() any { return &subDecode{} }}
+	jdeBufPool     = sync.Pool{New: func() any { return &fastPool{} }}
+	cachedDestMeta sync.Map // cached dest value meta info
+)
 
 func cacheSetMeta(typ *dataType, val *destMeta) {
 	cachedDestMeta.Store(typ, val)
@@ -84,12 +86,11 @@ func (sd *subDecode) flushListPool() {
 		sliceSetNum[float64, float64](sd.pl.bufF64, sd)
 
 	case reflect.Bool:
-		sliceSetBool(sd.pl.bufBol, sd)
-
+		sliceSetNotNum[bool](sd.pl.bufBol, sd)
 	case reflect.String:
-		sliceSetString(sd.pl.bufStr, sd)
+		sliceSetNotNum[string](sd.pl.bufStr, sd)
 	case reflect.Interface:
-		sliceSetAny(sd.pl.bufAny, sd)
+		sliceSetNotNum[any](sd.pl.bufAny, sd)
 	}
 }
 
@@ -191,128 +192,161 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 //	}
 //}
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 字符串处理
-func sliceSetString(val []string, sd *subDecode) {
+// 三种特殊类型单独处理
+func sliceSetNotNum[T bool | string | any](val []T, sd *subDecode) {
 	ptrLevel := sd.dm.ptrLevel
 
 	// 如果绑定对象是字符串切片
-	newArr := make([]string, len(val))
-	copy(newArr, val)
+	list := make([]T, len(val))
+	copy(list, val)
 	if ptrLevel <= 0 {
-		*(sd.dst.(*[]string)) = newArr
+		*(sd.dst.(*[]T)) = list
 		return
 	}
 
 	// 一级指针
 	ptrLevel--
-	ret1 := copySlice[string](sd, ptrLevel, newArr)
+	ret1 := copySlice[T](sd, ptrLevel, list)
 	if ret1 == nil {
 		return
 	}
 
 	// 二级指针
 	ptrLevel--
-	ret2 := copySlice[*string](sd, ptrLevel, ret1)
+	ret2 := copySlice[*T](sd, ptrLevel, ret1)
 	if ret2 == nil {
 		return
 	}
 
 	// 三级指针
 	ptrLevel--
-	_ = copySlice[**string](sd, ptrLevel, ret2)
+	_ = copySlice[**T](sd, ptrLevel, ret2)
 	return
 }
 
-// Bool处理
-func sliceSetBool(val []bool, sd *subDecode) {
-	ptrLevel := sd.dm.ptrLevel
+func copySlice[T bool | *bool | **bool | string | *string | **string | any | *any | **any](sd *subDecode, ptrLevel uint8, list []T) []*T {
+	size := len(list)
 
-	// 如果绑定对象是字符串切片
-	newArr := make([]bool, len(val))
-	copy(newArr, val)
-	if ptrLevel <= 0 {
-		*(sd.dst.(*[]bool)) = newArr
-		return
-	}
-
-	// 一级指针
-	ptrLevel--
-	ret1 := copySlice[bool](sd, ptrLevel, newArr)
-	if ret1 == nil {
-		return
-	}
-
-	// 二级指针
-	ptrLevel--
-	ret2 := copySlice[*bool](sd, ptrLevel, ret1)
-	if ret2 == nil {
-		return
-	}
-
-	// 三级指针
-	ptrLevel--
-	_ = copySlice[**bool](sd, ptrLevel, ret2)
-	return
-}
-
-func sliceSetAny(val []any, sd *subDecode) {
-	ptrLevel := sd.dm.ptrLevel
-
-	// 如果绑定对象是字符串切片
-	newArr := make([]any, len(val))
-	copy(newArr, val)
-	if ptrLevel <= 0 {
-		*(sd.dst.(*[]any)) = newArr
-		return
-	}
-
-	// 一级指针
-	ptrLevel--
-	ret1 := copySlice[any](sd, ptrLevel, newArr)
-	if ret1 == nil {
-		return
-	}
-
-	// 二级指针
-	ptrLevel--
-	ret2 := copySlice[*any](sd, ptrLevel, ret1)
-	if ret2 == nil {
-		return
-	}
-
-	// 三级指针
-	ptrLevel--
-	_ = copySlice[**any](sd, ptrLevel, ret2)
-	return
-}
-
-func copySlice[T string | *string | **string | bool | *bool | **bool | any | *any | **any](sd *subDecode, ptrLevel uint8, arr []T) []*T {
-	size := len(arr)
-
-	newArr := make([]*T, size)
+	newList := make([]*T, size)
 	for i := 0; i < size; i++ {
-		newArr[i] = &arr[i]
+		newList[i] = &list[i]
 	}
 
 	if ptrLevel <= 0 {
 		for i := 0; i < len(sd.pl.nilPos); i++ {
-			newArr[sd.pl.nilPos[i]] = nil
+			newList[sd.pl.nilPos[i]] = nil
 		}
 		if sd.dm.isArray {
 			dstSnap := []*T{}
 			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
 			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
-			copy(dstSnap, newArr)
+			copy(dstSnap, newList)
 			// array，没有匹配到值的项，给初始化为nil
 			for i := size; i < sd.dm.arrLen; i++ {
 				*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
 			}
 		} else {
-			*(sd.dst.(*[]*T)) = newArr
+			*(sd.dst.(*[]*T)) = newList
 		}
 		return nil
 	} else {
-		return newArr
+		return newList
 	}
 }
+
+//
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// 字符串处理
+//func sliceSetString(val []string, sd *subDecode) {
+//	ptrLevel := sd.dm.ptrLevel
+//
+//	// 如果绑定对象是字符串切片
+//	newArr := make([]string, len(val))
+//	copy(newArr, val)
+//	if ptrLevel <= 0 {
+//		*(sd.dst.(*[]string)) = newArr
+//		return
+//	}
+//
+//	// 一级指针
+//	ptrLevel--
+//	ret1 := copySlice[string](sd, ptrLevel, newArr)
+//	if ret1 == nil {
+//		return
+//	}
+//
+//	// 二级指针
+//	ptrLevel--
+//	ret2 := copySlice[*string](sd, ptrLevel, ret1)
+//	if ret2 == nil {
+//		return
+//	}
+//
+//	// 三级指针
+//	ptrLevel--
+//	_ = copySlice[**string](sd, ptrLevel, ret2)
+//	return
+//}
+//
+//// Bool处理
+//func sliceSetBool(val []bool, sd *subDecode) {
+//	ptrLevel := sd.dm.ptrLevel
+//
+//	// 如果绑定对象是字符串切片
+//	newArr := make([]bool, len(val))
+//	copy(newArr, val)
+//	if ptrLevel <= 0 {
+//		*(sd.dst.(*[]bool)) = newArr
+//		return
+//	}
+//
+//	// 一级指针
+//	ptrLevel--
+//	ret1 := copySlice[bool](sd, ptrLevel, newArr)
+//	if ret1 == nil {
+//		return
+//	}
+//
+//	// 二级指针
+//	ptrLevel--
+//	ret2 := copySlice[*bool](sd, ptrLevel, ret1)
+//	if ret2 == nil {
+//		return
+//	}
+//
+//	// 三级指针
+//	ptrLevel--
+//	_ = copySlice[**bool](sd, ptrLevel, ret2)
+//	return
+//}
+//
+//func sliceSetAny(val []any, sd *subDecode) {
+//	ptrLevel := sd.dm.ptrLevel
+//
+//	// 如果绑定对象是字符串切片
+//	newArr := make([]any, len(val))
+//	copy(newArr, val)
+//	if ptrLevel <= 0 {
+//		*(sd.dst.(*[]any)) = newArr
+//		return
+//	}
+//
+//	// 一级指针
+//	ptrLevel--
+//	ret1 := copySlice[any](sd, ptrLevel, newArr)
+//	if ret1 == nil {
+//		return
+//	}
+//
+//	// 二级指针
+//	ptrLevel--
+//	ret2 := copySlice[*any](sd, ptrLevel, ret1)
+//	if ret2 == nil {
+//		return
+//	}
+//
+//	// 三级指针
+//	ptrLevel--
+//	_ = copySlice[**any](sd, ptrLevel, ret2)
+//	return
+//}
