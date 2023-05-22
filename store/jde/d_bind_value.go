@@ -6,88 +6,88 @@ import (
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func bindInt(ptr uintptr, v int64) {
-	*(*int)(unsafe.Pointer(ptr)) = int(v)
+func bindInt(p unsafe.Pointer, v int64) {
+	*(*int)(p) = int(v)
 }
 
-func bindInt8(ptr uintptr, v int64) {
+func bindInt8(p unsafe.Pointer, v int64) {
 	if v < math.MinInt8 || v > math.MaxInt8 {
 		panic(errInfinity)
 	}
-	*(*int8)(unsafe.Pointer(ptr)) = int8(v)
+	*(*int8)(p) = int8(v)
 }
 
-func bindInt16(ptr uintptr, v int64) {
+func bindInt16(p unsafe.Pointer, v int64) {
 	if v < math.MinInt16 || v > math.MaxInt16 {
 		panic(errInfinity)
 	}
-	*(*int16)(unsafe.Pointer(ptr)) = int16(v)
+	*(*int16)(p) = int16(v)
 }
 
-func bindInt32(ptr uintptr, v int64) {
+func bindInt32(p unsafe.Pointer, v int64) {
 	if v < math.MinInt32 || v > math.MaxInt32 {
 		panic(errInfinity)
 	}
-	*(*int32)(unsafe.Pointer(ptr)) = int32(v)
+	*(*int32)(p) = int32(v)
 }
 
-func bindInt64(ptr uintptr, v int64) {
-	*(*int64)(unsafe.Pointer(ptr)) = v
+func bindInt64(p unsafe.Pointer, v int64) {
+	*(*int64)(p) = v
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func bindUint(ptr uintptr, v uint64) {
-	*(*uint)(unsafe.Pointer(ptr)) = uint(v)
+func bindUint(p unsafe.Pointer, v uint64) {
+	*(*uint)(p) = uint(v)
 }
 
-func bindUint8(ptr uintptr, v uint64) {
+func bindUint8(p unsafe.Pointer, v uint64) {
 	if v > math.MaxUint8 {
 		panic(errInfinity)
 	}
-	*(*uint8)(unsafe.Pointer(ptr)) = uint8(v)
+	*(*uint8)(p) = uint8(v)
 }
 
-func bindUint16(ptr uintptr, v uint64) {
+func bindUint16(p unsafe.Pointer, v uint64) {
 	if v > math.MaxUint16 {
 		panic(errInfinity)
 	}
-	*(*uint16)(unsafe.Pointer(ptr)) = uint16(v)
+	*(*uint16)(p) = uint16(v)
 }
 
-func bindUint32(ptr uintptr, v uint64) {
+func bindUint32(p unsafe.Pointer, v uint64) {
 	if v > math.MaxUint32 {
 		panic(errInfinity)
 	}
-	*(*uint32)(unsafe.Pointer(ptr)) = uint32(v)
+	*(*uint32)(p) = uint32(v)
 }
 
-func bindUint64(ptr uintptr, v uint64) {
-	*(*uint64)(unsafe.Pointer(ptr)) = v
+func bindUint64(p unsafe.Pointer, v uint64) {
+	*(*uint64)(p) = v
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func bindFloat32(ptr uintptr, v float64) {
+func bindFloat32(p unsafe.Pointer, v float64) {
 	if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
 		panic(errInfinity)
 	}
-	*(*float32)(unsafe.Pointer(ptr)) = float32(v)
+	*(*float32)(p) = float32(v)
 }
 
-func bindFloat64(ptr uintptr, v float64) {
-	*(*float64)(unsafe.Pointer(ptr)) = v
+func bindFloat64(p unsafe.Pointer, v float64) {
+	*(*float64)(p) = v
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func bindString(ptr uintptr, v string) {
-	*(*string)(unsafe.Pointer(ptr)) = v
+func bindString(p unsafe.Pointer, v string) {
+	*(*string)(p) = v
 }
 
-func bindBool(ptr uintptr, v bool) {
-	*(*bool)(unsafe.Pointer(ptr)) = v
+func bindBool(p unsafe.Pointer, v bool) {
+	*(*bool)(p) = v
 }
 
-func bindAny(ptr uintptr, v any) {
-	*(*any)(unsafe.Pointer(ptr)) = v
+func bindAny(p unsafe.Pointer, v any) {
+	*(*any)(p) = v
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

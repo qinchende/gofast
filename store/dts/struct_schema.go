@@ -37,9 +37,7 @@ type (
 
 		fieldsIndex [][]int         // reflect fields index
 		fieldsOpts  []*fieldOptions // 字段的属性
-
-		FieldsKind   []reflect.Kind
-		FieldsOffset []uintptr
+		FieldsAttr  []fieldAttr     // 对外公开的字段元数据
 	}
 
 	stringsTips struct {
@@ -51,6 +49,13 @@ type (
 	fieldOptions struct {
 		valid  *validx.ValidOptions // 验证
 		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
+	}
+
+	fieldAttr struct {
+		Type     reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
+		Kind     reflect.Kind // 字段最终类型的Kind类型
+		Offset   uintptr      // 字段在结构体中的地址偏移量
+		PtrLevel uint8        // 字段指针层级
 	}
 )
 
@@ -94,11 +99,17 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	copy(ss.fieldsOpts, fOptions)
 
 	// 抽取出字段的类型和偏移地址
-	ss.FieldsKind = make([]reflect.Kind, len(fOptions))
-	ss.FieldsOffset = make([]uintptr, len(fOptions))
+	ss.FieldsAttr = make([]fieldAttr, len(fOptions))
 	for i := range fOptions {
-		ss.FieldsKind[i] = fOptions[i].sField.Type.Kind()
-		ss.FieldsOffset[i] = fOptions[i].sField.Offset
+		fa := &ss.FieldsAttr[i]
+
+		fa.Offset = fOptions[i].sField.Offset
+		fa.Type = fOptions[i].sField.Type
+		for fa.Type.Kind() == reflect.Pointer {
+			fa.PtrLevel++
+			fa.Type = fa.Type.Elem()
+		}
+		fa.Kind = fa.Type.Kind()
 	}
 
 	// 方便检索字符串项，这里做一些数据冗余的优化处理

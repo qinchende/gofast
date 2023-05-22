@@ -47,6 +47,22 @@ func scanObjStrValue(sd *subDecode) {
 	}
 }
 
+func scanObjPtrStrValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindString(fieldPtrDeep(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindString(fieldPtrDeep(sd), sd.str[start:sd.scan-1])
+		}
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
 func scanArrStrValue(sd *subDecode) {
 	v := ""
 	switch sd.str[sd.scan] {
@@ -93,6 +109,20 @@ func scanObjBoolValue(sd *subDecode) {
 		bindBool(fieldPtr(sd), false)
 	default:
 		sd.skipNull()
+	}
+}
+
+func scanObjPtrBoolValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case 't':
+		sd.skipTrue()
+		bindBool(fieldPtrDeep(sd), true)
+	case 'f':
+		sd.skipFalse()
+		bindBool(fieldPtrDeep(sd), false)
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
 	}
 }
 
@@ -154,6 +184,38 @@ func scanObjAnyValue(sd *subDecode) {
 		bindAny(fieldPtr(sd), false)
 	default:
 		sd.skipNull()
+	}
+}
+
+func scanObjPtrAnyValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		sd.scan++
+		sd.scanSubObject()
+	case c == '[':
+		sd.scan++
+		//err = sd.scanSubArray()
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindAny(fieldPtrDeep(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindAny(fieldPtrDeep(sd), sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			bindAny(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		bindAny(fieldPtrDeep(sd), true)
+	case c == 'f':
+		sd.skipFalse()
+		bindAny(fieldPtrDeep(sd), false)
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
 	}
 }
 
@@ -221,9 +283,9 @@ func scanListAnyValue(sd *subDecode) {
 	}
 }
 
-// ptr +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) scanObjPtrValue(fn decodeFunc) decodeFunc {
-	return nil
-
-}
+//// ptr +++++
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func (sd *subDecode) scanObjPtrValue(fn decodeFunc) decodeFunc {
+//	return nil
+//
+//}
