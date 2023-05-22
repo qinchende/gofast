@@ -139,10 +139,18 @@ over:
 }
 
 // int +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjIntValue(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
 		bindInt(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrIntValue(sd *subDecode) {
+	if start := sd.scanIntValue(); start > 0 {
+		bindInt(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -158,15 +166,25 @@ func scanListIntValue(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
 		v = lang.ParseInt(sd.str[start:sd.scan])
+	} else if sd.dm.isPtr {
+		sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufI64))
 	}
 	sd.pl.bufI64 = append(sd.pl.bufI64, v)
 }
 
 // int8 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt8Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
 		bindInt8(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrInt8Value(sd *subDecode) {
+	if start := sd.scanIntValue(); start > 0 {
+		bindInt8(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -190,10 +208,18 @@ func scanListInt8Value(sd *subDecode) {
 }
 
 // int16 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt16Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
 		bindInt16(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrInt16Value(sd *subDecode) {
+	if start := sd.scanIntValue(); start > 0 {
+		bindInt16(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -217,10 +243,18 @@ func scanListInt16Value(sd *subDecode) {
 }
 
 // int32 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt32Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
 		bindInt32(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrInt32Value(sd *subDecode) {
+	if start := sd.scanIntValue(); start > 0 {
+		bindInt32(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -242,10 +276,18 @@ func scanListInt32Value(sd *subDecode) {
 }
 
 // int64 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt64Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
 		bindInt64(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrInt64Value(sd *subDecode) {
+	if start := sd.scanIntValue(); start > 0 {
+		bindInt64(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -273,6 +315,14 @@ func scanObjUintValue(sd *subDecode) {
 	}
 }
 
+func scanObjPtrUintValue(sd *subDecode) {
+	if start := sd.scanUintValue(); start > 0 {
+		bindUint(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
+	}
+}
+
 func scanArrUintValue(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
@@ -294,6 +344,14 @@ func scanListUintValue(sd *subDecode) {
 func scanObjUint8Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
 		bindUint8(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrUint8Value(sd *subDecode) {
+	if start := sd.scanUintValue(); start > 0 {
+		bindUint8(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -324,6 +382,14 @@ func scanObjUint16Value(sd *subDecode) {
 	}
 }
 
+func scanObjPtrUint16Value(sd *subDecode) {
+	if start := sd.scanUintValue(); start > 0 {
+		bindUint16(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
+	}
+}
+
 func scanArrUint16Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
@@ -348,6 +414,14 @@ func scanListUint16Value(sd *subDecode) {
 func scanObjUint32Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
 		bindUint32(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrUint32Value(sd *subDecode) {
+	if start := sd.scanUintValue(); start > 0 {
+		bindUint32(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 
@@ -378,6 +452,14 @@ func scanObjUint64Value(sd *subDecode) {
 	}
 }
 
+func scanObjPtrUint64Value(sd *subDecode) {
+	if start := sd.scanUintValue(); start > 0 {
+		bindUint64(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
+	}
+}
+
 func scanArrUint64Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
@@ -405,6 +487,14 @@ func scanObjFloat32Value(sd *subDecode) {
 	}
 }
 
+func scanObjPtrFloat32Value(sd *subDecode) {
+	if start := sd.scanNumValue(); start > 0 {
+		bindFloat32(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
+	}
+}
+
 func scanArrFloat32Value(sd *subDecode) {
 	v := float64(0)
 	if start := sd.scanNumValue(); start > 0 {
@@ -429,6 +519,14 @@ func scanListFloat32Value(sd *subDecode) {
 func scanObjFloat64Value(sd *subDecode) {
 	if start := sd.scanNumValue(); start > 0 {
 		bindFloat64(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+	}
+}
+
+func scanObjPtrFloat64Value(sd *subDecode) {
+	if start := sd.scanNumValue(); start > 0 {
+		bindFloat64(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+	} else {
+		fieldSetNil(sd)
 	}
 }
 

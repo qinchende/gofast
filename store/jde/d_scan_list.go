@@ -1,7 +1,9 @@
 package jde
 
-func arrItemPtr(sd *subDecode) uintptr {
-	return sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes)
+import "unsafe"
+
+func arrItemPtr(sd *subDecode) unsafe.Pointer {
+	return unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

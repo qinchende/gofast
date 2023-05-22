@@ -1,9 +1,44 @@
 package jde
 
-import "github.com/qinchende/gofast/cst"
+import (
+	"github.com/qinchende/gofast/cst"
+	"reflect"
+	"unsafe"
+)
 
-func fieldPtr(sd *subDecode) uintptr {
-	return sd.dstPtr + sd.dm.ss.FieldsOffset[sd.keyIdx]
+func fieldPtr(sd *subDecode) unsafe.Pointer {
+	return unsafe.Pointer(sd.dstPtr + sd.dm.ss.FieldsAttr[sd.keyIdx].Offset)
+}
+
+func fieldPtrDeep(sd *subDecode) unsafe.Pointer {
+	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
+	ptr := unsafe.Pointer(sd.dstPtr + fa.Offset)
+
+	ptrLevel := fa.PtrLevel
+	for ptrLevel > 1 {
+		if *(*unsafe.Pointer)(ptr) == nil {
+			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
+			*(*unsafe.Pointer)(ptr) = tpPtr
+			ptr = tpPtr
+		} else {
+			ptr = *(*unsafe.Pointer)(ptr)
+		}
+
+		ptrLevel--
+	}
+
+	if *(*unsafe.Pointer)(ptr) == nil {
+		rVal := reflect.New(fa.Type)
+
+		newPtr := rVal.UnsafePointer()
+		*(*unsafe.Pointer)(ptr) = newPtr
+		return newPtr
+	}
+	return *(*unsafe.Pointer)(ptr)
+}
+
+func fieldSetNil(sd *subDecode) {
+	*(*unsafe.Pointer)(fieldPtr(sd)) = nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
