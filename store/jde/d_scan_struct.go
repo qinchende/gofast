@@ -110,9 +110,7 @@ func (sd *subDecode) scanObject() {
 			sd.skipValue = true
 			sd.skipOneValue()
 		} else {
-			// TODO: 要根据目标值类型，来解析 ++++
-			sd.dm.fieldsDec[sd.keyIdx](sd)
-			// +++++++++++++++++++++++++++++++++++
+			sd.dm.fieldsDec[sd.keyIdx](sd) // TODO: 要根据目标值类型，来解析
 		}
 		pos = sd.scan
 	}

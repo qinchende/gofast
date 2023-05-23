@@ -2,6 +2,8 @@ package jde
 
 import "github.com/qinchende/gofast/skill/lang"
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// scan string
 func (sd *subDecode) scanQuoteStr() (slash bool) {
 	pos := sd.scan
 	for {
@@ -17,9 +19,9 @@ func (sd *subDecode) scanQuoteStr() (slash bool) {
 		case c == '\\':
 			if !slash {
 				slash = true
-				sd.pl.escPos = sd.pl.escPos[0:0]
+				sd.escPos = sd.escPos[0:0]
 			}
-			sd.pl.escPos = append(sd.pl.escPos, pos)
+			sd.escPos = append(sd.escPos, pos)
 			pos++
 			//c = sd.str[pos]
 			//if c < ' ' {
@@ -283,9 +285,14 @@ func scanListAnyValue(sd *subDecode) {
 	}
 }
 
-//// ptr +++++
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func (sd *subDecode) scanObjPtrValue(fn decodeFunc) decodeFunc {
-//	return nil
-//
-//}
+// struct +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjStructValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		sd.scan++
+		sd.scanSubObject()
+	default:
+		sd.skipNull()
+	}
+}
