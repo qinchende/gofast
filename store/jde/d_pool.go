@@ -9,7 +9,7 @@ import (
 
 var (
 	jdeDecPool     = sync.Pool{New: func() any { return &subDecode{} }}
-	jdeBufPool     = sync.Pool{New: func() any { return &fastPool{} }}
+	jdeBufPool     = sync.Pool{New: func() any { return &listPool{} }}
 	cachedDestMeta sync.Map // cached dest value meta info
 )
 
@@ -25,7 +25,7 @@ func cacheGetMeta(typ *dataType) *destMeta {
 }
 
 // TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
-type fastPool struct {
+type listPool struct {
 	bufI64 []int64
 	bufU64 []uint64
 	bufF64 []float64
@@ -33,7 +33,21 @@ type fastPool struct {
 	bufBol []bool
 	bufAny []any
 	nilPos []int // 指针类型值，可能是nil
-	escPos []int // 存放转义字符'\'的索引位置
+	//escPos []int // 存放转义字符'\'的索引位置
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) getPool() {
+	if sd.dm.isList {
+		sd.pl = jdeBufPool.Get().(*listPool)
+	}
+}
+
+func (sd *subDecode) putPool() {
+	if sd.dm.isList {
+		sd.pl = nil
+		jdeBufPool.Put(sd.pl)
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -106,7 +120,8 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 		newArr[i] = T(val[i])
 	}
 	if ptrLevel <= 0 {
-		*(sd.dst.(*[]T)) = newArr
+		//*(sd.dst.(*[]T)) = newArr
+		*(*[]T)(unsafe.Pointer(sd.dstPtr)) = newArr
 		return
 	}
 
@@ -134,7 +149,8 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 			newArrPtr1[sd.pl.nilPos[i]] = nil
 		}
 
-		*(sd.dst.(*[]*T)) = newArrPtr1
+		//*(sd.dst.(*[]*T)) = newArrPtr1
+		*(*[]*T)(unsafe.Pointer(sd.dstPtr)) = newArrPtr1
 		return
 	}
 
@@ -161,7 +177,8 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 			newArrPtr2[sd.pl.nilPos[i]] = nil
 		}
 
-		*(sd.dst.(*[]**T)) = newArrPtr2
+		//*(sd.dst.(*[]**T)) = newArrPtr2
+		*(*[]**T)(unsafe.Pointer(sd.dstPtr)) = newArrPtr2
 		return
 	}
 
@@ -200,7 +217,8 @@ func sliceSetNotNum[T bool | string | any](val []T, sd *subDecode) {
 	list := make([]T, len(val))
 	copy(list, val)
 	if ptrLevel <= 0 {
-		*(sd.dst.(*[]T)) = list
+		//*(sd.dst.(*[]T)) = list
+		*(*[]T)(unsafe.Pointer(sd.dstPtr)) = list
 		return
 	}
 
@@ -246,107 +264,11 @@ func copySlice[T bool | *bool | **bool | string | *string | **string | any | *an
 				*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
 			}
 		} else {
-			*(sd.dst.(*[]*T)) = newList
+			//*(sd.dst.(*[]*T)) = newList
+			*(*[]*T)(unsafe.Pointer(sd.dstPtr)) = newList
 		}
 		return nil
 	} else {
 		return newList
 	}
 }
-
-//
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// 字符串处理
-//func sliceSetString(val []string, sd *subDecode) {
-//	ptrLevel := sd.dm.ptrLevel
-//
-//	// 如果绑定对象是字符串切片
-//	newArr := make([]string, len(val))
-//	copy(newArr, val)
-//	if ptrLevel <= 0 {
-//		*(sd.dst.(*[]string)) = newArr
-//		return
-//	}
-//
-//	// 一级指针
-//	ptrLevel--
-//	ret1 := copySlice[string](sd, ptrLevel, newArr)
-//	if ret1 == nil {
-//		return
-//	}
-//
-//	// 二级指针
-//	ptrLevel--
-//	ret2 := copySlice[*string](sd, ptrLevel, ret1)
-//	if ret2 == nil {
-//		return
-//	}
-//
-//	// 三级指针
-//	ptrLevel--
-//	_ = copySlice[**string](sd, ptrLevel, ret2)
-//	return
-//}
-//
-//// Bool处理
-//func sliceSetBool(val []bool, sd *subDecode) {
-//	ptrLevel := sd.dm.ptrLevel
-//
-//	// 如果绑定对象是字符串切片
-//	newArr := make([]bool, len(val))
-//	copy(newArr, val)
-//	if ptrLevel <= 0 {
-//		*(sd.dst.(*[]bool)) = newArr
-//		return
-//	}
-//
-//	// 一级指针
-//	ptrLevel--
-//	ret1 := copySlice[bool](sd, ptrLevel, newArr)
-//	if ret1 == nil {
-//		return
-//	}
-//
-//	// 二级指针
-//	ptrLevel--
-//	ret2 := copySlice[*bool](sd, ptrLevel, ret1)
-//	if ret2 == nil {
-//		return
-//	}
-//
-//	// 三级指针
-//	ptrLevel--
-//	_ = copySlice[**bool](sd, ptrLevel, ret2)
-//	return
-//}
-//
-//func sliceSetAny(val []any, sd *subDecode) {
-//	ptrLevel := sd.dm.ptrLevel
-//
-//	// 如果绑定对象是字符串切片
-//	newArr := make([]any, len(val))
-//	copy(newArr, val)
-//	if ptrLevel <= 0 {
-//		*(sd.dst.(*[]any)) = newArr
-//		return
-//	}
-//
-//	// 一级指针
-//	ptrLevel--
-//	ret1 := copySlice[any](sd, ptrLevel, newArr)
-//	if ret1 == nil {
-//		return
-//	}
-//
-//	// 二级指针
-//	ptrLevel--
-//	ret2 := copySlice[*any](sd, ptrLevel, ret1)
-//	if ret2 == nil {
-//		return
-//	}
-//
-//	// 三级指针
-//	ptrLevel--
-//	_ = copySlice[**any](sd, ptrLevel, ret2)
-//	return
-//}

@@ -21,19 +21,24 @@ type (
 		ptr unsafe.Pointer
 	}
 
+	reflectType struct {
+		data *dataType
+	}
+
 	decodeFunc func(sb *subDecode)
 	//decodePtr  func(sd *subDecode) uintptr
 
 	subDecode struct {
-		pl *fastPool
+		pl     *listPool // 当解析数组时候用到的一系列临时队列
+		escPos []int     // 存放转义字符'\'的索引位置
 
 		// 直接两种 SupperKV +++++++++++
 		mp *cst.KV       // 解析到map
 		gr *gson.GsonRow // 解析到GsonRow
 
 		// Struct | Slice,Array ++++++++
+		//dst    any     // 原始值
 		dm     *destMeta
-		dst    any     // 原始值
 		dstPtr uintptr // 数组首值地址
 		arrIdx int     // 数组索引
 
@@ -90,7 +95,6 @@ func (sd *subDecode) reset() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//go:inline
 func startDecode(dst any, source string) (err error) {
 	if dst == nil {
 		return errValueIsNil
@@ -128,69 +132,49 @@ func (sd *subDecode) initDecode(dst any) (err error) {
 		return
 	}
 
-	// 目标对象不是 KV 型，那么后面只能是 List or Struct
+	rfTyp := reflect.TypeOf(dst)
+	if rfTyp.Kind() != reflect.Pointer {
+		return errValueMustPtr
+	}
+
 	ei := (*emptyInterface)(unsafe.Pointer(&dst))
-	meta := cacheGetMeta(ei.typ)
+	return sd.initDecodeInner(rfTyp, ei.ptr)
+}
+
+func (sd *subDecode) initDecodeInner(rfTyp reflect.Type, ptr unsafe.Pointer) (err error) {
+
+	//ei := (*emptyInterface)(unsafe.Pointer(&dst))
+	//tmpType := (*dataType)(*(*unsafe.Pointer)(unsafe.Pointer(&rfTyp)))
+
+	var rt reflectType
+
+	*(*unsafe.Pointer)(unsafe.Pointer(&rt)) = unsafe.Pointer(&rfTyp)
+
+	//rt := (reflectType)((*unsafe.Pointer)(unsafe.Pointer(&rfTyp)))
+
+	meta := cacheGetMeta(rt.data)
 	if meta != nil {
 		sd.dm = meta
 	} else {
-		if err = sd.buildMeta(dst); err != nil {
+		if err = sd.buildMeta(rfTyp); err != nil {
 			return
 		}
-		cacheSetMeta(ei.typ, sd.dm)
+		cacheSetMeta(rt.data, sd.dm)
 	}
 
 	// 当前值的地址等信息
-	sd.dstPtr = uintptr(ei.ptr)
-	//sd.dst = dst
-	if sd.dm.isList {
-		sd.dst = dst
-	}
+	sd.dstPtr = uintptr(ptr)
+	//if sd.dm.isList {
+	//	sd.dst = dst
+	//}
 	return
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) getPool() {
-	if sd.dm.isList && sd.pl == nil {
-		sd.pl = jdeBufPool.Get().(*fastPool)
-	}
-}
-
-func (sd *subDecode) putPool() {
-	if sd.dm.isList {
-		jdeBufPool.Put(sd.pl)
-		//sd.pl = nil
-	}
-}
-
-func (sd *subDecode) warpErrorCode(errCode errType) error {
-	if errCode >= 0 {
-		return nil
-	}
-
-	sta := sd.scan
-	end := sta + 20 // 输出标记后面 n 个字符
-	if end > len(sd.str) {
-		end = len(sd.str)
-	}
-
-	errMsg := fmt.Sprintf("jsonx: error pos: %d, near %q of ( %s )", sta, sd.str[sta], sd.str[sta:end])
-	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(sd.str[sta]), " of (", sd.str[sta:end], ")"}, "")
-	return errors.New(errMsg)
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果不是map和*GsonRow，只能是 Array|Slice|Struct
-func (sd *subDecode) buildMeta(dst any) (err error) {
+func (sd *subDecode) buildMeta(rfTyp reflect.Type) (err error) {
 	sd.dm = &destMeta{}
 
-	rfVal := reflect.ValueOf(dst)
-	if rfVal.Kind() != reflect.Pointer {
-		return errValueMustPtr
-	}
-	rfVal = reflect.Indirect(rfVal)
-
-	rfTyp := rfVal.Type()
 	switch kd := rfTyp.Kind(); kd {
 	case reflect.Struct:
 		if rfTyp.String() == "time.Time" {
@@ -207,7 +191,7 @@ func (sd *subDecode) buildMeta(dst any) (err error) {
 		// 进一步初始化数组
 		if kd == reflect.Array {
 			sd.initArrayMeta()
-			sd.dm.arrLen = rfVal.Len()
+			//sd.dm.arrLen = rfVal.Len()
 		}
 		sd.bindListDec()
 	default:
@@ -311,7 +295,8 @@ nextField:
 		case reflect.Array:
 
 		case reflect.Struct:
-		case reflect.Pointer:
+
+		case reflect.Pointer: // 这种不可能
 		}
 		goto nextField
 	}
@@ -355,7 +340,8 @@ nextField:
 	case reflect.Array:
 
 	case reflect.Struct:
-	case reflect.Pointer:
+
+	case reflect.Pointer: // 这种不可能
 	}
 	goto nextField
 }
@@ -402,8 +388,7 @@ func (sd *subDecode) bindListDec() {
 
 		case reflect.Struct:
 
-		case reflect.Pointer:
-			// 不可能
+		case reflect.Pointer: // 这种不可能
 		}
 		return
 	}
@@ -446,7 +431,24 @@ func (sd *subDecode) bindListDec() {
 	case reflect.Array:
 
 	case reflect.Struct:
-	case reflect.Pointer:
-		// 已经统一处理
+
+	case reflect.Pointer: // 这种不可能
 	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) warpErrorCode(errCode errType) error {
+	if errCode >= 0 {
+		return nil
+	}
+
+	sta := sd.scan
+	end := sta + 20 // 输出标记后面 n 个字符
+	if end > len(sd.str) {
+		end = len(sd.str)
+	}
+
+	errMsg := fmt.Sprintf("jsonx: error pos: %d, near %q of ( %s )", sta, sd.str[sta], sd.str[sta:end])
+	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(sd.str[sta]), " of (", sd.str[sta:end], ")"}, "")
+	return errors.New(errMsg)
 }

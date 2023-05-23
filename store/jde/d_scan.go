@@ -124,4 +124,5 @@ func (sd *subDecode) skipFalse() {
 		sd.scan += 5
 		return
 	}
+	panic(errBool)
 }
