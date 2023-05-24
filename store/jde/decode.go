@@ -16,25 +16,21 @@ import (
 
 type (
 	dataType       struct{}
-	emptyInterface struct {
-		typ *dataType
-		ptr unsafe.Pointer
+	emptyInterface struct { // emptyInterface is the header for an interface{} value. (ignore method)
+		typAddr *dataType
+		dataPtr unsafe.Pointer
 	}
 
-	reflectType struct {
-		data *dataType
-	}
-
-	decodeFunc func(sb *subDecode)
-	//decodePtr  func(sd *subDecode) uintptr
-
-	subDecode struct {
+	decObjFunc func(sb *subDecode, key string)
+	decValFunc func(sb *subDecode)
+	subDecode  struct {
 		pl     *listPool // 当解析数组时候用到的一系列临时队列
 		escPos []int     // 存放转义字符'\'的索引位置
 
 		// 直接两种 SupperKV +++++++++++
 		mp *cst.KV       // 解析到map
 		gr *gson.GsonRow // 解析到GsonRow
+		//objValDec decObjFunc
 
 		// Struct | Slice,Array ++++++++
 		//dst    any     // 原始值
@@ -48,28 +44,30 @@ type (
 		keyIdx int    // key index
 		//key    string // 当前KV对的Key值
 
-		isSuperKV bool // {} 可能目标是 cst.SuperKV 类型
 		skipValue bool // 跳过当前要解析的值
 		skipTotal bool // 跳过所有项目
 	}
 
 	destMeta struct {
-		// struct
-		ss        *dts.StructSchema // 目标值是一个Struct时候
-		fieldsDec []decodeFunc
+		// Struct
+		ss        *dts.StructSchema
+		fieldsDec []decValFunc
+		objValDec decObjFunc
 
 		// array & slice
-		listType reflect.Type
-		listKind reflect.Kind
-		itemType reflect.Type
-		itemKind reflect.Kind
-		itemDec  decodeFunc
-
+		listType    reflect.Type
+		listKind    reflect.Kind
+		itemType    reflect.Type
+		itemKind    reflect.Kind
+		listItemDec decValFunc
 		// array
 		arrItemBytes int // 数组属性，item类型对应的内存字节大小
 		arrLen       int // 数组属性，数组长度
 
 		// status
+		isSuperKV bool
+		isGson    bool // {} 可能目标是 cst.SuperKV 类型
+		isMap     bool // {} 可能目标是 cst.SuperKV 类型
 		isList    bool // 区分 [] 或者 {}
 		isArray   bool
 		isStruct  bool // {} 可能目标是 一个 struct 对象
@@ -100,113 +98,119 @@ func startDecode(dst any, source string) (err error) {
 		return errValueIsNil
 	}
 
-	fd := jdeDecPool.Get().(*subDecode)
-	fd.reset()
-	fd.str = source
-	fd.scan = 0
-	if err = fd.initDecode(dst); err != nil {
-		return
-	}
-
-	fd.getPool()
-	errCode := fd.scanJson()
-	fd.putPool()
-	err = fd.warpErrorCode(errCode)
-	jdeDecPool.Put(fd)
-	return
-}
-
-func (sd *subDecode) initDecode(dst any) (err error) {
-	// 先确定是否是 cst.SuperKV 类型
-	var ok bool
-	if sd.gr, ok = dst.(*gson.GsonRow); !ok {
-		if sd.mp, ok = dst.(*cst.KV); !ok {
-			if mpt, ok := dst.(*map[string]any); ok {
-				*sd.mp = *mpt
-			}
-		}
-	}
-
-	if sd.gr != nil || sd.mp != nil {
-		sd.isSuperKV = true
-		return
-	}
+	sd := jdeDecPool.Get().(*subDecode)
+	sd.reset()
+	sd.str = source
+	sd.scan = 0
 
 	rfTyp := reflect.TypeOf(dst)
 	if rfTyp.Kind() != reflect.Pointer {
 		return errValueMustPtr
 	}
+	sd.initMeta(rfTyp.Elem(), (*emptyInterface)(unsafe.Pointer(&dst)).dataPtr)
 
-	ei := (*emptyInterface)(unsafe.Pointer(&dst))
-	return sd.initDecodeInner(rfTyp, ei.ptr)
+	errCode := sd.scanStart()
+	err = sd.warpErrorCode(errCode)
+	jdeDecPool.Put(sd)
+	return
 }
 
-func (sd *subDecode) initDecodeInner(rfTyp reflect.Type, ptr unsafe.Pointer) (err error) {
+// rfTyp 是 剥离 Pointer 之后的最终类型
+func (sd *subDecode) initMeta(rfTyp reflect.Type, ptr unsafe.Pointer) {
+	sd.dstPtr = uintptr(ptr) // 当前值的地址
 
-	//ei := (*emptyInterface)(unsafe.Pointer(&dst))
-	//tmpType := (*dataType)(*(*unsafe.Pointer)(unsafe.Pointer(&rfTyp)))
-
-	var rt reflectType
-
-	*(*unsafe.Pointer)(unsafe.Pointer(&rt)) = unsafe.Pointer(&rfTyp)
-
-	//rt := (reflectType)((*unsafe.Pointer)(unsafe.Pointer(&rfTyp)))
-
-	meta := cacheGetMeta(rt.data)
+	typAddr := (*dataType)((*emptyInterface)(unsafe.Pointer(&rfTyp)).dataPtr)
+	meta := cacheGetMeta(typAddr)
 	if meta != nil {
 		sd.dm = meta
 	} else {
-		if err = sd.buildMeta(rfTyp); err != nil {
-			return
-		}
-		cacheSetMeta(rt.data, sd.dm)
+		sd.buildMeta(rfTyp)
+		cacheSetMeta(typAddr, sd.dm)
 	}
 
-	// 当前值的地址等信息
-	sd.dstPtr = uintptr(ptr)
-	//if sd.dm.isList {
-	//	sd.dst = dst
-	//}
+	if sd.dm.isArray {
+		sd.dm.arrLen = rfTyp.Len() // 如果是数组，需要知道数组长度
+	} else if sd.dm.isSuperKV {
+		if sd.dm.isGson {
+			sd.gr = (*gson.GsonRow)(ptr)
+		} else if sd.dm.isMap {
+			sd.mp = (*cst.KV)(ptr)
+		}
+	}
 	return
+}
+
+func (sd *subDecode) scanSubObject(rfTyp reflect.Type, ptr unsafe.Pointer) {
+	nsd := jdeDecPool.Get().(*subDecode)
+	nsd.reset()
+	nsd.str = sd.str
+	nsd.scan = sd.scan
+
+	nsd.initMeta(rfTyp, ptr)
+	nsd.scanObject()
+
+	sd.scan = nsd.scan
+	jdeDecPool.Put(nsd)
+}
+
+func (sd *subDecode) scanSubList(rfTyp reflect.Type, ptr unsafe.Pointer) {
+	nsd := jdeDecPool.Get().(*subDecode)
+	nsd.reset()
+	nsd.str = sd.str
+	nsd.scan = sd.scan
+
+	nsd.initMeta(rfTyp, ptr)
+	nsd.scanList()
+
+	sd.scan = nsd.scan
+	jdeDecPool.Put(nsd)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 如果不是map和*GsonRow，只能是 Array|Slice|Struct
-func (sd *subDecode) buildMeta(rfTyp reflect.Type) (err error) {
+func (sd *subDecode) buildMeta(rfTyp reflect.Type) {
 	sd.dm = &destMeta{}
 
 	switch kd := rfTyp.Kind(); kd {
 	case reflect.Struct:
-		if rfTyp.String() == "time.Time" {
-			return errValueType
-		}
-		if err = sd.initStructMeta(rfTyp); err != nil {
+		if rfTyp.String() == "gson.GsonRow" {
+			sd.dm.isSuperKV = true
+			sd.dm.isGson = true
+			sd.bindGsonDec()
 			return
 		}
+		if rfTyp.String() == "time.Time" {
+			panic(errValueType)
+		}
+		sd.initStructMeta(rfTyp)
 		sd.bindStructDec()
 	case reflect.Array, reflect.Slice:
-		if err = sd.initListMeta(rfTyp); err != nil {
-			return
-		}
+		sd.initListMeta(rfTyp)
 		// 进一步初始化数组
 		if kd == reflect.Array {
 			sd.initArrayMeta()
-			//sd.dm.arrLen = rfVal.Len()
 		}
 		sd.bindListDec()
+	case reflect.Map:
+		if rfTyp.String() == "cst.KV" || rfTyp.String() == "map[string]any" {
+			sd.dm.isSuperKV = true
+			sd.dm.isMap = true
+			sd.bindMapDec()
+			return
+		} else {
+			panic(errValueType)
+		}
 	default:
-		return errValueType
+		panic(errValueType)
 	}
-	return nil
 }
 
-func (sd *subDecode) initStructMeta(rfType reflect.Type) error {
+func (sd *subDecode) initStructMeta(rfType reflect.Type) {
 	sd.dm.isStruct = true
 	sd.dm.ss = dts.SchemaForInputByType(rfType)
-	return nil
 }
 
-func (sd *subDecode) initListMeta(rfType reflect.Type) error {
+func (sd *subDecode) initListMeta(rfType reflect.Type) {
 	sd.dm.isList = true
 
 	sd.dm.listType = rfType
@@ -222,7 +226,7 @@ peelPtr:
 		sd.dm.ptrLevel++
 		// TODO：指针嵌套不能超过3层，这种很少见，也就是说此解码方案并不通用
 		if sd.dm.ptrLevel > 3 {
-			return errPtrLevel
+			panic(errPtrLevel)
 		}
 		goto peelPtr
 	}
@@ -231,7 +235,6 @@ peelPtr:
 	if sd.dm.itemKind == reflect.Interface {
 		sd.dm.isAny = true
 	}
-	return nil
 }
 
 func (sd *subDecode) initArrayMeta() {
@@ -244,9 +247,19 @@ func (sd *subDecode) initArrayMeta() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (sd *subDecode) bindMapDec() {
+	sd.dm.objValDec = scanMapAnyValue
+}
+
+func (sd *subDecode) bindGsonDec() {
+	sd.dm.objValDec = scanGsonValue
+}
+
 func (sd *subDecode) bindStructDec() {
+	sd.dm.objValDec = scanStructValue
+
 	fLen := len(sd.dm.ss.FieldsAttr)
-	sd.dm.fieldsDec = make([]decodeFunc, fLen)
+	sd.dm.fieldsDec = make([]decValFunc, fLen)
 
 	i := -1
 nextField:
@@ -351,35 +364,35 @@ func (sd *subDecode) bindListDec() {
 	if sd.dm.isArrBind {
 		switch sd.dm.itemKind {
 		case reflect.Int:
-			sd.dm.itemDec = scanArrIntValue
+			sd.dm.listItemDec = scanArrIntValue
 		case reflect.Int8:
-			sd.dm.itemDec = scanArrInt8Value
+			sd.dm.listItemDec = scanArrInt8Value
 		case reflect.Int16:
-			sd.dm.itemDec = scanArrInt16Value
+			sd.dm.listItemDec = scanArrInt16Value
 		case reflect.Int32:
-			sd.dm.itemDec = scanArrInt32Value
+			sd.dm.listItemDec = scanArrInt32Value
 		case reflect.Int64:
-			sd.dm.itemDec = scanArrInt64Value
+			sd.dm.listItemDec = scanArrInt64Value
 		case reflect.Uint:
-			sd.dm.itemDec = scanArrUintValue
+			sd.dm.listItemDec = scanArrUintValue
 		case reflect.Uint8:
-			sd.dm.itemDec = scanArrUint8Value
+			sd.dm.listItemDec = scanArrUint8Value
 		case reflect.Uint16:
-			sd.dm.itemDec = scanArrUint16Value
+			sd.dm.listItemDec = scanArrUint16Value
 		case reflect.Uint32:
-			sd.dm.itemDec = scanArrUint32Value
+			sd.dm.listItemDec = scanArrUint32Value
 		case reflect.Uint64:
-			sd.dm.itemDec = scanArrUint64Value
+			sd.dm.listItemDec = scanArrUint64Value
 		case reflect.Float32:
-			sd.dm.itemDec = scanArrFloat32Value
+			sd.dm.listItemDec = scanArrFloat32Value
 		case reflect.Float64:
-			sd.dm.itemDec = scanArrFloat64Value
+			sd.dm.listItemDec = scanArrFloat64Value
 		case reflect.String:
-			sd.dm.itemDec = scanArrStrValue
+			sd.dm.listItemDec = scanArrStrValue
 		case reflect.Bool:
-			sd.dm.itemDec = scanArrBoolValue
+			sd.dm.listItemDec = scanArrBoolValue
 		case reflect.Interface:
-			sd.dm.itemDec = scanArrAnyValue
+			sd.dm.listItemDec = scanArrAnyValue
 		case reflect.Map:
 
 		case reflect.Slice:
@@ -395,35 +408,35 @@ func (sd *subDecode) bindListDec() {
 
 	switch sd.dm.itemKind {
 	case reflect.Int:
-		sd.dm.itemDec = scanListIntValue
+		sd.dm.listItemDec = scanListIntValue
 	case reflect.Int8:
-		sd.dm.itemDec = scanListInt8Value
+		sd.dm.listItemDec = scanListInt8Value
 	case reflect.Int16:
-		sd.dm.itemDec = scanListInt16Value
+		sd.dm.listItemDec = scanListInt16Value
 	case reflect.Int32:
-		sd.dm.itemDec = scanListInt32Value
+		sd.dm.listItemDec = scanListInt32Value
 	case reflect.Int64:
-		sd.dm.itemDec = scanListInt64Value
+		sd.dm.listItemDec = scanListInt64Value
 	case reflect.Uint:
-		sd.dm.itemDec = scanListUintValue
+		sd.dm.listItemDec = scanListUintValue
 	case reflect.Uint8:
-		sd.dm.itemDec = scanListUint8Value
+		sd.dm.listItemDec = scanListUint8Value
 	case reflect.Uint16:
-		sd.dm.itemDec = scanListUint16Value
+		sd.dm.listItemDec = scanListUint16Value
 	case reflect.Uint32:
-		sd.dm.itemDec = scanListUint32Value
+		sd.dm.listItemDec = scanListUint32Value
 	case reflect.Uint64:
-		sd.dm.itemDec = scanListUint64Value
+		sd.dm.listItemDec = scanListUint64Value
 	case reflect.Float32:
-		sd.dm.itemDec = scanListFloat32Value
+		sd.dm.listItemDec = scanListFloat32Value
 	case reflect.Float64:
-		sd.dm.itemDec = scanListFloat64Value
+		sd.dm.listItemDec = scanListFloat64Value
 	case reflect.String:
-		sd.dm.itemDec = scanListStrValue
+		sd.dm.listItemDec = scanListStrValue
 	case reflect.Bool:
-		sd.dm.itemDec = scanListBoolValue
+		sd.dm.listItemDec = scanListBoolValue
 	case reflect.Interface:
-		sd.dm.itemDec = scanListAnyValue
+		sd.dm.listItemDec = scanListAnyValue
 	case reflect.Map:
 
 	case reflect.Slice:

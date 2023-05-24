@@ -1,6 +1,10 @@
 package jde
 
-import "github.com/qinchende/gofast/skill/lang"
+import (
+	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/lang"
+	"unsafe"
+)
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // scan string
@@ -161,11 +165,13 @@ func scanListBoolValue(sd *subDecode) {
 func scanObjAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.scan++
-		sd.scanSubObject()
+		newMap := make(cst.KV)
+		sd.scanSubObject(rfTypeOfKV, unsafe.Pointer(&newMap))
+		bindAny(fieldPtr(sd), newMap)
 	case c == '[':
-		sd.scan++
-		//err = sd.scanSubArray()
+		newList := make([]any, 0)
+		sd.scanSubList(rfTypeOfList, unsafe.Pointer(&newList))
+		bindAny(fieldPtr(sd), newList)
 	case c == '"':
 		start := sd.scan + 1
 		slash := sd.scanQuoteStr()
@@ -192,10 +198,8 @@ func scanObjAnyValue(sd *subDecode) {
 func scanObjPtrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.scan++
-		sd.scanSubObject()
+		//sd.scanSubObject()
 	case c == '[':
-		sd.scan++
 		//err = sd.scanSubArray()
 	case c == '"':
 		start := sd.scan + 1
@@ -224,10 +228,8 @@ func scanObjPtrAnyValue(sd *subDecode) {
 func scanArrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.scan++
-		sd.scanSubObject()
+		//sd.scanSubObject()
 	case c == '[':
-		sd.scan++
 		//err = sd.scanSubArray()
 	case c == '"':
 		start := sd.scan + 1
@@ -256,10 +258,9 @@ func scanArrAnyValue(sd *subDecode) {
 func scanListAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.scan++
-		sd.scanSubObject()
+		//nsd := newSubDecode(sd)
+		//nsd.scanObject()
 	case c == '[':
-		sd.scan++
 		//err = sd.scanSubArray()
 	case c == '"':
 		start := sd.scan + 1
@@ -285,14 +286,49 @@ func scanListAnyValue(sd *subDecode) {
 	}
 }
 
-// struct +++++
+//// struct +++++
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func scanObjStructValue(sd *subDecode) {
+//	switch c := sd.str[sd.scan]; {
+//	case c == '{':
+//		sd.scanSubObject()
+//	default:
+//		sd.skipNull()
+//	}
+//}
+
+// map +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjStructValue(sd *subDecode) {
+func scanMapAnyValue(sd *subDecode, k string) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.scan++
-		sd.scanSubObject()
+		newMap := make(cst.KV)
+		sd.scanSubObject(rfTypeOfKV, unsafe.Pointer(&newMap))
+		sd.mp.Set(k, newMap)
+	case c == '[':
+		newList := make([]any, 0)
+		sd.scanSubList(rfTypeOfList, unsafe.Pointer(&newList))
+		sd.mp.Set(k, newList)
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			sd.mp.Set(k, sd.str[start:sd.unescapeEnd()])
+		} else {
+			sd.mp.Set(k, sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		sd.mp.Set(k, true)
+	case c == 'f':
+		sd.skipFalse()
+		sd.mp.Set(k, false)
 	default:
 		sd.skipNull()
+		sd.mp.Set(k, nil)
 	}
 }

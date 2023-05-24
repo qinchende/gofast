@@ -2,6 +2,7 @@ package jde
 
 import (
 	"errors"
+	"github.com/qinchende/gofast/cst"
 	"math"
 	"reflect"
 	"unsafe"
@@ -132,6 +133,9 @@ var (
 		reflect.Bool:    bolUPtrVal,
 		reflect.String:  strUPtrVal,
 	}
+
+	rfTypeOfKV   = reflect.TypeOf(new(cst.KV)).Elem()
+	rfTypeOfList = reflect.TypeOf(new([]any)).Elem()
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

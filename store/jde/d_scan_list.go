@@ -10,10 +10,6 @@ func arrItemPtr(sd *subDecode) unsafe.Pointer {
 // 前提：sd.str 肯定是 [ 字符后面的字符串
 // 返回 ] 后面字符的 index
 func (sd *subDecode) scanList() {
-	if !sd.dm.isList {
-		panic(errList)
-	}
-
 	// A. 可能需要用到缓冲池记录临时数据
 	sd.resetListPool()
 
@@ -27,6 +23,7 @@ func (sd *subDecode) scanList() {
 func (sd *subDecode) scanListItems() {
 	pos := sd.scan
 
+	pos++
 	for isBlankChar[sd.str[pos]] {
 		pos++
 	}
@@ -58,7 +55,7 @@ func (sd *subDecode) scanListItems() {
 		if sd.skipValue {
 			sd.skipOneValue()
 		} else {
-			sd.dm.itemDec(sd)
+			sd.dm.listItemDec(sd)
 			if sd.dm.isArray {
 				sd.arrIdx++
 				if sd.arrIdx >= sd.dm.arrLen {
@@ -78,67 +75,3 @@ errChar:
 	sd.scan = pos
 	panic(errChar)
 }
-
-//func (sd *subDecode) scanSubArray(key string) (val string, err int) {
-//	sub := subDecode{
-//		str:       sd.str,
-//		scan:      sd.scan,
-//		skipTotal: sd.skipValue,
-//	}
-//
-//	if sd.gr != nil {
-//		// TODO: 无法为子对象提供目标值，只能返回字符串
-//		sub.skipTotal = true
-//	} else {
-//		sd.skipValue = true
-//	}
-//
-//	err = sub.scanList()
-//	if err < 0 {
-//		sd.scan = sub.scan
-//		return
-//	}
-//
-//	if sd.gr != nil {
-//		if sd.skipValue == false {
-//			val = sd.str[sd.scan-1 : sub.scan]
-//		}
-//	} else {
-//		//sd.mp.Set(key, sub.list)
-//	}
-//	sd.scan = sub.scan
-//	return
-//}
-
-//func (sd *subDecode) scanOneValue() {
-//	switch c := sd.str[sd.scan]; {
-//	case c == '{':
-//		sd.scan++
-//		sd.scanSubObject()
-//	case c == '[':
-//		sd.scan++
-//		//err = sd.scanSubArray()
-//	case c == '"':
-//		sd.scanQuoteStrValue()
-//	case c >= '0' && c <= '9', c == '-':
-//		//sd.scanNumValue()
-//	case c == 't':
-//		sd.skipTrue()
-//		if sd.skipValue {
-//			return
-//		}
-//		sd.bindBool(true)
-//	case c == 'f':
-//		sd.skipFalse()
-//		if sd.skipValue {
-//			return
-//		}
-//		sd.bindBool(false)
-//	default:
-//		sd.skipNull()
-//		if sd.skipValue {
-//			return
-//		}
-//		sd.bindBoolNull()
-//	}
-//}
