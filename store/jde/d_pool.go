@@ -37,24 +37,14 @@ type listPool struct {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subDecode) getPool() {
-	if sd.dm.isList {
-		sd.pl = jdeBufPool.Get().(*listPool)
-	}
-}
-
-func (sd *subDecode) putPool() {
-	if sd.dm.isList {
-		sd.pl = nil
-		jdeBufPool.Put(sd.pl)
-	}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
 	if sd.dm.isArrBind {
 		return
 	}
+
+	// 获取缓存空间
+	sd.pl = jdeBufPool.Get().(*listPool)
+
 	sd.pl.bufI64 = sd.pl.bufI64[0:0]
 	sd.pl.bufU64 = sd.pl.bufU64[0:0]
 	sd.pl.bufF64 = sd.pl.bufF64[0:0]
@@ -106,6 +96,10 @@ func (sd *subDecode) flushListPool() {
 	case reflect.Interface:
 		sliceSetNotNum[any](sd.pl.bufAny, sd)
 	}
+
+	// 用完了就归还
+	jdeBufPool.Put(sd.pl)
+	sd.pl = nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

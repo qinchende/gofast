@@ -1,7 +1,6 @@
 package jde
 
 import (
-	"github.com/qinchende/gofast/cst"
 	"reflect"
 	"unsafe"
 )
@@ -48,6 +47,7 @@ func (sd *subDecode) scanObject() {
 	first := true
 	pos := sd.scan
 
+	pos++
 	for {
 		if isBlankChar[sd.str[pos]] {
 			pos++
@@ -103,15 +103,9 @@ func (sd *subDecode) scanObject() {
 			goto errChar
 		}
 
-		sd.scan = pos
 		// C: 找 value string，然后绑定
-		// sd.checkSkip() // 确定key是否存在，以及索引位置
-		if sd.keyIdx = sd.dm.ss.ColumnIndex(key); sd.keyIdx < 0 {
-			sd.skipValue = true
-			sd.skipOneValue()
-		} else {
-			sd.dm.fieldsDec[sd.keyIdx](sd) // TODO: 要根据目标值类型，来解析
-		}
+		sd.scan = pos
+		sd.dm.objValDec(sd, key)
 		pos = sd.scan
 	}
 
@@ -120,32 +114,25 @@ errChar:
 	panic(errChar)
 }
 
-func (sd *subDecode) scanSubObject() {
-	sub := subDecode{
-		str:       sd.str,
-		scan:      sd.scan,
-		skipTotal: sd.skipValue,
-	}
-
-	if sd.gr != nil {
-		// TODO: 无法为子对象提供目标值，只能返回字符串
-		sub.skipTotal = true
-	} else {
+func scanStructValue(sd *subDecode, key string) {
+	if sd.keyIdx = sd.dm.ss.ColumnIndex(key); sd.keyIdx < 0 {
 		sd.skipValue = true
-		*sub.mp = make(cst.KV)
-		//sd.mp.Set(sd.key, sub.mp)
+		sd.skipOneValue()
+	} else {
+		sd.dm.fieldsDec[sd.keyIdx](sd) // TODO: 要根据目标值类型，来解析
 	}
+}
 
-	sub.scanObject()
-	//if err < 0 {
-	//	sd.scan = sub.scan
-	//	return
-	//}
-	//if sd.gr != nil && sd.skipValue == false {
-	//	val := sd.str[sd.scan-1 : sub.scan]
-	//	// TODO: 这里要重新规划一下
-	//	sd.gr.SetString(sd.key, val)
-	//}
-	sd.scan = sub.scan
-	return
+//func scanMapValue(sd *subDecode, key string) {
+//	//sd.dm.mp.Set(key, sub.mp)
+//}
+
+func scanGsonValue(sd *subDecode, key string) {
+	if sd.keyIdx = sd.gr.KeyIndex(key); sd.keyIdx < 0 {
+		sd.skipValue = true
+		sd.skipOneValue()
+	} else {
+		//sd.dm.gr.SetByIndex()
+		//sd.dm.gr.SetStringByIndex()
+	}
 }
