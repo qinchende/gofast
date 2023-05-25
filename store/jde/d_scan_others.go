@@ -166,11 +166,11 @@ func scanObjAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
 		newMap := make(cst.KV)
-		sd.scanSubObject(rfTypeOfKV, unsafe.Pointer(&newMap))
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		bindAny(fieldPtr(sd), newMap)
 	case c == '[':
 		newList := make([]any, 0)
-		sd.scanSubList(rfTypeOfList, unsafe.Pointer(&newList))
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
 		bindAny(fieldPtr(sd), newList)
 	case c == '"':
 		start := sd.scan + 1
@@ -198,7 +198,7 @@ func scanObjAnyValue(sd *subDecode) {
 func scanObjPtrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		//sd.scanSubObject()
+		//sd.scanSubDecode()
 	case c == '[':
 		//err = sd.scanSubArray()
 	case c == '"':
@@ -228,7 +228,7 @@ func scanObjPtrAnyValue(sd *subDecode) {
 func scanArrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		//sd.scanSubObject()
+		//sd.scanSubDecode()
 	case c == '[':
 		//err = sd.scanSubArray()
 	case c == '"':
@@ -286,28 +286,32 @@ func scanListAnyValue(sd *subDecode) {
 	}
 }
 
-//// struct +++++
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func scanObjStructValue(sd *subDecode) {
-//	switch c := sd.str[sd.scan]; {
-//	case c == '{':
-//		sd.scanSubObject()
-//	default:
-//		sd.skipNull()
-//	}
-//}
-
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Scan Advanced mixed type, such as map | gson | struct
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // map +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjMapValue(sd *subDecode) {
+
+}
+
+func scanObjPtrMapValue(sd *subDecode) {
+
+}
+
+func scanListMapValue(sd *subDecode) {
+
+}
+
 func scanMapAnyValue(sd *subDecode, k string) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
 		newMap := make(cst.KV)
-		sd.scanSubObject(rfTypeOfKV, unsafe.Pointer(&newMap))
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		sd.mp.Set(k, newMap)
 	case c == '[':
 		newList := make([]any, 0)
-		sd.scanSubList(rfTypeOfList, unsafe.Pointer(&newList))
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
 		sd.mp.Set(k, newList)
 	case c == '"':
 		start := sd.scan + 1
@@ -319,6 +323,7 @@ func scanMapAnyValue(sd *subDecode, k string) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
+			// 可以选项，不解析，直接返回字符串
 			sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
 		}
 	case c == 't':
@@ -331,4 +336,97 @@ func scanMapAnyValue(sd *subDecode, k string) {
 		sd.skipNull()
 		sd.mp.Set(k, nil)
 	}
+}
+
+// GsonRow +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanGsonValue(sd *subDecode, k string) {
+	kIdx := 0
+	if kIdx = sd.gr.KeyIndex(k); kIdx < 0 {
+		sd.skipValue = true
+		sd.skipOneValue()
+		return
+	}
+
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		sd.gr.SetByIndex(kIdx, newMap)
+	case c == '[':
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		sd.gr.SetByIndex(kIdx, newList)
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			sd.gr.SetStringByIndex(kIdx, sd.str[start:sd.unescapeEnd()])
+		} else {
+			sd.gr.SetStringByIndex(kIdx, sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			sd.gr.SetByIndex(kIdx, lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		sd.gr.SetByIndex(kIdx, true)
+	case c == 'f':
+		sd.skipFalse()
+		sd.gr.SetByIndex(kIdx, false)
+	default:
+		sd.skipNull()
+		sd.gr.SetByIndex(kIdx, nil)
+	}
+}
+
+// struct +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjStructValue(sd *subDecode) {
+
+}
+
+func scanObjPtrStructValue(sd *subDecode) {
+
+}
+
+func scanListStructValue(sd *subDecode) {
+
+}
+
+func scanStructValue(sd *subDecode, key string) {
+	// TODO: 此处 sd.keyIdx 可以继续被优化
+	if sd.keyIdx = sd.dm.ss.ColumnIndex(key); sd.keyIdx < 0 {
+		sd.skipValue = true
+		sd.skipOneValue()
+	} else {
+		sd.dm.fieldsDec[sd.keyIdx](sd) // 根据目标值类型来解析
+	}
+}
+
+// item is a mix type +++++
+// sash as map | array | slice | struct
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjMixValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{' || c == '[':
+		sd.scanSubDecode(sd.dm.ss.FieldsAttr[sd.keyIdx].Type, fieldMixPtr(sd))
+	default:
+		sd.skipNull()
+	}
+}
+
+func scanObjPtrMixValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{' || c == '[':
+		sd.scanSubDecode(sd.dm.ss.FieldsAttr[sd.keyIdx].Type, fieldPtrDeep(sd))
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
+func scanListMixValue(sd *subDecode) {
+
 }
