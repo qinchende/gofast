@@ -5,6 +5,7 @@ import (
 	"unsafe"
 )
 
+// int
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func bindInt(p unsafe.Pointer, v int64) {
 	*(*int)(p) = int(v)
@@ -35,6 +36,7 @@ func bindInt64(p unsafe.Pointer, v int64) {
 	*(*int64)(p) = v
 }
 
+// uint
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func bindUint(p unsafe.Pointer, v uint64) {
 	*(*uint)(p) = uint(v)
@@ -65,6 +67,7 @@ func bindUint64(p unsafe.Pointer, v uint64) {
 	*(*uint64)(p) = v
 }
 
+// float
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func bindFloat32(p unsafe.Pointer, v float64) {
 	if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
@@ -77,6 +80,7 @@ func bindFloat64(p unsafe.Pointer, v float64) {
 	*(*float64)(p) = v
 }
 
+// string & bool & any
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func bindString(p unsafe.Pointer, v string) {
 	*(*string)(p) = v
@@ -90,6 +94,7 @@ func bindAny(p unsafe.Pointer, v any) {
 	*(*any)(p) = v
 }
 
+// reset left array item
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetArrLeftItems() {
 	dfValue := zeroValues[sd.dm.itemKind]
