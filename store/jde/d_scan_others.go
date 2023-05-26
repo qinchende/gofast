@@ -3,37 +3,84 @@ package jde
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
+	"reflect"
 	"unsafe"
 )
 
+// array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// scan string
-func (sd *subDecode) scanQuoteStr() (slash bool) {
-	pos := sd.scan
-	for {
-		pos++
+func arrItemPtr(sd *subDecode) unsafe.Pointer {
+	return unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
+}
 
-		switch c := sd.str[pos]; {
-		//case c < ' ':
-		//	sd.scan = pos
-		//	panic(errChar)
-		case c == '"':
-			sd.scan = pos + 1
-			return
-		case c == '\\':
-			if !slash {
-				slash = true
-				sd.escPos = sd.escPos[0:0]
-			}
-			sd.escPos = append(sd.escPos, pos)
-			pos++
-			//c = sd.str[pos]
-			//if c < ' ' {
-			//	sd.scan = pos
-			//	panic(errChar)
-			//}
+// struct & map & gson
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func fieldPtr(sd *subDecode) unsafe.Pointer {
+	return unsafe.Pointer(sd.dstPtr + sd.dm.ss.FieldsAttr[sd.keyIdx].Offset)
+}
+
+func fieldMixPtr(sd *subDecode) unsafe.Pointer {
+	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
+	ptr := unsafe.Pointer(sd.dstPtr + fa.Offset)
+
+	// 只有field字段为map或者slice的时候，值才可能是nil
+	if *(*unsafe.Pointer)(ptr) == nil {
+		switch fa.Kind {
+		// Note: 当 array & slice & struct 的时候，相当于是值类型，直接返回首地址即可
+		//default:
+		//	panic(errSupport)
+		case reflect.Map:
+			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(fa.Type).UnsafePointer()
+			//case reflect.Slice:
+			// Note: fa.Kind == reflect.Slice，
+			// 此时可能申请slice对象没有意义，因为解析程序会自己创建临时空间，完成之后替换旧内存
+			// 但如果slice中的项还是 mix 类型，可能又不一样了，这种情况解析程序不会申请临时空间
+			//newPtr := reflect.MakeSlice(fa.Type, 0, 4).UnsafePointer()	// 默认给4个值的空间，避免扩容
+			//*(*unsafe.Pointer)(ptr) = *(*unsafe.Pointer)(newPtr)
 		}
 	}
+	return ptr
+}
+
+func fieldPtrDeep(sd *subDecode) unsafe.Pointer {
+	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
+	ptr := unsafe.Pointer(sd.dstPtr + fa.Offset)
+
+	ptrLevel := fa.PtrLevel
+	for ptrLevel > 1 {
+		if *(*unsafe.Pointer)(ptr) == nil {
+			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
+			*(*unsafe.Pointer)(ptr) = tpPtr
+			ptr = tpPtr
+		} else {
+			ptr = *(*unsafe.Pointer)(ptr)
+		}
+
+		ptrLevel--
+	}
+
+	if *(*unsafe.Pointer)(ptr) == nil {
+		var newPtr unsafe.Pointer
+
+		switch fa.Kind {
+		case reflect.Map:
+			newPtr = unsafe.Pointer(new(unsafe.Pointer))
+			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(fa.Type).UnsafePointer()
+		case reflect.Slice:
+			newPtr = unsafe.Pointer(&reflect.SliceHeader{})
+			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(fa.Type, 0, 0).UnsafePointer()
+		default:
+			newPtr = reflect.New(fa.Type).UnsafePointer()
+		}
+
+		*(*unsafe.Pointer)(ptr) = newPtr
+		return newPtr
+	}
+	return *(*unsafe.Pointer)(ptr)
+}
+
+func fieldSetNil(sd *subDecode) {
+	*(*unsafe.Pointer)(fieldPtr(sd)) = nil
 }
 
 // string +++++
@@ -198,9 +245,13 @@ func scanObjAnyValue(sd *subDecode) {
 func scanObjPtrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		//sd.scanSubDecode()
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		bindAny(fieldPtrDeep(sd), newMap)
 	case c == '[':
-		//err = sd.scanSubArray()
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		bindAny(fieldPtrDeep(sd), newList)
 	case c == '"':
 		start := sd.scan + 1
 		slash := sd.scanQuoteStr()
@@ -291,18 +342,6 @@ func scanListAnyValue(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // map +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjMapValue(sd *subDecode) {
-
-}
-
-func scanObjPtrMapValue(sd *subDecode) {
-
-}
-
-func scanListMapValue(sd *subDecode) {
-
-}
-
 func scanMapAnyValue(sd *subDecode, k string) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
@@ -383,18 +422,6 @@ func scanGsonValue(sd *subDecode, k string) {
 
 // struct +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjStructValue(sd *subDecode) {
-
-}
-
-func scanObjPtrStructValue(sd *subDecode) {
-
-}
-
-func scanListStructValue(sd *subDecode) {
-
-}
-
 func scanStructValue(sd *subDecode, key string) {
 	// TODO: 此处 sd.keyIdx 可以继续被优化
 	if sd.keyIdx = sd.dm.ss.ColumnIndex(key); sd.keyIdx < 0 {
@@ -410,7 +437,7 @@ func scanStructValue(sd *subDecode, key string) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjMixValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
-	case c == '{' || c == '[':
+	case c == '{', c == '[':
 		sd.scanSubDecode(sd.dm.ss.FieldsAttr[sd.keyIdx].Type, fieldMixPtr(sd))
 	default:
 		sd.skipNull()
@@ -419,7 +446,7 @@ func scanObjMixValue(sd *subDecode) {
 
 func scanObjPtrMixValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
-	case c == '{' || c == '[':
+	case c == '{', c == '[':
 		sd.scanSubDecode(sd.dm.ss.FieldsAttr[sd.keyIdx].Type, fieldPtrDeep(sd))
 	default:
 		sd.skipNull()
@@ -427,6 +454,13 @@ func scanObjPtrMixValue(sd *subDecode) {
 	}
 }
 
+// TODO：需要依次添加
 func scanListMixValue(sd *subDecode) {
-
+	//switch c := sd.str[sd.scan]; {
+	//case c == '{', c == '[':
+	//	sd.scanSubDecode(sd.dm.ss.FieldsAttr[sd.keyIdx].Type, fieldPtrDeep(sd))
+	//default:
+	//	sd.skipNull()
+	//	fieldSetNil(sd)
+	//}
 }
