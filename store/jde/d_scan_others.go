@@ -279,9 +279,13 @@ func scanObjPtrAnyValue(sd *subDecode) {
 func scanArrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		//sd.scanSubDecode()
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		bindAny(arrItemPtr(sd), newMap)
 	case c == '[':
-		//err = sd.scanSubArray()
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		bindAny(arrItemPtr(sd), newList)
 	case c == '"':
 		start := sd.scan + 1
 		slash := sd.scanQuoteStr()
@@ -309,10 +313,13 @@ func scanArrAnyValue(sd *subDecode) {
 func scanListAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		//nsd := newSubDecode(sd)
-		//nsd.scanObject()
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		sd.pl.bufAny = append(sd.pl.bufAny, newMap)
 	case c == '[':
-		//err = sd.scanSubArray()
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		sd.pl.bufAny = append(sd.pl.bufAny, newList)
 	case c == '"':
 		start := sd.scan + 1
 		slash := sd.scanQuoteStr()
