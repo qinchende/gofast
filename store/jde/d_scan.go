@@ -116,6 +116,46 @@ errChar:
 	panic(errChar)
 }
 
+func (sd *subDecode) skipList() {
+	pos := sd.scan
+
+	pos++
+	for isBlankChar[sd.str[pos]] {
+		pos++
+	}
+	c := sd.str[pos]
+	if c == ',' {
+		goto errChar
+	}
+
+	for {
+		// 不用switch, 比较顺序相对比较明确
+		if c == ',' {
+			pos++
+		} else if c == ']' {
+			sd.scan = pos + 1
+			return
+		}
+
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
+
+		sd.scan = pos
+		sd.skipOneValue()
+		pos = sd.scan
+
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
+		c = sd.str[pos]
+	}
+
+errChar:
+	sd.scan = pos
+	panic(errChar)
+}
+
 // struct & map & gson
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 前提：sd.str 肯定是 { 字符后面的字符串
@@ -191,37 +231,68 @@ errChar:
 	panic(errChar)
 }
 
-//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func (sd *subDecode) scanOneValue() {
-//	switch c := sd.str[sd.scan]; {
-//	case c == '{':
-//		sd.scanSubObject()
-//	case c == '[':
-//		//err = sd.scanSubArray()
-//	case c == '"':
-//		sd.scanQuoteStrValue()
-//	case c >= '0' && c <= '9', c == '-':
-//		//sd.scanNumValue()
-//	case c == 't':
-//		sd.skipTrue()
-//		if sd.skipValue {
-//			return
-//		}
-//		sd.bindBool(true)
-//	case c == 'f':
-//		sd.skipFalse()
-//		if sd.skipValue {
-//			return
-//		}
-//		sd.bindBool(false)
-//	default:
-//		sd.skipNull()
-//		if sd.skipValue {
-//			return
-//		}
-//		sd.bindBoolNull()
-//	}
-//}
+func (sd *subDecode) skipObject() {
+	first := true
+	pos := sd.scan
+
+	pos++
+	for {
+		if isBlankChar[sd.str[pos]] {
+			pos++
+			continue
+		}
+
+		switch c := sd.str[pos]; c {
+		case '}':
+			sd.scan = pos + 1
+			return
+		case ',':
+			pos++
+			for isBlankChar[sd.str[pos]] {
+				pos++
+			}
+			goto scanKVPair
+		default:
+			if first {
+				first = false
+				goto scanKVPair
+			}
+			goto errChar
+		}
+
+	scanKVPair:
+		// A: skip key
+		if sd.str[pos] != '"' {
+			goto errChar
+		}
+
+		sd.scan = pos
+		sd.skipQuoteStr()
+		pos = sd.scan
+
+		// B: skip :
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
+		if sd.str[pos] == ':' {
+			pos++
+			for isBlankChar[sd.str[pos]] {
+				pos++
+			}
+		} else {
+			goto errChar
+		}
+
+		// C: skip value
+		sd.scan = pos
+		sd.skipOneValue()
+		pos = sd.scan
+	}
+
+errChar:
+	sd.scan = pos
+	panic(errChar)
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // scan string
@@ -258,9 +329,9 @@ func (sd *subDecode) scanQuoteStr() (slash bool) {
 func (sd *subDecode) skipOneValue() {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		//sd.scanSubObject()
+		sd.skipObject()
 	case c == '[':
-		//err = sd.scanSubArray()
+		sd.skipList()
 	case c == '"':
 		sd.skipQuoteStr()
 	case c >= '0' && c <= '9', c == '-':

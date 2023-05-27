@@ -40,7 +40,7 @@ type (
 		arrIdx int       // 数组索引
 
 		skipValue bool // 跳过当前要解析的值
-		skipTotal bool // 跳过所有项目
+		//skipTotal bool // 跳过所有项目
 	}
 
 	destMeta struct {
