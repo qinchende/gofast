@@ -82,6 +82,9 @@ func (sd *subDecode) scanListItems() {
 				sd.resetArrLeftItems()
 			}
 			sd.scan = pos + 1
+			if sd.share != nil {
+				sd.resetShareDecode()
+			}
 			return
 		} else if sd.arrIdx > 0 {
 			goto errChar

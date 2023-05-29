@@ -10,10 +10,6 @@ import (
 	"unsafe"
 )
 
-//type fastDecode struct {
-//	subDecode // 当前解析片段，用于递归
-//}
-
 type (
 	dataType       struct{}
 	emptyInterface struct { // emptyInterface is the header for an interface{} value. (ignore method)
@@ -25,6 +21,8 @@ type (
 	decKVPairFunc func(sb *subDecode, key string)
 
 	subDecode struct {
+		share *subDecode // 共享的subDecode，用来解析子对象
+
 		mp     *cst.KV       // map
 		gr     *gson.GsonRow // GsonRow
 		dm     *destMeta     // Struct | Slice,Array
@@ -103,6 +101,11 @@ func startDecode(dst any, source string) (err error) {
 
 	err = sd.warpErrorCode(sd.scanStart())
 
+	if sd.share != nil {
+		sd.share.reset()
+		jdeDecPool.Put(sd.share)
+		sd.share = nil
+	}
 	// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
 	sd.reset()
 	jdeDecPool.Put(sd)
@@ -111,20 +114,52 @@ func startDecode(dst any, source string) (err error) {
 
 // 包含有子subDecode时，就递归调用
 func (sd *subDecode) scanSubDecode(rfTyp reflect.Type, ptr unsafe.Pointer) {
-	nsd := jdeDecPool.Get().(*subDecode)
-
-	nsd.str = sd.str
-	nsd.scan = sd.scan
-	nsd.initMeta(rfTyp, ptr)
-	if nsd.dm.isList {
-		nsd.scanList()
+	if sd.share == nil {
+		sd.share = jdeDecPool.Get().(*subDecode)
 	} else {
-		nsd.scanObject()
+		sd.share.reset()
 	}
-	sd.scan = nsd.scan
+	sd.share.str = sd.str
+	sd.share.scan = sd.scan
+	sd.share.initMeta(rfTyp, ptr)
 
-	nsd.reset()
-	jdeDecPool.Put(nsd)
+	if sd.share.dm.isList {
+		sd.share.scanList()
+	} else {
+		sd.share.scanObject()
+	}
+
+	sd.scan = sd.share.scan
+	sd.resetShareDecode()
+}
+
+func (sd *subDecode) checkDecForMixArr(rfTyp reflect.Type, ptr unsafe.Pointer) {
+	if sd.share == nil {
+		sd.share = jdeDecPool.Get().(*subDecode)
+		sd.share.str = sd.str
+		sd.share.scan = sd.scan
+		sd.share.initMeta(rfTyp, ptr)
+		return
+	}
+
+	sd.share.scan = sd.scan
+	if sd.share.dm.isSuperKV {
+		if sd.share.dm.isGson {
+			sd.share.gr = (*gson.GsonRow)(ptr)
+		} else {
+			sd.share.mp = (*cst.KV)(ptr)
+		}
+	} else {
+		sd.share.dstPtr = uintptr(ptr) // 当前值的地址
+	}
+}
+
+func (sd *subDecode) resetShareDecode() {
+	if sd.share != nil && sd.share.share != nil {
+		sd.share.share.reset()
+		jdeDecPool.Put(sd.share.share)
+		sd.share.share = nil
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -200,6 +235,8 @@ func (sd *subDecode) initListMeta(rfType reflect.Type) {
 
 peelPtr:
 	if sd.dm.itemKind == reflect.Pointer {
+		sd.dm.arrItemBytes = int(sd.dm.itemType.Size())
+
 		sd.dm.itemType = sd.dm.itemType.Elem()
 		sd.dm.itemKind = sd.dm.itemType.Kind()
 		sd.dm.isPtr = true
@@ -223,8 +260,8 @@ peelPtr:
 		if sd.dm.isPtr {
 			return
 		}
-		sd.dm.isArrBind = true
 		sd.dm.arrItemBytes = int(sd.dm.itemType.Size())
+		sd.dm.isArrBind = true
 	}
 }
 
@@ -369,7 +406,7 @@ func (sd *subDecode) bindListDec() {
 		case reflect.Interface:
 			sd.dm.listItemDec = scanArrAnyValue
 		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-			sd.dm.listItemDec = scanListMixValue
+			sd.dm.listItemDec = scanArrMixValue
 		default:
 			panic(errValueType)
 		}
@@ -408,7 +445,11 @@ func (sd *subDecode) bindListDec() {
 	case reflect.Interface:
 		sd.dm.listItemDec = scanListAnyValue
 	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-		sd.dm.listItemDec = scanListMixValue
+		if sd.dm.isArray {
+			sd.dm.listItemDec = scanArrPtrMixValue
+		} else {
+			sd.dm.listItemDec = scanListMixValue
+		}
 	default:
 		panic(errValueType)
 	}
