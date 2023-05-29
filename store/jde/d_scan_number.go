@@ -166,8 +166,8 @@ func scanListIntValue(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
 		v = lang.ParseInt(sd.str[start:sd.scan])
-	} else if sd.dm.isPtr {
-		sd.pl.nilPos = append(sd.pl.nilPos, len(sd.pl.bufI64))
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
 	sd.pl.bufI64 = append(sd.pl.bufI64, v)
 }
@@ -203,6 +203,8 @@ func scanListInt8Value(sd *subDecode) {
 		if v < math.MinInt8 || v > math.MaxInt8 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
 	sd.pl.bufI64 = append(sd.pl.bufI64, v)
 }
@@ -238,6 +240,8 @@ func scanListInt16Value(sd *subDecode) {
 		if v < math.MinInt16 || v > math.MaxInt16 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
 	sd.pl.bufI64 = append(sd.pl.bufI64, v)
 }
@@ -271,6 +275,8 @@ func scanListInt32Value(sd *subDecode) {
 		if v < math.MinInt32 || v > math.MaxInt32 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
 	sd.pl.bufI64 = append(sd.pl.bufI64, v)
 }
@@ -303,6 +309,8 @@ func scanListInt64Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
 		v = lang.ParseInt(sd.str[start:sd.scan])
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
 	sd.pl.bufI64 = append(sd.pl.bufI64, v)
 }
@@ -335,6 +343,8 @@ func scanListUintValue(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
 		v = lang.ParseUint(sd.str[start:sd.scan])
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
 	}
 	sd.pl.bufU64 = append(sd.pl.bufU64, v)
 }
@@ -370,6 +380,8 @@ func scanListUint8Value(sd *subDecode) {
 		if v > math.MaxUint8 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
 	}
 	sd.pl.bufU64 = append(sd.pl.bufU64, v)
 }
@@ -405,6 +417,8 @@ func scanListUint16Value(sd *subDecode) {
 		if v > math.MaxUint16 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
 	}
 	sd.pl.bufU64 = append(sd.pl.bufU64, v)
 }
@@ -440,6 +454,8 @@ func scanListUint32Value(sd *subDecode) {
 		if v > math.MaxUint32 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
 	}
 	sd.pl.bufU64 = append(sd.pl.bufU64, v)
 }
@@ -475,6 +491,8 @@ func scanListUint64Value(sd *subDecode) {
 		if v > math.MaxUint64 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
 	}
 	sd.pl.bufU64 = append(sd.pl.bufU64, v)
 }
@@ -510,6 +528,8 @@ func scanListFloat32Value(sd *subDecode) {
 		if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
 			panic(errInfinity)
 		}
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufF64))
 	}
 	sd.pl.bufF64 = append(sd.pl.bufF64, v)
 }
@@ -542,6 +562,8 @@ func scanListFloat64Value(sd *subDecode) {
 	v := float64(0)
 	if start := sd.scanNumValue(); start > 0 {
 		v = lang.ParseFloat(sd.str[start:sd.scan])
+	} else {
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufF64))
 	}
 	sd.pl.bufF64 = append(sd.pl.bufF64, v)
 }

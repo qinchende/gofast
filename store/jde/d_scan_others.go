@@ -7,10 +7,60 @@ import (
 	"unsafe"
 )
 
+func getValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kind reflect.Kind, rfType reflect.Type) unsafe.Pointer {
+	for ptrLevel > 1 {
+		if *(*unsafe.Pointer)(ptr) == nil {
+			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
+			*(*unsafe.Pointer)(ptr) = tpPtr
+			ptr = tpPtr
+		} else {
+			ptr = *(*unsafe.Pointer)(ptr)
+		}
+
+		ptrLevel--
+	}
+
+	if *(*unsafe.Pointer)(ptr) == nil {
+		var newPtr unsafe.Pointer
+
+		switch kind {
+		case reflect.Map:
+			newPtr = unsafe.Pointer(new(unsafe.Pointer))
+			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(rfType).UnsafePointer()
+		case reflect.Slice:
+			newPtr = unsafe.Pointer(&reflect.SliceHeader{})
+			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(rfType, 0, 0).UnsafePointer()
+		default:
+			newPtr = reflect.New(rfType).UnsafePointer()
+		}
+
+		*(*unsafe.Pointer)(ptr) = newPtr
+		return newPtr
+	}
+	return *(*unsafe.Pointer)(ptr)
+}
+
 // array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func arrItemPtr(sd *subDecode) unsafe.Pointer {
 	return unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
+}
+
+func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
+	ptr := unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
+
+	// 只有field字段为map或者slice的时候，值才可能是nil
+	if *(*unsafe.Pointer)(ptr) == nil {
+		if sd.dm.itemKind == reflect.Map {
+			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(sd.dm.itemType).UnsafePointer()
+		}
+	}
+	return ptr
+}
+
+func arrMixItemPtrDeep(sd *subDecode) unsafe.Pointer {
+	ptr := unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
+	return getValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
 }
 
 // struct & map & gson
@@ -45,38 +95,7 @@ func fieldMixPtr(sd *subDecode) unsafe.Pointer {
 func fieldPtrDeep(sd *subDecode) unsafe.Pointer {
 	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
 	ptr := unsafe.Pointer(sd.dstPtr + fa.Offset)
-
-	ptrLevel := fa.PtrLevel
-	for ptrLevel > 1 {
-		if *(*unsafe.Pointer)(ptr) == nil {
-			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
-			*(*unsafe.Pointer)(ptr) = tpPtr
-			ptr = tpPtr
-		} else {
-			ptr = *(*unsafe.Pointer)(ptr)
-		}
-
-		ptrLevel--
-	}
-
-	if *(*unsafe.Pointer)(ptr) == nil {
-		var newPtr unsafe.Pointer
-
-		switch fa.Kind {
-		case reflect.Map:
-			newPtr = unsafe.Pointer(new(unsafe.Pointer))
-			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(fa.Type).UnsafePointer()
-		case reflect.Slice:
-			newPtr = unsafe.Pointer(&reflect.SliceHeader{})
-			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(fa.Type, 0, 0).UnsafePointer()
-		default:
-			newPtr = reflect.New(fa.Type).UnsafePointer()
-		}
-
-		*(*unsafe.Pointer)(ptr) = newPtr
-		return newPtr
-	}
-	return *(*unsafe.Pointer)(ptr)
+	return getValueAddr(ptr, fa.PtrLevel, fa.Kind, fa.Type)
 }
 
 func fieldSetNil(sd *subDecode) {
@@ -146,6 +165,7 @@ func scanListStrValue(sd *subDecode) {
 		}
 	default:
 		sd.skipNull()
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufStr))
 	}
 	sd.pl.bufStr = append(sd.pl.bufStr, v)
 }
@@ -203,6 +223,7 @@ func scanListBoolValue(sd *subDecode) {
 		sd.skipFalse()
 	default:
 		sd.skipNull()
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufBol))
 	}
 	sd.pl.bufBol = append(sd.pl.bufBol, v)
 }
@@ -440,7 +461,8 @@ func scanStructValue(sd *subDecode, key string) {
 }
 
 // item is a mix type +++++
-// sash as map | array | slice | struct
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// sash as map | struct
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjMixValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
@@ -461,13 +483,43 @@ func scanObjPtrMixValue(sd *subDecode) {
 	}
 }
 
-// TODO：需要依次添加
+// sash as array | slice
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// array and item not ptr
+func scanArrMixValue(sd *subDecode) {
+	// TODO：在这里循环处理
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		sd.checkDecForMixArr(sd.dm.itemType, arrMixItemPtr(sd))
+		sd.share.scanObject()
+		sd.scan = sd.share.scan
+	case c == '[':
+		sd.checkDecForMixArr(sd.dm.itemType, arrMixItemPtr(sd))
+		sd.share.scanList()
+		sd.scan = sd.share.scan
+	default:
+		sd.skipNull()
+	}
+}
+
+// array and item is ptr
+func scanArrPtrMixValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		sd.checkDecForMixArr(sd.dm.itemType, arrMixItemPtrDeep(sd))
+		sd.share.scanObject()
+		sd.scan = sd.share.scan
+	case c == '[':
+		sd.checkDecForMixArr(sd.dm.itemType, arrMixItemPtrDeep(sd))
+		sd.share.scanList()
+		sd.scan = sd.share.scan
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
+// slice 中可能是实体对象，也可能是对象指针
 func scanListMixValue(sd *subDecode) {
-	//switch c := sd.str[sd.scan]; {
-	//case c == '{', c == '[':
-	//	sd.scanSubDecode(sd.dm.ss.FieldsAttr[sd.keyIdx].Type, fieldPtrDeep(sd))
-	//default:
-	//	sd.skipNull()
-	//	fieldSetNil(sd)
-	//}
+
 }
