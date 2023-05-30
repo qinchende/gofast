@@ -7,6 +7,7 @@ import (
 	"unsafe"
 )
 
+// 此函数只适合 object 的 field，List的 item 可能是指针类型的切片
 func getValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kind reflect.Kind, rfType reflect.Type) unsafe.Pointer {
 	for ptrLevel > 1 {
 		if *(*unsafe.Pointer)(ptr) == nil {
@@ -50,8 +51,8 @@ func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
 	ptr := unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
 
 	// 只有field字段为map或者slice的时候，值才可能是nil
-	if *(*unsafe.Pointer)(ptr) == nil {
-		if sd.dm.itemKind == reflect.Map {
+	if sd.dm.itemKind == reflect.Map {
+		if *(*unsafe.Pointer)(ptr) == nil {
 			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(sd.dm.itemType).UnsafePointer()
 		}
 	}
@@ -61,6 +62,10 @@ func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
 func arrMixItemPtrDeep(sd *subDecode) unsafe.Pointer {
 	ptr := unsafe.Pointer(sd.dstPtr + uintptr(sd.arrIdx*sd.dm.arrItemBytes))
 	return getValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
+}
+
+func sliceMixItemPtr(sd *subDecode, ptr unsafe.Pointer) unsafe.Pointer {
+	return getValueAddr(ptr, 0, sd.dm.itemKind, sd.dm.itemTypeOri)
 }
 
 // struct & map & gson
@@ -73,22 +78,28 @@ func fieldMixPtr(sd *subDecode) unsafe.Pointer {
 	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
 	ptr := unsafe.Pointer(sd.dstPtr + fa.Offset)
 
-	// 只有field字段为map或者slice的时候，值才可能是nil
-	if *(*unsafe.Pointer)(ptr) == nil {
-		switch fa.Kind {
-		// Note: 当 array & slice & struct 的时候，相当于是值类型，直接返回首地址即可
-		//default:
-		//	panic(errSupport)
-		case reflect.Map:
+	if fa.Kind == reflect.Map {
+		if *(*unsafe.Pointer)(ptr) == nil {
 			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(fa.Type).UnsafePointer()
-			//case reflect.Slice:
-			// Note: fa.Kind == reflect.Slice，
-			// 此时可能申请slice对象没有意义，因为解析程序会自己创建临时空间，完成之后替换旧内存
-			// 但如果slice中的项还是 mix 类型，可能又不一样了，这种情况解析程序不会申请临时空间
-			//newPtr := reflect.MakeSlice(fa.Type, 0, 4).UnsafePointer()	// 默认给4个值的空间，避免扩容
-			//*(*unsafe.Pointer)(ptr) = *(*unsafe.Pointer)(newPtr)
 		}
 	}
+
+	//// 只有field字段为map或者slice的时候，值才可能是nil
+	//if *(*unsafe.Pointer)(ptr) == nil {
+	//	switch fa.Kind {
+	//	// Note: 当 array & slice & struct 的时候，相当于是值类型，直接返回首地址即可
+	//	//default:
+	//	//	panic(errSupport)
+	//	case reflect.Map:
+	//		*(*unsafe.Pointer)(ptr) = reflect.MakeMap(fa.Type).UnsafePointer()
+	//		//case reflect.Slice:
+	//		// Note: fa.Kind == reflect.Slice，
+	//		// 此时可能申请slice对象没有意义，因为解析程序会自己创建临时空间，完成之后替换旧内存
+	//		// 但如果slice中的项还是 mix 类型，可能又不一样了，这种情况解析程序不会申请临时空间
+	//		//newPtr := reflect.MakeSlice(fa.Type, 0, 4).UnsafePointer()	// 默认给4个值的空间，避免扩容
+	//		//*(*unsafe.Pointer)(ptr) = *(*unsafe.Pointer)(newPtr)
+	//	}
+	//}
 	return ptr
 }
 
@@ -521,5 +532,21 @@ func scanArrPtrMixValue(sd *subDecode) {
 
 // slice 中可能是实体对象，也可能是对象指针
 func scanListMixValue(sd *subDecode) {
+	ptr := unsafe.Pointer(nil)
+	switch c := sd.str[sd.scan]; {
+	case c == '{', c == '[':
 
+		ptr = unsafe.Pointer(new(unsafe.Pointer))
+		sd.checkDecForMixArr(sd.dm.itemType, sliceMixItemPtr(sd, ptr))
+		if sd.share.dm.isList {
+			sd.share.scanList()
+		} else {
+			sd.share.scanObject()
+		}
+		sd.scan = sd.share.scan
+	default:
+		sd.skipNull()
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufPtr))
+	}
+	sd.pl.bufPtr = append(sd.pl.bufPtr, ptr)
 }
