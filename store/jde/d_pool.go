@@ -34,7 +34,6 @@ type listPool struct {
 	bufBol []bool
 	bufAny []any
 	nulPos []int // 指针类型值，可能是nil
-	//escPos []int // 存放转义字符'\'的索引位置
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -97,6 +96,9 @@ func (sd *subDecode) flushListPool() {
 		sliceSetNotNum[string](sd.pl.bufStr, sd)
 	case reflect.Interface:
 		sliceSetNotNum[any](sd.pl.bufAny, sd)
+
+	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+
 	}
 
 	// 用完了就归还
@@ -133,7 +135,8 @@ func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | 
 		return
 	}
 
-	// 第一级指针 ( 可能是 slice 或者 pointer array )
+	// 下面这部分可能是 slice 或者 pointer array
+	// 第一级指针
 	ptrLevel--
 	if sd.dm.isArray && ptrLevel <= 0 {
 		for i := 0; i < len(newArr); i++ {
@@ -243,6 +246,7 @@ func sliceSetNotNum[T bool | string | any](val []T, sd *subDecode) {
 		return
 	}
 
+	// 下面这部分可能是 slice 或者 pointer array
 	// 一级指针
 	ptrLevel--
 	ret1 := copySlice[T](sd, ptrLevel, list)

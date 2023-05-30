@@ -26,7 +26,7 @@ type (
 		mp     *cst.KV       // map
 		gr     *gson.GsonRow // GsonRow
 		dm     *destMeta     // Struct | Slice,Array
-		dstPtr uintptr       // 数组首值地址
+		dstPtr uintptr       // 目标值dst的地址
 
 		// 当前解析JSON的状态信息 ++++++
 		str  string // 本段字符串
@@ -38,7 +38,6 @@ type (
 		arrIdx int       // 数组索引
 
 		skipValue bool // 跳过当前要解析的值
-		//skipTotal bool // 跳过所有项目
 	}
 
 	destMeta struct {
@@ -52,6 +51,7 @@ type (
 		// array & slice
 		//listType    reflect.Type
 		//listKind    reflect.Kind
+		itemTypeOri reflect.Type
 		itemType    reflect.Type
 		itemKind    reflect.Kind
 		listItemDec decValFunc
@@ -230,7 +230,8 @@ func (sd *subDecode) initListMeta(rfType reflect.Type) {
 
 	//sd.dm.listType = rfType
 	//sd.dm.listKind = rfType.Kind()
-	sd.dm.itemType = rfType.Elem()
+	sd.dm.itemTypeOri = rfType.Elem()
+	sd.dm.itemType = sd.dm.itemTypeOri
 	sd.dm.itemKind = sd.dm.itemType.Kind()
 
 peelPtr:
@@ -448,7 +449,7 @@ func (sd *subDecode) bindListDec() {
 		if sd.dm.isArray {
 			sd.dm.listItemDec = scanArrPtrMixValue
 		} else {
-			sd.dm.listItemDec = scanListMixValue
+			sd.dm.listItemDec = scanListMixValue // 这里只能是Slice
 		}
 	default:
 		panic(errValueType)
