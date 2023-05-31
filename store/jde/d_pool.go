@@ -26,7 +26,6 @@ func cacheGetMeta(typ *dataType) *destMeta {
 
 // TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
 type listPool struct {
-	bufPtr []unsafe.Pointer
 	bufI64 []int64
 	bufU64 []uint64
 	bufF64 []float64
@@ -45,7 +44,6 @@ func (sd *subDecode) resetListPool() {
 	// 获取缓存空间
 	sd.pl = jdeBufPool.Get().(*listPool)
 
-	sd.pl.bufPtr = sd.pl.bufPtr[0:0]
 	sd.pl.bufI64 = sd.pl.bufI64[0:0]
 	sd.pl.bufU64 = sd.pl.bufU64[0:0]
 	sd.pl.bufF64 = sd.pl.bufF64[0:0]
@@ -62,7 +60,7 @@ func (sd *subDecode) flushListPool() {
 		return
 	}
 
-	switch sd.dm.itemKind {
+	switch sd.dm.itemBaseKind {
 	case reflect.Int:
 		sliceSetNum[int, int64](sd.pl.bufI64, sd)
 	case reflect.Int8:
@@ -96,10 +94,9 @@ func (sd *subDecode) flushListPool() {
 		sliceSetNotNum[string](sd.pl.bufStr, sd)
 	case reflect.Interface:
 		sliceSetNotNum[any](sd.pl.bufAny, sd)
-
-	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-
 	}
+	//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+	// 上面这几种情况，通过特殊方法处理
 
 	// 用完了就归还
 	jdeBufPool.Put(sd.pl)
