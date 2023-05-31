@@ -35,7 +35,7 @@ type (
 		pl     *listPool // 当解析数组时候用到的一系列临时队列
 		escPos []int     // 存放转义字符'\'的索引位置
 		keyIdx int       // key index
-		arrIdx int       // 数组索引
+		arrIdx int       // list解析的数量
 
 		skipValue bool // 跳过当前要解析的值
 	}
@@ -49,15 +49,13 @@ type (
 		fieldsDec []decValFunc
 
 		// array & slice
-		//listType    reflect.Type
-		//listKind    reflect.Kind
-		itemTypeOri reflect.Type
-		itemType    reflect.Type
-		itemKind    reflect.Kind
-		listItemDec decValFunc
+		// itemType reflect.Type
+		itemBaseType reflect.Type
+		itemBaseKind reflect.Kind
+		listItemDec  decValFunc
 		// only array
-		arrItemBytes int // 数组属性，item类型对应的内存字节大小
-		arrLen       int // 数组属性，数组长度
+		itemBytes int // 数组属性，item类型对应的内存字节大小
+		arrLen    int // 数组属性，数组长度
 
 		// status
 		isSuperKV bool // {} SuperKV
@@ -89,15 +87,15 @@ func startDecode(dst any, source string) (err error) {
 	if dst == nil {
 		return errValueIsNil
 	}
-	rfTyp := reflect.TypeOf(dst)
-	if rfTyp.Kind() != reflect.Pointer {
+	rfType := reflect.TypeOf(dst)
+	if rfType.Kind() != reflect.Pointer {
 		return errValueMustPtr
 	}
 
 	sd := jdeDecPool.Get().(*subDecode)
 	sd.str = source
 	sd.scan = 0
-	sd.initMeta(rfTyp.Elem(), (*emptyInterface)(unsafe.Pointer(&dst)).dataPtr)
+	sd.initMeta(rfType.Elem(), (*emptyInterface)(unsafe.Pointer(&dst)).dataPtr)
 
 	err = sd.warpErrorCode(sd.scanStart())
 
@@ -113,7 +111,7 @@ func startDecode(dst any, source string) (err error) {
 }
 
 // 包含有子subDecode时，就递归调用
-func (sd *subDecode) scanSubDecode(rfTyp reflect.Type, ptr unsafe.Pointer) {
+func (sd *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	if sd.share == nil {
 		sd.share = jdeDecPool.Get().(*subDecode)
 	} else {
@@ -121,7 +119,7 @@ func (sd *subDecode) scanSubDecode(rfTyp reflect.Type, ptr unsafe.Pointer) {
 	}
 	sd.share.str = sd.str
 	sd.share.scan = sd.scan
-	sd.share.initMeta(rfTyp, ptr)
+	sd.share.initMeta(rfType, ptr)
 
 	if sd.share.dm.isList {
 		sd.share.scanList()
@@ -133,12 +131,12 @@ func (sd *subDecode) scanSubDecode(rfTyp reflect.Type, ptr unsafe.Pointer) {
 	sd.resetShareDecode()
 }
 
-func (sd *subDecode) checkDecForMixArr(rfTyp reflect.Type, ptr unsafe.Pointer) {
+func (sd *subDecode) checkDecForMixArr(rfType reflect.Type, ptr unsafe.Pointer) {
 	if sd.share == nil {
 		sd.share = jdeDecPool.Get().(*subDecode)
 		sd.share.str = sd.str
 		sd.share.scan = sd.scan
-		sd.share.initMeta(rfTyp, ptr)
+		sd.share.initMeta(rfType, ptr)
 		return
 	}
 
@@ -163,13 +161,13 @@ func (sd *subDecode) resetShareDecode() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// rfTyp 是 剥离 Pointer 之后的最终类型
-func (sd *subDecode) initMeta(rfTyp reflect.Type, ptr unsafe.Pointer) {
-	typAddr := (*dataType)((*emptyInterface)(unsafe.Pointer(&rfTyp)).dataPtr)
+// rfType 是 剥离 Pointer 之后的最终类型
+func (sd *subDecode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
+	typAddr := (*dataType)((*emptyInterface)(unsafe.Pointer(&rfType)).dataPtr)
 	if meta := cacheGetMeta(typAddr); meta != nil {
 		sd.dm = meta
 	} else {
-		sd.buildMeta(rfTyp)
+		sd.buildMeta(rfType)
 		cacheSetMeta(typAddr, sd.dm)
 	}
 
@@ -186,29 +184,29 @@ func (sd *subDecode) initMeta(rfTyp reflect.Type, ptr unsafe.Pointer) {
 }
 
 // 如果不是map和*GsonRow，只能是 Array|Slice|Struct
-func (sd *subDecode) buildMeta(rfTyp reflect.Type) {
+func (sd *subDecode) buildMeta(rfType reflect.Type) {
 	sd.dm = &destMeta{}
 
-	switch kd := rfTyp.Kind(); kd {
+	switch kd := rfType.Kind(); kd {
 	case reflect.Array, reflect.Slice:
-		sd.initListMeta(rfTyp)
+		sd.initListMeta(rfType)
 		sd.bindListDec()
 	case reflect.Struct:
 		// 模拟泛型解析，提供性能
-		if rfTyp.String() == "gson.GsonRow" {
+		if rfType.String() == "gson.GsonRow" {
 			sd.dm.isSuperKV = true
 			sd.dm.isGson = true
 			sd.bindGsonDec()
 			return
 		}
-		if rfTyp.String() == "time.Time" {
+		if rfType.String() == "time.Time" {
 			panic(errValueType)
 		}
-		sd.initStructMeta(rfTyp)
+		sd.initStructMeta(rfType)
 		sd.bindStructDec()
 	case reflect.Map:
 		// 常规泛型
-		if rfTyp.String() == "cst.KV" || rfTyp.String() == "map[string]interface {}" {
+		if rfType.String() == "cst.KV" || rfType.String() == "map[string]interface {}" {
 			sd.dm.isSuperKV = true
 			sd.dm.isMap = true
 			sd.bindMapDec()
@@ -228,18 +226,15 @@ func (sd *subDecode) initStructMeta(rfType reflect.Type) {
 func (sd *subDecode) initListMeta(rfType reflect.Type) {
 	sd.dm.isList = true
 
-	//sd.dm.listType = rfType
-	//sd.dm.listKind = rfType.Kind()
-	sd.dm.itemTypeOri = rfType.Elem()
-	sd.dm.itemType = sd.dm.itemTypeOri
-	sd.dm.itemKind = sd.dm.itemType.Kind()
+	//sd.dm.itemType = rfType.Elem()
+	sd.dm.itemBaseType = rfType.Elem()
+	sd.dm.itemBaseKind = sd.dm.itemBaseType.Kind()
+	sd.dm.itemBytes = int(sd.dm.itemBaseType.Size())
 
 peelPtr:
-	if sd.dm.itemKind == reflect.Pointer {
-		sd.dm.arrItemBytes = int(sd.dm.itemType.Size())
-
-		sd.dm.itemType = sd.dm.itemType.Elem()
-		sd.dm.itemKind = sd.dm.itemType.Kind()
+	if sd.dm.itemBaseKind == reflect.Pointer {
+		sd.dm.itemBaseType = sd.dm.itemBaseType.Elem()
+		sd.dm.itemBaseKind = sd.dm.itemBaseType.Kind()
 		sd.dm.isPtr = true
 		sd.dm.ptrLevel++
 		// TODO：指针嵌套不能超过3层，这种很少见，也就是说此解码方案并不通用
@@ -250,7 +245,7 @@ peelPtr:
 	}
 
 	// 是否是interface类型
-	if sd.dm.itemKind == reflect.Interface {
+	if sd.dm.itemBaseKind == reflect.Interface {
 		sd.dm.isAny = true
 	}
 
@@ -261,7 +256,7 @@ peelPtr:
 		if sd.dm.isPtr {
 			return
 		}
-		sd.dm.arrItemBytes = int(sd.dm.itemType.Size())
+		sd.dm.itemBytes = int(sd.dm.itemBaseType.Size())
 		sd.dm.isArrBind = true
 	}
 }
@@ -375,7 +370,7 @@ nextField:
 func (sd *subDecode) bindListDec() {
 	// 如果是数组，而且数组项类型不是指针类型
 	if sd.dm.isArrBind {
-		switch sd.dm.itemKind {
+		switch sd.dm.itemBaseKind {
 		case reflect.Int:
 			sd.dm.listItemDec = scanArrIntValue
 		case reflect.Int8:
@@ -414,7 +409,7 @@ func (sd *subDecode) bindListDec() {
 		return
 	}
 
-	switch sd.dm.itemKind {
+	switch sd.dm.itemBaseKind {
 	case reflect.Int:
 		sd.dm.listItemDec = scanListIntValue
 	case reflect.Int8:
@@ -451,6 +446,7 @@ func (sd *subDecode) bindListDec() {
 		} else {
 			sd.dm.listItemDec = scanListMixValue // 这里只能是Slice
 		}
+		sd.dm.isArrBind = true // Note：这些情况，无需用到缓冲池
 	default:
 		panic(errValueType)
 	}

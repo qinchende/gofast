@@ -52,10 +52,8 @@ func (sd *subDecode) scanStart() (err errType) {
 func (sd *subDecode) scanList() {
 	// A. 可能需要用到缓冲池记录临时数据
 	sd.resetListPool()
-
 	// B. 根据目标值类型，直接匹配，提高性能
 	sd.scanListItems()
-
 	// C. 将解析好的数据一次性绑定到对象上
 	sd.flushListPool()
 }
