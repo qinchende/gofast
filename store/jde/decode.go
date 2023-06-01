@@ -131,7 +131,7 @@ func (sd *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	sd.resetShareDecode()
 }
 
-func (sd *subDecode) checkDecForMixArr(rfType reflect.Type, ptr unsafe.Pointer) {
+func (sd *subDecode) readyMixItemDec(rfType reflect.Type, ptr unsafe.Pointer) {
 	if sd.share == nil {
 		sd.share = jdeDecPool.Get().(*subDecode)
 		sd.share.str = sd.str
@@ -153,7 +153,7 @@ func (sd *subDecode) checkDecForMixArr(rfType reflect.Type, ptr unsafe.Pointer) 
 }
 
 func (sd *subDecode) resetShareDecode() {
-	if sd.share != nil && sd.share.share != nil {
+	if sd.share.share != nil {
 		sd.share.share.reset()
 		jdeDecPool.Put(sd.share.share)
 		sd.share.share = nil

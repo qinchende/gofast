@@ -501,11 +501,11 @@ func scanArrMixValue(sd *subDecode) {
 	// TODO：在这里循环处理
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.checkDecForMixArr(sd.dm.itemBaseType, arrMixItemPtr(sd))
+		sd.readyMixItemDec(sd.dm.itemBaseType, arrMixItemPtr(sd))
 		sd.share.scanObject()
 		sd.scan = sd.share.scan
 	case c == '[':
-		sd.checkDecForMixArr(sd.dm.itemBaseType, arrMixItemPtr(sd))
+		sd.readyMixItemDec(sd.dm.itemBaseType, arrMixItemPtr(sd))
 		sd.share.scanList()
 		sd.scan = sd.share.scan
 	default:
@@ -517,11 +517,11 @@ func scanArrMixValue(sd *subDecode) {
 func scanArrPtrMixValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.checkDecForMixArr(sd.dm.itemBaseType, arrMixItemPtrDeep(sd))
+		sd.readyMixItemDec(sd.dm.itemBaseType, arrMixItemPtrDeep(sd))
 		sd.share.scanObject()
 		sd.scan = sd.share.scan
 	case c == '[':
-		sd.checkDecForMixArr(sd.dm.itemBaseType, arrMixItemPtrDeep(sd))
+		sd.readyMixItemDec(sd.dm.itemBaseType, arrMixItemPtrDeep(sd))
 		sd.share.scanList()
 		sd.scan = sd.share.scan
 	default:
@@ -538,11 +538,16 @@ func scanListMixValue(sd *subDecode) {
 		old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
 		old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemBytes, sh.Cap*sd.dm.itemBytes
 
-		newLen := sh.Cap + int(float64(sh.Cap)*0.5+20) // 一种简易的动态扩容算法
-		newMem := make([]byte, sh.Len*sd.dm.itemBytes, newLen*sd.dm.itemBytes)
-		copy(newMem, oldMem)
+		// 一种简易的动态扩容算法
+		newLen := int(float64(sh.Cap)*1.6) + 3
+		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemBytes, newLen*sd.dm.itemBytes)
 
-		sh.Data = (*reflect.SliceHeader)(unsafe.Pointer(&newMem)).Data
+		*(*[]byte)(unsafe.Pointer(sd.dstPtr)) = make([]byte, sh.Len*sd.dm.itemBytes, newLen*sd.dm.itemBytes)
+
+		var newSlice = *(*[]byte)(unsafe.Pointer(sd.dstPtr))
+		copy(newSlice, oldMem)
+
+		sh.Data = (*reflect.SliceHeader)(unsafe.Pointer(sd.dstPtr)).Data
 		sh.Len, sh.Cap = sd.arrIdx, newLen
 	}
 	ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*sd.dm.itemBytes))
@@ -552,7 +557,7 @@ func scanListMixValue(sd *subDecode) {
 		if sd.dm.isPtr {
 			ptr = sliceMixItemPtr(sd, ptr)
 		}
-		sd.checkDecForMixArr(sd.dm.itemBaseType, ptr)
+		sd.readyMixItemDec(sd.dm.itemBaseType, ptr)
 		if sd.share.dm.isList {
 			sd.share.scanList()
 		} else {

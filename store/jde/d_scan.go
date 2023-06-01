@@ -2,6 +2,7 @@ package jde
 
 import (
 	"fmt"
+	"runtime/debug"
 )
 
 // start decode json
@@ -16,7 +17,7 @@ func (sd *subDecode) scanStart() (err errType) {
 				err = code
 			} else {
 				// 调试的时候打印错误信息
-				fmt.Println(pic)
+				fmt.Printf("%s\n%s", pic, debug.Stack())
 				err = errJson
 			}
 		}

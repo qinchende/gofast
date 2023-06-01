@@ -15,8 +15,18 @@ func DecodeString(dst any, source string) error {
 	return decodeFromString(dst, source)
 }
 
+func DecodeStringCopy(dst any, source string) error {
+	newMem := make([]byte, len(source))
+	copy(newMem, source)
+	return decodeFromString(dst, lang.BTS(newMem))
+}
+
 func DecodeBytes(dst any, source []byte) error {
 	return decodeFromString(dst, lang.BTS(source))
+}
+
+func DecodeBytesCopy(dst any, source []byte) error {
+	return decodeFromString(dst, string(source))
 }
 
 func DecodeReader(dst any, reader io.Reader, ctSize int64) error {
