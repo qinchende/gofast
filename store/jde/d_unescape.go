@@ -2,6 +2,7 @@ package jde
 
 import (
 	"reflect"
+	"unicode/utf8"
 	"unsafe"
 )
 
@@ -26,20 +27,21 @@ func (sd *subDecode) unescapeEnd() int {
 			sd.scan = pos
 			panic(errChar)
 		}
-		//if c == 'u' {
-		//	// unicode字符
-		//}
-		//// ASCII
-		//case c < utf8.RuneSelf:
-		//	b[w] = c
-		//	r++
-		//	w++
-		//
-		//	// Coerce to well-formed UTF-8.
-		//	default:
-		//	rr, size := utf8.DecodeRune(s[r:])
-		//	r += size
-		//	w += utf8.EncodeRune(b[w:], rr)
+		if c == 'u' {
+			// unicode字符
+		}
+		// ASCII
+		if c < utf8.RuneSelf {
+			//	b[w] = c
+			//	r++
+			//	w++
+			//
+			//	// Coerce to well-formed UTF-8.
+			//default:
+			//	rr, size := utf8.DecodeRune(s[r:])
+			//	r += size
+			//	w += utf8.EncodeRune(b[w:], rr)
+		}
 
 		s = append(s, c)
 

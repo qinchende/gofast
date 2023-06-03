@@ -62,38 +62,38 @@ func (sd *subDecode) flushListPool() {
 
 	switch sd.dm.itemBaseKind {
 	case reflect.Int:
-		sliceSetNum[int, int64](sd.pl.bufI64, sd)
+		flushCast[int, int64](sd, sd.pl.bufI64)
 	case reflect.Int8:
-		sliceSetNum[int8, int64](sd.pl.bufI64, sd)
+		flushCast[int8, int64](sd, sd.pl.bufI64)
 	case reflect.Int16:
-		sliceSetNum[int16, int64](sd.pl.bufI64, sd)
+		flushCast[int16, int64](sd, sd.pl.bufI64)
 	case reflect.Int32:
-		sliceSetNum[int32, int64](sd.pl.bufI64, sd)
+		flushCast[int32, int64](sd, sd.pl.bufI64)
 	case reflect.Int64:
-		sliceSetNum[int64, int64](sd.pl.bufI64, sd)
+		flushNoCast[int64](sd, sd.pl.bufI64)
 
 	case reflect.Uint:
-		sliceSetNum[int, uint64](sd.pl.bufU64, sd)
+		flushCast[int, uint64](sd, sd.pl.bufU64)
 	case reflect.Uint8:
-		sliceSetNum[uint8, uint64](sd.pl.bufU64, sd)
+		flushCast[uint8, uint64](sd, sd.pl.bufU64)
 	case reflect.Uint16:
-		sliceSetNum[uint16, uint64](sd.pl.bufU64, sd)
+		flushCast[uint16, uint64](sd, sd.pl.bufU64)
 	case reflect.Uint32:
-		sliceSetNum[uint32, uint64](sd.pl.bufU64, sd)
+		flushCast[uint32, uint64](sd, sd.pl.bufU64)
 	case reflect.Uint64:
-		sliceSetNum[uint64, uint64](sd.pl.bufU64, sd)
+		flushNoCast[uint64](sd, sd.pl.bufU64)
 
 	case reflect.Float32:
-		sliceSetNum[float32, float64](sd.pl.bufF64, sd)
+		flushCast[float32, float64](sd, sd.pl.bufF64)
 	case reflect.Float64:
-		sliceSetNum[float64, float64](sd.pl.bufF64, sd)
+		flushNoCast[float64](sd, sd.pl.bufF64)
 
 	case reflect.Bool:
-		sliceSetNotNum[bool](sd.pl.bufBol, sd)
+		flushNoCast[bool](sd, sd.pl.bufBol)
 	case reflect.String:
-		sliceSetNotNum[string](sd.pl.bufStr, sd)
+		flushNoCast[string](sd, sd.pl.bufStr)
 	case reflect.Interface:
-		sliceSetNotNum[any](sd.pl.bufAny, sd)
+		flushNoCast[any](sd, sd.pl.bufAny)
 	}
 	//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 	// 上面这几种情况，通过特殊方法处理
@@ -103,150 +103,44 @@ func (sd *subDecode) flushListPool() {
 	sd.pl = nil
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 整形和浮点型
-func sliceSetNum[T constraints.Integer | constraints.Float, T2 int64 | uint64 | float64](val []T2, sd *subDecode) {
-	size := len(val)
-
-	ptrLevel := sd.dm.ptrLevel
-	newArr := make([]T, size)
-	for i := 0; i < len(newArr); i++ {
-		newArr[i] = T(val[i])
-	}
-
-	// 这里只可能是slice
-	if ptrLevel <= 0 {
-		if len(sd.pl.nulPos) > 0 {
-			dstSnap := []T{}
-			*(*reflect.SliceHeader)(unsafe.Pointer(&dstSnap)) = *(*reflect.SliceHeader)(unsafe.Pointer(sd.dstPtr))
-			for i := 0; i < len(sd.pl.nulPos); i++ {
-				idx := sd.pl.nulPos[i]
-				if idx >= len(dstSnap) {
-					break
-				}
-				newArr[idx] = dstSnap[idx]
-			}
-		}
-		//*(sd.dst.(*[]T)) = newArr
-		*(*[]T)(unsafe.Pointer(sd.dstPtr)) = newArr
-		return
-	}
-
-	// 下面这部分可能是 slice 或者 pointer array
-	// 第一级指针
-	ptrLevel--
-	if sd.dm.isArray && ptrLevel <= 0 {
-		for i := 0; i < len(newArr); i++ {
-			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = &newArr[i]
-		}
-		for i := 0; i < len(sd.pl.nulPos); i++ {
-			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(sd.pl.nulPos[i]*ptrByteSize)))) = nil
-		}
-		for i := size; i < sd.dm.arrLen; i++ {
-			*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
-		}
-		return
-	}
-	var newArrPtr1 []*T
-	newArrPtr1 = make([]*T, size)
-	for i := 0; i < len(newArr); i++ {
-		newArrPtr1[i] = &newArr[i]
-	}
-	if ptrLevel <= 0 {
-		for i := 0; i < len(sd.pl.nulPos); i++ {
-			newArrPtr1[sd.pl.nulPos[i]] = nil
-		}
-
-		//*(sd.dst.(*[]*T)) = newArrPtr1
-		*(*[]*T)(unsafe.Pointer(sd.dstPtr)) = newArrPtr1
-		return
-	}
-
-	// 第二级指针
-	ptrLevel--
-	if sd.dm.isArray && ptrLevel <= 0 {
-		for i := 0; i < len(newArrPtr1); i++ {
-			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = &newArrPtr1[i]
-		}
-		for i := 0; i < len(sd.pl.nulPos); i++ {
-			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(sd.pl.nulPos[i]*ptrByteSize)))) = nil
-		}
-		for i := size; i < sd.dm.arrLen; i++ {
-			*((***T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
-		}
-		return
-	}
-	newArrPtr2 := make([]**T, size)
-	for i := 0; i < len(newArrPtr1); i++ {
-		newArrPtr2[i] = &newArrPtr1[i]
-	}
-	if ptrLevel <= 0 {
-		for i := 0; i < len(sd.pl.nulPos); i++ {
-			newArrPtr2[sd.pl.nulPos[i]] = nil
-		}
-
-		//*(sd.dst.(*[]**T)) = newArrPtr2
-		*(*[]**T)(unsafe.Pointer(sd.dstPtr)) = newArrPtr2
-		return
-	}
-
-	return
+func flushNoCast[T any](sd *subDecode, val []T) {
+	// 必须先Copy数据，才能使用
+	values := make([]T, len(val))
+	copy(values, val)
+	listSetValues[T](sd, values)
 }
 
-//
-//func copyNumSlice[T string | *string | **string](sd *subDecode, ptrLevel uint8, arr []T) []*T {
-//	size := len(arr)
-//
-//	newArr := make([]*T, size)
-//	for i := 0; i < size; i++ {
-//		newArr[i] = &arr[i]
-//	}
-//
-//	if ptrLevel <= 0 {
-//		if sd.dm.isArray {
-//			dstSnap := []*T{}
-//			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
-//			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
-//			copy(dstSnap, newArr)
-//		} else {
-//			*(sd.dst.(*[]*T)) = newArr
-//		}
-//		return nil
-//	} else {
-//		return newArr
-//	}
-//}
+func flushCast[T constraints.Integer | constraints.Float, T2 int64 | uint64 | float64](sd *subDecode, val []T2) {
+	values := make([]T, len(val))
+	for i := 0; i < len(values); i++ {
+		values[i] = T(val[i])
+	}
+	listSetValues[T](sd, values)
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 三种特殊类型单独处理，因为和number不同，这里的几种不存在类型转换，固单独处理
-func sliceSetNotNum[T bool | string | any](val []T, sd *subDecode) {
+func listSetValues[T any](sd *subDecode, values []T) {
 	ptrLevel := sd.dm.ptrLevel
 
-	list := make([]T, len(val))
-	copy(list, val)
-
-	// 这里只可能是slice
-	if ptrLevel <= 0 {
+	// 这里只可能是slice，因为array的ptrLevel不可能是0（这种情况直接绑定结果了，不用缓冲池）
+	if ptrLevel == 0 {
 		if len(sd.pl.nulPos) > 0 {
-			dstSnap := []T{}
-			*(*reflect.SliceHeader)(unsafe.Pointer(&dstSnap)) = *(*reflect.SliceHeader)(unsafe.Pointer(sd.dstPtr))
+			oriSlice := *(*[]T)(sd.dstPtr)
 			for i := 0; i < len(sd.pl.nulPos); i++ {
 				idx := sd.pl.nulPos[i]
-				if idx >= len(dstSnap) {
+				if idx >= len(oriSlice) {
 					break
 				}
-				list[idx] = dstSnap[idx]
+				values[idx] = oriSlice[idx]
 			}
 		}
-		//*(sd.dst.(*[]T)) = list
-		*(*[]T)(unsafe.Pointer(sd.dstPtr)) = list
+		*(*[]T)(sd.dstPtr) = values
 		return
 	}
 
-	// 下面这部分可能是 slice 或者 pointer array
 	// 一级指针
 	ptrLevel--
-	ret1 := copySlice[T](sd, ptrLevel, list)
+	ret1 := copySlice[T](sd, ptrLevel, values)
 	if ret1 == nil {
 		return
 	}
@@ -264,34 +158,38 @@ func sliceSetNotNum[T bool | string | any](val []T, sd *subDecode) {
 	return
 }
 
-func copySlice[T bool | *bool | **bool | string | *string | **string | any | *any | **any](sd *subDecode, ptrLevel uint8, list []T) []*T {
-	size := len(list)
+func copySlice[T any | *any | **any](sd *subDecode, ptrLevel uint8, sList []T) []*T {
+	size := len(sList)
+
+	// 如果是ptr类型的array，而且已到最后一级指针
+	if ptrLevel == 0 && sd.dm.isArray {
+		oriArr := []*T{}
+		bh := (*reflect.SliceHeader)(unsafe.Pointer(&oriArr))
+		bh.Data, bh.Len, bh.Cap = uintptr(sd.dstPtr), sd.dm.arrLen, sd.dm.arrLen
+
+		for i := 0; i < size; i++ {
+			oriArr[i] = &sList[i]
+		}
+		for i := size; i < sd.dm.arrLen; i++ {
+			oriArr[i] = nil // 此时array item是指针，给剩余的item重置为nil
+		}
+		for i := 0; i < len(sd.pl.nulPos); i++ {
+			oriArr[sd.pl.nulPos[i]] = nil
+		}
+		return nil
+	}
 
 	newList := make([]*T, size)
 	for i := 0; i < size; i++ {
-		newList[i] = &list[i]
+		newList[i] = &sList[i]
 	}
 
-	if ptrLevel <= 0 {
+	if ptrLevel == 0 {
 		for i := 0; i < len(sd.pl.nulPos); i++ {
 			newList[sd.pl.nulPos[i]] = nil
 		}
-		// 只能是指针数组才可能到这里的逻辑
-		if sd.dm.isArray {
-			dstSnap := []*T{}
-			bh := (*reflect.SliceHeader)(unsafe.Pointer(&dstSnap))
-			bh.Data, bh.Len, bh.Cap = sd.dstPtr, size, size
-			copy(dstSnap, newList)
-			// array，没有匹配到值的项，给初始化为nil
-			for i := size; i < sd.dm.arrLen; i++ {
-				*((**T)(unsafe.Pointer(sd.dstPtr + uintptr(i*ptrByteSize)))) = nil
-			}
-		} else {
-			//*(sd.dst.(*[]*T)) = newList
-			*(*[]*T)(unsafe.Pointer(sd.dstPtr)) = newList
-		}
+		*(*[]*T)(sd.dstPtr) = newList
 		return nil
-	} else {
-		return newList
 	}
+	return newList
 }
