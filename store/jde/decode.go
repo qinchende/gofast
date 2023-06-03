@@ -464,7 +464,7 @@ func (sd *subDecode) warpErrorCode(errCode errType) error {
 		end = len(sd.str)
 	}
 
-	errMsg := fmt.Sprintf("jde: error pos %d, character %q near ( %s )", sta, sd.str[sta], sd.str[sta:end])
+	errMsg := fmt.Sprintf("jde: %s, pos %d, character %q near ( %s )", errDescription[-errCode], sta, sd.str[sta], sd.str[sta:end])
 	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(sd.str[sta]), " of (", sd.str[sta:end], ")"}, "")
 	return errors.New(errMsg)
 }

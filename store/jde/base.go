@@ -39,27 +39,37 @@ const (
 	errSupport   errType = -20
 )
 
-//var errorStrings = []string{
-//	0:                      "ok",
-//	-(scanEOF):              "eof",
-//	ERR_INVALID_CHAR:       "invalid char",
-//	ERR_INVALID_ESCAPE:     "invalid escape char",
-//	ERR_INVALID_UNICODE:    "invalid unicode escape",
-//	ERR_INTEGER_OVERFLOW:   "integer overflow",
-//	ERR_INVALID_NUMBER_FMT: "invalid number format",
-//	ERR_RECURSE_EXCEED_MAX: "recursion exceeded max depth",
-//	ERR_FLOAT_INFINITY:     "float number is infinity",
-//	ERR_MISMATCH:           "mismatched type with value",
-//	ERR_INVALID_UTF8:       "invalid UTF8",
-//}
+var errDescription = []string{
+	noErr:           "ok",
+	-(scanEOF):      "Error eof",
+	-(errNormal):    "Error normal",
+	-(errJson):      "Error json format",
+	-(errChar):      "Error char",
+	-(errEscape):    "Error escape",
+	-(errUnicode):   "Error unicode",
+	-(errOverflow):  "Error overflow",
+	-(errNumberFmt): "Error number format",
+	-(errExceedMax): "Error exceed max depth",
+	-(errInfinity):  "Error infinity",
+	-(errMismatch):  "Error mismatch",
+	-(errUTF8):      "Error utf8",
+	-(errKey):       "Error key",
+	-(errValue):     "Error value",
+	-(errKV):        "Error kv map",
+	-(errNull):      "Error null",
+	-(errObject):    "Error object",
+	-(errList):      "Error list",
+	-(errBool):      "Error bool",
+	-(errSupport):   "Error support",
+}
 
 var (
+	//errJsonEmpty = errors.New("jde: json content empty")
 	//sErr            = errors.New("jsonx: json syntax error.")
 	errJsonTooLarge = errors.New("jde: string too large")
 	errValueType    = errors.New("jde: target value type error")
 	errValueMustPtr = errors.New("jde: target value must pointer type")
 	errValueIsNil   = errors.New("jde: target value is nil")
-	errJsonEmpty    = errors.New("jde: json content empty")
 	errPtrLevel     = errors.New("jde: target value is more than 3 layers of pointer")
 )
 
@@ -102,11 +112,38 @@ var (
 		'"':  '"',
 		'\\': '\\',
 		'/':  '/',
-		'b':  '\b',
-		'f':  '\f',
-		'n':  '\n',
-		'r':  '\r',
-		't':  '\t',
+
+		'b': '\b',
+		'f': '\f',
+		'n': '\n',
+		'r': '\r',
+		't': '\t',
+	}
+
+	// escape unicode
+	hexToInt = [256]int{
+		'0': 0,
+		'1': 1,
+		'2': 2,
+		'3': 3,
+		'4': 4,
+		'5': 5,
+		'6': 6,
+		'7': 7,
+		'8': 8,
+		'9': 9,
+		'A': 10,
+		'B': 11,
+		'C': 12,
+		'D': 13,
+		'E': 14,
+		'F': 15,
+		'a': 10,
+		'b': 11,
+		'c': 12,
+		'd': 13,
+		'e': 14,
+		'f': 15,
 	}
 
 	zeroNumValue = 0

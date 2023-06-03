@@ -89,8 +89,10 @@ func (sd *subDecode) scanListItems() {
 			goto errChar
 		}
 
-		for isBlankChar[sd.str[pos]] {
+		c = sd.str[pos]
+		for isBlankChar[c] {
 			pos++
+			c = sd.str[pos]
 		}
 
 		sd.scan = pos
@@ -107,10 +109,11 @@ func (sd *subDecode) scanListItems() {
 		}
 		pos = sd.scan
 
-		for isBlankChar[sd.str[pos]] {
-			pos++
-		}
 		c = sd.str[pos]
+		for isBlankChar[c] {
+			pos++
+			c = sd.str[pos]
+		}
 	}
 
 errChar:
@@ -122,10 +125,12 @@ func (sd *subDecode) skipList() {
 	pos := sd.scan
 
 	pos++
-	for isBlankChar[sd.str[pos]] {
-		pos++
-	}
 	c := sd.str[pos]
+	for isBlankChar[c] {
+		pos++
+		c = sd.str[pos]
+	}
+
 	if c == ',' {
 		goto errChar
 	}
@@ -139,18 +144,21 @@ func (sd *subDecode) skipList() {
 			return
 		}
 
-		for isBlankChar[sd.str[pos]] {
+		c = sd.str[pos]
+		for isBlankChar[c] {
 			pos++
+			c = sd.str[pos]
 		}
 
 		sd.scan = pos
 		sd.skipOneValue()
 		pos = sd.scan
 
-		for isBlankChar[sd.str[pos]] {
-			pos++
-		}
 		c = sd.str[pos]
+		for isBlankChar[c] {
+			pos++
+			c = sd.str[pos]
+		}
 	}
 
 errChar:
@@ -192,12 +200,12 @@ func (sd *subDecode) scanObject() {
 		}
 
 	scanKVPair:
-		// A: 找 key 字符串
-		start := pos
-		if sd.str[start] != '"' {
+		// A: 找 key 字符串，只能是 "?" 形式的字符串
+		if sd.str[pos] != '"' {
 			goto errChar
 		}
 
+		start := pos
 		sd.scan = pos
 		slash := sd.scanQuoteStr()
 		pos = sd.scan

@@ -119,6 +119,7 @@ func flushCast[T constraints.Integer | constraints.Float, T2 int64 | uint64 | fl
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NOTE: 目前本解码方案只支持指针层级在三级以内的基础数据类型（实际应用基本上也不会有层级太多的情况）
 func listSetValues[T any](sd *subDecode, values []T) {
 	ptrLevel := sd.dm.ptrLevel
 
