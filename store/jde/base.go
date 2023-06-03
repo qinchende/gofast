@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	ptrByteSize   = 8
-	maxJsonLength = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
+	ptrByteSize   = int(unsafe.Sizeof(uintptr(0))) // 指针占用字节数
+	maxJsonLength = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
 )
 
 type errType int
@@ -136,61 +136,64 @@ var (
 
 	rfTypeOfKV   = reflect.TypeOf(new(cst.KV)).Elem()
 	rfTypeOfList = reflect.TypeOf(new([]any)).Elem()
+	//rfTypeOfBytes = reflect.TypeOf(new([]byte)).Elem()
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//type Kind uint
-const (
-	kindsCount       = 27
-	isBaseTypeMask   = 17956862 // 0001 0001 0001 1111 1111 1111 1110
-	isNumKindMask    = 131068   // 0000 0000 0001 1111 1111 1111 1100
-	isIntKindMask    = 124      // 0000 0000 0000 0000 0000 0111 1100
-	isUintKindMask   = 8064     // 0000 0000 0000 0001 1111 1000 0000
-	receiveNumMask   = 1179644  // 0000 0001 0001 1111 1111 1111 1100
-	receiveIntMask   = 1056764  // 0000 0001 0000 0001 1111 1111 1100
-	receiveFloatMask = 1073152  // 0000 0001 0000 0110 0000 0000 0000
-	receiveStrMask   = 17825792 // 0001 0001 0000 0000 0000 0000 0000
-	receiveBoolMask  = 1048578  // 0000 0001 0000 0000 0000 0000 0010
-)
-
-//go:inline
-func isNumKind(k reflect.Kind) bool {
-	return (1<<k)&isNumKindMask != 0
-}
-
-//go:inline
-func isIntKind(k reflect.Kind) bool {
-	return (1<<k)&isIntKindMask != 0
-}
-
-//go:inline
-func isUintKind(k reflect.Kind) bool {
-	return (1<<k)&isUintKindMask != 0
-}
-
-// 变量是否接收对应的值类型 ++++++++++++
-//go:inline
-func allowNum(k reflect.Kind) bool {
-	return (1<<k)&receiveNumMask != 0
-}
-
-//go:inline
-func allowInt(k reflect.Kind) bool {
-	return (1<<k)&receiveIntMask != 0
-}
-
-// 下面三种直接比较性能更好
-//go:inline
-func allowFloat(k reflect.Kind) bool {
-	return (1<<k)&receiveFloatMask != 0
-}
-
-//go:inline
-func allowStr(k reflect.Kind) bool {
-	return (1<<k)&receiveStrMask != 0
-}
-
-//go:inline
-func allowBool(k reflect.Kind) bool {
-	return (1<<k)&receiveBoolMask != 0
-}
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// type Kind uint
+//const (
+//	kindsCount       = 27
+//	isBaseTypeMask   = 17956862 // 0001 0001 0001 1111 1111 1111 1110
+//	isNumKindMask    = 131068   // 0000 0000 0001 1111 1111 1111 1100
+//	isIntKindMask    = 124      // 0000 0000 0000 0000 0000 0111 1100
+//	isUintKindMask   = 8064     // 0000 0000 0000 0001 1111 1000 0000
+//	receiveNumMask   = 1179644  // 0000 0001 0001 1111 1111 1111 1100
+//	receiveIntMask   = 1056764  // 0000 0001 0000 0001 1111 1111 1100
+//	receiveFloatMask = 1073152  // 0000 0001 0000 0110 0000 0000 0000
+//	receiveStrMask   = 17825792 // 0001 0001 0000 0000 0000 0000 0000
+//	receiveBoolMask  = 1048578  // 0000 0001 0000 0000 0000 0000 0010
+//)
+//
+////go:inline
+//func isNumKind(k reflect.Kind) bool {
+//	return (1<<k)&isNumKindMask != 0
+//}
+//
+////go:inline
+//func isIntKind(k reflect.Kind) bool {
+//	return (1<<k)&isIntKindMask != 0
+//}
+//
+////go:inline
+//func isUintKind(k reflect.Kind) bool {
+//	return (1<<k)&isUintKindMask != 0
+//}
+//
+//// 变量是否接收对应的值类型 ++++++++++++
+////
+////go:inline
+//func allowNum(k reflect.Kind) bool {
+//	return (1<<k)&receiveNumMask != 0
+//}
+//
+////go:inline
+//func allowInt(k reflect.Kind) bool {
+//	return (1<<k)&receiveIntMask != 0
+//}
+//
+//// 下面三种直接比较性能更好
+////
+////go:inline
+//func allowFloat(k reflect.Kind) bool {
+//	return (1<<k)&receiveFloatMask != 0
+//}
+//
+////go:inline
+//func allowStr(k reflect.Kind) bool {
+//	return (1<<k)&receiveStrMask != 0
+//}
+//
+////go:inline
+//func allowBool(k reflect.Kind) bool {
+//	return (1<<k)&receiveBoolMask != 0
+//}

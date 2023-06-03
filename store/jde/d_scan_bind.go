@@ -104,6 +104,6 @@ func (sd *subDecode) resetArrLeftItems() {
 		dfValue = zeroValues[sd.dm.itemBaseKind]
 	}
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Pointer(sd.dstPtr + uintptr(i*sd.dm.itemBytes))) = dfValue
+		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemBytes))) = dfValue
 	}
 }

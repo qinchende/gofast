@@ -23,10 +23,10 @@ type (
 	subDecode struct {
 		share *subDecode // 共享的subDecode，用来解析子对象
 
-		mp     *cst.KV       // map
-		gr     *gson.GsonRow // GsonRow
-		dm     *destMeta     // Struct | Slice,Array
-		dstPtr uintptr       // 目标值dst的地址
+		mp     *cst.KV        // map
+		gr     *gson.GsonRow  // GsonRow
+		dm     *destMeta      // Struct | Slice,Array
+		dstPtr unsafe.Pointer // 目标值dst的地址
 
 		// 当前解析JSON的状态信息 ++++++
 		str  string // 本段字符串
@@ -131,12 +131,12 @@ func (sd *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	sd.resetShareDecode()
 }
 
-func (sd *subDecode) readyMixItemDec(rfType reflect.Type, ptr unsafe.Pointer) {
+func (sd *subDecode) readyListMixItemDec(ptr unsafe.Pointer) {
 	if sd.share == nil {
 		sd.share = jdeDecPool.Get().(*subDecode)
 		sd.share.str = sd.str
 		sd.share.scan = sd.scan
-		sd.share.initMeta(rfType, ptr)
+		sd.share.initMeta(sd.dm.itemBaseType, ptr)
 		return
 	}
 
@@ -148,7 +148,7 @@ func (sd *subDecode) readyMixItemDec(rfType reflect.Type, ptr unsafe.Pointer) {
 			sd.share.mp = (*cst.KV)(ptr)
 		}
 	} else {
-		sd.share.dstPtr = uintptr(ptr) // 当前值的地址
+		sd.share.dstPtr = ptr // 当前值的地址
 	}
 }
 
@@ -178,7 +178,7 @@ func (sd *subDecode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 			sd.mp = (*cst.KV)(ptr)
 		}
 	} else {
-		sd.dstPtr = uintptr(ptr) // 当前值的地址
+		sd.dstPtr = ptr // 当前值的地址
 	}
 	return
 }
@@ -464,7 +464,7 @@ func (sd *subDecode) warpErrorCode(errCode errType) error {
 		end = len(sd.str)
 	}
 
-	errMsg := fmt.Sprintf("jsonx: error pos: %d, near %q of ( %s )", sta, sd.str[sta], sd.str[sta:end])
+	errMsg := fmt.Sprintf("jde: error pos %d, character %q near ( %s )", sta, sd.str[sta], sd.str[sta:end])
 	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(sd.str[sta]), " of (", sd.str[sta:end], ")"}, "")
 	return errors.New(errMsg)
 }
