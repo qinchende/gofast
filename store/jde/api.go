@@ -56,11 +56,12 @@ func DecodeRequest(dst any, req *http.Request) error {
 
 // ++++++++++++++++ 编码成JSON字符串
 func EncodeToBytes(v any) ([]byte, error) {
-	return nil, nil
+	return startEncode(v)
 }
 
 func EncodeToString(v any) (string, error) {
-	return "", nil
+	b, err := startEncode(v)
+	return lang.BTS(b), err
 }
 
 func EncodeIndent(v any, prefix, indent string) ([]byte, error) {
