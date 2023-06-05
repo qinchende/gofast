@@ -98,9 +98,7 @@ func bindAny(p unsafe.Pointer, v any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetArrLeftItems() {
 	var dfValue unsafe.Pointer
-	if sd.dm.isPtr {
-		dfValue = nil
-	} else {
+	if !sd.dm.isPtr {
 		dfValue = zeroValues[sd.dm.itemBaseKind]
 	}
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
