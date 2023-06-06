@@ -11,14 +11,14 @@ import (
 func (sd *subDecode) unescapeEnd() int {
 	pos := sd.escPos[0]
 
-	s := []byte{}
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&s))
+	var bs []byte
+	sh := (*reflect.SliceHeader)(unsafe.Pointer(&bs))
 	sh.Data = (*(*reflect.StringHeader)(unsafe.Pointer(&sd.str))).Data
 	sh.Len, sh.Cap = pos, sd.scan
 
 	for i := 0; i < len(sd.escPos); i++ {
 		if pos < sd.escPos[i] {
-			s = append(s, sd.str[pos:sd.escPos[i]]...)
+			bs = append(bs, sd.str[pos:sd.escPos[i]]...)
 		}
 
 		pos = sd.escPos[i] + 1
@@ -66,22 +66,22 @@ func (sd *subDecode) unescapeEnd() int {
 			var b [utf8.UTFMax]byte
 			n := utf8.EncodeRune(b[:], code)
 
-			s = append(s, b[:n]...)
+			bs = append(bs, b[:n]...)
 			pos++
 
 			continue
 		}
 		// ++++++++++++++++++++++++++++++++++++++++
 
-		s = append(s, c)
+		bs = append(bs, c)
 		pos++
 	}
 
 	if pos < sd.scan {
-		s = append(s, sd.str[pos:sd.scan]...)
+		bs = append(bs, sd.str[pos:sd.scan]...)
 	}
 
-	return len(s) - 1
+	return len(bs) - 1
 }
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

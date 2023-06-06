@@ -2,8 +2,8 @@ package jde
 
 import (
 	"fmt"
-	"reflect"
 	"runtime/debug"
+	"unsafe"
 )
 
 func (se *subEncode) encStart() (err errType) {
@@ -20,44 +20,48 @@ func (se *subEncode) encStart() (err errType) {
 
 	if se.dm.isArray {
 		se.encArray()
-	} else if se.dm.isList {
-		se.encList()
-	} else {
-		se.encObject()
+		//} else if se.dm.isList {
+		//	se.encList()
+		//} else {
+		//	se.encObject()
 	}
 	return
 }
 
 func (se *subEncode) encArray() {
-	se.bs = append(se.bs, "["...)
+	bf := *se.bs
 
-	sh := (*reflect.SliceHeader)(se.dstPtr)
-	if sh.Len >= 1 {
-		se.dm.listItemEnc(se, 0)
-	}
-	for i := 1; i < sh.Len; i++ {
-		se.bs = append(se.bs, ", "...)
-		se.dm.listItemEnc(se, i)
+	bf = append(bf, '[')
+
+	size := se.dm.arrLen
+	for i := 0; i < size; i++ {
+		//se.dm.listItemEnc(se, i)
+		//ptr := encArrItemPtr(se, i)
+		ptr := unsafe.Pointer(uintptr(se.dstPtr) + uintptr(i*se.dm.itemBytes))
+		bf = append(bf, '"')
+		bf = append(bf, *((*string)(ptr))...)
+		bf = append(bf, "\","...)
 	}
 
-	se.bs = append(se.bs, ']')
+	bf = append(bf, ']')
+	*se.bs = bf
 }
 
-func (se *subEncode) encList() {
-	se.bs = append(se.bs, "["...)
-
-	sh := (*reflect.SliceHeader)(se.dstPtr)
-	if sh.Len >= 1 {
-		se.dm.listItemEnc(se, 0)
-	}
-	for i := 1; i < sh.Len; i++ {
-		se.bs = append(se.bs, ", "...)
-		se.dm.listItemEnc(se, i)
-	}
-
-	se.bs = append(se.bs, ']')
-}
-
-func (se *subEncode) encObject() {
-
-}
+//func (se *subEncode) encList() {
+//	*se.bs = append(*se.bs, "["...)
+//
+//	sh := (*reflect.SliceHeader)(se.dstPtr)
+//	if sh.Len >= 1 {
+//		se.dm.listItemEnc(se, 0)
+//	}
+//	for i := 1; i < sh.Len; i++ {
+//		*se.bs = append(*se.bs, ", "...)
+//		se.dm.listItemEnc(se, i)
+//	}
+//
+//	*se.bs = append(*se.bs, ']')
+//}
+//
+//func (se *subEncode) encObject() {
+//
+//}

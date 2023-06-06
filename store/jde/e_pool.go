@@ -10,11 +10,14 @@ var (
 	cachedEncMeta sync.Map // cached dest value meta info
 )
 
-func newBytes() []byte {
+func newBytes() *[]byte {
 	if ret := jdeBytesPool.Get(); ret != nil {
-		return ret.([]byte)
+		bs := ret.(*[]byte)
+		*bs = (*bs)[:0]
+		return bs
 	} else {
-		return make([]byte, 0, 8*1024)
+		bs := make([]byte, 0, 8*1024)
+		return &bs
 	}
 }
 
@@ -29,7 +32,7 @@ func cacheGetEncMeta(typ *dataType) *encMeta {
 	return nil
 }
 
-//// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
-//type bytesPool struct {
-//	buf []byte
-//}
+// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
+type bytesPool struct {
+	buf []byte
+}

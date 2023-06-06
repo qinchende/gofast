@@ -1,9 +1,7 @@
 package jde
 
 import (
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/dts"
-	"github.com/qinchende/gofast/store/gson"
 	"reflect"
 	"unsafe"
 )
@@ -14,9 +12,9 @@ type (
 
 	subEncode struct {
 		//share *subEncode // 共享的subEncode，用来解析子对象
+		//mp     *cst.KV        // map
+		//gr     *gson.GsonRow  // GsonRow
 
-		mp     *cst.KV        // map
-		gr     *gson.GsonRow  // GsonRow
 		dm     *encMeta       // Struct | Slice,Array
 		dstPtr unsafe.Pointer // 目标值dst的地址
 
@@ -24,7 +22,7 @@ type (
 		//str  string // 本段字符串
 		//scan int    // 自己的扫描进度，当解析错误时，这个就是定位
 
-		bs []byte // 当解析数组时候用到的一系列临时队列
+		bs *[]byte // 当解析数组时候用到的一系列临时队列
 		//escPos []int  // 存放转义字符'\'的索引位置
 		//keyIdx int    // key index
 		doIdx int // list解析的数量
@@ -66,6 +64,7 @@ type (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主解析入口
+
 func startEncode(v any) (bs []byte, err error) {
 	if v == nil {
 		return nil, errValueIsNil
@@ -75,27 +74,20 @@ func startEncode(v any) (bs []byte, err error) {
 		return nil, errValueMustPtr
 	}
 
-	se := jdeEncPool.Get().(*subEncode)
+	se := subEncode{}
+	//se := jdeEncPool.Get().(*subEncode)
 	se.initMeta(rfType.Elem(), (*emptyInterface)(unsafe.Pointer(&v)).dataPtr)
 
 	se.bs = newBytes()
+	err = se.warpErrorCode(se.encStart())
+	bs = make([]byte, len(*se.bs))
+	copy(bs, *se.bs)
 
-	se.warpErrorCode(se.encStart())
-
-	bs = make([]byte, len(se.bs))
-	copy(bs, se.bs)
-
-	se.bs = se.bs[0:0]
 	jdeBytesPool.Put(se.bs)
 
-	//if se.share != nil {
-	//	se.share.reset()
-	//	jdeDecPool.Put(se.share)
-	//	se.share = nil
-	//}
-	//// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
-	//se.reset()
-	jdeDecPool.Put(se)
+	//se.bs = nil
+	//jdeEncPool.Put(se)
+
 	return
 }
 
@@ -161,11 +153,11 @@ func (se *subEncode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 	}
 
 	if se.dm.isSuperKV {
-		if se.dm.isGson {
-			se.gr = (*gson.GsonRow)(ptr)
-		} else {
-			se.mp = (*cst.KV)(ptr)
-		}
+		//if se.dm.isGson {
+		//	se.gr = (*gson.GsonRow)(ptr)
+		//} else {
+		//	se.mp = (*cst.KV)(ptr)
+		//}
 	} else {
 		se.dstPtr = ptr // 当前值的地址
 	}
@@ -179,7 +171,7 @@ func (se *subEncode) buildMeta(rfType reflect.Type) {
 	switch kd := rfType.Kind(); kd {
 	case reflect.Array, reflect.Slice:
 		se.initListMeta(rfType)
-		//se.bindListDec()
+		//se.bindListEnc()
 	case reflect.Struct:
 		// 模拟泛型解析，提供性能
 		if rfType.String() == "gson.GsonRow" {
@@ -344,93 +336,93 @@ peelPtr:
 //	goto nextField
 //}
 
-func (se *subEncode) bindListEnc() {
-	// 如果是数组，而且数组项类型不是指针类型
-	if se.dm.isArrBind {
-		switch se.dm.itemBaseKind {
-		case reflect.Int:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Int8:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Int16:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Int32:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Int64:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Uint:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Uint8:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Uint16:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Uint32:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Uint64:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Float32:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Float64:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.String:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Bool:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Interface:
-			se.dm.listItemEnc = encListIntValue
-		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-			se.dm.listItemEnc = encListIntValue
-		default:
-			panic(errValueType)
-		}
-		return
-	}
-
-	switch se.dm.itemBaseKind {
-	case reflect.Int:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Int8:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Int16:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Int32:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Int64:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Uint:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Uint8:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Uint16:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Uint32:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Uint64:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Float32:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Float64:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.String:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Bool:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Interface:
-		se.dm.listItemEnc = encListIntValue
-	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-		if se.dm.isArray {
-			se.dm.listItemEnc = encListIntValue
-		} else {
-			se.dm.listItemEnc = encListIntValue // 这里只能是Slice
-		}
-		se.dm.isArrBind = true // Note：这些情况，无需用到缓冲池
-	default:
-		panic(errValueType)
-	}
-}
+//func (se *subEncode) bindListEnc() {
+//	// 如果是数组，而且数组项类型不是指针类型
+//	if se.dm.isArrBind {
+//		switch se.dm.itemBaseKind {
+//		case reflect.Int:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Int8:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Int16:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Int32:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Int64:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Uint:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Uint8:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Uint16:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Uint32:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Uint64:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Float32:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Float64:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.String:
+//			se.dm.listItemEnc = encArrStrValue
+//		case reflect.Bool:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Interface:
+//			se.dm.listItemEnc = encListIntValue
+//		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+//			se.dm.listItemEnc = encListIntValue
+//		default:
+//			panic(errValueType)
+//		}
+//		return
+//	}
+//
+//	switch se.dm.itemBaseKind {
+//	case reflect.Int:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Int8:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Int16:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Int32:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Int64:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Uint:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Uint8:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Uint16:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Uint32:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Uint64:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Float32:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Float64:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.String:
+//		se.dm.listItemEnc = encListStrValue
+//	case reflect.Bool:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Interface:
+//		se.dm.listItemEnc = encListIntValue
+//	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+//		if se.dm.isArray {
+//			se.dm.listItemEnc = encListIntValue
+//		} else {
+//			se.dm.listItemEnc = encListIntValue // 这里只能是Slice
+//		}
+//		se.dm.isArrBind = true // Note：这些情况，无需用到缓冲池
+//	default:
+//		panic(errValueType)
+//	}
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (sd *subEncode) warpErrorCode(errCode errType) error {
+func (se *subEncode) warpErrorCode(errCode errType) error {
 	if errCode >= 0 {
 		return nil
 	}
