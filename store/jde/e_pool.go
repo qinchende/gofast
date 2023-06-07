@@ -5,7 +5,7 @@ import (
 )
 
 var (
-	jdeEncPool    = sync.Pool{New: func() any { return &subEncode{} }}
+	//jdeEncPool    = sync.Pool{New: func() any { return &subEncode{} }}
 	jdeBytesPool  = sync.Pool{}
 	cachedEncMeta sync.Map // cached dest value meta info
 )
@@ -32,7 +32,7 @@ func cacheGetEncMeta(typ *dataType) *encMeta {
 	return nil
 }
 
-// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
-type bytesPool struct {
-	buf []byte
-}
+//// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
+//type bytesPool struct {
+//	buf []byte
+//}

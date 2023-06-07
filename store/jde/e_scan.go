@@ -1,67 +1,185 @@
 package jde
 
 import (
-	"fmt"
-	"runtime/debug"
+	"reflect"
 	"unsafe"
 )
 
 func (se *subEncode) encStart() (err errType) {
-	defer func() {
-		if pic := recover(); pic != nil {
-			if code, ok := pic.(errType); ok {
-				err = code
-			} else {
-				fmt.Printf("%s\n%s", pic, debug.Stack())
-				err = errJson
-			}
+	if se.em.isArray {
+		if se.em.isPtr {
+			se.encListPtr(se.em.itemLen)
+		} else {
+			se.encList(se.em.itemLen)
 		}
-	}()
+	} else if se.em.isList {
+		sh := (*reflect.SliceHeader)(unsafe.Pointer(se.srcPtr))
+		se.srcPtr = unsafe.Pointer(sh.Data)
 
-	if se.dm.isArray {
-		se.encArray()
-		//} else if se.dm.isList {
-		//	se.encList()
-		//} else {
-		//	se.encObject()
+		if se.em.isPtr {
+			se.encListPtr(sh.Len)
+		} else {
+			se.encList(sh.Len)
+		}
+	} else {
+		if se.em.isPtr {
+			se.encObjPtr()
+		} else {
+			se.encObj()
+		}
 	}
 	return
 }
 
-func (se *subEncode) encArray() {
+// List
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (se *subEncode) encList(size int) {
 	bf := *se.bs
+	//size := se.em.itemLen
 
 	bf = append(bf, '[')
-
-	size := se.dm.arrLen
 	for i := 0; i < size; i++ {
-		//se.dm.listItemEnc(se, i)
-		//ptr := encArrItemPtr(se, i)
-		ptr := unsafe.Pointer(uintptr(se.dstPtr) + uintptr(i*se.dm.itemBytes))
-		bf = append(bf, '"')
-		bf = append(bf, *((*string)(ptr))...)
-		bf = append(bf, "\","...)
+		if se.em.listItemEncMix == nil {
+			bf = se.em.listItemEnc(bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemBytes)))
+		} else {
+			bf = se.em.listItemEncMix(bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemBytes)), *se)
+		}
+		//bf = append(bf, '"')
+		////bf = append(bf, *((*string)(unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemBytes))))...)
+		//bf = append(bf, se.em.listItemEnc(unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemBytes)))...)
+		//bf = append(bf, "\","...)
 	}
-
+	if size > 0 {
+		bf = bf[:len(bf)-1]
+	}
 	bf = append(bf, ']')
 	*se.bs = bf
 }
 
-//func (se *subEncode) encList() {
-//	*se.bs = append(*se.bs, "["...)
-//
-//	sh := (*reflect.SliceHeader)(se.dstPtr)
-//	if sh.Len >= 1 {
-//		se.dm.listItemEnc(se, 0)
-//	}
-//	for i := 1; i < sh.Len; i++ {
-//		*se.bs = append(*se.bs, ", "...)
-//		se.dm.listItemEnc(se, i)
-//	}
-//
-//	*se.bs = append(*se.bs, ']')
-//}
-//
-//func (se *subEncode) encObject() {
-//
-//}
+func (se *subEncode) encListPtr(size int) {
+	bf := *se.bs
+	//size := se.em.itemLen
+	ptrLevel := se.em.ptrLevel
+
+	bf = append(bf, '[')
+	for i := 0; i < size; i++ {
+		ptrCt := ptrLevel
+		ptr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemBytes))
+
+	peelPtr:
+		ptr = *(*unsafe.Pointer)(ptr)
+		if ptr == nil {
+			bf = append(bf, "null,"...)
+			continue
+		}
+		ptrCt--
+		if ptrCt > 0 {
+			goto peelPtr
+		}
+
+		if se.em.listItemEncMix == nil {
+			bf = se.em.listItemEnc(bf, ptr)
+		} else {
+			bf = se.em.listItemEncMix(bf, ptr, *se)
+		}
+		//bf = append(bf, '"')
+		////bf = append(bf, *((*string)(ptr))...)
+		//bf = append(bf, se.em.listItemEnc(ptr)...)
+		//bf = append(bf, "\","...)
+	}
+	if size > 0 {
+		bf = bf[:len(bf)-1]
+	}
+	bf = append(bf, ']')
+	*se.bs = bf
+}
+
+// Object
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (se *subEncode) encObj() {
+	bf := *se.bs
+
+	size := len(se.em.fieldsEnc)
+
+	bf = append(bf, '{')
+
+	fAttrs := se.em.ss.FieldsAttr
+	for i := 0; i < size; i++ {
+		bf = append(bf, '"')
+		bf = append(bf, se.em.ss.FieldName(i)...)
+		bf = append(bf, "\":"...)
+
+		if !fAttrs[i].IsMixType {
+			bf = se.em.fieldsEnc[i](bf, unsafe.Pointer(uintptr(se.srcPtr)+fAttrs[i].Offset))
+		} else {
+			bf = se.em.fieldsEncMix[i](bf, unsafe.Pointer(uintptr(se.srcPtr)+fAttrs[i].Offset), *se, i)
+		}
+	}
+	if size > 0 {
+		bf = bf[:len(bf)-1]
+	}
+	bf = append(bf, '}')
+
+	*se.bs = bf
+}
+
+func (se *subEncode) encObjPtr() {
+	bf := *se.bs
+	size := len(se.em.fieldsEnc)
+
+	bf = append(bf, '{')
+	fAttrs := se.em.ss.FieldsAttr
+	for i := 0; i < size; i++ {
+		ptrCt := fAttrs[i].PtrLevel
+		ptr := unsafe.Pointer(uintptr(se.srcPtr) + fAttrs[i].Offset)
+
+	peelPtr:
+		ptr = *(*unsafe.Pointer)(ptr)
+		if ptr == nil {
+			bf = append(bf, "null,"...)
+			continue
+		}
+		ptrCt--
+		if ptrCt > 0 {
+			goto peelPtr
+		}
+
+		bf = append(bf, '"')
+		bf = append(bf, se.em.ss.FieldName(i)...)
+		bf = append(bf, "\":"...)
+
+		if !fAttrs[i].IsMixType {
+			bf = se.em.fieldsEnc[i](bf, ptr)
+		} else {
+			bf = se.em.fieldsEncMix[i](bf, ptr, *se, i)
+		}
+
+		//se.em.fieldsEnc[i](ptr)
+
+		//bf = append(bf, '"')
+		////bf = append(bf, *((*string)(ptr))...)
+		//bf = append(bf, se.em.listItemEnc(ptr)...)
+		//bf = append(bf, "\","...)
+	}
+	if size > 0 {
+		bf = bf[:len(bf)-1]
+	}
+	bf = append(bf, '}')
+	*se.bs = bf
+}
+
+// MixValue
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func encListMixItem(bf []byte, ptr unsafe.Pointer, se subEncode) []byte {
+	se.initMeta(se.em.itemBaseType, ptr)
+	*se.bs = bf
+	se.encStart()
+	return *se.bs
+}
+
+func encObjMixItem(bf []byte, ptr unsafe.Pointer, se subEncode, idx int) []byte {
+	se.initMeta(se.em.ss.FieldsAttr[idx].Type, ptr)
+	*se.bs = bf
+	se.encStart()
+	return *se.bs
+}

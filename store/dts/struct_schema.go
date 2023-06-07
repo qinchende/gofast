@@ -52,10 +52,11 @@ type (
 	}
 
 	fieldAttr struct {
-		Type     reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
-		Kind     reflect.Kind // 字段最终类型的Kind类型
-		Offset   uintptr      // 字段在结构体中的地址偏移量
-		PtrLevel uint8        // 字段指针层级
+		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
+		Kind      reflect.Kind // 字段最终类型的Kind类型
+		Offset    uintptr      // 字段在结构体中的地址偏移量
+		PtrLevel  uint8        // 字段指针层级
+		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
 	}
 )
 
@@ -110,8 +111,13 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 			fa.Type = fa.Type.Elem()
 		}
 		fa.Kind = fa.Type.Kind()
+		switch fa.Kind {
+		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+			fa.IsMixType = true
+		}
 	}
 
+	// cTips
 	// 方便检索字符串项，这里做一些数据冗余的优化处理
 	ss.cTips.items = make([]string, len(fColumns))
 	ss.cTips.idxes = make([]uint8, len(fColumns))
@@ -138,6 +144,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 		}
 	}
 
+	// fTips
 	// +++++++++++++++
 	ss.fTips.items = make([]string, len(fFields))
 	ss.fTips.idxes = make([]uint8, len(fFields))
