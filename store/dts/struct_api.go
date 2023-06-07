@@ -91,3 +91,11 @@ func (ss *StructSchema) FieldIndex(k string) int {
 		return int(kv.idxes[idx])
 	}
 }
+
+func (ss *StructSchema) ColumnName(idx int) string {
+	return ss.columns[idx]
+}
+
+func (ss *StructSchema) FieldName(idx int) string {
+	return ss.fields[idx]
+}

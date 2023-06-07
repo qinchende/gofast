@@ -11,12 +11,6 @@ import (
 )
 
 type (
-	dataType       struct{}
-	emptyInterface struct { // emptyInterface is the header for an interface{} value. (ignore method)
-		typAddr *dataType
-		dataPtr unsafe.Pointer
-	}
-
 	decValFunc    func(sb *subDecode)
 	decKVPairFunc func(sb *subDecode, key string)
 

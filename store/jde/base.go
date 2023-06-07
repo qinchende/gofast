@@ -13,7 +13,15 @@ const (
 	maxJsonLength = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
 )
 
-type errType int
+type (
+	dataType       struct{}
+	emptyInterface struct { // emptyInterface is the header for an interface{} value. (ignore method)
+		typAddr *dataType
+		dataPtr unsafe.Pointer
+	}
+
+	errType int
+)
 
 const (
 	noErr        errType = 0  // 没有错误

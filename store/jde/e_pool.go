@@ -5,16 +5,19 @@ import (
 )
 
 var (
-	jdeEncPool    = sync.Pool{New: func() any { return &subEncode{} }}
+	//jdeEncPool    = sync.Pool{New: func() any { return &subEncode{} }}
 	jdeBytesPool  = sync.Pool{}
 	cachedEncMeta sync.Map // cached dest value meta info
 )
 
-func newBytes() []byte {
+func newBytes() *[]byte {
 	if ret := jdeBytesPool.Get(); ret != nil {
-		return ret.([]byte)
+		bs := ret.(*[]byte)
+		*bs = (*bs)[:0]
+		return bs
 	} else {
-		return make([]byte, 0, 8*1024)
+		bs := make([]byte, 0, 8*1024)
+		return &bs
 	}
 }
 

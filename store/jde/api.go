@@ -68,8 +68,8 @@ func EncodeIndent(v any, prefix, indent string) ([]byte, error) {
 	return nil, nil
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // private enter
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
 	// 一次性读取完成，或者遇到EOF标记或者其它错误
 	if ctSize > maxJsonLength {
