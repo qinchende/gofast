@@ -5,34 +5,32 @@ import (
 )
 
 var (
-	//jdeEncPool    = sync.Pool{New: func() any { return &subEncode{} }}
-	jdeBytesPool  = sync.Pool{}
-	cachedEncMeta sync.Map // cached dest value meta info
+	jdeEncodeBufPool = sync.Pool{} // 字节序列缓存
+	cachedEncMeta    sync.Map      // cached encode object meta info
 )
 
-func newBytes() *[]byte {
-	if ret := jdeBytesPool.Get(); ret != nil {
-		bs := ret.(*[]byte)
-		*bs = (*bs)[:0]
-		return bs
+func (se *subEncode) newBytesBuf() {
+	if ret := jdeEncodeBufPool.Get(); ret != nil {
+		se.bf = ret.(*[]byte)
+		*se.bf = (*se.bf)[:0]
 	} else {
-		bs := make([]byte, 0, 8*1024)
-		return &bs
+		bs := make([]byte, 0, defEncodeBufSize)
+		se.bf = &bs
 	}
 }
 
-func cacheSetEncMeta(typ *dataType, val *encMeta) {
-	cachedEncMeta.Store(typ, val)
+func (se *subEncode) freeBytesBuf() {
+	jdeEncodeBufPool.Put(se.bf)
+	se.bf = nil
 }
 
-func cacheGetEncMeta(typ *dataType) *encMeta {
-	if ret, ok := cachedEncMeta.Load(typ); ok {
+func cacheSetEncMeta(typAddr *dataType, val *encMeta) {
+	cachedEncMeta.Store(typAddr, val)
+}
+
+func cacheGetEncMeta(typAddr *dataType) *encMeta {
+	if ret, ok := cachedEncMeta.Load(typAddr); ok {
 		return ret.(*encMeta)
 	}
 	return nil
 }
-
-//// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
-//type bytesPool struct {
-//	buf []byte
-//}

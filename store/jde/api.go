@@ -72,8 +72,8 @@ func EncodeIndent(v any, prefix, indent string) ([]byte, error) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
 	// 一次性读取完成，或者遇到EOF标记或者其它错误
-	if ctSize > maxJsonLength {
-		ctSize = maxJsonLength
+	if ctSize > maxJsonStrLen {
+		ctSize = maxJsonStrLen
 	}
 	bytes, err1 := iox.ReadAll(reader, ctSize)
 	if err1 != nil {
@@ -83,7 +83,7 @@ func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
 }
 
 func decodeFromString(dst any, source string) (err error) {
-	if len(source) > maxJsonLength {
+	if len(source) > maxJsonStrLen {
 		return errJsonTooLarge
 	}
 	return startDecode(dst, source)
