@@ -9,8 +9,13 @@ import (
 )
 
 const (
-	ptrByteSize   = int(unsafe.Sizeof(uintptr(0))) // 指针占用字节数
-	maxJsonLength = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
+	ptrTypeByteSize  = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
+	maxJsonStrLen    = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
+	defEncodeBufSize = 8 * 1024                       // 默认缓存编码结果的bytes大小
+)
+
+var (
+	nullBytes = []byte("null")
 )
 
 type (
@@ -72,8 +77,6 @@ var errDescription = []string{
 }
 
 var (
-	//errJsonEmpty = errors.New("jde: json content empty")
-	//sErr            = errors.New("jsonx: json syntax error.")
 	errJsonTooLarge = errors.New("jde: string too large")
 	errValueType    = errors.New("jde: target value type error")
 	errValueMustPtr = errors.New("jde: target value must pointer type")
