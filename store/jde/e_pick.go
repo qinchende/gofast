@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
 	"reflect"
 	"strconv"
@@ -8,13 +9,6 @@ import (
 )
 
 func (se *subEncode) encStart() {
-	//switch {
-	//case se.em.isStruct:
-	//case se.em.isList:
-	//case se.em.isSuperKV:
-	//default:
-	//
-	//}
 	if se.em.isList {
 		if se.em.isArray {
 			if se.em.isPtr {
@@ -33,7 +27,9 @@ func (se *subEncode) encStart() {
 			}
 		}
 	} else if se.em.isStruct {
-		se.encObject()
+		se.encStruct()
+	} else if se.em.isMap {
+		se.encMap()
 	} else if se.em.isPtr {
 		se.encPointer()
 	} else {
@@ -42,7 +38,7 @@ func (se *subEncode) encStart() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++
-// Basic
+// Basic type value
 func (se *subEncode) encBasic() {
 	bf := *se.bf
 	bf = se.em.itemPick(bf, se.srcPtr, se.em.itemBaseType)
@@ -50,7 +46,7 @@ func (se *subEncode) encBasic() {
 	*se.bf = bf
 }
 
-// Pointer
+// Pointer type value
 func (se *subEncode) encPointer() {
 	bf := *se.bf
 
@@ -74,7 +70,7 @@ finished:
 	*se.bf = bf
 }
 
-// List
+// List type value
 func (se *subEncode) encList(size int) {
 	bf := *se.bf
 	bf = append(bf, '[')
@@ -118,8 +114,8 @@ func (se *subEncode) encListPtr(size int) {
 	*se.bf = bf
 }
 
-// Object
-func (se *subEncode) encObject() {
+// Struct type value
+func (se *subEncode) encStruct() {
 	bf := *se.bf
 	fls := se.em.ss.FieldsAttr
 	size := len(fls)
@@ -127,7 +123,7 @@ func (se *subEncode) encObject() {
 	bf = append(bf, '{')
 	for i := 0; i < size; i++ {
 		bf = append(bf, '"')
-		bf = append(bf, se.em.ss.FieldName(i)...)
+		bf = append(bf, se.em.ss.ColumnName(i)...)
 		bf = append(bf, "\":"...)
 
 		ptr := unsafe.Pointer(uintptr(se.srcPtr) + fls[i].Offset)
@@ -157,12 +153,56 @@ func (se *subEncode) encObject() {
 	*se.bf = bf
 }
 
+// map type value
+func (se *subEncode) encMap() {
+	bf := *se.bf
+
+	theMap := *(*map[string]any)(se.srcPtr)
+	//keyIsStr := se.em.keyBaseType.Kind() == reflect.String
+
+	bf = append(bf, '{')
+	for k, v := range theMap {
+		bf = append(bf, '"')
+		//if keyIsStr {
+		bf = append(bf, k...)
+		//} else {
+		//	bf = se.em.keyPick(bf, unsafe.Pointer(&k), se.em.keyBaseType)
+		//}
+		bf = append(bf, "\":"...)
+
+		ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
+		ptrCt := se.em.ptrLevel
+		if ptrCt == 0 {
+			goto encMapValue
+		}
+
+	peelPtr:
+		ptr = *(*unsafe.Pointer)(ptr)
+		if ptr == nil {
+			bf = append(bf, "null,"...)
+			continue
+		}
+		ptrCt--
+		if ptrCt > 0 {
+			goto peelPtr
+		}
+
+	encMapValue:
+		bf = se.em.itemPick(bf, ptr, se.em.itemBaseType)
+	}
+	if len(theMap) > 0 {
+		bf = bf[:len(bf)-1]
+	}
+	bf = append(bf, '}')
+	*se.bf = bf
+}
+
 // Use SubEncode to encode Mix Item Value
 // +++++++++++++++++++++++++++++++++++++++++++
 func encMixItem(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	se := subEncode{}
 	se.initMeta(typ, ptr)
-	se.bf = &bf
+	se.bf = &bf // Note: 此处产生了切片变量逃逸
 
 	se.encStart()
 	*se.bf = append(*se.bf, ',')
@@ -173,7 +213,6 @@ func encMixItem(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encInt[T constraints.Signed](bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	bf = append(bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
-	//bf = append(bf, "1234567"...)
 	bf = append(bf, ',')
 	return bf
 }
@@ -197,6 +236,11 @@ func encString(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	return bf
 }
 
+func encStringOnly(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+	bf = append(bf, *((*string)(ptr))...)
+	return bf
+}
+
 func encBool(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	if *((*bool)(ptr)) {
 		bf = append(bf, "true,"...)
@@ -209,8 +253,8 @@ func encBool(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 func encAny(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	oldPtr := ptr
 
-	ei := (*emptyInterface)(ptr)
-	ptr = ei.dataPtr
+	ei := (*rt.AFace)(ptr)
+	ptr = ei.DataPtr
 	if ptr == nil {
 		bf = append(bf, "null,"...)
 		return bf
@@ -252,7 +296,7 @@ func encAny(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 
 	default:
 		return encMixItem(bf, ptr, reflect.TypeOf(*((*any)(oldPtr))))
-		//return encMixItem(bf, ptr, (reflect.Type)(ei.typAddr))
+		//return encMixItem(bf, ptr, ei.TypePtr)
 	}
 	//return bf
 }

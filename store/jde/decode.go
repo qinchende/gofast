@@ -3,6 +3,7 @@ package jde
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
@@ -89,7 +90,7 @@ func startDecode(dst any, source string) (err error) {
 	sd := jdeDecPool.Get().(*subDecode)
 	sd.str = source
 	sd.scan = 0
-	sd.initMeta(rfType.Elem(), (*emptyInterface)(unsafe.Pointer(&dst)).dataPtr)
+	sd.initMeta(rfType.Elem(), (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr)
 
 	err = sd.warpErrorCode(sd.scanStart())
 
@@ -157,7 +158,7 @@ func (sd *subDecode) resetShareDecode() {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // rfType 是 剥离 Pointer 之后的最终类型
 func (sd *subDecode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
-	typAddr := (*dataType)((*emptyInterface)(unsafe.Pointer(&rfType)).dataPtr)
+	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
 	if meta := cacheGetMeta(typAddr); meta != nil {
 		sd.dm = meta
 	} else {
@@ -186,21 +187,21 @@ func (sd *subDecode) buildMeta(rfType reflect.Type) {
 		sd.initListMeta(rfType)
 		sd.bindListDec()
 	case reflect.Struct:
-		// 模拟泛型解析，提供性能
-		if rfType.String() == "gson.GsonRow" {
+		// 模拟泛型解析，提高性能
+		if rfType.String() == gson.StrTypeOfGsonRow {
 			sd.dm.isSuperKV = true
 			sd.dm.isGson = true
 			sd.bindGsonDec()
 			return
 		}
-		if rfType.String() == "time.Time" {
+		if rfType.String() == cst.StrTypeOfTime {
 			panic(errValueType)
 		}
 		sd.initStructMeta(rfType)
 		sd.bindStructDec()
 	case reflect.Map:
-		// 常规泛型
-		if rfType.String() == "cst.KV" || rfType.String() == "map[string]interface {}" {
+		// 只能解析到map[string]any，其它map类型暂时不支持
+		if rfType.String() == cst.StrTypeOfKV || rfType.String() == cst.StrTypeOfStrAnyMap {
 			sd.dm.isSuperKV = true
 			sd.dm.isMap = true
 			sd.bindMapDec()
