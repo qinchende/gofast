@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
 	"reflect"
 	"sync"
@@ -13,12 +14,12 @@ var (
 	cachedDestMeta sync.Map // cached dest value meta info
 )
 
-func cacheSetMeta(typ *dataType, val *destMeta) {
-	cachedDestMeta.Store(typ, val)
+func cacheSetMeta(typAddr *rt.TypeAgent, val *destMeta) {
+	cachedDestMeta.Store(typAddr, val)
 }
 
-func cacheGetMeta(typ *dataType) *destMeta {
-	if ret, ok := cachedDestMeta.Load(typ); ok {
+func cacheGetMeta(typAddr *rt.TypeAgent) *destMeta {
+	if ret, ok := cachedDestMeta.Load(typAddr); ok {
 		return ret.(*destMeta)
 	}
 	return nil

@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/core/rt"
 	"sync"
 )
 
@@ -24,11 +25,11 @@ func (se *subEncode) freeBytesBuf() {
 	se.bf = nil
 }
 
-func cacheSetEncMeta(typAddr *dataType, val *encMeta) {
+func cacheSetEncMeta(typAddr *rt.TypeAgent, val *encMeta) {
 	cachedEncMeta.Store(typAddr, val)
 }
 
-func cacheGetEncMeta(typAddr *dataType) *encMeta {
+func cacheGetEncMeta(typAddr *rt.TypeAgent) *encMeta {
 	if ret, ok := cachedEncMeta.Load(typAddr); ok {
 		return ret.(*encMeta)
 	}

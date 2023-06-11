@@ -1,8 +1,10 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"math"
+	"unsafe"
 )
 
 func (sd *subDecode) scanIntValue() int {
@@ -137,6 +139,94 @@ over:
 	}
 	return start
 }
+
+// int
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func bindInt(p unsafe.Pointer, v int64) {
+	*(*int)(p) = int(v)
+}
+
+func bindInt8(p unsafe.Pointer, v int64) {
+	if v < math.MinInt8 || v > math.MaxInt8 {
+		panic(errInfinity)
+	}
+	*(*int8)(p) = int8(v)
+}
+
+func bindInt16(p unsafe.Pointer, v int64) {
+	if v < math.MinInt16 || v > math.MaxInt16 {
+		panic(errInfinity)
+	}
+	*(*int16)(p) = int16(v)
+}
+
+func bindInt32(p unsafe.Pointer, v int64) {
+	if v < math.MinInt32 || v > math.MaxInt32 {
+		panic(errInfinity)
+	}
+	*(*int32)(p) = int32(v)
+}
+
+func bindInt64(p unsafe.Pointer, v int64) {
+	*(*int64)(p) = v
+}
+
+// uint
+func bindUint(p unsafe.Pointer, v uint64) {
+	*(*uint)(p) = uint(v)
+}
+
+func bindUint8(p unsafe.Pointer, v uint64) {
+	if v > math.MaxUint8 {
+		panic(errInfinity)
+	}
+	*(*uint8)(p) = uint8(v)
+}
+
+func bindUint16(p unsafe.Pointer, v uint64) {
+	if v > math.MaxUint16 {
+		panic(errInfinity)
+	}
+	*(*uint16)(p) = uint16(v)
+}
+
+func bindUint32(p unsafe.Pointer, v uint64) {
+	if v > math.MaxUint32 {
+		panic(errInfinity)
+	}
+	*(*uint32)(p) = uint32(v)
+}
+
+func bindUint64(p unsafe.Pointer, v uint64) {
+	*(*uint64)(p) = v
+}
+
+// float
+func bindFloat32(p unsafe.Pointer, v float64) {
+	if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
+		panic(errInfinity)
+	}
+	*(*float32)(p) = float32(v)
+}
+
+func bindFloat64(p unsafe.Pointer, v float64) {
+	*(*float64)(p) = v
+}
+
+// string & bool & any
+func bindString(p unsafe.Pointer, v string) {
+	*(*string)(p) = v
+}
+
+func bindBool(p unsafe.Pointer, v bool) {
+	*(*bool)(p) = v
+}
+
+func bindAny(p unsafe.Pointer, v any) {
+	*(*any)(p) = v
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 // int +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -566,4 +656,267 @@ func scanListFloat64Value(sd *subDecode) {
 		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufF64))
 	}
 	sd.pl.bufF64 = append(sd.pl.bufF64, v)
+}
+
+// string +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjStrValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindString(fieldPtr(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindString(fieldPtr(sd), sd.str[start:sd.scan-1])
+		}
+	default:
+		sd.skipNull()
+	}
+}
+
+func scanObjPtrStrValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindString(fieldPtrDeep(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindString(fieldPtrDeep(sd), sd.str[start:sd.scan-1])
+		}
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
+func scanArrStrValue(sd *subDecode) {
+	v := ""
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			v = sd.str[start:sd.unescapeEnd()]
+		} else {
+			v = sd.str[start : sd.scan-1]
+		}
+	default:
+		sd.skipNull()
+	}
+	bindString(arrItemPtr(sd), v)
+}
+
+func scanListStrValue(sd *subDecode) {
+	v := ""
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			v = sd.str[start:sd.unescapeEnd()]
+		} else {
+			v = sd.str[start : sd.scan-1]
+		}
+	default:
+		sd.skipNull()
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufStr))
+	}
+	sd.pl.bufStr = append(sd.pl.bufStr, v)
+}
+
+// bool +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjBoolValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case 't':
+		sd.skipTrue()
+		bindBool(fieldPtr(sd), true)
+	case 'f':
+		sd.skipFalse()
+		bindBool(fieldPtr(sd), false)
+	default:
+		sd.skipNull()
+	}
+}
+
+func scanObjPtrBoolValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case 't':
+		sd.skipTrue()
+		bindBool(fieldPtrDeep(sd), true)
+	case 'f':
+		sd.skipFalse()
+		bindBool(fieldPtrDeep(sd), false)
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
+func scanArrBoolValue(sd *subDecode) {
+	v := false
+	switch sd.str[sd.scan] {
+	case 't':
+		sd.skipTrue()
+		v = true
+	case 'f':
+		sd.skipFalse()
+	default:
+		sd.skipNull()
+	}
+	bindBool(arrItemPtr(sd), v)
+}
+
+func scanListBoolValue(sd *subDecode) {
+	v := false
+	switch sd.str[sd.scan] {
+	case 't':
+		sd.skipTrue()
+		v = true
+	case 'f':
+		sd.skipFalse()
+	default:
+		sd.skipNull()
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufBol))
+	}
+	sd.pl.bufBol = append(sd.pl.bufBol, v)
+}
+
+// any +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjAnyValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		bindAny(fieldPtr(sd), newMap)
+	case c == '[':
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		bindAny(fieldPtr(sd), newList)
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindAny(fieldPtr(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindAny(fieldPtr(sd), sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			bindAny(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		bindAny(fieldPtr(sd), true)
+	case c == 'f':
+		sd.skipFalse()
+		bindAny(fieldPtr(sd), false)
+	default:
+		sd.skipNull()
+	}
+}
+
+func scanObjPtrAnyValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		bindAny(fieldPtrDeep(sd), newMap)
+	case c == '[':
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		bindAny(fieldPtrDeep(sd), newList)
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindAny(fieldPtrDeep(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindAny(fieldPtrDeep(sd), sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			bindAny(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		bindAny(fieldPtrDeep(sd), true)
+	case c == 'f':
+		sd.skipFalse()
+		bindAny(fieldPtrDeep(sd), false)
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
+func scanArrAnyValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		bindAny(arrItemPtr(sd), newMap)
+	case c == '[':
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		bindAny(arrItemPtr(sd), newList)
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindAny(arrItemPtr(sd), sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindAny(arrItemPtr(sd), sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			bindAny(arrItemPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		bindAny(arrItemPtr(sd), true)
+	case c == 'f':
+		sd.skipFalse()
+		bindAny(arrItemPtr(sd), false)
+	default:
+		sd.skipNull()
+		bindAny(arrItemPtr(sd), nil)
+	}
+}
+
+func scanListAnyValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		newMap := make(cst.KV)
+		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
+		sd.pl.bufAny = append(sd.pl.bufAny, newMap)
+	case c == '[':
+		newList := make([]any, 0)
+		sd.scanSubDecode(rfTypeOfList, unsafe.Pointer(&newList))
+		sd.pl.bufAny = append(sd.pl.bufAny, newList)
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			sd.pl.bufAny = append(sd.pl.bufAny, sd.str[start:sd.unescapeEnd()])
+		} else {
+			sd.pl.bufAny = append(sd.pl.bufAny, sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start := sd.scanNumValue(); start > 0 {
+			sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseFloat(sd.str[start:sd.scan]))
+		}
+	case c == 't':
+		sd.skipTrue()
+		sd.pl.bufAny = append(sd.pl.bufAny, true)
+	case c == 'f':
+		sd.skipFalse()
+		sd.pl.bufAny = append(sd.pl.bufAny, false)
+	default:
+		sd.skipNull()
+		sd.pl.bufAny = append(sd.pl.bufAny, nil)
+	}
 }

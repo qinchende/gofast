@@ -10,6 +10,12 @@ type (
 	TypeString string
 )
 
+const (
+	StrTypeOfKV        = "cst.KV"
+	StrTypeOfStrAnyMap = "map[string]interface {}"
+	StrTypeOfTime      = "time.Time"
+)
+
 // 可能用map，也可能自定义数组等合适的数据结构存取。
 // 比如上下文中用来保存解析到的请求数据，主要是KV形式
 type SuperKV interface {
