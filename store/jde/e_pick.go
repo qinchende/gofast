@@ -157,6 +157,9 @@ func (se *subEncode) encStruct() {
 func (se *subEncode) encMap() {
 	bf := *se.bf
 
+	//itra := reflect.MakeMap(se.em.itemBaseType).MapRange()
+	//itra.Key()
+
 	theMap := *(*map[string]any)(se.srcPtr)
 	//keyIsStr := se.em.keyBaseType.Kind() == reflect.String
 
@@ -170,7 +173,10 @@ func (se *subEncode) encMap() {
 		//}
 		bf = append(bf, "\":"...)
 
-		ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
+		//v := theMap[k]
+
+		//ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
+		ptr := unsafe.Pointer(&v)
 		ptrCt := se.em.ptrLevel
 		if ptrCt == 0 {
 			goto encMapValue
@@ -201,7 +207,7 @@ func (se *subEncode) encMap() {
 // +++++++++++++++++++++++++++++++++++++++++++
 func encMixItem(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	se := subEncode{}
-	se.initMeta(typ, ptr)
+	se.getMeta(typ, ptr)
 	se.bf = &bf // Note: 此处产生了切片变量逃逸
 
 	se.encStart()
@@ -223,8 +229,14 @@ func encUint[T constraints.Unsigned](bf []byte, ptr unsafe.Pointer, typ reflect.
 	return bf
 }
 
-func encFloat[T constraints.Float](bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, strconv.FormatFloat(float64(*((*T)(ptr))), 'g', -1, 64)...)
+func encFloat64(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+	bf = append(bf, strconv.FormatFloat(*((*float64)(ptr)), 'g', -1, 64)...)
+	bf = append(bf, ',')
+	return bf
+}
+
+func encFloat32(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+	bf = append(bf, strconv.FormatFloat(float64(*((*float32)(ptr))), 'g', -1, 32)...)
 	bf = append(bf, ',')
 	return bf
 }
@@ -236,10 +248,10 @@ func encString(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	return bf
 }
 
-func encStringOnly(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, *((*string)(ptr))...)
-	return bf
-}
+//func encStringOnly(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+//	bf = append(bf, *((*string)(ptr))...)
+//	return bf
+//}
 
 func encBool(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	if *((*bool)(ptr)) {
@@ -285,9 +297,9 @@ func encAny(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 		return encUint[uint64](bf, ptr, nil)
 
 	case float32:
-		return encFloat[float32](bf, ptr, nil)
+		return encFloat32(bf, ptr, nil)
 	case float64:
-		return encFloat[float64](bf, ptr, nil)
+		return encFloat64(bf, ptr, nil)
 
 	case bool:
 		return encBool(bf, ptr, nil)

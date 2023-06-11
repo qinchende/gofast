@@ -90,7 +90,7 @@ func startDecode(dst any, source string) (err error) {
 	sd := jdeDecPool.Get().(*subDecode)
 	sd.str = source
 	sd.scan = 0
-	sd.initMeta(rfType.Elem(), (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr)
+	sd.getMeta(rfType.Elem(), (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr)
 
 	err = sd.warpErrorCode(sd.scanStart())
 
@@ -114,7 +114,7 @@ func (sd *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	}
 	sd.share.str = sd.str
 	sd.share.scan = sd.scan
-	sd.share.initMeta(rfType, ptr)
+	sd.share.getMeta(rfType, ptr)
 
 	if sd.share.dm.isList {
 		sd.share.scanList()
@@ -131,7 +131,7 @@ func (sd *subDecode) readyListMixItemDec(ptr unsafe.Pointer) {
 		sd.share = jdeDecPool.Get().(*subDecode)
 		sd.share.str = sd.str
 		sd.share.scan = sd.scan
-		sd.share.initMeta(sd.dm.itemBaseType, ptr)
+		sd.share.getMeta(sd.dm.itemBaseType, ptr)
 		return
 	}
 
@@ -157,7 +157,7 @@ func (sd *subDecode) resetShareDecode() {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // rfType 是 剥离 Pointer 之后的最终类型
-func (sd *subDecode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
+func (sd *subDecode) getMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
 	if meta := cacheGetMeta(typAddr); meta != nil {
 		sd.dm = meta

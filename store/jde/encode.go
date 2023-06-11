@@ -18,8 +18,8 @@ type (
 		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
 		em     *encMeta       // Struct | Slice,Array
 		bf     *[]byte        // 当解析数组时候用到的一系列临时队列
-		mp     *cst.KV        // map
-		gr     *gson.GsonRow  // GsonRow
+		//mp     *cst.KV        // map
+		//gr     *gson.GsonRow  // GsonRow
 	}
 
 	encMeta struct {
@@ -59,12 +59,16 @@ func startEncode(v any) (bs []byte, err error) {
 
 	defer func() {
 		if pic := recover(); pic != nil {
-			err = errors.New(fmt.Sprint(pic))
+			if err1, ok := pic.(error); ok {
+				err = err1
+			} else {
+				err = errors.New(fmt.Sprint(pic))
+			}
 		}
 	}()
 
 	se := subEncode{}
-	se.initMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
+	se.getMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
 	se.newBytesBuf()
 
 	se.encStart()
@@ -76,7 +80,7 @@ func startEncode(v any) (bs []byte, err error) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (se *subEncode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
+func (se *subEncode) getMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
 	if meta := cacheGetEncMeta(typAddr); meta != nil {
 		se.em = meta
@@ -85,16 +89,6 @@ func (se *subEncode) initMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 		cacheSetEncMeta(typAddr, se.em)
 	}
 	se.srcPtr = ptr
-
-	//if se.em.isSuperKV {
-	//	//if se.em.isGson {
-	//	//	se.gr = (*gson.GsonRow)(ptr)
-	//	//} else {
-	//	//	se.mp = (*cst.KV)(ptr)
-	//	//}
-	//} else {
-	//	se.srcPtr = ptr // 当前值的地址
-	//}
 	return
 }
 
@@ -108,7 +102,6 @@ func (se *subEncode) buildEncMeta(rfType reflect.Type) {
 	switch kd := rfType.Kind(); kd {
 	case reflect.Array, reflect.Slice:
 		se.initListMeta(rfType)
-		se.bindPick(em.itemBaseKind, &em.itemPick)
 	case reflect.Struct:
 		// GoFast Special type GsonRow
 		if rfType.String() == gson.StrTypeOfGsonRow {
@@ -133,6 +126,7 @@ func (se *subEncode) buildEncMeta(rfType reflect.Type) {
 	}
 }
 
+// ++++++++++++++++++++++++++++++ Pointer
 func (se *subEncode) initPointerMeta(rfType reflect.Type) {
 	se.em.isPtr = true
 	se.em.itemBaseType = rfType.Elem()
@@ -148,6 +142,7 @@ peelPtr:
 	}
 }
 
+// ++++++++++++++++++++++++++++++ Array & Slice
 func (se *subEncode) initListMeta(rfType reflect.Type) {
 	se.em.isList = true
 	se.em.itemBaseType = rfType.Elem()
@@ -173,8 +168,11 @@ peelPtr:
 		}
 		se.em.itemMemSize = int(se.em.itemBaseType.Size())
 	}
+
+	se.bindPick(se.em.itemBaseKind, &se.em.itemPick)
 }
 
+// ++++++++++++++++++++++++++++++ Struct
 func (se *subEncode) initStructMeta(rfType reflect.Type) {
 	se.em.isStruct = true
 	se.em.ss = dts.SchemaForInputByType(rfType)
@@ -182,21 +180,25 @@ func (se *subEncode) initStructMeta(rfType reflect.Type) {
 	se.bindStructPick()
 }
 
+// ++++++++++++++++++++++++++++++ Map
 // Note: 当前只支持 map[string]any 形式
 func (se *subEncode) initMapMeta(rfType reflect.Type) {
 	se.em.isMap = true
 
-	// Note: map 中的 key 不能是 指针类耐
+	// Note: map 中的 key 只支持几种特定类型
 	se.em.keyBaseType = rfType.Key()
-	if se.em.keyBaseType.Kind() != reflect.String {
-		panic(errValueType)
+	switch se.em.keyBaseType.Kind() {
+	case reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	default:
+		panic(errMapKeyType)
 	}
 	se.bindPick(se.em.keyBaseType.Kind(), &se.em.keyPick)
 
-	// map 中的 value 可以是指针类型，需要拆包
+	// map 中的 value 可能是指针类型，需要拆包
 	se.em.itemBaseType = rfType.Elem()
 	se.em.itemBaseKind = se.em.itemBaseType.Kind()
-
 peelPtr:
 	if se.em.itemBaseKind == reflect.Pointer {
 		se.em.isPtr = true
@@ -205,7 +207,6 @@ peelPtr:
 		se.em.ptrLevel++
 		goto peelPtr
 	}
-
 	se.bindPick(se.em.itemBaseKind, &se.em.itemPick)
 }
 
@@ -233,9 +234,9 @@ func (se *subEncode) bindPick(kind reflect.Kind, pick *encValFunc) {
 	case reflect.Uint64:
 		*pick = encUint[uint64]
 	case reflect.Float32:
-		*pick = encFloat[float32]
+		*pick = encFloat32
 	case reflect.Float64:
-		*pick = encFloat[float64]
+		*pick = encFloat64
 
 	case reflect.String:
 		*pick = encString
@@ -288,9 +289,9 @@ nextField:
 	case reflect.Uint64:
 		se.em.fieldsPick[i] = encUint[uint64]
 	case reflect.Float32:
-		se.em.fieldsPick[i] = encFloat[float32]
+		se.em.fieldsPick[i] = encFloat32
 	case reflect.Float64:
-		se.em.fieldsPick[i] = encFloat[float64]
+		se.em.fieldsPick[i] = encFloat64
 
 	case reflect.String:
 		se.em.fieldsPick[i] = encString

@@ -76,6 +76,7 @@ var (
 	errValueMustPtr = errors.New("jde: target value must pointer type")
 	errValueIsNil   = errors.New("jde: target value is nil")
 	errPtrLevel     = errors.New("jde: target value is more than 3 layers of pointer")
+	errMapKeyType   = errors.New("jde: can't support the map key type")
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
