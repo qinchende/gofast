@@ -6,7 +6,6 @@ import (
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/dts"
-	"github.com/qinchende/gofast/store/gson"
 	"reflect"
 	"unsafe"
 )
@@ -68,7 +67,7 @@ func startEncode(v any) (bs []byte, err error) {
 	}()
 
 	se := subEncode{}
-	se.getMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
+	se.getEncMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
 	se.newBytesBuf()
 
 	se.encStart()
@@ -80,138 +79,131 @@ func startEncode(v any) (bs []byte, err error) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (se *subEncode) getMeta(rfType reflect.Type, ptr unsafe.Pointer) {
+func (se *subEncode) getEncMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
 	if meta := cacheGetEncMeta(typAddr); meta != nil {
 		se.em = meta
 	} else {
-		se.buildEncMeta(rfType)
+		se.em = newEncodeMeta(rfType)
 		cacheSetEncMeta(typAddr, se.em)
 	}
 	se.srcPtr = ptr
-	return
 }
 
-func (se *subEncode) buildEncMeta(rfType reflect.Type) {
+func newEncodeMeta(rfType reflect.Type) *encMeta {
 	if rfType.Kind() == reflect.Pointer {
 		rfType = rfType.Elem()
 	}
 	em := encMeta{}
-	se.em = &em
 
 	switch kd := rfType.Kind(); kd {
 	case reflect.Array, reflect.Slice:
-		se.initListMeta(rfType)
+		em.initListMeta(rfType)
 	case reflect.Struct:
 		// GoFast Special type GsonRow
-		if rfType.String() == gson.StrTypeOfGsonRow {
-			em.isSuperKV = true
-			em.isGson = true
-			//se.bindGsonDec()
-			return
-		}
+		//if rfType.String() == gson.StrTypeOfGsonRow {
+		//	em.isSuperKV = true
+		//	em.isGson = true
+		//	return
+		//}
 		if rfType.String() == cst.StrTypeOfTime {
 			panic(errValueType)
 		}
-		se.initStructMeta(rfType)
+		em.initStructMeta(rfType)
 	case reflect.Map:
 		// Map type
-		se.initMapMeta(rfType)
+		em.initMapMeta(rfType)
 	case reflect.Pointer:
 		// Pointer type
-		se.initPointerMeta(rfType)
+		em.initPointerMeta(rfType)
 	default:
 		// Others normal types
-		se.bindPick(kd, &em.itemPick)
+		bindPick(kd, &em.itemPick)
+	}
+
+	return &em
+}
+
+func (em *encMeta) peelPtr(rfType reflect.Type) {
+	em.itemBaseType = rfType.Elem()
+	em.itemBaseKind = em.itemBaseType.Kind()
+	em.itemMemSize = int(em.itemBaseType.Size())
+
+peelLoop:
+	if em.itemBaseKind == reflect.Pointer {
+		em.isPtr = true
+		em.itemBaseType = em.itemBaseType.Elem()
+		em.itemBaseKind = em.itemBaseType.Kind()
+		em.ptrLevel++
+		goto peelLoop
 	}
 }
 
 // ++++++++++++++++++++++++++++++ Pointer
-func (se *subEncode) initPointerMeta(rfType reflect.Type) {
-	se.em.isPtr = true
-	se.em.itemBaseType = rfType.Elem()
-	se.em.itemBaseKind = se.em.itemBaseType.Kind()
-	se.em.ptrLevel++
-
-peelPtr:
-	if se.em.itemBaseKind == reflect.Pointer {
-		se.em.itemBaseType = se.em.itemBaseType.Elem()
-		se.em.itemBaseKind = se.em.itemBaseType.Kind()
-		se.em.ptrLevel++
-		goto peelPtr
-	}
+func (em *encMeta) initPointerMeta(rfType reflect.Type) {
+	em.isPtr = true
+	em.ptrLevel++
+	em.peelPtr(rfType)
 }
 
 // ++++++++++++++++++++++++++++++ Array & Slice
-func (se *subEncode) initListMeta(rfType reflect.Type) {
-	se.em.isList = true
-	se.em.itemBaseType = rfType.Elem()
-	se.em.itemBaseKind = se.em.itemBaseType.Kind()
-	se.em.itemMemSize = int(se.em.itemBaseType.Size())
-
-peelPtr:
-	if se.em.itemBaseKind == reflect.Pointer {
-		se.em.isPtr = true
-		se.em.itemBaseType = se.em.itemBaseType.Elem()
-		se.em.itemBaseKind = se.em.itemBaseType.Kind()
-		se.em.ptrLevel++
-		goto peelPtr
-	}
+func (em *encMeta) initListMeta(rfType reflect.Type) {
+	em.isList = true
+	em.peelPtr(rfType)
 
 	// 如果原始类型是Array，进一步提取数组信息
 	if rfType.Kind() == reflect.Array {
-		se.em.isArray = true
-		se.em.arrLen = rfType.Len() // 数组长度
+		em.isArray = true
+		em.arrLen = rfType.Len() // 数组长度
 
-		if se.em.isPtr {
+		if em.isPtr {
 			return
 		}
-		se.em.itemMemSize = int(se.em.itemBaseType.Size())
+		em.itemMemSize = int(em.itemBaseType.Size())
 	}
 
-	se.bindPick(se.em.itemBaseKind, &se.em.itemPick)
+	bindPick(em.itemBaseKind, &em.itemPick)
 }
 
 // ++++++++++++++++++++++++++++++ Struct
-func (se *subEncode) initStructMeta(rfType reflect.Type) {
-	se.em.isStruct = true
-	se.em.ss = dts.SchemaForInputByType(rfType)
+func (em *encMeta) initStructMeta(rfType reflect.Type) {
+	em.isStruct = true
+	em.ss = dts.SchemaForInputByType(rfType)
 
-	se.bindStructPick()
+	em.bindStructPick()
 }
 
 // ++++++++++++++++++++++++++++++ Map
 // Note: 当前只支持 map[string]any 形式
-func (se *subEncode) initMapMeta(rfType reflect.Type) {
-	se.em.isMap = true
+func (em *encMeta) initMapMeta(rfType reflect.Type) {
+	em.isMap = true
+
+	// 特殊的Map单独处理，提高性能, 当前只支持 map[string]any 形式
+	typStr := rfType.String()
+	if typStr == cst.StrTypeOfKV || typStr == cst.StrTypeOfStrAnyMap {
+		em.isSuperKV = true
+	} else {
+		panic(errMapType)
+	}
 
 	// Note: map 中的 key 只支持几种特定类型
-	se.em.keyBaseType = rfType.Key()
-	switch se.em.keyBaseType.Kind() {
+	em.keyBaseType = rfType.Key()
+	switch em.keyBaseType.Kind() {
 	case reflect.String,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 	default:
-		panic(errMapKeyType)
+		panic(errMapType)
 	}
-	se.bindPick(se.em.keyBaseType.Kind(), &se.em.keyPick)
+	bindPick(em.keyBaseType.Kind(), &em.keyPick)
 
 	// map 中的 value 可能是指针类型，需要拆包
-	se.em.itemBaseType = rfType.Elem()
-	se.em.itemBaseKind = se.em.itemBaseType.Kind()
-peelPtr:
-	if se.em.itemBaseKind == reflect.Pointer {
-		se.em.isPtr = true
-		se.em.itemBaseType = se.em.itemBaseType.Elem()
-		se.em.itemBaseKind = se.em.itemBaseType.Kind()
-		se.em.ptrLevel++
-		goto peelPtr
-	}
-	se.bindPick(se.em.itemBaseKind, &se.em.itemPick)
+	em.peelPtr(rfType)
+	bindPick(em.itemBaseKind, &em.itemPick)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (se *subEncode) bindPick(kind reflect.Kind, pick *encValFunc) {
+func bindPick(kind reflect.Kind, pick *encValFunc) {
 	switch kind {
 	case reflect.Int:
 		*pick = encInt[int]
@@ -256,9 +248,9 @@ func (se *subEncode) bindPick(kind reflect.Kind, pick *encValFunc) {
 	return
 }
 
-func (se *subEncode) bindStructPick() {
-	fLen := len(se.em.ss.FieldsAttr)
-	se.em.fieldsPick = make([]encValFunc, fLen)
+func (em *encMeta) bindStructPick() {
+	fLen := len(em.ss.FieldsAttr)
+	em.fieldsPick = make([]encValFunc, fLen)
 
 	i := -1
 nextField:
@@ -267,44 +259,44 @@ nextField:
 		return
 	}
 
-	switch se.em.ss.FieldsAttr[i].Kind {
+	switch em.ss.FieldsAttr[i].Kind {
 	case reflect.Int:
-		se.em.fieldsPick[i] = encInt[int]
+		em.fieldsPick[i] = encInt[int]
 	case reflect.Int8:
-		se.em.fieldsPick[i] = encInt[int8]
+		em.fieldsPick[i] = encInt[int8]
 	case reflect.Int16:
-		se.em.fieldsPick[i] = encInt[int16]
+		em.fieldsPick[i] = encInt[int16]
 	case reflect.Int32:
-		se.em.fieldsPick[i] = encInt[int32]
+		em.fieldsPick[i] = encInt[int32]
 	case reflect.Int64:
-		se.em.fieldsPick[i] = encInt[int64]
+		em.fieldsPick[i] = encInt[int64]
 	case reflect.Uint:
-		se.em.fieldsPick[i] = encUint[uint]
+		em.fieldsPick[i] = encUint[uint]
 	case reflect.Uint8:
-		se.em.fieldsPick[i] = encUint[uint8]
+		em.fieldsPick[i] = encUint[uint8]
 	case reflect.Uint16:
-		se.em.fieldsPick[i] = encUint[uint16]
+		em.fieldsPick[i] = encUint[uint16]
 	case reflect.Uint32:
-		se.em.fieldsPick[i] = encUint[uint32]
+		em.fieldsPick[i] = encUint[uint32]
 	case reflect.Uint64:
-		se.em.fieldsPick[i] = encUint[uint64]
+		em.fieldsPick[i] = encUint[uint64]
 	case reflect.Float32:
-		se.em.fieldsPick[i] = encFloat32
+		em.fieldsPick[i] = encFloat32
 	case reflect.Float64:
-		se.em.fieldsPick[i] = encFloat64
+		em.fieldsPick[i] = encFloat64
 
 	case reflect.String:
-		se.em.fieldsPick[i] = encString
+		em.fieldsPick[i] = encString
 	case reflect.Bool:
-		se.em.fieldsPick[i] = encBool
+		em.fieldsPick[i] = encBool
 
 	case reflect.Interface:
-		se.em.fieldsPick[i] = encAny
+		em.fieldsPick[i] = encAny
 	//case reflect.Pointer:
-	//	se.em.fieldsPick[i] = encPointer
+	//	em.fieldsPick[i] = encPointer
 
 	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-		se.em.fieldsPick[i] = encMixItem
+		em.fieldsPick[i] = encMixItem
 	default:
 		panic(errValueType)
 	}

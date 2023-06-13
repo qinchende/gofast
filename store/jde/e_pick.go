@@ -29,7 +29,11 @@ func (se *subEncode) encStart() {
 	} else if se.em.isStruct {
 		se.encStruct()
 	} else if se.em.isMap {
-		se.encMap()
+		if se.em.isSuperKV {
+			se.encMapKV()
+		} else {
+			// TODO: 非map[string]any需要encode
+		}
 	} else if se.em.isPtr {
 		se.encPointer()
 	} else {
@@ -153,61 +157,11 @@ func (se *subEncode) encStruct() {
 	*se.bf = bf
 }
 
-// map type value
-func (se *subEncode) encMap() {
-	bf := *se.bf
-
-	//itra := reflect.MakeMap(se.em.itemBaseType).MapRange()
-	//itra.Key()
-
-	theMap := *(*map[string]any)(se.srcPtr)
-	//keyIsStr := se.em.keyBaseType.Kind() == reflect.String
-
-	bf = append(bf, '{')
-	for k, v := range theMap {
-		bf = append(bf, '"')
-		//if keyIsStr {
-		bf = append(bf, k...)
-		//} else {
-		//	bf = se.em.keyPick(bf, unsafe.Pointer(&k), se.em.keyBaseType)
-		//}
-		bf = append(bf, "\":"...)
-
-		//v := theMap[k]
-
-		//ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
-		ptr := unsafe.Pointer(&v)
-		ptrCt := se.em.ptrLevel
-		if ptrCt == 0 {
-			goto encMapValue
-		}
-
-	peelPtr:
-		ptr = *(*unsafe.Pointer)(ptr)
-		if ptr == nil {
-			bf = append(bf, "null,"...)
-			continue
-		}
-		ptrCt--
-		if ptrCt > 0 {
-			goto peelPtr
-		}
-
-	encMapValue:
-		bf = se.em.itemPick(bf, ptr, se.em.itemBaseType)
-	}
-	if len(theMap) > 0 {
-		bf = bf[:len(bf)-1]
-	}
-	bf = append(bf, '}')
-	*se.bf = bf
-}
-
 // Use SubEncode to encode Mix Item Value
 // +++++++++++++++++++++++++++++++++++++++++++
 func encMixItem(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	se := subEncode{}
-	se.getMeta(typ, ptr)
+	se.getEncMeta(typ, ptr)
 	se.bf = &bf // Note: 此处产生了切片变量逃逸
 
 	se.encStart()
