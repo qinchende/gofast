@@ -44,11 +44,11 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kind reflect.Kind, rfTy
 // array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func arrItemPtr(sd *subDecode) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemBytes))
+	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 }
 
 func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemBytes))
+	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 
 	// 只有field字段为map或者slice的时候，值才可能是nil
 	if sd.dm.itemBaseKind == reflect.Map {
@@ -60,7 +60,7 @@ func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
 }
 
 func arrMixItemPtrDeep(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemBytes))
+	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemBaseKind, sd.dm.itemBaseType)
 }
 
@@ -75,7 +75,7 @@ func (sd *subDecode) resetArrLeftItems() {
 		dfValue = zeroValues[sd.dm.itemBaseKind]
 	}
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemBytes))) = dfValue
+		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemMemSize))) = dfValue
 	}
 }
 
@@ -286,17 +286,17 @@ func scanListMixValue(sd *subDecode) {
 	if sd.arrIdx == sh.Cap {
 		var oldMem = []byte{}
 		old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
-		old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemBytes, sh.Cap*sd.dm.itemBytes
+		old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemMemSize, sh.Cap*sd.dm.itemMemSize
 
 		// TODO: 需要有更高效的扩容算法
 		newLen := int(float64(sh.Cap)*1.6) + 4 // 一种简易的动态扩容算法
-		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemBytes, newLen*sd.dm.itemBytes)
-		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemBytes, newLen*sd.dm.itemBytes)
+		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemMemSize, newLen*sd.dm.itemMemSize)
+		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemMemSize, newLen*sd.dm.itemMemSize)
 
 		copy(*(*[]byte)(sd.dstPtr), oldMem)
 		sh.Len, sh.Cap = sd.arrIdx, newLen
 	}
-	ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*sd.dm.itemBytes))
+	ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 
 	switch sd.str[sd.scan] {
 	case '{', '[':
@@ -318,4 +318,11 @@ func scanListMixValue(sd *subDecode) {
 	}
 	sd.arrIdx++
 	sh.Len = sd.arrIdx
+}
+
+// pointer +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanPointerValue(sd *subDecode) {
+	ptr := getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemBaseKind, sd.dm.itemBaseType)
+	sd.scanSubDecode(sd.dm.itemBaseType, ptr)
 }

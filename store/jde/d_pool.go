@@ -14,13 +14,13 @@ var (
 	cachedDestMeta sync.Map // cached dest value meta info
 )
 
-func cacheSetMeta(typAddr *rt.TypeAgent, val *destMeta) {
+func cacheSetMeta(typAddr *rt.TypeAgent, val *decMeta) {
 	cachedDestMeta.Store(typAddr, val)
 }
 
-func cacheGetMeta(typAddr *rt.TypeAgent) *destMeta {
+func cacheGetMeta(typAddr *rt.TypeAgent) *decMeta {
 	if ret, ok := cachedDestMeta.Load(typAddr); ok {
-		return ret.(*destMeta)
+		return ret.(*decMeta)
 	}
 	return nil
 }

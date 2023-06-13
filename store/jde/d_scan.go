@@ -27,21 +27,31 @@ func (sd *subDecode) scanStart() (err errType) {
 		sd.scan++
 	}
 
-	switch sd.str[sd.scan] {
-	case '{':
-		if sd.dm.isSuperKV || sd.dm.isStruct {
-			sd.scanObject()
-		} else {
-			return errObject
-		}
-	case '[':
-		if sd.dm.isList {
+	if sd.dm.isList {
+		if sd.str[sd.scan] == '[' {
 			sd.scanList()
 		} else {
 			return errList
 		}
-	default:
-		sd.skipNull()
+	} else if sd.dm.isSuperKV || sd.dm.isStruct {
+		if sd.str[sd.scan] == '{' {
+			sd.scanObject()
+		} else {
+			return errObject
+		}
+	} else {
+		sd.dm.itemDec(sd)
+	}
+
+	// 必须判断：后面除了空字符，必能再有别的东西了
+	max := len(sd.str)
+	if sd.scan < max {
+		for isBlankChar[sd.str[sd.scan]] {
+			sd.scan++
+		}
+	}
+	if sd.scan != max {
+		err = errJson
 	}
 	return
 }
@@ -99,7 +109,7 @@ func (sd *subDecode) scanListItems() {
 		if sd.skipValue {
 			sd.skipOneValue()
 		} else {
-			sd.dm.listItemDec(sd)
+			sd.dm.itemDec(sd)
 			if sd.dm.isArray {
 				sd.arrIdx++
 				if sd.arrIdx >= sd.dm.arrLen {

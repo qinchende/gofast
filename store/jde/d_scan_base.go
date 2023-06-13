@@ -4,9 +4,11 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"math"
+	"reflect"
 	"unsafe"
 )
 
+// 解析成 int64 ，可以是正负整数
 func (sd *subDecode) scanIntValue() int {
 	pos := sd.scan
 	start := pos
@@ -37,6 +39,39 @@ over:
 	return start
 }
 
+func (sd *subDecode) scanIntMust() int {
+	max := len(sd.str)
+	pos := sd.scan
+	start := pos
+
+	c := sd.str[pos]
+	if c == '-' {
+		pos++
+		if pos == max {
+			goto over
+		}
+		c = sd.str[pos]
+	}
+	if c == '0' {
+		pos++
+		goto over
+	}
+	for {
+		if c < '0' || c > '9' {
+			break
+		}
+		pos++
+		if pos == max {
+			goto over
+		}
+		c = sd.str[pos]
+	}
+over:
+	sd.scan = pos
+	return start
+}
+
+// 解析成 uint64 ，只能是正整数
 func (sd *subDecode) scanUintValue() int {
 	pos := sd.scan
 	start := pos
@@ -63,7 +98,32 @@ over:
 	return start
 }
 
-// 匹配一个数值，对应于float类型
+func (sd *subDecode) scanUintMust() int {
+	max := len(sd.str)
+	pos := sd.scan
+	start := pos
+
+	c := sd.str[pos]
+	if c == '0' {
+		pos++
+		goto over
+	}
+	for {
+		if c < '0' || c > '9' {
+			break
+		}
+		pos++
+		if pos == max {
+			goto over
+		}
+		c = sd.str[pos]
+	}
+over:
+	sd.scan = pos
+	return start
+}
+
+// 匹配一个数值
 // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
 func (sd *subDecode) scanNumValue() int {
 	pos := sd.scan
@@ -106,7 +166,7 @@ loopNum:
 			}
 			needNum = true
 
-			c := sd.str[pos]
+			c = sd.str[pos]
 			if c == '-' || c == '+' {
 				pos++
 			}
@@ -137,6 +197,92 @@ over:
 		sd.skipNull()
 		return -1
 	}
+	return start
+}
+
+func (sd *subDecode) scanNumMust() int {
+	max := len(sd.str)
+	pos := sd.scan
+	start := pos
+	var hasDot, needNum bool
+
+	c := sd.str[pos]
+	if c == '-' {
+		pos++
+		if pos == max {
+			goto over
+		}
+		c = sd.str[pos]
+	}
+	// 0开头的数字，只能是：0 | 0.x | 0e | 0E
+	if c == '0' {
+		pos++
+		if pos == max {
+			goto over
+		}
+		c = sd.str[pos]
+
+		switch c {
+		case '.', 'e', 'E':
+			goto loopNum
+		default:
+			goto over
+		}
+	}
+	needNum = true
+
+loopNum:
+	for {
+		if pos == max {
+			goto over
+		}
+		c = sd.str[pos]
+		pos++
+
+		if c == '.' {
+			if hasDot == true {
+				panic(errNumberFmt)
+			}
+			hasDot = true
+			needNum = true
+		} else if c == 'e' || c == 'E' {
+			if needNum {
+				panic(errNumberFmt)
+			}
+			needNum = true
+
+			if pos == max {
+				goto over
+			}
+			c = sd.str[pos]
+			if c == '-' || c == '+' {
+				pos++
+			}
+			for {
+				if pos == max {
+					goto over
+				}
+				if c = sd.str[pos]; c < '0' || c > '9' {
+					break loopNum
+				} else {
+					needNum = false
+				}
+				pos++
+			}
+		} else if c < '0' || c > '9' {
+			pos--
+			break
+		} else {
+			needNum = false // 到这里，字符肯定是数字
+		}
+	}
+
+	if needNum {
+		panic(errNumberFmt)
+	}
+
+over:
+	sd.scan = pos
 	return start
 }
 
@@ -918,5 +1064,58 @@ func scanListAnyValue(sd *subDecode) {
 	default:
 		sd.skipNull()
 		sd.pl.bufAny = append(sd.pl.bufAny, nil)
+	}
+}
+
+// Dest is just a base type value
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanJustBaseValue(sd *subDecode) {
+	switch c := sd.str[sd.scan]; {
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			bindString(sd.dstPtr, sd.str[start:sd.unescapeEnd()])
+		} else {
+			bindString(sd.dstPtr, sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		// NOTE：只能是数值类型
+		switch sd.dm.itemBaseKind {
+		case reflect.Int:
+			bindInt(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+		case reflect.Int8:
+			bindInt8(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+		case reflect.Int16:
+			bindInt16(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+		case reflect.Int32:
+			bindInt32(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+		case reflect.Int64:
+			bindInt64(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+		case reflect.Uint:
+			bindUint(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+		case reflect.Uint8:
+			bindUint8(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+		case reflect.Uint16:
+			bindUint16(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+		case reflect.Uint32:
+			bindUint32(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+		case reflect.Uint64:
+			bindUint64(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+		case reflect.Float32:
+			bindFloat32(sd.dstPtr, lang.ParseFloat(sd.str[sd.scanNumMust():sd.scan]))
+		case reflect.Float64:
+			bindFloat64(sd.dstPtr, lang.ParseFloat(sd.str[sd.scanNumMust():sd.scan]))
+		default:
+			panic(errValueType)
+		}
+	case c == 't':
+		sd.skipTrue()
+		bindBool(sd.dstPtr, true)
+	case c == 'f':
+		sd.skipFalse()
+		bindBool(sd.dstPtr, false)
+	default:
+		sd.skipNull()
 	}
 }

@@ -23,8 +23,8 @@ func ExtractListType(dst any) (reflect.Type, reflect.Type, bool, bool) {
 		isPtr = true
 		recordType = recordType.Elem()
 	} else {
-		typName := recordType.Name()
-		if typName == "cst.KV" || typName == "KV" {
+		typStr := recordType.String()
+		if typStr == cst.StrTypeOfKV {
 			isKV = true
 		}
 	}
