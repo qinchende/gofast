@@ -51,23 +51,4 @@ type (
 		ItabPtr *GoItab
 		DataPtr unsafe.Pointer
 	}
-
-	//nolint:structcheck,unused
-	MapIter struct {
-		key         unsafe.Pointer
-		elem        unsafe.Pointer
-		t           unsafe.Pointer
-		h           unsafe.Pointer
-		buckets     unsafe.Pointer
-		bptr        unsafe.Pointer
-		overflow    unsafe.Pointer
-		oldoverflow unsafe.Pointer
-		startBucket uintptr
-		offset      uint8
-		wrapped     bool
-		B           uint8
-		i           uint8
-		bucket      uintptr
-		checkBucket uintptr
-	}
 )

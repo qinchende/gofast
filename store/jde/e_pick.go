@@ -32,7 +32,7 @@ func (se *subEncode) encStart() {
 		if se.em.isSuperKV {
 			se.encMapKV()
 		} else {
-			// TODO: 非map[string]any需要encode
+			se.encMapGeneral()
 		}
 	} else if se.em.isPtr {
 		se.encPointer()
@@ -45,7 +45,7 @@ func (se *subEncode) encStart() {
 // Basic type value
 func (se *subEncode) encBasic() {
 	bf := *se.bf
-	bf = se.em.itemPick(bf, se.srcPtr, se.em.itemBaseType)
+	bf = se.em.itemEnc(bf, se.srcPtr, se.em.itemType)
 	bf = bf[:len(bf)-1]
 	*se.bf = bf
 }
@@ -67,7 +67,7 @@ peelPtr:
 		goto peelPtr
 	}
 
-	bf = encMixItem(bf, ptr, se.em.itemBaseType)
+	bf = encMixItem(bf, ptr, se.em.itemType)
 
 finished:
 	bf = bf[:len(bf)-1]
@@ -79,7 +79,7 @@ func (se *subEncode) encList(size int) {
 	bf := *se.bf
 	bf = append(bf, '[')
 	for i := 0; i < size; i++ {
-		bf = se.em.itemPick(bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemMemSize)), se.em.itemBaseType)
+		bf = se.em.itemEnc(bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemRawSize)), se.em.itemType)
 	}
 	if size > 0 {
 		bf = bf[:len(bf)-1]
@@ -96,7 +96,7 @@ func (se *subEncode) encListPtr(size int) {
 	bf = append(bf, '[')
 	for i := 0; i < size; i++ {
 		ptrCt := ptrLevel
-		ptr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemMemSize))
+		ptr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
 
 	peelPtr:
 		ptr = *(*unsafe.Pointer)(ptr)
@@ -109,7 +109,7 @@ func (se *subEncode) encListPtr(size int) {
 			goto peelPtr
 		}
 
-		bf = se.em.itemPick(bf, ptr, se.em.itemBaseType)
+		bf = se.em.itemEnc(bf, ptr, se.em.itemType)
 	}
 	if size > 0 {
 		bf = bf[:len(bf)-1]
@@ -148,7 +148,7 @@ func (se *subEncode) encStruct() {
 		}
 
 	encObjValue:
-		bf = se.em.fieldsPick[i](bf, ptr, fls[i].Type)
+		bf = se.em.fieldsEnc[i](bf, ptr, fls[i].Type)
 	}
 	if size > 0 {
 		bf = bf[:len(bf)-1]
@@ -173,39 +173,41 @@ func encMixItem(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encInt[T constraints.Signed](bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	bf = append(bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
-	bf = append(bf, ',')
-	return bf
+	return append(bf, ',')
+}
+
+func encIntOnly[T constraints.Signed](bf []byte, ptr unsafe.Pointer) []byte {
+	return append(bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
 }
 
 func encUint[T constraints.Unsigned](bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	bf = append(bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
-	bf = append(bf, ',')
-	return bf
+	return append(bf, ',')
+}
+
+func encUintOnly[T constraints.Unsigned](bf []byte, ptr unsafe.Pointer) []byte {
+	return append(bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
 }
 
 func encFloat64(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	bf = append(bf, strconv.FormatFloat(*((*float64)(ptr)), 'g', -1, 64)...)
-	bf = append(bf, ',')
-	return bf
+	return append(bf, ',')
 }
 
 func encFloat32(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	bf = append(bf, strconv.FormatFloat(float64(*((*float32)(ptr))), 'g', -1, 32)...)
-	bf = append(bf, ',')
-	return bf
+	return append(bf, ',')
 }
 
 func encString(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	bf = append(bf, '"')
 	bf = append(bf, *((*string)(ptr))...)
-	bf = append(bf, "\","...)
-	return bf
+	return append(bf, "\","...)
 }
 
-//func encStringOnly(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-//	bf = append(bf, *((*string)(ptr))...)
-//	return bf
-//}
+func encStringOnly(bf []byte, ptr unsafe.Pointer) []byte {
+	return append(bf, *((*string)(ptr))...)
+}
 
 func encBool(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	if *((*bool)(ptr)) {
@@ -219,8 +221,8 @@ func encBool(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 func encAny(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	oldPtr := ptr
 
-	ei := (*rt.AFace)(ptr)
-	ptr = ei.DataPtr
+	//ei := (*rt.AFace)(ptr)
+	ptr = (*rt.AFace)(ptr).DataPtr
 	if ptr == nil {
 		bf = append(bf, "null,"...)
 		return bf

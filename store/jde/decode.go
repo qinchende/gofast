@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/iox"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
+	"io"
 	"reflect"
 	"unsafe"
 )
@@ -45,11 +48,10 @@ type (
 
 		// array & slice
 		// itemType reflect.Type
-		itemBaseType reflect.Type
-		itemBaseKind reflect.Kind
-		itemDec      decValFunc
-		// only array
-		itemMemSize int // 数组属性，item类型对应的内存字节大小
+		itemType    reflect.Type
+		itemKind    reflect.Kind
+		itemDec     decValFunc
+		itemRawSize int // 数组属性，item类型对应的内存字节大小
 		arrLen      int // 数组属性，数组长度
 
 		// status
@@ -57,13 +59,13 @@ type (
 		isGson    bool // {} gson
 		isMap     bool // {} map
 		isStruct  bool // {} struct
+		isList    bool // [] array & slice
+		isArray   bool // [] array
+		isArrBind bool // [] is array and item not pointer type
 
-		isList    bool  // [] array & slice
-		isAny     bool  // [] is list and item is interface type in the final
-		isPtr     bool  // [] is list and item is pointer type
-		ptrLevel  uint8 // [] is list and item pointer level
-		isArray   bool  // [] array
-		isArrBind bool  // [] is array and item not pointer type
+		isAny    bool  // [] is list and item is interface type in the final
+		isPtr    bool  // [] is list and item is pointer type
+		ptrLevel uint8 // [] is list and item pointer level
 	}
 )
 
@@ -74,6 +76,27 @@ func (sd *subDecode) reset() {
 	tp := sd.escPos
 	*sd = _subDecodeDefValues
 	sd.escPos = tp[0:0]
+}
+
+// private enter
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
+	// 一次性读取完成，或者遇到EOF标记或者其它错误
+	if ctSize > maxJsonStrLen {
+		ctSize = maxJsonStrLen
+	}
+	bytes, err1 := iox.ReadAll(reader, ctSize)
+	if err1 != nil {
+		return err1
+	}
+	return decodeFromString(dst, lang.BTS(bytes))
+}
+
+func decodeFromString(dst any, source string) (err error) {
+	if len(source) > maxJsonStrLen {
+		return errJsonTooLarge
+	}
+	return startDecode(dst, source)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -108,6 +131,27 @@ func startDecode(dst any, source string) (err error) {
 	return
 }
 
+func (sd *subDecode) initShareDecode(ptr unsafe.Pointer) {
+	if sd.share == nil {
+		sd.share = jdeDecPool.Get().(*subDecode)
+		sd.share.str = sd.str
+		sd.share.scan = sd.scan
+		sd.share.getDecMeta(sd.dm.itemType, ptr)
+		return
+	}
+
+	sd.share.scan = sd.scan
+	if sd.share.dm.isSuperKV {
+		if sd.share.dm.isGson {
+			sd.share.gr = (*gson.GsonRow)(ptr)
+		} else {
+			sd.share.mp = (*cst.KV)(ptr)
+		}
+	} else {
+		sd.share.dstPtr = ptr // 当前值的地址
+	}
+}
+
 // 包含有子subDecode时，就递归调用
 func (sd *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	if sd.share == nil {
@@ -129,27 +173,6 @@ func (sd *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 
 	sd.scan = sd.share.scan
 	sd.resetShareDecode()
-}
-
-func (sd *subDecode) readyListMixItemDec(ptr unsafe.Pointer) {
-	if sd.share == nil {
-		sd.share = jdeDecPool.Get().(*subDecode)
-		sd.share.str = sd.str
-		sd.share.scan = sd.scan
-		sd.share.getDecMeta(sd.dm.itemBaseType, ptr)
-		return
-	}
-
-	sd.share.scan = sd.scan
-	if sd.share.dm.isSuperKV {
-		if sd.share.dm.isGson {
-			sd.share.gr = (*gson.GsonRow)(ptr)
-		} else {
-			sd.share.mp = (*cst.KV)(ptr)
-		}
-	} else {
-		sd.share.dstPtr = ptr // 当前值的地址
-	}
 }
 
 func (sd *subDecode) resetShareDecode() {
@@ -220,17 +243,18 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 }
 
 func (dm *decMeta) peelPtr(rfType reflect.Type) {
-	dm.itemBaseType = rfType.Elem()
-	dm.itemBaseKind = dm.itemBaseType.Kind()
-	dm.itemMemSize = int(dm.itemBaseType.Size())
+	dm.itemType = rfType.Elem()
+	dm.itemKind = dm.itemType.Kind()
+	dm.itemRawSize = int(dm.itemType.Size())
 
 peelLoop:
-	if dm.itemBaseKind == reflect.Pointer {
+	if dm.itemKind == reflect.Pointer {
+		dm.itemType = dm.itemType.Elem()
+		dm.itemKind = dm.itemType.Kind()
+
 		dm.isPtr = true
-		dm.itemBaseType = dm.itemBaseType.Elem()
-		dm.itemBaseKind = dm.itemBaseType.Kind()
 		dm.ptrLevel++
-		// TODO：指针嵌套不能超过3层，这种很少见，也就是说此解码方案并不通用
+		// NOTE：指针嵌套不能超过3层，这种很少见，也就是说此解码方案并不通用
 		if dm.ptrLevel > 3 {
 			panic(errPtrLevel)
 		}
@@ -254,8 +278,8 @@ func (dm *decMeta) initStructMeta(rfType reflect.Type) {
 }
 
 func (dm *decMeta) initBaseValueMeta(rfType reflect.Type) {
-	dm.itemBaseType = rfType
-	dm.itemBaseKind = dm.itemBaseType.Kind()
+	dm.itemType = rfType
+	dm.itemKind = dm.itemType.Kind()
 	dm.itemDec = scanJustBaseValue
 }
 
@@ -264,7 +288,7 @@ func (dm *decMeta) initListMeta(rfType reflect.Type) {
 	dm.peelPtr(rfType)
 
 	// 是否是interface类型
-	if dm.itemBaseKind == reflect.Interface {
+	if dm.itemKind == reflect.Interface {
 		dm.isAny = true
 	}
 
@@ -275,7 +299,7 @@ func (dm *decMeta) initListMeta(rfType reflect.Type) {
 		if dm.isPtr {
 			return
 		}
-		dm.itemMemSize = int(dm.itemBaseType.Size())
+		dm.itemRawSize = int(dm.itemType.Size())
 		dm.isArrBind = true
 	}
 
@@ -391,7 +415,7 @@ nextField:
 func (dm *decMeta) bindListDec() {
 	// 如果是数组，而且数组项类型不是指针类型
 	if dm.isArrBind {
-		switch dm.itemBaseKind {
+		switch dm.itemKind {
 		case reflect.Int:
 			dm.itemDec = scanArrIntValue
 		case reflect.Int8:
@@ -430,7 +454,7 @@ func (dm *decMeta) bindListDec() {
 		return
 	}
 
-	switch dm.itemBaseKind {
+	switch dm.itemKind {
 	case reflect.Int:
 		dm.itemDec = scanListIntValue
 	case reflect.Int8:

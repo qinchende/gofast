@@ -44,7 +44,7 @@ type GoMap struct {
 	Extra      unsafe.Pointer
 }
 
-type GoMapIterator struct {
+type GoMapIter struct {
 	K           unsafe.Pointer
 	V           unsafe.Pointer
 	T           *GoMapType

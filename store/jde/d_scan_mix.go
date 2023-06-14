@@ -8,7 +8,7 @@ import (
 )
 
 // Note: 此函数只适合 object 的 field，List 的 item 为 指针类型 的情形。非指针不能调用此方法
-func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kind reflect.Kind, rfType reflect.Type) unsafe.Pointer {
+func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType reflect.Type) unsafe.Pointer {
 	for ptrLevel > 1 {
 		if *(*unsafe.Pointer)(ptr) == nil {
 			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
@@ -24,7 +24,7 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kind reflect.Kind, rfTy
 	if *(*unsafe.Pointer)(ptr) == nil {
 		var newPtr unsafe.Pointer
 
-		switch kind {
+		switch kd {
 		case reflect.Map:
 			newPtr = unsafe.Pointer(new(unsafe.Pointer))
 			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(rfType).UnsafePointer()
@@ -44,38 +44,38 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kind reflect.Kind, rfTy
 // array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func arrItemPtr(sd *subDecode) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
+	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemRawSize))
 }
 
 func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
+	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemRawSize))
 
 	// 只有field字段为map或者slice的时候，值才可能是nil
-	if sd.dm.itemBaseKind == reflect.Map {
+	if sd.dm.itemKind == reflect.Map {
 		if *(*unsafe.Pointer)(ptr) == nil {
-			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(sd.dm.itemBaseType).UnsafePointer()
+			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(sd.dm.itemType).UnsafePointer()
 		}
 	}
 	return ptr
 }
 
 func arrMixItemPtrDeep(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
-	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemBaseKind, sd.dm.itemBaseType)
+	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemRawSize))
+	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
 }
 
 func sliceMixItemPtr(sd *subDecode, ptr unsafe.Pointer) unsafe.Pointer {
-	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemBaseKind, sd.dm.itemBaseType)
+	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
 }
 
 // reset array left item
 func (sd *subDecode) resetArrLeftItems() {
 	var dfValue unsafe.Pointer
 	if !sd.dm.isPtr {
-		dfValue = zeroValues[sd.dm.itemBaseKind]
+		dfValue = zeroValues[sd.dm.itemKind]
 	}
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemMemSize))) = dfValue
+		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemRawSize))) = dfValue
 	}
 }
 
@@ -251,11 +251,11 @@ func scanArrMixValue(sd *subDecode) {
 	// TODO：在这里循环处理
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.readyListMixItemDec(arrMixItemPtr(sd))
+		sd.initShareDecode(arrMixItemPtr(sd))
 		sd.share.scanObject()
 		sd.scan = sd.share.scan
 	case c == '[':
-		sd.readyListMixItemDec(arrMixItemPtr(sd))
+		sd.initShareDecode(arrMixItemPtr(sd))
 		sd.share.scanList()
 		sd.scan = sd.share.scan
 	default:
@@ -267,11 +267,11 @@ func scanArrMixValue(sd *subDecode) {
 func scanArrPtrMixValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		sd.readyListMixItemDec(arrMixItemPtrDeep(sd))
+		sd.initShareDecode(arrMixItemPtrDeep(sd))
 		sd.share.scanObject()
 		sd.scan = sd.share.scan
 	case c == '[':
-		sd.readyListMixItemDec(arrMixItemPtrDeep(sd))
+		sd.initShareDecode(arrMixItemPtrDeep(sd))
 		sd.share.scanList()
 		sd.scan = sd.share.scan
 	default:
@@ -286,24 +286,24 @@ func scanListMixValue(sd *subDecode) {
 	if sd.arrIdx == sh.Cap {
 		var oldMem = []byte{}
 		old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
-		old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemMemSize, sh.Cap*sd.dm.itemMemSize
+		old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemRawSize, sh.Cap*sd.dm.itemRawSize
 
 		// TODO: 需要有更高效的扩容算法
 		newLen := int(float64(sh.Cap)*1.6) + 4 // 一种简易的动态扩容算法
-		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemMemSize, newLen*sd.dm.itemMemSize)
-		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemMemSize, newLen*sd.dm.itemMemSize)
+		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemRawSize, newLen*sd.dm.itemRawSize)
+		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, newLen*sd.dm.itemRawSize)
 
 		copy(*(*[]byte)(sd.dstPtr), oldMem)
 		sh.Len, sh.Cap = sd.arrIdx, newLen
 	}
-	ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*sd.dm.itemMemSize))
+	ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*sd.dm.itemRawSize))
 
 	switch sd.str[sd.scan] {
 	case '{', '[':
 		if sd.dm.isPtr {
 			ptr = sliceMixItemPtr(sd, ptr)
 		}
-		sd.readyListMixItemDec(ptr)
+		sd.initShareDecode(ptr)
 		if sd.share.dm.isList {
 			sd.share.scanList()
 		} else {
@@ -323,6 +323,6 @@ func scanListMixValue(sd *subDecode) {
 // pointer +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanPointerValue(sd *subDecode) {
-	ptr := getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemBaseKind, sd.dm.itemBaseType)
-	sd.scanSubDecode(sd.dm.itemBaseType, ptr)
+	ptr := getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
+	sd.scanSubDecode(sd.dm.itemType, ptr)
 }
