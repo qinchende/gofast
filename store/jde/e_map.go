@@ -38,8 +38,8 @@ func (se *subEncode) encMapGeneral() {
 	for mpIter.Next() {
 		ct++
 		bf = append(bf, '"')
-		key := mpIter.Key().Interface()
-		bf = se.em.keyEnc(bf, (*rt.AFace)(unsafe.Pointer(&key)).DataPtr)
+		key := mpIter.Key()
+		bf = se.em.keyEnc(bf, key.Addr().UnsafePointer())
 		bf = append(bf, "\":"...)
 
 		val := mpIter.Value().Interface()
