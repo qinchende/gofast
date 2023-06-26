@@ -61,7 +61,7 @@ func (sd *subDecode) flushListPool() {
 		return
 	}
 
-	switch sd.dm.itemBaseKind {
+	switch sd.dm.itemKind {
 	case reflect.Int:
 		flushCast[int, int64](sd, sd.pl.bufI64)
 	case reflect.Int8:

@@ -11,41 +11,40 @@ import (
 )
 
 type (
-	encValFunc func(bf []byte, ptr unsafe.Pointer, typ reflect.Type) (nbf []byte)
+	encKeyFunc func(bf *[]byte, ptr unsafe.Pointer)
+	encValFunc func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
 
 	subEncode struct {
 		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
 		em     *encMeta       // Struct | Slice,Array
 		bf     *[]byte        // 当解析数组时候用到的一系列临时队列
-		//mp     *cst.KV        // map
-		//gr     *gson.GsonRow  // GsonRow
 	}
 
 	encMeta struct {
 		// Struct
-		ss         *dts.StructSchema
-		fieldsPick []encValFunc
+		ss        *dts.StructSchema
+		fieldsEnc []encValFunc
 
 		// array & slice & map
-		itemBaseType reflect.Type
-		itemBaseKind reflect.Kind
-		itemPick     encValFunc
-		itemMemSize  int // item类型对应的内存字节大小
-		arrLen       int // 数组长度
+		itemType    reflect.Type
+		itemKind    reflect.Kind
+		itemEnc     encValFunc
+		itemRawSize int // item类型对应的内存字节大小
+		arrLen      int // 数组长度
 
 		// map
-		keyBaseType reflect.Type
-		keyPick     encValFunc
+		keyKind reflect.Kind
+		keyEnc  encKeyFunc
+		keySize uint32
 
 		// status
 		isSuperKV bool // {} SuperKV
 		isGson    bool // {} gson
 		isMap     bool // {} map
 		isStruct  bool // {} struct
+		isList    bool // [] array & slice
+		isArray   bool // [] array
 
-		//isAny    bool  // [] is list and item is interface type in the final
-		isList   bool  // [] array & slice
-		isArray  bool  // [] array
 		isPtr    bool  // [] is list and item is pointer type
 		ptrLevel uint8 // [] is list and item pointer level
 	}
@@ -118,22 +117,22 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 		em.initPointerMeta(rfType)
 	default:
 		// Others normal types
-		bindPick(kd, &em.itemPick)
+		bindPick(kd, &em.itemEnc)
 	}
 
 	return &em
 }
 
 func (em *encMeta) peelPtr(rfType reflect.Type) {
-	em.itemBaseType = rfType.Elem()
-	em.itemBaseKind = em.itemBaseType.Kind()
-	em.itemMemSize = int(em.itemBaseType.Size())
+	em.itemType = rfType.Elem()
+	em.itemKind = em.itemType.Kind()
+	em.itemRawSize = int(em.itemType.Size())
 
 peelLoop:
-	if em.itemBaseKind == reflect.Pointer {
+	if em.itemKind == reflect.Pointer {
 		em.isPtr = true
-		em.itemBaseType = em.itemBaseType.Elem()
-		em.itemBaseKind = em.itemBaseType.Kind()
+		em.itemType = em.itemType.Elem()
+		em.itemKind = em.itemType.Kind()
 		em.ptrLevel++
 		goto peelLoop
 	}
@@ -159,10 +158,10 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 		if em.isPtr {
 			return
 		}
-		em.itemMemSize = int(em.itemBaseType.Size())
+		em.itemRawSize = int(em.itemType.Size())
 	}
 
-	bindPick(em.itemBaseKind, &em.itemPick)
+	bindPick(em.itemKind, &em.itemEnc)
 }
 
 // ++++++++++++++++++++++++++++++ Struct
@@ -182,24 +181,23 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 	typStr := rfType.String()
 	if typStr == cst.StrTypeOfKV || typStr == cst.StrTypeOfStrAnyMap {
 		em.isSuperKV = true
-	} else {
-		panic(errMapType)
 	}
 
 	// Note: map 中的 key 只支持几种特定类型
-	em.keyBaseType = rfType.Key()
-	switch em.keyBaseType.Kind() {
+	em.keyKind = rfType.Key().Kind()
+	em.keySize = uint32(rfType.Key().Size())
+	switch em.keyKind {
 	case reflect.String,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 	default:
 		panic(errMapType)
 	}
-	bindPick(em.keyBaseType.Kind(), &em.keyPick)
+	bindMapKeyPick(em.keyKind, &em.keyEnc)
 
 	// map 中的 value 可能是指针类型，需要拆包
 	em.peelPtr(rfType)
-	bindPick(em.itemBaseKind, &em.itemPick)
+	bindPick(em.itemKind, &em.itemEnc)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -250,7 +248,7 @@ func bindPick(kind reflect.Kind, pick *encValFunc) {
 
 func (em *encMeta) bindStructPick() {
 	fLen := len(em.ss.FieldsAttr)
-	em.fieldsPick = make([]encValFunc, fLen)
+	em.fieldsEnc = make([]encValFunc, fLen)
 
 	i := -1
 nextField:
@@ -261,44 +259,78 @@ nextField:
 
 	switch em.ss.FieldsAttr[i].Kind {
 	case reflect.Int:
-		em.fieldsPick[i] = encInt[int]
+		em.fieldsEnc[i] = encInt[int]
 	case reflect.Int8:
-		em.fieldsPick[i] = encInt[int8]
+		em.fieldsEnc[i] = encInt[int8]
 	case reflect.Int16:
-		em.fieldsPick[i] = encInt[int16]
+		em.fieldsEnc[i] = encInt[int16]
 	case reflect.Int32:
-		em.fieldsPick[i] = encInt[int32]
+		em.fieldsEnc[i] = encInt[int32]
 	case reflect.Int64:
-		em.fieldsPick[i] = encInt[int64]
+		em.fieldsEnc[i] = encInt[int64]
 	case reflect.Uint:
-		em.fieldsPick[i] = encUint[uint]
+		em.fieldsEnc[i] = encUint[uint]
 	case reflect.Uint8:
-		em.fieldsPick[i] = encUint[uint8]
+		em.fieldsEnc[i] = encUint[uint8]
 	case reflect.Uint16:
-		em.fieldsPick[i] = encUint[uint16]
+		em.fieldsEnc[i] = encUint[uint16]
 	case reflect.Uint32:
-		em.fieldsPick[i] = encUint[uint32]
+		em.fieldsEnc[i] = encUint[uint32]
 	case reflect.Uint64:
-		em.fieldsPick[i] = encUint[uint64]
+		em.fieldsEnc[i] = encUint[uint64]
 	case reflect.Float32:
-		em.fieldsPick[i] = encFloat32
+		em.fieldsEnc[i] = encFloat32
 	case reflect.Float64:
-		em.fieldsPick[i] = encFloat64
+		em.fieldsEnc[i] = encFloat64
 
 	case reflect.String:
-		em.fieldsPick[i] = encString
+		em.fieldsEnc[i] = encString
 	case reflect.Bool:
-		em.fieldsPick[i] = encBool
+		em.fieldsEnc[i] = encBool
 
 	case reflect.Interface:
-		em.fieldsPick[i] = encAny
+		em.fieldsEnc[i] = encAny
 	//case reflect.Pointer:
-	//	em.fieldsPick[i] = encPointer
+	//	em.fieldsEnc[i] = encPointer
 
 	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-		em.fieldsPick[i] = encMixItem
+		em.fieldsEnc[i] = encMixItem
 	default:
 		panic(errValueType)
 	}
 	goto nextField
+}
+
+func bindMapKeyPick(kind reflect.Kind, pick *encKeyFunc) {
+	switch kind {
+	case reflect.Int:
+		*pick = encIntOnly[int]
+	case reflect.Int8:
+		*pick = encIntOnly[int8]
+	case reflect.Int16:
+		*pick = encIntOnly[int16]
+	case reflect.Int32:
+		*pick = encIntOnly[int32]
+	case reflect.Int64:
+		*pick = encIntOnly[int64]
+
+	case reflect.Uint:
+		*pick = encUintOnly[uint]
+	case reflect.Uint8:
+		*pick = encUintOnly[uint8]
+	case reflect.Uint16:
+		*pick = encUintOnly[uint16]
+	case reflect.Uint32:
+		*pick = encUintOnly[uint32]
+	case reflect.Uint64:
+		*pick = encUintOnly[uint64]
+	case reflect.Uintptr:
+		*pick = encUintOnly[uint64]
+
+	case reflect.String:
+		*pick = encStringOnly
+	default:
+		panic(errValueType)
+	}
+	return
 }

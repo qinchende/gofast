@@ -1,4 +1,4 @@
-package rt
+package test
 
 import (
 	"reflect"

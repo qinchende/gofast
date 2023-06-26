@@ -1081,7 +1081,7 @@ func scanJustBaseValue(sd *subDecode) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		// NOTE：只能是数值类型
-		switch sd.dm.itemBaseKind {
+		switch sd.dm.itemKind {
 		case reflect.Int:
 			bindInt(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
 		case reflect.Int8:
