@@ -11,8 +11,8 @@ import (
 )
 
 type (
-	encKeyFunc func(bf []byte, ptr unsafe.Pointer) (nbf []byte)
-	encValFunc func(bf []byte, ptr unsafe.Pointer, typ reflect.Type) (nbf []byte)
+	encKeyFunc func(bf *[]byte, ptr unsafe.Pointer)
+	encValFunc func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
 
 	subEncode struct {
 		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
@@ -33,8 +33,9 @@ type (
 		arrLen      int // 数组长度
 
 		// map
-		keyType reflect.Type
+		keyKind reflect.Kind
 		keyEnc  encKeyFunc
+		keySize uint32
 
 		// status
 		isSuperKV bool // {} SuperKV
@@ -48,8 +49,6 @@ type (
 		ptrLevel uint8 // [] is list and item pointer level
 	}
 )
-
-var mpIter *reflect.MapIter
 
 func startEncode(v any) (bs []byte, err error) {
 	if v == nil {
@@ -68,10 +67,6 @@ func startEncode(v any) (bs []byte, err error) {
 
 	se := subEncode{}
 	se.getEncMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
-	mpIter = reflect.ValueOf(v).Elem().MapRange()
-	//for mpIter.Next() {
-	//
-	//}
 	se.newBytesBuf()
 
 	se.encStart()
@@ -189,15 +184,16 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 	}
 
 	// Note: map 中的 key 只支持几种特定类型
-	em.keyType = rfType.Key()
-	switch em.keyType.Kind() {
+	em.keyKind = rfType.Key().Kind()
+	em.keySize = uint32(rfType.Key().Size())
+	switch em.keyKind {
 	case reflect.String,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
 	default:
 		panic(errMapType)
 	}
-	bindMapKeyPick(em.keyType.Kind(), &em.keyEnc)
+	bindMapKeyPick(em.keyKind, &em.keyEnc)
 
 	// map 中的 value 可能是指针类型，需要拆包
 	em.peelPtr(rfType)

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
@@ -59,7 +60,7 @@ func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
 	ct := scanSqlRowsOne(dest, sqlRows, ms, &gro)
 	if ct > 0 {
 		keyDel := key + "_del"
-		if cacheStr, _ := rds.Get(keyDel); cacheStr == "1" {
+		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
 		} else if jsonValBytes, err := jsonx.Marshal(gro.Row); err == nil {
 			_, _ = rds.Set(key, jsonValBytes, ms.ExpireDuration())
@@ -113,10 +114,10 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.ModelSchema, gro *gsonR
 		if gro != nil {
 			gro.hasValue = true
 			gro.Cls = ms.Columns()
-			gro.Row = make([]any, len(gro.Cls))
+			gro.Row = make([]gson.FValue, len(gro.Cls))
 
 			for idx, column := range gro.Cls {
-				gro.Row[idx] = ms.ValueByIndex(&dstVal, smColumns[column])
+				gro.GsonRow.SetByIndex(idx, ms.ValueByIndex(&dstVal, smColumns[column]))
 			}
 		}
 	default:

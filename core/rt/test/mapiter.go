@@ -1,13 +1,14 @@
-package rt
+package test
 
 //
 //import (
-//    "encoding"
-//    "reflect"
-//    "sync"
-//    "unsafe"
+//	"encoding"
+//	"github.com/qinchende/gofast/core/rt"
+//	"reflect"
+//	"sync"
+//	"unsafe"
 //
-//    "github.com/bytedance/sonic/internal/native"
+//	"github.com/bytedance/sonic/internal/native"
 //)
 //
 //type _MapPair struct {
@@ -17,8 +18,8 @@ package rt
 //}
 //
 //type _MapIterator struct {
-//	it GoMapIter // must be the first field
-//	kv GoSlice   // slice of _MapPair
+//	it rt.GoMapIter // must be the first field
+//	kv GoSlice      // slice of _MapPair
 //	ki int
 //}
 //
@@ -43,7 +44,7 @@ package rt
 //
 //func resetIterator(p *_MapIterator) *_MapIterator {
 //	p.ki = 0
-//	p.it = GoMapIter{}
+//	p.it = rt.GoMapIter{}
 //	p.kv.Len = 0
 //	return p
 //}
@@ -63,7 +64,7 @@ package rt
 //	return
 //}
 //
-//func (self *_MapIterator) append(t *GoType, k unsafe.Pointer, v unsafe.Pointer) (err error) {
+//func (self *_MapIterator) append(t *rt.GoType, k unsafe.Pointer, v unsafe.Pointer) (err error) {
 //	p := self.add()
 //	p.v = v
 //
@@ -77,7 +78,7 @@ package rt
 //	return nil
 //}
 //
-//func (self *_MapIterator) appendGeneric(p *_MapPair, t *GoType, v reflect.Kind, k unsafe.Pointer) error {
+//func (self *_MapIterator) appendGeneric(p *_MapPair, t *rt.GoType, v reflect.Kind, k unsafe.Pointer) error {
 //	switch v {
 //	case reflect.Int:
 //		p.k = Mem2Str(p.m[:native.I64toa(&p.m[0], int64(*(*int)(k)))])
@@ -121,12 +122,12 @@ package rt
 //	}
 //}
 //
-//func (self *_MapIterator) appendConcrete(p *_MapPair, t *GoType, k unsafe.Pointer) (err error) {
+//func (self *_MapIterator) appendConcrete(p *_MapPair, t *rt.GoType, k unsafe.Pointer) (err error) {
 //	// compiler has already checked that the type implements the encoding.MarshalText interface
 //	if !t.Indirect() {
 //		k = *(*unsafe.Pointer)(k)
 //	}
-//	eface := EFace{Value: k, Type: t}.Pack()
+//	eface := rt.EFace{Value: k, Type: t}.Pack()
 //	out, err := eface.(encoding.TextMarshaler).MarshalText()
 //	if err != nil {
 //		return err
@@ -135,7 +136,7 @@ package rt
 //	return
 //}
 //
-//func (self *_MapIterator) appendInterface(p *_MapPair, t *GoType, k unsafe.Pointer) (err error) {
+//func (self *_MapIterator) appendInterface(p *_MapPair, t *rt.GoType, k unsafe.Pointer) (err error) {
 //	if len(IfaceType(t).Methods) == 0 {
 //		panic("unexpected map key type")
 //	} else if p.k, err = asText(k); err == nil {
@@ -172,7 +173,7 @@ package rt
 //	p.ki++
 //}
 //
-//func iteratorStart(t *GoMapType, m *GoMap, fv uint64) (*_MapIterator, error) {
+//func iteratorStart(t *rt.GoMapType, m *rt.GoMap, fv uint64) (*_MapIterator, error) {
 //	it := newIterator()
 //	mapiterinit(t, m, &it.it)
 //

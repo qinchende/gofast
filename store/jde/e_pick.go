@@ -29,11 +29,7 @@ func (se *subEncode) encStart() {
 	} else if se.em.isStruct {
 		se.encStruct()
 	} else if se.em.isMap {
-		if se.em.isSuperKV {
-			se.encMapKV()
-		} else {
-			se.encMapGeneral()
-		}
+		se.encMap()
 	} else if se.em.isPtr {
 		se.encPointer()
 	} else {
@@ -44,56 +40,48 @@ func (se *subEncode) encStart() {
 // +++++++++++++++++++++++++++++++++++++++++++
 // Basic type value
 func (se *subEncode) encBasic() {
-	bf := *se.bf
-	bf = se.em.itemEnc(bf, se.srcPtr, se.em.itemType)
-	bf = bf[:len(bf)-1]
-	*se.bf = bf
+	se.em.itemEnc(se.bf, se.srcPtr, se.em.itemType)
+	*se.bf = (*se.bf)[:len(*se.bf)-1]
 }
 
 // Pointer type value
 func (se *subEncode) encPointer() {
-	bf := *se.bf
-
 	ptrCt := se.em.ptrLevel
 	ptr := se.srcPtr
+
 peelPtr:
 	ptr = *(*unsafe.Pointer)(ptr)
 	if ptr == nil {
-		bf = append(bf, "null,"...)
-		goto finished
+		*se.bf = append(*se.bf, nullBytes...)
+		return
 	}
 	ptrCt--
 	if ptrCt > 0 {
 		goto peelPtr
 	}
 
-	bf = encMixItem(bf, ptr, se.em.itemType)
-
-finished:
-	bf = bf[:len(bf)-1]
-	*se.bf = bf
+	encMixItem(se.bf, ptr, se.em.itemType)
+	*se.bf = (*se.bf)[:len(*se.bf)-1]
 }
 
 // List type value
 func (se *subEncode) encList(size int) {
-	bf := *se.bf
-	bf = append(bf, '[')
+	*se.bf = append(*se.bf, '[')
 	for i := 0; i < size; i++ {
-		bf = se.em.itemEnc(bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemRawSize)), se.em.itemType)
+		se.em.itemEnc(se.bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemRawSize)), se.em.itemType)
 	}
 	if size > 0 {
-		bf = bf[:len(bf)-1]
+		*se.bf = (*se.bf)[:len(*se.bf)-1]
 	}
-	bf = append(bf, ']')
-	*se.bf = bf
+	*se.bf = append(*se.bf, ']')
 }
 
 // List item is ptr
 func (se *subEncode) encListPtr(size int) {
-	bf := *se.bf
 	ptrLevel := se.em.ptrLevel
 
-	bf = append(bf, '[')
+	tp := *se.bf
+	tp = append(tp, '[')
 	for i := 0; i < size; i++ {
 		ptrCt := ptrLevel
 		ptr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
@@ -101,7 +89,7 @@ func (se *subEncode) encListPtr(size int) {
 	peelPtr:
 		ptr = *(*unsafe.Pointer)(ptr)
 		if ptr == nil {
-			bf = append(bf, "null,"...)
+			tp = append(tp, "null,"...)
 			continue
 		}
 		ptrCt--
@@ -109,26 +97,27 @@ func (se *subEncode) encListPtr(size int) {
 			goto peelPtr
 		}
 
-		bf = se.em.itemEnc(bf, ptr, se.em.itemType)
+		*se.bf = tp
+		se.em.itemEnc(se.bf, ptr, se.em.itemType)
+		tp = *se.bf
 	}
 	if size > 0 {
-		bf = bf[:len(bf)-1]
+		tp = tp[:len(tp)-1]
 	}
-	bf = append(bf, ']')
-	*se.bf = bf
+	*se.bf = append(tp, ']')
 }
 
 // Struct type value
 func (se *subEncode) encStruct() {
-	bf := *se.bf
 	fls := se.em.ss.FieldsAttr
 	size := len(fls)
 
-	bf = append(bf, '{')
+	tp := *se.bf
+	tp = append(tp, '{')
 	for i := 0; i < size; i++ {
-		bf = append(bf, '"')
-		bf = append(bf, se.em.ss.ColumnName(i)...)
-		bf = append(bf, "\":"...)
+		tp = append(tp, '"')
+		tp = append(tp, se.em.ss.ColumnName(i)...)
+		tp = append(tp, "\":"...)
 
 		ptr := unsafe.Pointer(uintptr(se.srcPtr) + fls[i].Offset)
 		ptrCt := fls[i].PtrLevel
@@ -139,7 +128,7 @@ func (se *subEncode) encStruct() {
 	peelPtr:
 		ptr = *(*unsafe.Pointer)(ptr)
 		if ptr == nil {
-			bf = append(bf, "null,"...)
+			tp = append(tp, "null,"...)
 			continue
 		}
 		ptrCt--
@@ -148,122 +137,120 @@ func (se *subEncode) encStruct() {
 		}
 
 	encObjValue:
-		bf = se.em.fieldsEnc[i](bf, ptr, fls[i].Type)
+		*se.bf = tp
+		se.em.fieldsEnc[i](se.bf, ptr, fls[i].Type)
+		tp = *se.bf
 	}
 	if size > 0 {
-		bf = bf[:len(bf)-1]
+		tp = tp[:len(tp)-1]
 	}
-	bf = append(bf, '}')
-	*se.bf = bf
+	*se.bf = append(tp, '}')
 }
 
 // Use SubEncode to encode Mix Item Value
 // +++++++++++++++++++++++++++++++++++++++++++
-func encMixItem(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+func encMixItem(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	se := subEncode{}
 	se.getEncMeta(typ, ptr)
-	se.bf = &bf // Note: 此处产生了切片变量逃逸
-
+	se.bf = bf
 	se.encStart()
-	*se.bf = append(*se.bf, ',')
-
-	return *se.bf
+	*bf = append(*se.bf, ',')
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encInt[T constraints.Signed](bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
-	return append(bf, ',')
+func encInt[T constraints.Signed](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	*bf = append(*bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
+	*bf = append(*bf, ',')
 }
 
-func encIntOnly[T constraints.Signed](bf []byte, ptr unsafe.Pointer) []byte {
-	return append(bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
+func encIntOnly[T constraints.Signed](bf *[]byte, ptr unsafe.Pointer) {
+	*bf = append(*bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
 }
 
-func encUint[T constraints.Unsigned](bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
-	return append(bf, ',')
+func encUint[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	*bf = append(*bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
+	*bf = append(*bf, ',')
 }
 
-func encUintOnly[T constraints.Unsigned](bf []byte, ptr unsafe.Pointer) []byte {
-	return append(bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
+func encUintOnly[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer) {
+	*bf = append(*bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
 }
 
-func encFloat64(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, strconv.FormatFloat(*((*float64)(ptr)), 'g', -1, 64)...)
-	return append(bf, ',')
+func encFloat64(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	*bf = append(*bf, strconv.FormatFloat(*((*float64)(ptr)), 'g', -1, 64)...)
+	*bf = append(*bf, ',')
 }
 
-func encFloat32(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, strconv.FormatFloat(float64(*((*float32)(ptr))), 'g', -1, 32)...)
-	return append(bf, ',')
+func encFloat32(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	*bf = append(*bf, strconv.FormatFloat(float64(*((*float32)(ptr))), 'g', -1, 32)...)
+	*bf = append(*bf, ',')
 }
 
-func encString(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, '"')
-	bf = append(bf, *((*string)(ptr))...)
-	return append(bf, "\","...)
+func encString(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	tp := *bf
+	tp = append(tp, '"')
+	tp = append(tp, *((*string)(ptr))...)
+	*bf = append(tp, "\","...)
 }
 
-func encStringOnly(bf []byte, ptr unsafe.Pointer) []byte {
-	return append(bf, *((*string)(ptr))...)
+func encStringOnly(bf *[]byte, ptr unsafe.Pointer) {
+	*bf = append(*bf, *((*string)(ptr))...)
 }
 
-func encBool(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+func encBool(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	if *((*bool)(ptr)) {
-		bf = append(bf, "true,"...)
+		*bf = append(*bf, "true,"...)
 	} else {
-		bf = append(bf, "false,"...)
+		*bf = append(*bf, "false,"...)
 	}
-	return bf
 }
 
-func encAny(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	oldPtr := ptr
 
 	//ei := (*rt.AFace)(ptr)
 	ptr = (*rt.AFace)(ptr).DataPtr
 	if ptr == nil {
-		bf = append(bf, "null,"...)
-		return bf
+		*bf = append(*bf, "null,"...)
+		return
 	}
 
 	switch (*((*any)(oldPtr))).(type) {
 
 	case int:
-		return encInt[int](bf, ptr, nil)
+		encInt[int](bf, ptr, nil)
 	case int8:
-		return encInt[int8](bf, ptr, nil)
+		encInt[int8](bf, ptr, nil)
 	case int16:
-		return encInt[int16](bf, ptr, nil)
+		encInt[int16](bf, ptr, nil)
 	case int32:
-		return encInt[int32](bf, ptr, nil)
+		encInt[int32](bf, ptr, nil)
 	case int64:
-		return encInt[int64](bf, ptr, nil)
+		encInt[int64](bf, ptr, nil)
 
 	case uint:
-		return encUint[uint](bf, ptr, nil)
+		encUint[uint](bf, ptr, nil)
 	case uint8:
-		return encUint[uint8](bf, ptr, nil)
+		encUint[uint8](bf, ptr, nil)
 	case uint16:
-		return encUint[uint16](bf, ptr, nil)
+		encUint[uint16](bf, ptr, nil)
 	case uint32:
-		return encUint[uint32](bf, ptr, nil)
+		encUint[uint32](bf, ptr, nil)
 	case uint64:
-		return encUint[uint64](bf, ptr, nil)
+		encUint[uint64](bf, ptr, nil)
 
 	case float32:
-		return encFloat32(bf, ptr, nil)
+		encFloat32(bf, ptr, nil)
 	case float64:
-		return encFloat64(bf, ptr, nil)
+		encFloat64(bf, ptr, nil)
 
 	case bool:
-		return encBool(bf, ptr, nil)
+		encBool(bf, ptr, nil)
 	case string:
-		return encString(bf, ptr, nil)
+		encString(bf, ptr, nil)
 
 	default:
-		return encMixItem(bf, ptr, reflect.TypeOf(*((*any)(oldPtr))))
+		encMixItem(bf, ptr, reflect.TypeOf(*((*any)(oldPtr))))
 		//return encMixItem(bf, ptr, ei.TypePtr)
 	}
 	//return bf

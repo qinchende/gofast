@@ -13,7 +13,7 @@ var (
 func (se *subEncode) newBytesBuf() {
 	if ret := jdeEncodeBufPool.Get(); ret != nil {
 		se.bf = ret.(*[]byte)
-		*se.bf = (*se.bf)[:0]
+		*se.bf = (*se.bf)[0:0]
 	} else {
 		bs := make([]byte, 0, defEncodeBufSize)
 		se.bf = &bs
