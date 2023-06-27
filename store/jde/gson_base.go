@@ -1,9 +1,10 @@
 package jde
 
-func DecodeGsonRows(v any, source string) error {
-	return decodeFromString(v, source)
+func DecodeGsonRowsFromBytes(v any, source []byte) error {
+	//return decodeFromString(v, source)
+	return nil
 }
 
 func DecodeGsonRowsFromString(v any, source string) error {
-	return decodeFromString(v, source)
+	return decGsonRowsFromString(v, source)
 }

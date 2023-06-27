@@ -68,6 +68,9 @@ func (sd *subDecode) scanIntMust() int {
 	}
 over:
 	sd.scan = pos
+	if start == pos {
+		panic(errNumberFmt)
+	}
 	return start
 }
 
@@ -120,6 +123,9 @@ func (sd *subDecode) scanUintMust() int {
 	}
 over:
 	sd.scan = pos
+	if start == pos {
+		panic(errNumberFmt)
+	}
 	return start
 }
 
@@ -283,6 +289,9 @@ loopNum:
 
 over:
 	sd.scan = pos
+	if start == pos {
+		panic(errNumberFmt)
+	}
 	return start
 }
 
