@@ -38,6 +38,7 @@ type (
 		fieldsIndex [][]int         // reflect fields index
 		fieldsOpts  []*fieldOptions // 字段的属性
 		FieldsAttr  []fieldAttr     // 对外公开的字段元数据
+		Attrs       structAttrs
 	}
 
 	stringsTips struct {
@@ -57,6 +58,11 @@ type (
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
+	}
+
+	structAttrs struct {
+		Type    reflect.Type
+		MemSize int
 	}
 )
 
@@ -88,6 +94,8 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 
 	// 构造ORM Model元数据
 	ss := StructSchema{}
+	ss.Attrs.Type = rTyp
+	ss.Attrs.MemSize = int(rTyp.Size())
 
 	// 收缩切片占用的空间，因为原slice可能有多余的cap
 	ss.columns = make([]string, len(fColumns))

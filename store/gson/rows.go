@@ -7,9 +7,15 @@ type GsonRows struct {
 	Rows [][]any
 }
 
-type GsonRowsSuper struct {
+type RowsRet struct {
+	Err  error
 	Ct   int64
 	Tt   int64
-	Cls  []string
-	Rows [][]FValue
+	Scan int
+}
+
+type RowsPet struct {
+	Ct     int64
+	Tt     int64
+	Target any
 }

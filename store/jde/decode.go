@@ -366,7 +366,12 @@ nextField:
 		case reflect.Interface:
 			dm.fieldsDec[i] = scanObjAnyValue
 		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-			dm.fieldsDec[i] = scanObjMixValue
+			// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
+			if dm.ss.FieldsAttr[i].Type.String() == gson.StrTypeOfRowsPet {
+				dm.fieldsDec[i] = scanObjGsonPet
+			} else {
+				dm.fieldsDec[i] = scanObjMixValue
+			}
 		default:
 			panic(errValueType)
 		}
