@@ -71,13 +71,16 @@ var errDescription = []string{
 }
 
 var (
-	errJsonTooLarge = errors.New("jde: string too large")
-	errValueType    = errors.New("jde: target value type error")
-	errValueMustPtr = errors.New("jde: target value must pointer type")
-	errValueIsNil   = errors.New("jde: target value is nil")
-	errEmptyJsonStr = errors.New("jde: empty of json string")
-	errPtrLevel     = errors.New("jde: target value is more than 3 layers of pointer")
-	errMapType      = errors.New("jde: can't support the map type")
+	errJsonTooLarge    = errors.New("jde: string too large")
+	errValueType       = errors.New("jde: target value type error")
+	errValueMustPtr    = errors.New("jde: target value must pointer type")
+	errValueMustSlice  = errors.New("jde: target value must slice type")
+	errValueMustStruct = errors.New("jde: target value must struct type")
+	errValueIsNil      = errors.New("jde: target value is nil")
+	errEmptyJsonStr    = errors.New("jde: empty of json string")
+	errJsonRowsStr     = errors.New("jde: wrong of GsonRows string")
+	errPtrLevel        = errors.New("jde: target value is more than 3 layers of pointer")
+	errMapType         = errors.New("jde: can't support the map type")
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

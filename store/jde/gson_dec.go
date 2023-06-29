@@ -4,82 +4,121 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/gson"
 	"reflect"
 	"runtime/debug"
+	"sync"
 	"unsafe"
 )
 
-type gsonDecode struct {
-	sd subDecode // 共享的subDecode，用来解析子对象
-	//dm *decMeta  // Struct | Slice,Array
+var (
+	grsDecPool     = sync.Pool{New: func() any { return &gsonRowsDecode{} }}
+	cachedGsonRows sync.Map
+)
 
-	//dstPtr unsafe.Pointer // 目标值dst的地址
-	//// 当前解析JSON的状态信息 ++++++
-	//str  string // 本段字符串
-	//scan int    // 自己的扫描进度，当解析错误时，这个就是定位
-	//
-	//keyIdx    int  // key index
-	//arrIdx int // list解析的数量
-	//skipValue bool // 跳过当前要解析的值
-
-	ct uint64
-	tt uint64
-
-	flsIdx []int8
+func cacheSetGsonRows(typAddr *rt.TypeAgent, val *decMeta) {
+	cachedGsonRows.Store(typAddr, val)
 }
 
-func decGsonRowsFromString(v any, str string) (err error) {
+func cacheGetGsonRows(typAddr *rt.TypeAgent) *decMeta {
+	if ret, ok := cachedGsonRows.Load(typAddr); ok {
+		return ret.(*decMeta)
+	}
+	return nil
+}
+
+type gsonRowsDecode struct {
+	sd subDecode // 共享的subDecode，用来解析子对象
+	ct int64     // 记录条数
+	tt int64     // 当前查询条件总记录数（用于分页）
+
+	fc     int       // 字段数量
+	flsIdx [128]int8 // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Struct Json 解析含有 GsonRows字段
+func scanObjGsonPet(sd *subDecode) {
+	pet := (*gson.RowsPet)(fieldPtr(sd))
+	ret := decGsonRows(pet.Target, sd.str[sd.scan:])
+	if ret.Err != nil {
+		panic(ret.Err)
+	}
+
+	pet.Ct = ret.Ct
+	pet.Tt = ret.Tt
+	sd.scan += ret.Scan
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func decGsonRows(v any, str string) (ret gson.RowsRet) {
 	defer func() {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
-				err = errors.New(fmt.Sprintf("error code: %d", code))
+				ret.Err = errors.New(fmt.Sprintf("error code: %d", code))
 			} else {
 				// 调试的时候打印错误信息
 				fmt.Printf("%s\n%s", pic, debug.Stack())
-				err = errors.New(fmt.Sprintf("other panic : %s", pic))
+				ret.Err = errors.New(fmt.Sprintf("other panic : %s", pic))
 			}
 		}
 	}()
 
-	dstTyp := reflect.TypeOf(v)
-	if dstTyp.Kind() != reflect.Pointer {
-		cst.PanicString("Target object must be pointer.")
-	}
-	sliceType := dstTyp.Elem()
-	if sliceType.Kind() != reflect.Slice {
-		cst.PanicString("Target object must be slice.")
+	af := (*rt.AFace)(unsafe.Pointer(&v))
+	var dm *decMeta
+
+	// check target object
+	if dm = cacheGetGsonRows(af.TypePtr); dm == nil {
+		// +++++++++++++ check type
+		dstTyp := reflect.TypeOf(v)
+		if dstTyp.Kind() != reflect.Pointer {
+			panic(errValueMustPtr)
+		}
+		sliceType := dstTyp.Elem()
+		if sliceType.Kind() != reflect.Slice {
+			panic(errValueMustSlice)
+		}
+		itemType := sliceType.Elem()
+		// TODO：只支持struct切片，而不是struct指针切片
+		if itemType.Kind() != reflect.Struct {
+			panic(errValueMustStruct)
+		}
+
+		typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&itemType)).DataPtr)
+		if dm = cacheGetMeta(typAddr); dm == nil {
+			dm = newDecodeMeta(itemType)
+			cacheSetMeta(typAddr, dm)
+		}
+		cacheSetGsonRows(af.TypePtr, dm)
 	}
 
-	var gd gsonDecode
-	itemType := sliceType.Elem()
-	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&itemType)).DataPtr)
-	if meta := cacheGetMeta(typAddr); meta != nil {
-		gd.sd.dm = meta
-	} else {
-		gd.sd.dm = newDecodeMeta(itemType)
-		cacheSetMeta(typAddr, gd.sd.dm)
-	}
-	gd.sd.str = str
+	// +++++++++++++++++++++++++++++++++++++++
+	// var grs gsonRowsDecode
+	grs := grsDecPool.Get().(*gsonRowsDecode)
 
-	ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
-	gd.sd.dstPtr = ptr
+	// init subDecode
+	sd := &grs.sd
+	sd.reset()
+	sd.dm = dm
+	sd.str = str
+	sd.dstPtr = af.DataPtr
+	grs.scanGsonRows()
 
-	gd.scanGsonRows()
-	return nil
+	ret.Ct = grs.ct
+	ret.Tt = grs.tt
+	ret.Scan = grs.sd.scan
+
+	grsDecPool.Put(grs)
+	return
 }
 
-func (gd *gsonDecode) scanGsonRows() {
-	//pls := jdeBufPool.Get().(*listPool)
-	gd.flsIdx = make([]int8, 0, 100)
-	sd := &gd.sd
+func (grs *gsonRowsDecode) scanGsonRows() {
+	sd := &grs.sd
 	sh := (*reflect.SliceHeader)(sd.dstPtr)
-	recordIdx := 0
-	newLen := 0
+	tpInt := 0
 
 	pos := sd.scan
-
 	for isBlankChar[sd.str[pos]] {
 		pos++
 	}
@@ -91,43 +130,30 @@ func (gd *gsonDecode) scanGsonRows() {
 	pos++
 
 	sd.scan = pos
-
-	// 0. Current count ++++++++++++++++++++++++++++++++++++++++
-	gd.ct = sd.scanJsonRowUint()
-	// 1. Total count  +++++++++++++++++++++++++++++++++++++++++
-	gd.tt = sd.scanJsonRowUint()
-
+	grs.ct = int64(sd.scanJsonRowUint()) // 0. Current count ++++++++++
+	grs.tt = int64(sd.scanJsonRowUint()) // 1. Total count  +++++++++++
 	pos = sd.scan
 
 	// 2. Struct fields ++++++++++++++++++++++++++++++++++++++++
-	c = sd.str[pos]
-	if c != '[' {
+	if sd.str[pos] != '[' {
 		goto errChar
 	}
 	pos++
 
 	for {
-		// 不用switch, 比较顺序相对比较明确
+		c = sd.str[pos]
 		if c == ',' {
 			pos++
 		} else if c == ']' {
 			pos++
 			break
-		} else if len(gd.flsIdx) > 0 {
+		} else if tpInt > 0 {
 			goto errChar
 		}
 
-		c = sd.str[pos]
-		for isBlankChar[c] {
-			pos++
-			c = sd.str[pos]
-		}
-
-		// scan field
-		if c != '"' {
+		if sd.str[pos] != '"' {
 			goto errChar
 		}
-
 		start := pos
 		sd.scan = pos
 		slash := sd.scanQuoteStr()
@@ -139,163 +165,106 @@ func (gd *gsonDecode) scanGsonRows() {
 		} else {
 			key = sd.str[start+1 : pos-1]
 		}
-		gd.flsIdx = append(gd.flsIdx, int8(sd.dm.ss.ColumnIndex(key)))
-
-		c = sd.str[pos]
-		for isBlankChar[c] {
-			pos++
-			c = sd.str[pos]
-		}
+		grs.flsIdx[tpInt] = int8(sd.dm.ss.ColumnIndex(key)) // 比对 column 名称
+		tpInt++
 	}
+	grs.fc = tpInt // 多少个有效字段
 
 	// 3. values +++++++++++++++++++++++++++++++++++++++++++++++
-	for isBlankChar[sd.str[pos]] {
-		pos++
+	if sd.str[pos] != ',' {
+		goto errChar
 	}
-	c = sd.str[pos]
-	if c != ',' {
+	pos++
+	if sd.str[pos] != '[' {
 		goto errChar
 	}
 	pos++
 
-	c = sd.str[pos]
-	if c != '[' {
-		goto errChar
-	}
-	pos++
-	for isBlankChar[sd.str[pos]] {
-		pos++
-	}
-
-	newLen = int(gd.ct)
-
-	if newLen > sh.Cap {
-		//var oldMem = []byte{}
-		//old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
-		//old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemRawSize, sh.Cap*sd.dm.itemRawSize
-
-		// TODO: 需要有更高效的扩容算法
-		//newLen := int(float64(sh.Cap)*1.6) + 4 // 一种简易的动态扩容算法
-		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemRawSize, newLen*sd.dm.itemRawSize)
-		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, newLen*sd.dm.itemRawSize)
-
-		//copy(*(*[]byte)(sd.dstPtr), oldMem)
-		sh.Len, sh.Cap = newLen, newLen
+	// 根据记录数量，初始化对象空间
+	tpInt = int(grs.ct)
+	if tpInt > sh.Cap {
+		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, tpInt*sd.dm.itemRawSize)
+		sh.Len, sh.Cap = tpInt, tpInt
+	} else {
+		sh.Len = tpInt
 	}
 
+	tpInt = 0
 	for {
-		// 不用switch, 比较顺序相对比较明确
-		if recordIdx > 0 && c == ',' {
-			pos++
-		} else if c == ']' {
-			sd.scan = pos + 1
-			return
-		}
-
 		c = sd.str[pos]
-		for isBlankChar[c] {
-			pos++
-			c = sd.str[pos]
-		}
-
-		// scan field
-		sd.scan = pos
-		sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(recordIdx*sd.dm.itemRawSize))
-		// TODO: slice index ptr
-		gd.scanJsonRowRecode()
-		recordIdx++
-		pos = sd.scan
-
-		c = sd.str[pos]
-		for isBlankChar[c] {
-			pos++
-			c = sd.str[pos]
-		}
-	}
-
-errChar:
-	sd.scan = pos
-	panic(errChar)
-}
-
-func (sd *subDecode) scanJsonRowUint() (ret uint64) {
-	pos := sd.scan
-
-	// 第一个整数
-	for isBlankChar[sd.str[pos]] {
-		pos++
-	}
-
-	sd.scan = pos
-	ret = lang.ParseUint(sd.str[sd.scanUintMust():sd.scan])
-	pos = sd.scan
-
-	for isBlankChar[sd.str[pos]] {
-		pos++
-	}
-
-	c := sd.str[pos]
-	if c != ',' {
-		goto errChar
-	}
-	pos++
-
-	sd.scan = pos
-	return
-
-errChar:
-	sd.scan = pos
-	panic(errChar)
-}
-
-func (gd *gsonDecode) scanJsonRowRecode() {
-	fc := 0
-	sd := &gd.sd
-
-	pos := sd.scan
-
-	c := sd.str[pos]
-	if c != '[' {
-		goto errChar
-	}
-	pos++
-
-	for {
-		// 不用switch, 比较顺序相对比较明确
 		if c == ',' {
 			pos++
 		} else if c == ']' {
-			sd.scan = pos + 1
+			pos++
+			goto finished
+		}
+
+		sd.scan = pos
+		sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(tpInt*sd.dm.itemRawSize))
+		//// 如果是指针，需要分配空间
+		//if sd.dm.isPtr {
+		//	sd.dstPtr = getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
+		//}
+		grs.scanJsonRowRecode()
+		pos = sd.scan
+
+		tpInt++
+	}
+
+errChar:
+	sd.scan = pos
+	panic(errChar)
+
+finished:
+	if sd.str[pos] != ']' {
+		goto errChar
+	}
+	pos++
+
+	// NOTE：结束的时候要讲后面的空字符排除掉
+	if pos < len(sd.str) {
+		for isBlankChar[sd.str[pos]] {
+			pos++
+		}
+	}
+	sd.scan = pos
+}
+
+func (grs *gsonRowsDecode) scanJsonRowRecode() {
+	sd := &grs.sd
+
+	if sd.str[sd.scan] != '[' {
+		panic(errChar)
+	}
+	sd.scan++
+
+	fc := 0
+	for {
+		if sd.str[sd.scan] == ',' {
+			sd.scan++
+		} else if sd.str[sd.scan] == ']' {
+			sd.scan++
 			return
 		} else if fc > 0 {
-			goto errChar
+			panic(errList)
 		}
 
-		c = sd.str[pos]
-		for isBlankChar[c] {
-			pos++
-			c = sd.str[pos]
-		}
-
-		// scan field
-		sd.keyIdx = int(gd.flsIdx[fc])
-		sd.scan = pos
-		if sd.keyIdx >= 0 {
+		sd.keyIdx = int(grs.flsIdx[fc])
+		if sd.keyIdx >= 0 && fc < grs.fc {
 			sd.dm.fieldsDec[sd.keyIdx](sd)
 		} else {
 			sd.skipOneValue()
 		}
-		pos = sd.scan
+
 		fc++
-
-		c = sd.str[pos]
-		for isBlankChar[c] {
-			pos++
-			c = sd.str[pos]
-		}
 	}
+}
 
-errChar:
-	sd.scan = pos
-	panic(errChar)
+func (sd *subDecode) scanJsonRowUint() (ret uint64) {
+	ret = lang.ParseUint(sd.str[sd.scanUintMust():sd.scan])
+	if sd.str[sd.scan] != ',' {
+		panic(errChar)
+	}
+	sd.scan++
+	return
 }
