@@ -168,6 +168,7 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 func (em *encMeta) initStructMeta(rfType reflect.Type) {
 	em.isStruct = true
 	em.ss = dts.SchemaForInputByType(rfType)
+	em.itemRawSize = int(rfType.Size())
 
 	em.bindStructPick()
 }

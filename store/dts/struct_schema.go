@@ -9,27 +9,14 @@ import (
 	"github.com/qinchende/gofast/skill/validx"
 	"math"
 	"reflect"
-	"sync"
 )
-
-// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
-var cachedStructSchemas sync.Map
-
-func cacheSetSchema(typ reflect.Type, val *StructSchema) {
-	cachedStructSchemas.Store(typ, val)
-}
-
-func cacheGetSchema(typ reflect.Type) *StructSchema {
-	if ret, ok := cachedStructSchemas.Load(typ); ok {
-		return ret.(*StructSchema)
-	}
-	return nil
-}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type (
 	StructSchema struct {
+		Attrs structAttrs
+
 		columns []string    // 按顺序存放的tag列名
 		fields  []string    // 按顺序存放的字段名
 		cTips   stringsTips // pms_name index
@@ -38,9 +25,15 @@ type (
 		fieldsIndex [][]int         // reflect fields index
 		fieldsOpts  []*fieldOptions // 字段的属性
 		FieldsAttr  []fieldAttr     // 对外公开的字段元数据
-		Attrs       structAttrs
 	}
 
+	// 基本信息
+	structAttrs struct {
+		Type    reflect.Type
+		MemSize int
+	}
+
+	// 所有字段按照长度从小到大排序，用于快速索引
 	stringsTips struct {
 		items  []string
 		idxes  []uint8
@@ -52,17 +45,13 @@ type (
 		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 
+	// 方便字段数据处理
 	fieldAttr struct {
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
 		Kind      reflect.Kind // 字段最终类型的Kind类型
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
-	}
-
-	structAttrs struct {
-		Type    reflect.Type
-		MemSize int
 	}
 )
 
