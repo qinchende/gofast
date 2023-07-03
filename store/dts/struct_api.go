@@ -5,6 +5,7 @@ package dts
 import (
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
+	"strings"
 )
 
 // fetch StructSchema
@@ -98,4 +99,30 @@ func (ss *StructSchema) ColumnName(idx int) string {
 
 func (ss *StructSchema) FieldName(idx int) string {
 	return ss.fields[idx]
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// for gson process
+func (ss *StructSchema) CTips() (string, []uint8) {
+	return strings.Join(ss.cTips.items, ","), ss.cTips.idxes
+}
+
+func (ss *StructSchema) FTips() (string, []uint8) {
+	return strings.Join(ss.fTips.items, ","), ss.fTips.idxes
+}
+
+func (ss *StructSchema) CIndexes(cls []string) (ret []uint8) {
+	ret = make([]uint8, len(cls))
+	for i := range cls {
+		ret[i] = uint8(ss.ColumnIndex(cls[i]))
+	}
+	return
+}
+
+func (ss *StructSchema) FIndexes(fls []string) (ret []uint8) {
+	ret = make([]uint8, len(fls))
+	for i := range fls {
+		ret[i] = uint8(ss.FieldIndex(fls[i]))
+	}
+	return
 }

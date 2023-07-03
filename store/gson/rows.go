@@ -7,15 +7,26 @@ type GsonRows struct {
 	Rows [][]any
 }
 
-type RowsRet struct {
+// 用来Decoder ++++++++++++++++
+// 当解码一个复合数据时，可以支持Gson片段
+type RowsDecPet struct {
+	Target any
+	Ct     int64
+	Tt     int64
+}
+
+// 解析GsonRows的返回结果
+type RowsDecRet struct {
 	Err  error
 	Ct   int64
 	Tt   int64
 	Scan int
 }
 
-type RowsPet struct {
-	Ct     int64
-	Tt     int64
-	Target any
+// 用来Encode ++++++++++++++++
+type RowsEncPet struct {
+	Target   any
+	Tt       int64
+	Fields   string
+	FlsIdxes []uint8
 }
