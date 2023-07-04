@@ -18,7 +18,7 @@ type webPools struct {
 
 func (wp *webPools) initWebPools(gft *GoFast) {
 	wp.myApp = gft
-	
+
 	wp.ctxPool.New = func() any {
 		return &Context{
 			myApp: wp.myApp,
@@ -26,14 +26,14 @@ func (wp *webPools) initWebPools(gft *GoFast) {
 			Req:   &httpx.RequestWrap{},
 		}
 	}
-	
+
 	wp.pmsPools = make([]*sync.Pool, wp.myApp.RoutesLen())
 	pms := wp.pmsPools
 	for i := range pms {
 		if routesAttrs[i] == nil {
 			continue
 		}
-		
+
 		pms[i] = &sync.Pool{}
 		pms[i].New = func() any {
 			return &gson.GsonRow{} // 存放请求数据的对象
@@ -62,7 +62,7 @@ func (c *Context) newPms() cst.SuperKV {
 			gr.Init(routesAttrs[c.RouteIdx].PmsFields)
 		} else {
 			for i := range gr.Row {
-				gr.Row[i] = nil // gr.Row reset value
+				gr.Row[i].Val = nil // gr.Row reset value
 			}
 		}
 		return gr // 如果Pms是GsonRow类型，从缓冲池中取出对象复用
