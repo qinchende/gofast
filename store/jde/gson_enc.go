@@ -29,7 +29,7 @@ func cacheGetGsonRowsEncMeta(typAddr *rt.TypeAgent) *encMeta {
 }
 
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encToGsonRowsString(pet gson.RowsEncPet) (bs []byte, err error) {
+func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	defer func() {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
@@ -67,14 +67,14 @@ func encToGsonRowsString(pet gson.RowsEncPet) (bs []byte, err error) {
 			em = newEncodeMeta(itemType)
 			cacheSetEncMeta(typAddr, em)
 		}
-		cacheSetEncMeta(af.TypePtr, em)
+		cacheSetGsonRowsEncMeta(af.TypePtr, em)
 	}
 
-	// 检查 pet 参数是否齐全
-	if pet.Fields == "" {
-		pet.Fields, pet.FlsIdxes = em.ss.CTips()
+	// 检查 pet 参数是否齐全，缺失就补齐
+	if len(pet.FlsStr) == 0 {
+		pet.FlsStr, pet.FlsIdxes = em.ss.CTips()
 	} else if len(pet.FlsIdxes) == 0 {
-		pet.FlsIdxes = em.ss.CIndexes(strings.Split(pet.Fields, ","))
+		pet.FlsIdxes = em.ss.CIndexes(strings.Split(pet.FlsStr, ","))
 	}
 
 	se := subEncode{}
@@ -105,9 +105,8 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 	tp = append(tp, ",["...)
 
 	// 2. 字段
-	tp = append(tp, pet.Fields...)
+	tp = append(tp, pet.FlsStr...)
 	tp = append(tp, "],["...)
-	*se.bf = tp
 
 	// 3. 记录值
 	flsSize := len(pet.FlsIdxes)
@@ -116,8 +115,7 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 	for i := 0; i < sh.Len; i++ {
 		se.srcPtr = unsafe.Pointer(sh.Data + uintptr(i*se.em.itemRawSize))
 
-		//tp := *se.bf
-		*se.bf = append(*se.bf, '[')
+		tp = append(tp, '[')
 		// 循环字段
 		for j := 0; j < flsSize; j++ {
 			idx := pet.FlsIdxes[j]
@@ -131,7 +129,7 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 		peelPtr:
 			ptr = *(*unsafe.Pointer)(ptr)
 			if ptr == nil {
-				*se.bf = append(*se.bf, "null,"...)
+				tp = append(tp, "null,"...)
 				continue
 			}
 			ptrCt--
@@ -140,17 +138,18 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 			}
 
 		encObjValue:
-			//*se.bf = tp
+			*se.bf = tp
 			se.em.fieldsEnc[idx](se.bf, ptr, fls[idx].Type)
-			//tp = *se.bf
+			tp = *se.bf
 		}
 		if flsSize > 0 {
-			*se.bf = (*se.bf)[:len(*se.bf)-1]
+			tp = tp[:len(tp)-1]
 		}
-		*se.bf = append(*se.bf, "],"...)
+		tp = append(tp, "],"...)
 	}
+
 	if sh.Len > 0 {
-		*se.bf = (*se.bf)[:len(*se.bf)-1]
+		tp = tp[:len(tp)-1]
 	}
-	*se.bf = append(*se.bf, ']')
+	*se.bf = append(tp, ']')
 }

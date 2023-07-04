@@ -101,8 +101,8 @@ func (ss *StructSchema) FieldName(idx int) string {
 	return ss.fields[idx]
 }
 
+// Gson
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// for gson process
 func (ss *StructSchema) CTips() (string, []uint8) {
 	return strings.Join(ss.cTips.items, ","), ss.cTips.idxes
 }

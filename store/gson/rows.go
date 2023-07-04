@@ -27,6 +27,6 @@ type RowsDecRet struct {
 type RowsEncPet struct {
 	Target   any
 	Tt       int64
-	Fields   string
+	FlsStr   string
 	FlsIdxes []uint8
 }

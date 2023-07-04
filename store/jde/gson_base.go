@@ -15,18 +15,18 @@ func DecodeGsonRowsFromString(v any, str string) gson.RowsDecRet {
 
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func EncodeGsonRows(v any) ([]byte, error) {
-	return encToGsonRowsString(gson.RowsEncPet{
+	return encGsonRows(gson.RowsEncPet{
 		Target: v,
 	})
 }
 
 func EncodeGsonRows2(v any, fls string) ([]byte, error) {
-	return encToGsonRowsString(gson.RowsEncPet{
+	return encGsonRows(gson.RowsEncPet{
 		Target: v,
-		Fields: fls,
+		FlsStr: fls,
 	})
 }
 
 func EncodeGsonRowsPet(pet gson.RowsEncPet) ([]byte, error) {
-	return encToGsonRowsString(pet)
+	return encGsonRows(pet)
 }
