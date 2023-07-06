@@ -129,7 +129,6 @@ func (ri *RouteItem) AfterMatch(hds ...CtxHandler) *RouteItem {
 }
 
 // RouteItemAttrs
-// +++++++++++++++++++
 func (ri *RouteItem) Attrs(ra RouteAttrs) *RouteItem {
 	ra.BindRoute(ri)
 	return ri
@@ -148,7 +147,6 @@ func (ris RouteItems) Attrs(ra RouteAttrs) RouteItems {
 	return ris
 }
 
-// +++++++++++++++++++
 func (ris RouteItems) Before(hds ...CtxHandler) RouteItems {
 	for i := range ris {
 		ris[i].regItemCtxHandler(EBefore, hds)

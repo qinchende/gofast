@@ -1,20 +1,23 @@
 package fst
 
-import "github.com/qinchende/gofast/skill/lang"
+import (
+	"github.com/qinchende/gofast/skill/lang"
+)
 
 type (
-	RAttrs struct {
-		RIndex    uint16   // 索引位置
-		PmsFields []string // 从结构体类型解析出的字段，需要排序
-		Handler   CtxHandler
+	RHandler struct {
+		RIndex    uint16     // 索引位置
+		PmsFields []string   // 从结构体类型解析出的字段，需要排序，相当于解析到 map
+		PmsNewer  func() any // 解析到具体的struct对象
+		Handler   CtxHandler // 处理函数
 	}
-	listAttrs []*RAttrs // 高级功能：每项路由可选配置，精准控制
+	listAttrs []*RHandler // 高级功能：每项路由可选配置，精准控制
 )
 
 var routesAttrs listAttrs // 所有配置项汇总
 
 // 添加一个路由属性对象
-func (ras *RAttrs) BindRoute(ri *RouteItem) {
+func (ras *RHandler) BindRoute(ri *RouteItem) {
 	if ri.Index() <= 0 && ras.Handler != nil {
 		ri.Handle(ras.Handler)
 	}
@@ -27,11 +30,11 @@ func (ras *RAttrs) BindRoute(ri *RouteItem) {
 }
 
 // 克隆对象
-func (ras *RAttrs) Clone() RouteAttrs {
+func (ras *RHandler) Clone() RouteAttrs {
 	fls := make([]string, len(ras.PmsFields))
 	copy(fls, ras.PmsFields)
 
-	clone := &RAttrs{
+	clone := &RHandler{
 		RIndex:    ras.RIndex,
 		PmsFields: fls,
 		Handler:   ras.Handler,
