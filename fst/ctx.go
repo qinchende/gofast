@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/fst/tips"
 	"sync"
 	"time"
-	"unsafe"
 )
 
 // Context is the most important part of GoFast. It allows us to pass variables between middleware,
@@ -27,9 +26,9 @@ type Context struct {
 	execIdx  int8         // 执行链的索引 不能大于 127 个
 	rendered bool         // 当前请求是否已经Render
 
-	Sess       SessionKeeper  // Session数据，数据存储部分可以自定义
-	Pms        cst.SuperKV    // 所有Request参数的KV（queryCache + formCache）一般用于构造model对象
-	PmsPtr     unsafe.Pointer // 参数 struct 的地址
+	Sess SessionKeeper // Session数据，数据存储部分可以自定义
+	Pms  cst.SuperKV   // 所有Request参数的KV（queryCache + formCache）一般用于构造model对象
+	//PmsPtr     unsafe.Pointer // 参数 struct 的地址
 	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
 	PanicPet   panicHandler   // 业务逻辑异常之后的处理
 }

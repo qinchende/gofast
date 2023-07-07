@@ -21,7 +21,7 @@ func SessBuilder(c *fst.Context) {
 	// 每个请求对应的SESSION对象都是新创建的，线程安全。
 	ss := new(CtxSession)
 	c.Sess = ss
-	ss.token, _ = c.GetString("tok")
+	ss.token, _ = c.GetString(PmsToken)
 
 	// 没有tok，赋予当前请求新的token，同时走后面的逻辑
 	if len(ss.token) < 50 {

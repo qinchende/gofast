@@ -1,15 +1,16 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 )
 
 type (
 	RHandler struct {
-		RIndex    uint16     // 索引位置
-		PmsFields []string   // 从结构体类型解析出的字段，需要排序，相当于解析到 map
-		PmsNewer  func() any // 解析到具体的struct对象
-		Handler   CtxHandler // 处理函数
+		RIndex    uint16             // 索引位置
+		PmsFields []string           // 从结构体类型解析出的字段，需要排序，相当于解析到 map
+		PmsNew    func() cst.SuperKV // 解析到具体的struct对象
+		Handler   CtxHandler         // 处理函数
 	}
 	listAttrs []*RHandler // 高级功能：每项路由可选配置，精准控制
 )
