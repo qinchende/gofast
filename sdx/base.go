@@ -2,4 +2,12 @@
 // Use of this source code is governed by a MIT license
 package sdx
 
-var NeedPms = []string{"tok"}
+const (
+	PmsToken = "tok"
+)
+
+var NeedPms = []string{PmsToken}
+
+type UsePms struct {
+	Tok string
+}
