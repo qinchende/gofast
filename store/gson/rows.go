@@ -1,5 +1,10 @@
 package gson
 
+// 编码示例：
+// [1,1,["name","account","age","login","mobile","tok"],[["b{m}c","bmcrmb",37,true,"1344466338783","t:Q0J44CM3R4dHhqWDZZM2944FbTZr"]]]
+// Note：
+// 1. 中间不含空格，其它特征符合JSON规范
+// 2. 第一项是当前包含记录数，第二项是记录总数（用于分页），第三项是数据字段名，第四项是二维数组，存放每条记录对应前面字段的数据。
 type GsonRows struct {
 	Ct   int64
 	Tt   int64

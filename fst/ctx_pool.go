@@ -30,7 +30,8 @@ func (wp *webPools) initWebPools(gft *GoFast) {
 	wp.pmsPools = make([]*sync.Pool, wp.myApp.RoutesLen())
 	pms := wp.pmsPools
 	for i := range pms {
-		if routesAttrs[i] == nil {
+		// 不需要用到缓存
+		if routesAttrs[i] == nil || routesAttrs[i].PmsNew != nil {
 			continue
 		}
 
@@ -54,7 +55,13 @@ func (wp *webPools) putContext(c *Context) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Pms Pool get
-func (c *Context) newPms() cst.SuperKV {
+func (c *Context) createPms() {
+	ra := routesAttrs[c.RouteIdx]
+	if ra.PmsNew != nil {
+		c.Pms = ra.PmsNew()
+		return
+	}
+
 	pmsPool := c.myApp.pools.pmsPools[c.RouteIdx]
 	if pmsPool != nil {
 		gr := pmsPool.Get().(*gson.GsonRow)
@@ -65,9 +72,9 @@ func (c *Context) newPms() cst.SuperKV {
 				gr.Row[i].Val = nil // gr.Row reset value
 			}
 		}
-		return gr // 如果Pms是GsonRow类型，从缓冲池中取出对象复用
+		c.Pms = gr // 如果Pms是GsonRow类型，从缓冲池中取出对象复用
 	}
-	return make(cst.KV) // 默认使用map类型保存KV值
+	c.Pms = make(cst.KV) // 默认使用map类型保存KV值
 }
 
 func (wp *webPools) putPms(c *Context) {
