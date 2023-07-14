@@ -230,7 +230,7 @@ func (gft *GoFast) BuildRoutes() {
 	})
 	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
 	gft.buildAllRoutes()
-	routesAttrs.Rebuild(gft.RoutesLen()) // 构建所有路由的全局属性配置
+	RebuildRHandlers(gft.RoutesLen()) // 构建所有路由的全局属性配置
 	gft.pools.initWebPools(gft)
 	gft.execAppHandlers(gft.eAfterBuildRoutesHds) // after build routes
 }

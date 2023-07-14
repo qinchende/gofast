@@ -19,10 +19,11 @@ func (c *Context) Bind(dst any) error {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // UrlParam returns the value of the URL param.
-//    app.Get("/user/:id", func(c *fst.Context) {
-//        // a GET request to /user/chende
-//        id := c.UrlParam("id") // id == "chende"
-//    })
+//
+//	app.Get("/user/:id", func(c *fst.Context) {
+//	    // a GET request to /user/chende
+//	    id := c.UrlParam("id") // id == "chende"
+//	})
 func (c *Context) UrlParam(key string) string {
 	return c.route.params.Value(key)
 }
@@ -75,7 +76,7 @@ func (c *Context) CollectPms() error {
 	if c.Pms != nil {
 		return nil
 	}
-	c.Pms = c.newPms() // 实现了 cst.SuperKV 的任何数据结构
+	c.createPms() // 实现了 cst.SuperKV 的任何数据结构
 
 	urlParsed := false
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)

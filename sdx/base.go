@@ -9,5 +9,5 @@ const (
 var NeedPms = []string{PmsToken}
 
 type UsePms struct {
-	Tok string
+	Tok string `v:"len=[0:128]"`
 }
