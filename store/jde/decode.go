@@ -35,7 +35,8 @@ type (
 		keyIdx int       // key index
 		arrIdx int       // list解析的数量
 
-		skipValue bool // 跳过当前要解析的值
+		skipValue   bool // 跳过当前要解析的值
+		isNeedValid bool // 在绑定到对象时，是否需要验证字段
 	}
 
 	decMeta struct {
@@ -96,7 +97,11 @@ func decodeFromString(dst any, source string) (err error) {
 	if len(source) > maxJsonStrLen {
 		return errJsonTooLarge
 	}
-	return startDecode(dst, source)
+	if sk, ok := dst.(*dts.StructKV); ok {
+		return startDecodeStructKV(sk, source)
+	} else {
+		return startDecode(dst, source)
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -128,6 +133,26 @@ func startDecode(dst any, source string) (err error) {
 	// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
 	sd.reset()
 	jdeDecPool.Put(sd)
+	return
+}
+
+func startDecodeStructKV(sk *dts.StructKV, source string) (err error) {
+	//sd := jdeDecPool.Get().(*subDecode)
+	//sd.str = source
+	//sd.scan = 0
+	//sd.dm.ss =
+	//sd.getDecMeta(sk., sk.Ptr)
+	//
+	//err = sd.warpErrorCode(sd.scanStart())
+	//
+	//if sd.share != nil {
+	//	sd.share.reset()
+	//	jdeDecPool.Put(sd.share)
+	//	sd.share = nil
+	//}
+	//// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
+	//sd.reset()
+	//jdeDecPool.Put(sd)
 	return
 }
 
