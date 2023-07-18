@@ -5,8 +5,10 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/httpx"
+	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"sync"
+	"unsafe"
 )
 
 // Request Context 中可能用到的 对象资源池，复用内存对象，避免更多的GC，提高性能。
@@ -62,9 +64,9 @@ func (c *Context) createPms() {
 		return
 	}
 
-	pmsPool := c.myApp.pools.pmsPools[c.RouteIdx]
-	if pmsPool != nil {
-		gr := pmsPool.Get().(*gson.GsonRow)
+	pp := c.myApp.pools.pmsPools[c.RouteIdx]
+	if pp != nil {
+		gr := pp.Get().(*gson.GsonRow)
 		if gr.Cls == nil {
 			gr.Init(routesAttrs[c.RouteIdx].PmsFields)
 		} else {
@@ -73,13 +75,19 @@ func (c *Context) createPms() {
 			}
 		}
 		c.Pms = gr // 如果Pms是GsonRow类型，从缓冲池中取出对象复用
+	} else {
+		c.Pms = make(cst.KV) // 默认使用map类型保存KV值
 	}
-	c.Pms = make(cst.KV) // 默认使用map类型保存KV值
 }
 
 func (wp *webPools) putPms(c *Context) {
-	pmsPool := c.myApp.pools.pmsPools[c.RouteIdx]
-	if pmsPool != nil {
-		pmsPool.Put(c.Pms)
+	pp := c.myApp.pools.pmsPools[c.RouteIdx]
+	if pp != nil {
+		pp.Put(c.Pms)
 	}
+}
+
+// 直接绑定struct对应的内存地址
+func (c *Context) PmsPointer() unsafe.Pointer {
+	return (c.Pms).(*dts.StructKV).Ptr
 }
