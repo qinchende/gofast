@@ -16,6 +16,7 @@ var (
 	errConvertValue  = errors.New("Value convert error")
 	errNumOutOfRange = errors.New("Number out of range")
 	errNumberFmt     = errors.New("Error number format")
+	errBoolFmt       = errors.New("Error bool string format")
 )
 
 func ToBool(v any) (b bool, err error) {

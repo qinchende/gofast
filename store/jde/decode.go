@@ -137,22 +137,21 @@ func startDecode(dst any, source string) (err error) {
 }
 
 func startDecodeStructKV(sk *dts.StructKV, source string) (err error) {
-	//sd := jdeDecPool.Get().(*subDecode)
-	//sd.str = source
-	//sd.scan = 0
-	//sd.dm.ss =
-	//sd.getDecMeta(sk., sk.Ptr)
-	//
-	//err = sd.warpErrorCode(sd.scanStart())
-	//
-	//if sd.share != nil {
-	//	sd.share.reset()
-	//	jdeDecPool.Put(sd.share)
-	//	sd.share = nil
-	//}
-	//// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
-	//sd.reset()
-	//jdeDecPool.Put(sd)
+	sd := jdeDecPool.Get().(*subDecode)
+	sd.str = source
+	sd.scan = 0
+	sd.getDecMeta(sk.SS.Attrs.Type, sk.Ptr)
+
+	err = sd.warpErrorCode(sd.scanStart())
+
+	if sd.share != nil {
+		sd.share.reset()
+		jdeDecPool.Put(sd.share)
+		sd.share = nil
+	}
+	// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
+	sd.reset()
+	jdeDecPool.Put(sd)
 	return
 }
 
