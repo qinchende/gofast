@@ -7,7 +7,8 @@ import (
 )
 
 var (
-	errNumOutOfRange = errors.New("dts: number out of range")
+	errNumOutOfRange  = errors.New("dts: number out of range")
+	errNotSupportType = errors.New("dts: can't support the value type")
 )
 
 // 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。

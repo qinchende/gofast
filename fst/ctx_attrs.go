@@ -30,15 +30,18 @@ func (ras *RHandler) BindRoute(ri *RouteItem) {
 
 // 克隆对象
 func (ras *RHandler) Clone() RouteAttrs {
-	fls := make([]string, len(ras.PmsFields))
-	copy(fls, ras.PmsFields)
+	//fls := make([]string, len(ras.PmsFields))
+	//copy(fls, ras.PmsFields)
+	//clone := &RHandler{
+	//	RIndex:    ras.RIndex,
+	//	PmsFields: ras.PmsFields,
+	//	PmsNew:    ras.PmsNew,
+	//	Handler:   ras.Handler,
+	//}
+	//return clone
 
-	clone := &RHandler{
-		RIndex:    ras.RIndex,
-		PmsFields: fls,
-		Handler:   ras.Handler,
-	}
-	return clone
+	clone := *ras
+	return &clone
 }
 
 // 构建所有路由的属性数组。没有指定的就用默认值填充。
