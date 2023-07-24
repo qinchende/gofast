@@ -144,14 +144,15 @@ func scanMapAnyValue(sd *subDecode, k string) {
 		start := sd.scan + 1
 		slash := sd.scanQuoteStr()
 		if slash {
-			sd.mp.Set(k, sd.str[start:sd.unescapeEnd()])
+			sd.mp.SetString(k, sd.str[start:sd.unescapeEnd()])
 		} else {
-			sd.mp.Set(k, sd.str[start:sd.scan-1])
+			sd.mp.SetString(k, sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			// 可以选项，不解析，直接返回字符串
 			sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
+			// 可以选项，不解析，直接返回字符串
+			//sd.mp.SetString(k, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()

@@ -93,7 +93,7 @@ func ParseMultipartForm(pms cst.SuperKV, r *http.Request, ct string, maxMemory i
 			// 流式数据解析结果就在MultipartForm
 			r.MultipartForm = fm
 			for k := range fm.Value {
-				pms.Set(k, fm.Value[k][0])
+				pms.SetString(k, fm.Value[k][0])
 			}
 		}
 	}

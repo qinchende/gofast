@@ -46,6 +46,6 @@ func ParseQuery(pms cst.SuperKV, query string) {
 			continue
 		}
 
-		pms.Set(key, value)
+		pms.SetString(key, value)
 	}
 }

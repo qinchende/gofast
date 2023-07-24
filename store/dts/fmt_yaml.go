@@ -1,6 +1,6 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package mapx
+package dts
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func BindYamlBytes(dst any, content []byte, like int8) error {
-	return BindYamlBytesX(dst, content, matchOptions(like))
+	return BindYamlBytesX(dst, content, AsOptions(like))
 }
 
 func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
@@ -29,7 +29,7 @@ func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
 }
 
 func BindYamlReader(dst any, reader io.Reader, like int8) error {
-	return BindYamlReaderX(dst, reader, matchOptions(like))
+	return BindYamlReaderX(dst, reader, AsOptions(like))
 }
 
 func BindYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {

@@ -1,14 +1,10 @@
-// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
-package mapx
+package dts
 
-import (
-	"github.com/qinchende/gofast/cst"
-)
+import "github.com/qinchende/gofast/cst"
 
 // NOTE(Important): 下面API中的第一个参数dst，最好都是指针类型，避免将来发生值拷贝
 func BindKV(dst any, kvs cst.SuperKV, like int8) error {
-	return bindKVToStruct(dst, kvs, matchOptions(like))
+	return bindKVToStruct(dst, kvs, AsOptions(like))
 }
 
 func BindKVX(dst any, kvs cst.KV, opts *BindOptions) error {
@@ -17,7 +13,7 @@ func BindKVX(dst any, kvs cst.KV, opts *BindOptions) error {
 
 func BindSlice(dst any, src any, like int8) error {
 	fOpt := &fieldOptions{}
-	return bindList(dst, src, fOpt, matchOptions(like))
+	return bindList(dst, src, fOpt, AsOptions(like))
 }
 func BindSliceX(dst any, src any, opts *BindOptions) error {
 	fOpt := &fieldOptions{}
@@ -26,7 +22,7 @@ func BindSliceX(dst any, src any, opts *BindOptions) error {
 
 // 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Optimize(dst any, like int8) error {
-	return optimizeStruct(dst, matchOptions(like))
+	return optimizeStruct(dst, AsOptions(like))
 
 }
 func OptimizeX(dst any, opts *BindOptions) error {
@@ -36,6 +32,6 @@ func OptimizeX(dst any, opts *BindOptions) error {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取对象的字段的column名
 func Columns(obj any, like int8) []string {
-	sm := Schema(obj, matchOptions(like))
+	sm := Schema(obj, AsOptions(like))
 	return sm.columns
 }

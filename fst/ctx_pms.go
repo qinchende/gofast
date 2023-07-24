@@ -40,11 +40,11 @@ func (c *Context) UrlParamOk(key string) (string, bool) {
 // 标准库解法
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析 Url 中的参数
-func (c *Context) QueryValues() cst.KV {
+func (c *Context) QueryValues() cst.WebKV {
 	// 单独调用这个还是会解析一下Get请求中携带的URL参数，即使ParseForm已解析了一次URL参数
 	val := c.queryCache()
 	if val == nil {
-		val = make(cst.KV)
+		val = make(cst.WebKV)
 		httpx.ParseQuery(val, c.Req.Raw.URL.RawQuery)
 		if c.myApp.WebConfig.CacheQueryValues {
 			c.setQueryCache(val)
@@ -97,7 +97,7 @@ func (c *Context) CollectPms() error {
 		if c.myApp.WebConfig.CacheQueryValues {
 			kvs := c.QueryValues()
 			for key := range kvs {
-				c.Pms.Set(key, kvs[key])
+				c.Pms.SetString(key, kvs[key])
 			}
 		} else {
 			httpx.ParseQuery(c.Pms, c.Req.Raw.URL.RawQuery)
@@ -108,7 +108,7 @@ func (c *Context) CollectPms() error {
 	if c.myApp.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
 		kvs := *c.route.params
 		for i := range kvs {
-			c.Pms.Set(kvs[i].Key, kvs[i].Value)
+			c.Pms.SetString(kvs[i].Key, kvs[i].Value)
 		}
 	}
 

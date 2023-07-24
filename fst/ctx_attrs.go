@@ -30,16 +30,6 @@ func (ras *RHandler) BindRoute(ri *RouteItem) {
 
 // 克隆对象
 func (ras *RHandler) Clone() RouteAttrs {
-	//fls := make([]string, len(ras.PmsFields))
-	//copy(fls, ras.PmsFields)
-	//clone := &RHandler{
-	//	RIndex:    ras.RIndex,
-	//	PmsFields: ras.PmsFields,
-	//	PmsNew:    ras.PmsNew,
-	//	Handler:   ras.Handler,
-	//}
-	//return clone
-
 	clone := *ras
 	return &clone
 }

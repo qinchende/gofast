@@ -1,6 +1,6 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package mapx
+package dts
 
 import (
 	"errors"
@@ -47,5 +47,26 @@ func checkDestSchema(dest any, bindOpts *BindOptions) (*reflect.Value, *StructSc
 		return nil, nil, fmt.Errorf("%T not like struct.", dest)
 	}
 
-	return &dstVal, SchemaOfType(dstVal.Type(), bindOpts), nil
+	return &dstVal, SchemaByType(dstVal.Type(), bindOpts), nil
+}
+
+func isInitialValue(dst reflect.Value) bool {
+	switch dst.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return dst.Int() == 0
+	case reflect.Float64, reflect.Float32:
+		return dst.Float() == 0
+	case reflect.String:
+		return dst.String() == ""
+	}
+	return false
+}
+
+func sdxAsString(src any) string {
+	return ""
+}
+
+func sdxSetValue(dstVal reflect.Value, src any, fOpt *fieldOptions, bindOpts *BindOptions) error {
+	return nil
 }
