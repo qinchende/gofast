@@ -1,6 +1,6 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package mapx
+package dts
 
 import (
 	"github.com/qinchende/gofast/skill/jsonx"
@@ -9,7 +9,7 @@ import (
 
 // +++ JSON Bytes
 func BindJsonBytes(dst any, content []byte, like int8) error {
-	return BindJsonBytesX(dst, content, matchOptions(like))
+	return BindJsonBytesX(dst, content, AsOptions(like))
 }
 
 func BindJsonBytesX(dst any, content []byte, opts *BindOptions) error {
@@ -22,7 +22,7 @@ func BindJsonBytesX(dst any, content []byte, opts *BindOptions) error {
 
 // +++ JSON Reader
 func BindJsonReader(dst any, reader io.Reader, like int8) error {
-	return BindJsonReaderX(dst, reader, matchOptions(like))
+	return BindJsonReaderX(dst, reader, AsOptions(like))
 }
 
 func BindJsonReaderX(dst any, reader io.Reader, opts *BindOptions) error {

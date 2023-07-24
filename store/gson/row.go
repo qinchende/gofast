@@ -16,6 +16,14 @@ type GsonRow struct {
 
 // TODO: 在这种模式下，GsonRow中的Cls必须是已经按照字符串长度从小到大排好序的
 // 实现接口 cst.SuperKV
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (gr *GsonRow) Set(k string, v any) {
+	idx := lang.SearchSorted(gr.Cls, k)
+	if idx >= 0 {
+		gr.Row[idx].Val = v
+	}
+}
+
 func (gr *GsonRow) Get(k string) (v any, ok bool) {
 	idx := lang.SearchSorted(gr.Cls, k)
 	if idx < 0 {
@@ -31,27 +39,17 @@ func (gr *GsonRow) Del(k string) {
 	}
 }
 
-func (gr *GsonRow) Set(k string, v any) {
-	idx := lang.SearchSorted(gr.Cls, k)
-	if idx >= 0 {
-		gr.Row[idx].Val = v
-	}
-}
-
 func (gr *GsonRow) Len() int {
 	return len(gr.Cls)
 }
 
-// GsonRow 特有的高级功能 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 初始化内存空间
-func (gr *GsonRow) Init(cls []string) {
-	gr.Cls = cls
-	gr.Row = make([]FValue, gr.Len())
-	//gr.values = make([]string, gr.Len())
-}
-
-func (gr *GsonRow) KeyIndex(k string) int {
-	return lang.SearchSorted(gr.Cls, k)
+// 绕一圈，主要是为了避免对象分配，提高性能。
+func (gr *GsonRow) SetString(k string, v string) {
+	idx := lang.SearchSorted(gr.Cls, k)
+	if idx >= 0 {
+		gr.Row[idx].str = v
+		gr.Row[idx].Val = &gr.Row[idx].str
+	}
 }
 
 func (gr *GsonRow) GetString(k string) (v string, ok bool) {
@@ -64,6 +62,18 @@ func (gr *GsonRow) GetString(k string) (v string, ok bool) {
 		return gr.Row[idx].Val.(string), true
 	}
 	return "", false
+}
+
+// GsonRow 特有的高级功能 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 初始化内存空间
+func (gr *GsonRow) Init(cls []string) {
+	gr.Cls = cls
+	gr.Row = make([]FValue, gr.Len())
+	//gr.values = make([]string, gr.Len())
+}
+
+func (gr *GsonRow) KeyIndex(k string) int {
+	return lang.SearchSorted(gr.Cls, k)
 }
 
 func (gr *GsonRow) GetKeyByIndex(idx int) string {
@@ -80,13 +90,11 @@ func (gr *GsonRow) GetValue(idx int) any {
 	return gr.Row[idx].Val
 }
 
-// 绕一圈，主要是为了避免对象分配，提高性能。
-func (gr *GsonRow) SetString(k string, v string) {
-	idx := lang.SearchSorted(gr.Cls, k)
-	if idx >= 0 {
-		gr.Row[idx].str = v
-		gr.Row[idx].Val = &gr.Row[idx].str
+func (gr *GsonRow) SetByIndex(idx int, v any) {
+	if idx < 0 || idx > gr.Len() {
+		return
 	}
+	gr.Row[idx].Val = v
 }
 
 func (gr *GsonRow) SetStringByIndex(idx int, v string) {
@@ -95,13 +103,6 @@ func (gr *GsonRow) SetStringByIndex(idx int, v string) {
 	}
 	gr.Row[idx].str = v
 	gr.Row[idx].Val = &gr.Row[idx].str
-}
-
-func (gr *GsonRow) SetByIndex(idx int, v any) {
-	if idx < 0 || idx > gr.Len() {
-		return
-	}
-	gr.Row[idx].Val = v
 }
 
 //// GsonField Data Type

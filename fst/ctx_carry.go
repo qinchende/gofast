@@ -52,7 +52,7 @@ func (c *Context) CarryMsgItems() tips.CarryList {
 //	return it.Meta.(url.Values)
 //}
 
-func (c *Context) setQueryCache(val cst.KV) {
+func (c *Context) setQueryCache(val cst.WebKV) {
 	c.checkCarrySize()
 	queryItem := &tips.CarryItem{
 		Type: carryTypeQueryCache,
@@ -61,12 +61,12 @@ func (c *Context) setQueryCache(val cst.KV) {
 	}
 	c.CarryItems = append(c.CarryItems, queryItem)
 }
-func (c *Context) queryCache() cst.KV {
+func (c *Context) queryCache() cst.WebKV {
 	it := c.CarryItems.FirstOne(carryTypeQueryCache)
 	if it == nil {
 		return nil
 	}
-	return it.Meta.(cst.KV)
+	return it.Meta.(cst.WebKV)
 }
 
 // 控制context.CarryList的长度，这个结构要通过sync.Pool复用，内存占用会只增不减

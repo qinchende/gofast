@@ -6,15 +6,19 @@ import (
 	"unsafe"
 )
 
+// +++ gofast/cst/SuperKV
+//// 可能用map，也可能自定义数组等合适的数据结构存取。
+//// 比如上下文中用来保存解析到的请求数据，主要是KV形式
 //type SuperKV interface {
-//	Get(k string) (any, bool)
 //	Set(k string, v any)
+//	Get(k string) (any, bool)
 //	Del(k string)
 //	Len() int
-//	//GetString(k string) (string, bool)
-//	//SetString(k string, v string)
+//	SetString(k string, v string)
+//	GetString(k string) (string, bool)
 //}
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type StructKV struct {
 	SS  *StructSchema
 	Ptr unsafe.Pointer
@@ -74,6 +78,12 @@ func (skv *StructKV) Get(k string) (v any, tf bool) {
 	return
 }
 
+func (skv *StructKV) GetString(k string) (v string, tf bool) {
+	tmp, tf := skv.Get(k)
+	v = tmp.(string)
+	return
+}
+
 func (skv *StructKV) Set(k string, v any) {
 	idx := skv.SS.ColumnIndex(k)
 	p := unsafe.Pointer(uintptr(skv.Ptr) + skv.SS.FieldsAttr[idx].Offset)
@@ -118,6 +128,10 @@ func (skv *StructKV) Set(k string, v any) {
 	default:
 		panic(errNotSupportType)
 	}
+}
+
+func (skv *StructKV) SetString(k string, v string) {
+	skv.Set(k, v)
 }
 
 func (skv *StructKV) Del(k string) {
