@@ -9,6 +9,7 @@ import (
 	"github.com/qinchende/gofast/skill/validx"
 	"math"
 	"reflect"
+	"unsafe"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -45,6 +46,9 @@ type (
 		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 
+	// 给字段绑定值
+	fieldBinder func(p unsafe.Pointer, v any)
+
 	// 方便字段数据处理
 	fieldAttr struct {
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
@@ -52,6 +56,7 @@ type (
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
+		binder    fieldBinder  // 绑定函数
 	}
 )
 

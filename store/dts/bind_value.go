@@ -1,6 +1,7 @@
 package dts
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"math"
 	"unsafe"
 )
@@ -88,6 +89,45 @@ func BindBool(p unsafe.Pointer, v bool) {
 
 func BindAny(p unsafe.Pointer, v any) {
 	*(*any)(p) = v
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func bindString(p unsafe.Pointer, val any) {
+	switch v := val.(type) {
+	case string:
+		BindString(p, v)
+	default:
+		BindString(p, lang.ToString(v))
+	}
+}
+
+func bindBool(p unsafe.Pointer, val any) {
+	switch v := val.(type) {
+	case bool:
+		BindBool(p, v)
+	case string:
+		BindBool(p, lang.ParseBool(v))
+	}
+}
+
+func bindAny(p unsafe.Pointer, val any) {
+
+}
+
+func bindPtr(p unsafe.Pointer, val any) {
+
+}
+
+func bindStruct(p unsafe.Pointer, val any) {
+
+}
+
+func bindMap(p unsafe.Pointer, val any) {
+
+}
+
+func bindList2(p unsafe.Pointer, val any) {
+
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -198,15 +238,15 @@ func BindAny(p unsafe.Pointer, v any) {
 //}
 //
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func (ss *StructSchema) BindColumn(ptr uintptr, k string, v any) {
+//func (ss *StructSchema) BindColumn(ptr uintptr, k string,val any) {
 //	ss.BindValue(ptr, ss.ColumnIndex(k), v)
 //}
 //
-//func (ss *StructSchema) BindField(ptr uintptr, k string, v any) {
+//func (ss *StructSchema) BindField(ptr uintptr, k string,val any) {
 //	ss.BindValue(ptr, ss.FieldIndex(k), v)
 //}
 //
-//func (ss *StructSchema) BindValue(ptr uintptr, idx int, v any) {
+//func (ss *StructSchema) BindValue(ptr uintptr, idx int,val any) {
 //	p := unsafe.Pointer(ptr + ss.FieldsOffset[idx])
 //	switch ss.FieldsKind[idx] {
 //	case reflect.Int:

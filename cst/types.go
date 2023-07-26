@@ -14,6 +14,7 @@ const (
 	StrTypeOfKV        = "cst.KV"
 	StrTypeOfWebKV     = "cst.WebKV"
 	StrTypeOfStrAnyMap = "map[string]interface {}"
+	StrTypeOfStrStrMap = "map[string]string"
 	StrTypeOfTime      = "time.Time"
 )
 
