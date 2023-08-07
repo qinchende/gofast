@@ -59,7 +59,7 @@ func (wp *webPools) putContext(c *Context) {
 // Pms Pool get
 func (c *Context) createPms() {
 	ra := routesAttrs[c.RouteIdx]
-	if ra.PmsNew != nil {
+	if ra != nil && ra.PmsNew != nil {
 		c.Pms = ra.PmsNew()
 		return
 	}

@@ -6,6 +6,34 @@ import (
 	"net/http"
 )
 
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// bind and valid with json data
+//// +++ JSON Bytes
+//func BindJsonBytes(dst any, content []byte, like int8) error {
+//	return BindJsonBytesX(dst, content, dts.AsOptions(like))
+//}
+//
+//func BindJsonBytesX(dst any, content []byte, opts *dts.BindOptions) error {
+//	var kv map[string]any
+//	if err := DecodeBytes(&kv, content); err != nil {
+//		return err
+//	}
+//	return dts.BindKVX(dst, kv, opts)
+//}
+//
+//// +++ JSON Reader
+//func BindJsonReader(dst any, reader io.Reader, like int8) error {
+//	return BindJsonReaderX(dst, reader, dts.AsOptions(like))
+//}
+//
+//func BindJsonReaderX(dst any, reader io.Reader, opts *dts.BindOptions) error {
+//	var kv map[string]any
+//	if err := DecodeReader(&kv, reader, 0); err != nil {
+//		return err
+//	}
+//	return dts.BindKVX(dst, kv, opts)
+//}
+
 // 解码到对象
 // Important: 被解析的数据源 source 必须是只读的，不可在解析后再改写，否则可能造成意想不到的错误
 // 如果想要避免这样的问题，请将copy(source)后的source传入

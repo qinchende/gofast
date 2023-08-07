@@ -310,9 +310,9 @@ func ParseFloat(s string) float64 {
 //go:inline
 func ParseBool(s string) bool {
 	switch s {
-	case "T", "True", "true", "TRUE":
+	case "1", "t", "T", "True", "true", "TRUE":
 		return true
-	case "F", "False", "false", "FALSE":
+	case "0", "f", "F", "False", "false", "FALSE":
 		return false
 	default:
 		panic(errBoolFmt)

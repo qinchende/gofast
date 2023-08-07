@@ -9,6 +9,7 @@ import (
 	"github.com/qinchende/gofast/skill/validx"
 	"math"
 	"reflect"
+	"unsafe"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -45,6 +46,9 @@ type (
 		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 
+	// 给字段绑定值
+	valueBinder func(p unsafe.Pointer, v any)
+
 	// 方便字段数据处理
 	fieldAttr struct {
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
@@ -52,6 +56,7 @@ type (
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
+		kvBinder  valueBinder  // 绑定函数
 	}
 )
 
@@ -96,7 +101,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	ss.fieldsOpts = make([]*fieldOptions, len(fOptions))
 	copy(ss.fieldsOpts, fOptions)
 
-	// 抽取出字段的类型和偏移地址
+	// 缓存字段的属性和实用方法 ++++++++++
 	ss.FieldsAttr = make([]fieldAttr, len(fOptions))
 	for i := range fOptions {
 		fa := &ss.FieldsAttr[i]
@@ -111,6 +116,45 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 		switch fa.Kind {
 		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 			fa.IsMixType = true
+		}
+
+		// +++ set kvBinder function and other attributes
+		switch fa.Kind {
+		case reflect.Int:
+			fa.kvBinder = setInt
+		case reflect.Int8:
+			fa.kvBinder = setInt8
+		case reflect.Int16:
+			fa.kvBinder = setInt16
+		case reflect.Int32:
+			fa.kvBinder = setInt32
+		case reflect.Int64:
+			fa.kvBinder = setInt64
+
+		case reflect.Uint:
+			fa.kvBinder = setUint
+		case reflect.Uint8:
+			fa.kvBinder = setUint8
+		case reflect.Uint16:
+			fa.kvBinder = setUint16
+		case reflect.Uint32:
+			fa.kvBinder = setUint32
+		case reflect.Uint64:
+			fa.kvBinder = setUint64
+
+		case reflect.Float32:
+			fa.kvBinder = setFloat32
+		case reflect.Float64:
+			fa.kvBinder = setFloat64
+
+		case reflect.String:
+			fa.kvBinder = setString
+		case reflect.Bool:
+			fa.kvBinder = setBool
+		case reflect.Interface:
+			fa.kvBinder = setAny
+
+		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 		}
 	}
 

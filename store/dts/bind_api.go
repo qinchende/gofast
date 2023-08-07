@@ -11,27 +11,18 @@ func BindKVX(dst any, kvs cst.KV, opts *BindOptions) error {
 	return bindKVToStruct(dst, kvs, opts)
 }
 
-func BindSlice(dst any, src any, like int8) error {
-	fOpt := &fieldOptions{}
-	return bindList(dst, src, fOpt, AsOptions(like))
-}
-func BindSliceX(dst any, src any, opts *BindOptions) error {
-	fOpt := &fieldOptions{}
-	return bindList(dst, src, fOpt, opts)
-}
-
-// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Optimize(dst any, like int8) error {
-	return optimizeStruct(dst, AsOptions(like))
-
-}
-func OptimizeX(dst any, opts *BindOptions) error {
-	return optimizeStruct(dst, opts)
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 提取对象的字段的column名
-func Columns(obj any, like int8) []string {
-	sm := Schema(obj, AsOptions(like))
-	return sm.columns
-}
+//// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func Optimize(dst any, like int8) error {
+//	return optimizeStruct(dst, AsOptions(like))
+//
+//}
+//func OptimizeX(dst any, opts *BindOptions) error {
+//	return optimizeStruct(dst, opts)
+//}
+//
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// 提取对象的字段的column名
+//func Columns(obj any, like int8) []string {
+//	sm := Schema(obj, AsOptions(like))
+//	return sm.columns
+//}
