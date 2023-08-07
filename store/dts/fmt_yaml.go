@@ -5,9 +5,12 @@ package dts
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"github.com/qinchende/gofast/skill/iox"
 	"gopkg.in/yaml.v2"
 	"io"
-	"io/ioutil"
+	"reflect"
+	"strconv"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -33,7 +36,7 @@ func BindYamlReader(dst any, reader io.Reader, like int8) error {
 }
 
 func BindYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {
-	content, err := ioutil.ReadAll(reader)
+	content, err := iox.ReadAll(reader, 0)
 	if err != nil {
 		return err
 	}
@@ -56,13 +59,13 @@ func UnmarshalYamlBytes(dest any, content []byte) error {
 func cleanupInterfaceMap(in map[any]any) map[string]any {
 	res := make(map[string]any)
 	for k, v := range in {
-		res[sdxAsString(k)] = cleanupMapValue(v)
+		res[convToString(k)] = cleanupMapValue(v)
 	}
 	return res
 }
 
 func cleanupInterfaceNumber(in any) json.Number {
-	return json.Number(sdxAsString(in))
+	return json.Number(convToString(in))
 }
 
 func cleanupInterfaceSlice(in []any) []any {
@@ -84,6 +87,34 @@ func cleanupMapValue(v any) any {
 	case int, uint, int8, uint8, int16, uint16, int32, uint32, int64, uint64, float32, float64:
 		return cleanupInterfaceNumber(v)
 	default:
-		return sdxAsString(v)
+		return convToString(v)
 	}
+}
+
+func convToString(src any) string {
+	if src == nil {
+		return ""
+	}
+
+	switch v := src.(type) {
+	case string:
+		return v
+	case []byte:
+		return string(v)
+	}
+	sv := reflect.ValueOf(src)
+	switch sv.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(sv.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return strconv.FormatUint(sv.Uint(), 10)
+	case reflect.Float64:
+		return strconv.FormatFloat(sv.Float(), 'g', -1, 64)
+	case reflect.Float32:
+		return strconv.FormatFloat(sv.Float(), 'g', -1, 32)
+	case reflect.Bool:
+		return strconv.FormatBool(sv.Bool())
+	}
+	//return fmt.Sprint("%v", src)
+	return fmt.Sprint(src)
 }

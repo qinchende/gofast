@@ -5,7 +5,7 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/httpx"
-	"github.com/qinchende/gofast/skill/mapx"
+	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 	"strings"
@@ -14,7 +14,8 @@ import (
 // add by sdx on 20210305
 // c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
 func (c *Context) Bind(dst any) error {
-	return mapx.BindKV(dst, c.Pms, mapx.LikeInput)
+	//return mapx.BindKV(dst, c.Pms, mapx.LikeInput)
+	return dts.BindKV(dst, c.Pms, dts.LikeInput)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

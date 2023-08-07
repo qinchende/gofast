@@ -25,8 +25,8 @@ type SuperKV interface {
 	Get(k string) (any, bool)
 	Del(k string)
 	Len() int
-	SetString(k string, v string)
-	GetString(k string) (string, bool)
+	SetString(k string, v string)      // 如果Value是String，提高性能
+	GetString(k string) (string, bool) // 如果Value是String，提高性能
 }
 
 // KV

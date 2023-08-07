@@ -12,8 +12,8 @@ import (
 // 切记不可随意使用
 // @@@ +++++++++++++++++++++++++++++++++
 type StructKV struct {
-	SS  *StructSchema
-	Ptr unsafe.Pointer
+	SS  *StructSchema  // struct 预解析的 schema
+	Ptr unsafe.Pointer // struct 对象对应的地址
 }
 
 func AsSuperKV(v any) (ret *StructKV) {
