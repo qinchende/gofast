@@ -13,6 +13,7 @@ type BindOptions struct {
 	UseValid     bool   // 默认不验证值规范
 }
 
+// 内置几种典型的数据解析模式，当然可以根据需要自定义
 var (
 	// 应用在大量解析数据记录的场景
 	dbStructOptions = &BindOptions{
@@ -25,7 +26,7 @@ var (
 	}
 
 	// 应用在解析配置文件的场景
-	inputStructOptions = &BindOptions{
+	reqStructOptions = &BindOptions{
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
@@ -35,7 +36,7 @@ var (
 	}
 
 	// 应用在解析配置文件的场景
-	configStructOptions = &BindOptions{
+	cfgStructOptions = &BindOptions{
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
@@ -46,22 +47,22 @@ var (
 )
 
 const (
-	LikeConfig int8 = iota // 采用解析配置文件的模式
-	LikeInput              // 采用解析输入表单的模式
-	LikeLoadDB             // 采用解析MySQL记录的模式
+	AsConfig int8 = iota // 采用解析配置文件的模式
+	AsReq                // 采用解析输入表单的模式
+	AsLoadDB             // 采用解析MySQL记录的模式
 )
 
-// 使用什么典型配置来解析验证数据
-func AsOptions(like int8) (opt *BindOptions) {
-	switch like {
-	case LikeLoadDB:
+// 使用什么典型模式来解析验证数据
+func AsOptions(model int8) (opt *BindOptions) {
+	switch model {
+	case AsLoadDB:
 		opt = dbStructOptions
-	case LikeInput:
-		opt = inputStructOptions
-	case LikeConfig:
-		opt = configStructOptions
+	case AsReq:
+		opt = reqStructOptions
+	case AsConfig:
+		opt = cfgStructOptions
 	default:
-		opt = configStructOptions
+		opt = cfgStructOptions
 	}
 	return
 }

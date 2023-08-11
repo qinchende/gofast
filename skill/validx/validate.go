@@ -120,20 +120,6 @@ func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 	return
 }
 
-// 长度范围验证
-func checkNumberRange(fv float64, nr *numRange) error {
-	if nr == nil {
-		return nil
-	}
-	if (nr.includeMin && fv < nr.min) || (!nr.includeMin && fv <= nr.min) {
-		return errNumberRange
-	}
-	if (nr.includeMax && fv > nr.max) || (!nr.includeMax && fv >= nr.max) {
-		return errNumberRange
-	}
-	return nil
-}
-
 // 验证值
 func ValidateFieldSmart(ptr unsafe.Pointer, kd reflect.Kind, vOpts *ValidOptions) (err error) {
 	if vOpts == nil {
@@ -221,4 +207,19 @@ func ValidateFieldSmart(ptr unsafe.Pointer, kd reflect.Kind, vOpts *ValidOptions
 		// todo: 如果是 time.Time 类型如何处理
 	}
 	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 长度范围验证
+func checkNumberRange(fv float64, nr *numRange) error {
+	if nr == nil {
+		return nil
+	}
+	if (nr.includeMin && fv < nr.min) || (!nr.includeMin && fv <= nr.min) {
+		return errNumberRange
+	}
+	if (nr.includeMax && fv > nr.max) || (!nr.includeMax && fv >= nr.max) {
+		return errNumberRange
+	}
+	return nil
 }

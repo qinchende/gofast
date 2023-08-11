@@ -47,13 +47,12 @@ import (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // object:
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
-func bindKVToStruct(dst any, kvs cst.SuperKV, bindOpts *BindOptions) (err error) {
+func bindKVToStruct(dst any, kvs cst.SuperKV, opts *BindOptions) (err error) {
 	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
-	if dst == nil || kvs == nil || kvs.Len() == 0 || bindOpts == nil {
+	if dst == nil || kvs == nil || kvs.Len() == 0 || opts == nil {
 		return nil
 	}
 
-	// +++++++++++++++++++++++++++++++
 	dstTyp := reflect.TypeOf(dst)
 	if dstTyp.Kind() != reflect.Pointer {
 		return errors.New("Target object must be pointer value.")
@@ -62,22 +61,22 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, bindOpts *BindOptions) (err error)
 		return fmt.Errorf("%T not like struct.", dst)
 	}
 
-	sm := SchemaByType(dstTyp, bindOpts)
+	sm := SchemaByType(dstTyp, opts)
 	ptr := (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr
-	// +++++++++++++++++++++++++++++++
+	// 以上是必要的检查
+	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	var fls []string
-	if bindOpts.UseFieldName {
+	if opts.UseFieldName {
 		fls = sm.fields
 	} else {
 		fls = sm.columns
 	}
-	flsOpts := sm.fieldsOpts
 
 	// 两种循环方式。1：目标结构的字段  2：源字段（一般情况下，这种更好）
 	for i := 0; i < len(fls); i++ {
-		fOpt := flsOpts[i] // 这个肯定不为 nil
-		vOpt := fOpt.valid // 这个可能是 nil
+		fa := sm.FieldsAttr[i] // 这个肯定不能为 nil
+		vOpt := fa.valid       // 这个可能是 nil
 		fName := fls[i]
 		sv, ok := kvs.Get(fName)
 
@@ -85,10 +84,10 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, bindOpts *BindOptions) (err error)
 			if vOpt == nil {
 				continue
 			}
-			if vOpt.Required && bindOpts.UseValid {
+			if vOpt.Required && opts.UseValid {
 				return fmt.Errorf("field %s requied", fName)
 			}
-			if bindOpts.UseDefValue {
+			if opts.UseDefValue {
 				sv = vOpt.DefValue
 				if sv == "" {
 					continue
@@ -106,18 +105,17 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, bindOpts *BindOptions) (err error)
 		//	case map[string]any:
 		//		sv = cst.KV(sv.(map[string]any))
 		//	}
-		//	if err = bindKVToStruct(fv.Addr().Interface(), sv.(cst.KV), bindOpts); err != nil {
+		//	if err = bindKVToStruct(fv.Addr().Interface(), sv.(cst.KV), opts); err != nil {
 		//		return err
 		//	}
 		//	continue
 		//}
 
-		fa := sm.FieldsAttr[i]
 		fPtr := unsafe.Pointer(uintptr(ptr) + fa.Offset)
 		fa.kvBinder(fPtr, sv)
 
 		// 是否需要验证字段数据的合法性
-		if bindOpts.UseValid && vOpt != nil {
+		if opts.UseValid && vOpt != nil {
 			if err = validx.ValidateFieldSmart(fPtr, fa.Kind, vOpt); err != nil {
 				return err
 			}

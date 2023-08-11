@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/iox"
 	"gopkg.in/yaml.v2"
 	"io"
@@ -14,8 +15,8 @@ import (
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func BindYamlBytes(dst any, content []byte, like int8) error {
-	return BindYamlBytesX(dst, content, AsOptions(like))
+func BindYamlBytes(dst any, content []byte, model int8) error {
+	return BindYamlBytesX(dst, content, AsOptions(model))
 }
 
 func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
@@ -25,14 +26,14 @@ func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
 	}
 
 	if kvs, ok := res.(map[string]any); ok {
-		return BindKVX(dst, kvs, opts)
+		return BindKVX(dst, cst.KV(kvs), opts)
 	} else {
-		return errors.New("only map-like configs supported")
+		return errors.New("only map[string]any type data supported")
 	}
 }
 
-func BindYamlReader(dst any, reader io.Reader, like int8) error {
-	return BindYamlReaderX(dst, reader, AsOptions(like))
+func BindYamlReader(dst any, reader io.Reader, model int8) error {
+	return BindYamlReaderX(dst, reader, AsOptions(model))
 }
 
 func BindYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {

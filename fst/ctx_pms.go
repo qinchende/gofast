@@ -14,8 +14,8 @@ import (
 // add by sdx on 20210305
 // c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
 func (c *Context) Bind(dst any) error {
-	//return mapx.BindKV(dst, c.Pms, mapx.LikeInput)
-	return dts.BindKV(dst, c.Pms, dts.LikeInput)
+	//return mapx.BindKV(dst, c.Pms, mapx.AsReq)
+	return dts.BindKV(dst, c.Pms, dts.AsReq)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -66,12 +66,11 @@ func (c *Context) ParseForm() error {
 	return nil
 }
 
-// GoFast 框架 Gson 解法
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ##这个方法很重要##
 // 框架每次都将请求所携带的相关数据解析之后加入统一的变量c.Pms中，这样对开发人员来说只需要关注c.Pms中有无自己想要的数据，
 // 至于数据是通过什么形式提交上来的并不那么重要。
-// 最常见的就是GET请求URL上的参数，POST请求中req.Body携带的信息
+// 最常见的就是 GET中 Url-Query-Params + POST中 req.Body 携带的数据
 func (c *Context) CollectPms() error {
 	// 防止重复解析
 	if c.Pms != nil {
@@ -80,12 +79,15 @@ func (c *Context) CollectPms() error {
 	c.createPms() // 实现了 cst.SuperKV 的任何数据结构
 
 	urlParsed := false
+	// Body bytes data [JSON or Form]
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
+		// +++ JSON格式（可以解析GsonRows数据）
 		if err := jde.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
 			return err
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
+		// +++ Form表单 或者 文件上传
 		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
 		if err := httpx.ParseMultipartForm(c.Pms, c.Req.Raw, ctType, maxMemory); err != nil {
 			return err
@@ -93,7 +95,7 @@ func (c *Context) CollectPms() error {
 		urlParsed = true
 	}
 
-	// Url中带入的查询参数加入参数字典
+	// Url query params
 	if !urlParsed {
 		if c.myApp.WebConfig.CacheQueryValues {
 			kvs := c.QueryValues()
@@ -104,8 +106,7 @@ func (c *Context) CollectPms() error {
 			httpx.ParseQuery(c.Pms, c.Req.Raw.URL.RawQuery)
 		}
 	}
-
-	// 将UrlParams加入参数字典
+	// Url pattern matching params
 	if c.myApp.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
 		kvs := *c.route.params
 		for i := range kvs {
@@ -113,9 +114,10 @@ func (c *Context) CollectPms() error {
 		}
 	}
 
-	// TODO: 加入http协议头中的 header 参数
-	// 个人不喜欢，也不推荐用http header的方式，传递业务数据。有啥好处呢，欺骗防火墙？掩耳盗铃？
+	// Note: 是否加入http协议中的 headers 参数？
+	// 个人不喜欢，也极不推荐用http header的方式，传递业务数据。有啥好处呢，欺骗防火墙？掩耳盗铃？
 	// 头信息多了，会无形中增加net/http标准库的资源消耗
+	// **如果现实需要，可以自定义中间件加以整合处理**
 
 	return nil
 }

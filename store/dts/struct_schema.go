@@ -16,16 +16,13 @@ import (
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type (
 	StructSchema struct {
-		Attrs structAttrs
+		Attrs      structAttrs // 结构体元数据
+		FieldsAttr []fieldAttr // 字段元数据
 
 		columns []string    // 按顺序存放的tag列名
 		fields  []string    // 按顺序存放的字段名
 		cTips   stringsTips // pms_name index
 		fTips   stringsTips // field_name index
-
-		fieldsIndex [][]int         // reflect fields index
-		fieldsOpts  []*fieldOptions // 字段的属性
-		FieldsAttr  []fieldAttr     // 对外公开的字段元数据
 	}
 
 	// 基本信息
@@ -41,22 +38,26 @@ type (
 		lenOff []uint8
 	}
 
-	fieldOptions struct {
-		valid  *validx.ValidOptions // 验证
-		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
-	}
-
 	// 给字段绑定值
 	valueBinder func(p unsafe.Pointer, v any)
 
 	// 方便字段数据处理
 	fieldAttr struct {
+		rIndex []int                // 字段定位（反射用到）
+		valid  *validx.ValidOptions // 验证
+		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
+
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
 		Kind      reflect.Kind // 字段最终类型的Kind类型
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
 		kvBinder  valueBinder  // 绑定函数
+	}
+
+	fieldOptions struct {
+		valid  *validx.ValidOptions // 验证
+		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 )
 
@@ -96,15 +97,15 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	copy(ss.columns, fColumns)
 	ss.fields = make([]string, len(fFields))
 	copy(ss.fields, fFields)
-	ss.fieldsIndex = make([][]int, len(fIndexes))
-	copy(ss.fieldsIndex, fIndexes)
-	ss.fieldsOpts = make([]*fieldOptions, len(fOptions))
-	copy(ss.fieldsOpts, fOptions)
 
 	// 缓存字段的属性和实用方法 ++++++++++
 	ss.FieldsAttr = make([]fieldAttr, len(fOptions))
 	for i := range fOptions {
 		fa := &ss.FieldsAttr[i]
+
+		fa.rIndex = fIndexes[i]
+		fa.valid = fOptions[i].valid
+		fa.sField = fOptions[i].sField
 
 		fa.Offset = fOptions[i].sField.Offset
 		fa.Type = fOptions[i].sField.Type
@@ -216,7 +217,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []*fieldOptions) {
+func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []fieldOptions) {
 	if rTyp.Kind() != reflect.Struct {
 		cst.PanicString(fmt.Sprintf("%T is not like struct", rTyp))
 	}
@@ -224,7 +225,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 	fColumns := make([]string, 0)
 	fFields := make([]string, 0)
 	fIndexes := make([][]int, 0)
-	fOptions := make([]*fieldOptions, 0)
+	fOptions := make([]fieldOptions, 0)
 
 	for i := 0; i < rTyp.NumField(); i++ {
 		fi := rTyp.Field(i)
@@ -264,7 +265,7 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 		optStr := fi.Tag.Get(opts.ValidTag)
 		vOpt, err := validx.ParseOptions(&fi, optStr)
 		cst.PanicIfErr(err) // 解析不对，直接抛异常
-		fOptions = append(fOptions, &fieldOptions{valid: vOpt, sField: &fi})
+		fOptions = append(fOptions, fieldOptions{valid: vOpt, sField: &fi})
 	}
 	return fColumns, fFields, fIndexes, fOptions
 }
