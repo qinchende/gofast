@@ -23,11 +23,11 @@ func SchemaForDB(obj any) *StructSchema {
 }
 
 func SchemaForInput(obj any) *StructSchema {
-	return Schema(obj, inputStructOptions)
+	return Schema(obj, reqStructOptions)
 }
 
 func SchemaForConfig(obj any) *StructSchema {
-	return Schema(obj, configStructOptions)
+	return Schema(obj, cfgStructOptions)
 }
 
 // ++++++++++++++++++++++++++
@@ -44,25 +44,25 @@ func SchemaForDBByType(rTyp reflect.Type) *StructSchema {
 }
 
 func SchemaForInputByType(rTyp reflect.Type) *StructSchema {
-	return SchemaByType(rTyp, inputStructOptions)
+	return SchemaByType(rTyp, reqStructOptions)
 }
 
 func SchemaForConfigByType(rTyp reflect.Type) *StructSchema {
-	return SchemaByType(rTyp, configStructOptions)
+	return SchemaByType(rTyp, cfgStructOptions)
 }
 
 // reflect apis
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ss *StructSchema) ValueByIndex(rVal *reflect.Value, idx int8) any {
-	return rVal.FieldByIndex(ss.fieldsIndex[idx]).Interface()
+	return rVal.FieldByIndex(ss.FieldsAttr[idx].rIndex).Interface()
 }
 
 func (ss *StructSchema) AddrByIndex(rVal *reflect.Value, idx int8) any {
-	return rVal.FieldByIndex(ss.fieldsIndex[idx]).Addr().Interface()
+	return rVal.FieldByIndex(ss.FieldsAttr[idx].rIndex).Addr().Interface()
 }
 
 func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, idx int8) reflect.Value {
-	idxArr := ss.fieldsIndex[idx]
+	idxArr := ss.FieldsAttr[idx].rIndex
 	if len(idxArr) == 1 {
 		return rVal.Field(idxArr[0])
 	}

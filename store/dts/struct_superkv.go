@@ -16,10 +16,12 @@ type StructKV struct {
 	Ptr unsafe.Pointer // struct 对象对应的地址
 }
 
+// Note: 这里返回StructKV的指针类型，而不是值类型。主要是因为要讲这个变量赋值给接口 fst.Context.Pms ，不希望发生值拷贝
 func AsSuperKV(v any) (ret *StructKV) {
-	ret = &StructKV{}
-	ret.SS = SchemaForInput(v)
-	ret.Ptr = (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
+	ret = &StructKV{
+		SS:  SchemaForInput(v),
+		Ptr: (*rt.AFace)(unsafe.Pointer(&v)).DataPtr,
+	}
 	return
 }
 
@@ -50,7 +52,7 @@ func (skv *StructKV) GetString(k string) (v string, tf bool) {
 func (skv *StructKV) Set(k string, v any) {
 	idx := skv.SS.ColumnIndex(k)
 
-	// NOTE：目前只支持类似Web表单提交，KV都是string类型
+	// NOTE：目前只支持API请求提交的字节数据，KV都是string类型
 	switch skv.SS.FieldsAttr[idx].Kind {
 	case reflect.String:
 		p := unsafe.Pointer(uintptr(skv.Ptr) + skv.SS.FieldsAttr[idx].Offset)
