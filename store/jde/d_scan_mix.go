@@ -1,8 +1,6 @@
 package jde
 
 import (
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"unsafe"
 )
@@ -133,7 +131,7 @@ func fieldSetNil(sd *subDecode) {
 func scanMapAnyValue(sd *subDecode, k string) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		newMap := make(cst.KV)
+		newMap := make(map[string]any)
 		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		sd.mp.Set(k, newMap)
 	case c == '[':
@@ -150,9 +148,10 @@ func scanMapAnyValue(sd *subDecode, k string) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
+			//sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
 			// 可以选项，不解析，直接返回字符串
-			//sd.mp.SetString(k, sd.str[start:sd.scan])
+			// NumberAsString
+			sd.mp.SetString(k, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -178,7 +177,7 @@ func scanGsonValue(sd *subDecode, k string) {
 
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		newMap := make(cst.KV)
+		newMap := make(map[string]any)
 		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		sd.gr.SetByIndex(kIdx, newMap)
 	case c == '[':
@@ -195,7 +194,9 @@ func scanGsonValue(sd *subDecode, k string) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			sd.gr.SetByIndex(kIdx, lang.ParseFloat(sd.str[start:sd.scan]))
+			//sd.gr.SetByIndex(kIdx, lang.ParseFloat(sd.str[start:sd.scan]))
+			// NumberAsString
+			sd.gr.SetByIndex(kIdx, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()

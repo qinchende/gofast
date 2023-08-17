@@ -1,7 +1,6 @@
 package jde
 
 import (
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"math"
 	"reflect"
@@ -944,7 +943,7 @@ func scanListBoolValue(sd *subDecode) {
 func scanObjAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		newMap := make(cst.KV)
+		newMap := make(map[string]any)
 		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		bindAny(fieldPtr(sd), newMap)
 	case c == '[':
@@ -961,7 +960,9 @@ func scanObjAnyValue(sd *subDecode) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			bindAny(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			//bindAny(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			// NumberAsString
+			bindAny(fieldPtr(sd), sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -977,7 +978,7 @@ func scanObjAnyValue(sd *subDecode) {
 func scanObjPtrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		newMap := make(cst.KV)
+		newMap := make(map[string]any)
 		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		bindAny(fieldPtrDeep(sd), newMap)
 	case c == '[':
@@ -994,7 +995,9 @@ func scanObjPtrAnyValue(sd *subDecode) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			bindAny(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			//bindAny(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			// NumberAsString
+			bindAny(fieldPtrDeep(sd), sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -1011,7 +1014,7 @@ func scanObjPtrAnyValue(sd *subDecode) {
 func scanArrAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		newMap := make(cst.KV)
+		newMap := make(map[string]any)
 		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		bindAny(arrItemPtr(sd), newMap)
 	case c == '[':
@@ -1028,7 +1031,9 @@ func scanArrAnyValue(sd *subDecode) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			bindAny(arrItemPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			//bindAny(arrItemPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			// NumberAsString
+			bindAny(arrItemPtr(sd), sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -1045,7 +1050,7 @@ func scanArrAnyValue(sd *subDecode) {
 func scanListAnyValue(sd *subDecode) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
-		newMap := make(cst.KV)
+		newMap := make(map[string]any)
 		sd.scanSubDecode(rfTypeOfKV, unsafe.Pointer(&newMap))
 		sd.pl.bufAny = append(sd.pl.bufAny, newMap)
 	case c == '[':
@@ -1062,7 +1067,9 @@ func scanListAnyValue(sd *subDecode) {
 		}
 	case c >= '0' && c <= '9', c == '-':
 		if start := sd.scanNumValue(); start > 0 {
-			sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseFloat(sd.str[start:sd.scan]))
+			//sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseFloat(sd.str[start:sd.scan]))
+			// NumberAsString
+			sd.pl.bufAny = append(sd.pl.bufAny, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()

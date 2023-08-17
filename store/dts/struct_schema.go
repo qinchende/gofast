@@ -155,6 +155,8 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 		case reflect.Interface:
 			fa.kvBinder = setAny
 
+		case reflect.Pointer:
+
 		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 		}
 	}
