@@ -17,16 +17,20 @@ type (
 	}
 
 	TypeAgent struct{}
-	AFace     struct {
+
+	// placeholder interface (to get memory value)
+	AFace struct {
 		TypePtr *TypeAgent
 		DataPtr unsafe.Pointer
 	}
 
+	// empty interface (has no function)
 	EFace struct {
 		TypePtr *GoType
 		DataPtr unsafe.Pointer
 	}
 
+	// typed interface (define some function)
 	IFace struct {
 		ItabPtr *GoItab
 		DataPtr unsafe.Pointer
