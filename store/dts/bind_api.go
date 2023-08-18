@@ -1,28 +1,99 @@
 package dts
 
-import "github.com/qinchende/gofast/cst"
+import (
+	"errors"
+	"math"
+	"unsafe"
+)
 
-// NOTE(Important): 下面API中的第一个参数dst，必须是对象指针
-func BindKV(dst any, kvs cst.SuperKV, model int8) error {
-	return bindKVToStruct(dst, kvs, AsOptions(model))
+var (
+	errNumOutOfRange  = errors.New("dts: number out of range")
+	errNotSupportType = errors.New("dts: can't support the value type")
+)
+
+// 通用的绑定函数，将给定值写入指定的地址内存
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// int
+func BindInt(p unsafe.Pointer, v int64) {
+	*(*int)(p) = int(v)
 }
 
-func BindKVX(dst any, kvs cst.SuperKV, opts *BindOptions) error {
-	return bindKVToStruct(dst, kvs, opts)
+func BindInt8(p unsafe.Pointer, v int64) {
+	if v < math.MinInt8 || v > math.MaxInt8 {
+		panic(errNumOutOfRange)
+	}
+	*(*int8)(p) = int8(v)
 }
 
-//// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func Optimize(dst any, model int8) error {
-//	return optimizeStruct(dst, AsOptions(model))
-//
-//}
-//func OptimizeX(dst any, opts *BindOptions) error {
-//	return optimizeStruct(dst, opts)
-//}
+func BindInt16(p unsafe.Pointer, v int64) {
+	if v < math.MinInt16 || v > math.MaxInt16 {
+		panic(errNumOutOfRange)
+	}
+	*(*int16)(p) = int16(v)
+}
 
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// 提取对象的字段的column名
-//func Columns(obj any, like int8) []string {
-//	sm := Schema(obj, AsOptions(like))
-//	return sm.columns
-//}
+func BindInt32(p unsafe.Pointer, v int64) {
+	if v < math.MinInt32 || v > math.MaxInt32 {
+		panic(errNumOutOfRange)
+	}
+	*(*int32)(p) = int32(v)
+}
+
+func BindInt64(p unsafe.Pointer, v int64) {
+	*(*int64)(p) = v
+}
+
+// uint
+func BindUint(p unsafe.Pointer, v uint64) {
+	*(*uint)(p) = uint(v)
+}
+
+func BindUint8(p unsafe.Pointer, v uint64) {
+	if v > math.MaxUint8 {
+		panic(errNumOutOfRange)
+	}
+	*(*uint8)(p) = uint8(v)
+}
+
+func BindUint16(p unsafe.Pointer, v uint64) {
+	if v > math.MaxUint16 {
+		panic(errNumOutOfRange)
+	}
+	*(*uint16)(p) = uint16(v)
+}
+
+func BindUint32(p unsafe.Pointer, v uint64) {
+	if v > math.MaxUint32 {
+		panic(errNumOutOfRange)
+	}
+	*(*uint32)(p) = uint32(v)
+}
+
+func BindUint64(p unsafe.Pointer, v uint64) {
+	*(*uint64)(p) = v
+}
+
+// float
+func BindFloat32(p unsafe.Pointer, v float64) {
+	if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
+		panic(errNumOutOfRange)
+	}
+	*(*float32)(p) = float32(v)
+}
+
+func BindFloat64(p unsafe.Pointer, v float64) {
+	*(*float64)(p) = v
+}
+
+// string & bool & any
+func BindString(p unsafe.Pointer, v string) {
+	*(*string)(p) = v
+}
+
+func BindBool(p unsafe.Pointer, v bool) {
+	*(*bool)(p) = v
+}
+
+func BindAny(p unsafe.Pointer, v any) {
+	*(*any)(p) = v
+}

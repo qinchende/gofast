@@ -196,7 +196,7 @@ func scanGsonValue(sd *subDecode, k string) {
 		if start := sd.scanNumValue(); start > 0 {
 			//sd.gr.SetByIndex(kIdx, lang.ParseFloat(sd.str[start:sd.scan]))
 			// NumberAsString
-			sd.gr.SetByIndex(kIdx, sd.str[start:sd.scan])
+			sd.gr.SetStringByIndex(kIdx, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()

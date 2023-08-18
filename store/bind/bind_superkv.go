@@ -1,21 +1,21 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package dts
+package bind
 
 import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/validx"
+	"github.com/qinchende/gofast/store/dts"
 	"reflect"
 	"unsafe"
 )
 
 // object:
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
-func bindKVToStruct(dst any, kvs cst.SuperKV, opts *BindOptions) error {
+func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
 	if dst == nil || kvs == nil || kvs.Len() == 0 || opts == nil {
 		return nil
@@ -35,20 +35,20 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *BindOptions) error {
 	return bindKVToStructInner(ptr, dstTyp, kvs, opts)
 }
 
-func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.SuperKV, opts *BindOptions) (err error) {
-	sm := SchemaByType(dstType, opts)
+func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
+	sm := dts.SchemaByType(dstType, opts)
 
 	var fls []string
 	if opts.UseFieldName {
-		fls = sm.fields
+		fls = sm.Fields
 	} else {
-		fls = sm.columns
+		fls = sm.Columns
 	}
 
 	// 两种循环方式。1：目标结构的字段  2：源字段（一般情况下，这种更好）
 	for i := 0; i < len(fls); i++ {
 		fa := &sm.FieldsAttr[i] // 这个肯定不能为 nil
-		vOpt := fa.valid        // 这个可能是 nil
+		vOpt := fa.Valid        // 这个可能是 nil
 		fName := fls[i]
 		fv, ok := kvs.Get(fName)
 
@@ -84,11 +84,11 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.Super
 		case reflect.Pointer:
 			continue
 		default:
-			if fa.kvBinder == nil {
+			if fa.KVBinder == nil {
 				continue
 			}
 			// 绑定基础数据类型（number, string, bool）
-			fa.kvBinder(fPtr, fv)
+			fa.KVBinder(fPtr, fv)
 		}
 
 		// 是否需要验证字段数据的合法性
@@ -101,7 +101,7 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.Super
 	return
 }
 
-func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *BindOptions) (err error) {
+func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOptions) (err error) {
 	switch v := val.(type) {
 	case []any:
 		var itSize uintptr
@@ -137,12 +137,12 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *BindOptions)
 
 			// TODO: so many type of value
 			switch dstT.Kind() {
-			case reflect.Int:
-				setInt(itPtr, itVal)
 			case reflect.Struct:
 				if err = bindStruct(itPtr, dstT, itVal, opts); err != nil {
 					return
 				}
+			default:
+				dts.BindBaseValueAsConfig(dstT.Kind(), itPtr, itVal)
 			}
 		}
 	default:
@@ -151,7 +151,7 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *BindOptions)
 	return
 }
 
-func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *BindOptions) (err error) {
+func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOptions) (err error) {
 	var skv cst.SuperKV
 
 	switch v := val.(type) {
@@ -176,171 +176,6 @@ func setPtr(p unsafe.Pointer, val any) {
 
 func setMap(p unsafe.Pointer, val any) {
 
-}
-
-// NOTE：不通用
-// 下面的绑定函数，只针对类似Web请求提交的数据。只支持string|number|bool等基础知识，或者 KV|Array
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// int
-func setInt(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case int64:
-		BindInt(p, v)
-	case string:
-		BindInt(p, lang.ParseInt(v))
-	case *string:
-		BindInt(p, lang.ParseInt(*v))
-	}
-}
-
-func setInt8(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case int64:
-		BindInt8(p, v)
-	case string:
-		BindInt8(p, lang.ParseInt(v))
-	case *string:
-		BindInt8(p, lang.ParseInt(*v))
-	}
-}
-
-func setInt16(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case int64:
-		BindInt16(p, v)
-	case string:
-		BindInt16(p, lang.ParseInt(v))
-	case *string:
-		BindInt16(p, lang.ParseInt(*v))
-	}
-}
-
-func setInt32(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case int64:
-		BindInt32(p, v)
-	case string:
-		BindInt32(p, lang.ParseInt(v))
-	case *string:
-		BindInt32(p, lang.ParseInt(*v))
-	}
-}
-
-func setInt64(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case int64:
-		BindInt64(p, v)
-	case string:
-		BindInt64(p, lang.ParseInt(v))
-	case *string:
-		BindInt32(p, lang.ParseInt(*v))
-	}
-}
-
-// uint
-func setUint(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case uint64:
-		BindUint(p, v)
-	case string:
-		BindUint(p, lang.ParseUint(v))
-	case *string:
-		BindUint(p, lang.ParseUint(*v))
-	}
-}
-
-func setUint8(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case uint64:
-		BindUint8(p, v)
-	case string:
-		BindUint8(p, lang.ParseUint(v))
-	case *string:
-		BindUint8(p, lang.ParseUint(*v))
-	}
-}
-
-func setUint16(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case uint64:
-		BindUint16(p, v)
-	case string:
-		BindUint16(p, lang.ParseUint(v))
-	case *string:
-		BindUint16(p, lang.ParseUint(*v))
-	}
-}
-
-func setUint32(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case uint64:
-		BindUint32(p, v)
-	case string:
-		BindUint32(p, lang.ParseUint(v))
-	case *string:
-		BindUint32(p, lang.ParseUint(*v))
-	}
-}
-
-func setUint64(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case uint64:
-		BindUint64(p, v)
-	case string:
-		BindUint64(p, lang.ParseUint(v))
-	case *string:
-		BindUint64(p, lang.ParseUint(*v))
-	}
-}
-
-// float
-func setFloat32(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case float64:
-		BindFloat32(p, v)
-	case string:
-		BindFloat32(p, lang.ParseFloat(v))
-	case *string:
-		BindFloat32(p, lang.ParseFloat(*v))
-	}
-}
-
-func setFloat64(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case float64:
-		BindFloat64(p, v)
-	case string:
-		BindFloat64(p, lang.ParseFloat(v))
-	case *string:
-		BindFloat64(p, lang.ParseFloat(*v))
-	}
-}
-
-// string
-func setString(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case string:
-		BindString(p, v)
-	case *string:
-		BindString(p, *v)
-	default:
-		BindString(p, lang.ToString(v))
-	}
-}
-
-func setBool(p unsafe.Pointer, val any) {
-	switch v := val.(type) {
-	case bool:
-		BindBool(p, v)
-	case string:
-		BindBool(p, lang.ParseBool(v))
-	case *string:
-		BindBool(p, lang.ParseBool(*v))
-	}
-}
-
-func setAny(p unsafe.Pointer, val any) {
-	BindAny(p, val)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
