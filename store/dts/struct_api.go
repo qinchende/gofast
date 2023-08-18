@@ -6,7 +6,24 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"strings"
+	"sync"
 )
+
+// cache
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
+var cachedStructSchemas sync.Map
+
+func cacheSetSchema(typ reflect.Type, val *StructSchema) {
+	cachedStructSchemas.Store(typ, val)
+}
+
+func cacheGetSchema(typ reflect.Type) *StructSchema {
+	if ret, ok := cachedStructSchemas.Load(typ); ok {
+		return ret.(*StructSchema)
+	}
+	return nil
+}
 
 // fetch StructSchema
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -94,11 +111,11 @@ func (ss *StructSchema) FieldIndex(k string) int {
 }
 
 func (ss *StructSchema) ColumnName(idx int) string {
-	return ss.columns[idx]
+	return ss.Columns[idx]
 }
 
 func (ss *StructSchema) FieldName(idx int) string {
-	return ss.fields[idx]
+	return ss.Fields[idx]
 }
 
 // Gson

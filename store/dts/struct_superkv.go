@@ -56,7 +56,8 @@ func (skv *StructKV) Set(k string, v any) {
 	switch skv.SS.FieldsAttr[idx].Kind {
 	case reflect.String:
 		p := unsafe.Pointer(uintptr(skv.Ptr) + skv.SS.FieldsAttr[idx].Offset)
-		BindString(p, v.(string))
+		// BindString(p, v.(string))
+		*(*string)(p) = v.(string)
 	default:
 		panic(errNotSupportType)
 	}
@@ -71,7 +72,7 @@ func (skv *StructKV) Del(k string) {
 }
 
 func (skv *StructKV) Len() int {
-	return len(skv.SS.columns)
+	return len(skv.SS.Columns)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

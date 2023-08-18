@@ -11,12 +11,16 @@ type BindOptions struct {
 	UseFieldName bool   // 直接用字段名称，而不是通过 reflect tag 取名称
 	UseDefValue  bool   // 默认不使用默认值
 	UseValid     bool   // 默认不验证值规范
+
+	model int8
 }
 
 // 内置几种典型的数据解析模式，当然可以根据需要自定义
 var (
 	// 应用在大量解析数据记录的场景
 	dbStructOptions = &BindOptions{
+		model: AsLoadDB,
+
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
@@ -27,6 +31,8 @@ var (
 
 	// 应用在解析配置文件的场景
 	reqStructOptions = &BindOptions{
+		model: AsReq,
+
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
@@ -37,6 +43,8 @@ var (
 
 	// 应用在解析配置文件的场景
 	cfgStructOptions = &BindOptions{
+		model: AsConfig,
+
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,

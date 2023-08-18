@@ -1,6 +1,6 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package dts
+package bind
 
 import (
 	"encoding/json"
@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/iox"
+	"github.com/qinchende/gofast/store/dts"
 	"gopkg.in/yaml.v2"
 	"io"
 	"reflect"
@@ -16,10 +17,10 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func BindYamlBytes(dst any, content []byte, model int8) error {
-	return BindYamlBytesX(dst, content, AsOptions(model))
+	return BindYamlBytesX(dst, content, dts.AsOptions(model))
 }
 
-func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
+func BindYamlBytesX(dst any, content []byte, opts *dts.BindOptions) error {
 	var res any
 	if err := UnmarshalYamlBytes(&res, content); err != nil {
 		return err
@@ -33,10 +34,10 @@ func BindYamlBytesX(dst any, content []byte, opts *BindOptions) error {
 }
 
 func BindYamlReader(dst any, reader io.Reader, model int8) error {
-	return BindYamlReaderX(dst, reader, AsOptions(model))
+	return BindYamlReaderX(dst, reader, dts.AsOptions(model))
 }
 
-func BindYamlReaderX(dst any, reader io.Reader, opts *BindOptions) error {
+func BindYamlReaderX(dst any, reader io.Reader, opts *dts.BindOptions) error {
 	content, err := iox.ReadAll(reader, 0)
 	if err != nil {
 		return err

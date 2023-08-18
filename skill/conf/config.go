@@ -3,8 +3,7 @@ package conf
 import (
 	"fmt"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/mapx"
-	"io/ioutil"
+	"github.com/qinchende/gofast/store/bind"
 	"log"
 	"os"
 	"path"
@@ -27,7 +26,7 @@ func MustLoad(path string, dst any) {
 }
 
 func LoadConfig(file string, dst any) error {
-	if content, err := ioutil.ReadFile(file); err != nil {
+	if content, err := os.ReadFile(file); err != nil {
 		return err
 	} else if loader, ok := loaders[path.Ext(file)]; ok {
 		return loader(dst, lang.STB(os.ExpandEnv(string(content))))
@@ -37,9 +36,9 @@ func LoadConfig(file string, dst any) error {
 }
 
 func LoadConfigFromJsonBytes(dst any, content []byte) error {
-	return mapx.BindJsonBytes(dst, content, mapx.LikeConfig)
+	return bind.BindJsonBytes(dst, content, bind.AsConfig)
 }
 
 func LoadConfigFromYamlBytes(dst any, content []byte) error {
-	return mapx.BindYamlBytes(dst, content, mapx.LikeConfig)
+	return bind.BindYamlBytes(dst, content, bind.AsConfig)
 }

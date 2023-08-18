@@ -19,8 +19,8 @@ type (
 		Attrs      structAttrs // 结构体元数据
 		FieldsAttr []fieldAttr // 字段元数据
 
-		columns []string    // 按顺序存放的tag列名
-		fields  []string    // 按顺序存放的字段名
+		Columns []string    // 按顺序存放的tag列名
+		Fields  []string    // 按顺序存放的字段名
 		cTips   stringsTips // pms_name index
 		fTips   stringsTips // field_name index
 	}
@@ -44,7 +44,7 @@ type (
 	// 方便字段数据处理
 	fieldAttr struct {
 		rIndex []int                // 字段定位（反射用到）
-		valid  *validx.ValidOptions // 验证
+		Valid  *validx.ValidOptions // 验证
 		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
@@ -52,7 +52,7 @@ type (
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
-		kvBinder  valueBinder  // 绑定函数
+		KVBinder  valueBinder  // 绑定函数
 	}
 
 	fieldOptions struct {
@@ -93,10 +93,10 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	ss.Attrs.MemSize = int(rTyp.Size())
 
 	// 收缩切片占用的空间，因为原slice可能有多余的cap
-	ss.columns = make([]string, len(fColumns))
-	copy(ss.columns, fColumns)
-	ss.fields = make([]string, len(fFields))
-	copy(ss.fields, fFields)
+	ss.Columns = make([]string, len(fColumns))
+	copy(ss.Columns, fColumns)
+	ss.Fields = make([]string, len(fFields))
+	copy(ss.Fields, fFields)
 
 	// 缓存字段的属性和实用方法 ++++++++++
 	ss.FieldsAttr = make([]fieldAttr, len(fOptions))
@@ -104,7 +104,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 		fa := &ss.FieldsAttr[i]
 
 		fa.rIndex = fIndexes[i]
-		fa.valid = fOptions[i].valid
+		fa.Valid = fOptions[i].valid
 		fa.sField = fOptions[i].sField
 
 		fa.Offset = fOptions[i].sField.Offset
@@ -119,41 +119,43 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 			fa.IsMixType = true
 		}
 
-		// +++ set kvBinder function and other attributes
+		// +++ set KVBinder function and other attributes
+		// Note: if opts.model == AsConfig
+		// 不同的模式，解析函数可能是不一样的，当前仅支持 AsConfig 模式
 		switch fa.Kind {
 		case reflect.Int:
-			fa.kvBinder = setInt
+			fa.KVBinder = setInt
 		case reflect.Int8:
-			fa.kvBinder = setInt8
+			fa.KVBinder = setInt8
 		case reflect.Int16:
-			fa.kvBinder = setInt16
+			fa.KVBinder = setInt16
 		case reflect.Int32:
-			fa.kvBinder = setInt32
+			fa.KVBinder = setInt32
 		case reflect.Int64:
-			fa.kvBinder = setInt64
+			fa.KVBinder = setInt64
 
 		case reflect.Uint:
-			fa.kvBinder = setUint
+			fa.KVBinder = setUint
 		case reflect.Uint8:
-			fa.kvBinder = setUint8
+			fa.KVBinder = setUint8
 		case reflect.Uint16:
-			fa.kvBinder = setUint16
+			fa.KVBinder = setUint16
 		case reflect.Uint32:
-			fa.kvBinder = setUint32
+			fa.KVBinder = setUint32
 		case reflect.Uint64:
-			fa.kvBinder = setUint64
+			fa.KVBinder = setUint64
 
 		case reflect.Float32:
-			fa.kvBinder = setFloat32
+			fa.KVBinder = setFloat32
 		case reflect.Float64:
-			fa.kvBinder = setFloat64
+			fa.KVBinder = setFloat64
 
 		case reflect.String:
-			fa.kvBinder = setString
+			fa.KVBinder = setString
 		case reflect.Bool:
-			fa.kvBinder = setBool
+			fa.KVBinder = setBool
 		case reflect.Interface:
-			fa.kvBinder = setAny
+			fa.KVBinder = setAny
 
 		case reflect.Pointer:
 
@@ -166,7 +168,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	ss.cTips.items = make([]string, len(fColumns))
 	ss.cTips.idxes = make([]uint8, len(fColumns))
 
-	copy(ss.cTips.items, ss.columns)
+	copy(ss.cTips.items, ss.Columns)
 	lang.SortByLen(ss.cTips.items)
 	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1]) // 最长string长度（最后一个就是最长的）
 	if lastLen > math.MaxUint8 {
@@ -180,8 +182,8 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 			ss.cTips.lenOff[len(item)] = uint8(idx)
 			lastLen = len(item)
 		}
-		for sIdx := range ss.columns {
-			if item == ss.columns[sIdx] {
+		for sIdx := range ss.Columns {
+			if item == ss.Columns[sIdx] {
 				ss.cTips.idxes[idx] = uint8(sIdx)
 				break
 			}
@@ -193,7 +195,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	ss.fTips.items = make([]string, len(fFields))
 	ss.fTips.idxes = make([]uint8, len(fFields))
 
-	copy(ss.fTips.items, ss.fields)
+	copy(ss.fTips.items, ss.Fields)
 	lang.SortByLen(ss.fTips.items)
 	lastLen = len(ss.fTips.items[len(ss.fTips.items)-1])
 	if lastLen > math.MaxUint8 {
@@ -207,8 +209,8 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 			ss.fTips.lenOff[len(item)] = uint8(idx)
 			lastLen = len(item)
 		}
-		for sIdx := range ss.fields {
-			if item == ss.fields[sIdx] {
+		for sIdx := range ss.Fields {
+			if item == ss.Fields[sIdx] {
 				ss.fTips.idxes[idx] = uint8(sIdx)
 				break
 			}
