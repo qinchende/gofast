@@ -386,13 +386,13 @@ func bindAny(p unsafe.Pointer, v any) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjIntValue(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt(fieldPtr(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrIntValue(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt(fieldPtrDeep(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -401,7 +401,7 @@ func scanObjPtrIntValue(sd *subDecode) {
 func scanArrIntValue(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	}
 	bindInt(arrItemPtr(sd), v)
 }
@@ -409,7 +409,7 @@ func scanArrIntValue(sd *subDecode) {
 func scanListIntValue(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	} else {
 		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
@@ -420,13 +420,13 @@ func scanListIntValue(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt8Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt8(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt8(fieldPtr(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrInt8Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt8(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt8(fieldPtrDeep(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -435,7 +435,7 @@ func scanObjPtrInt8Value(sd *subDecode) {
 func scanArrInt8Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	}
 	bindInt8(arrItemPtr(sd), v)
 }
@@ -443,7 +443,7 @@ func scanArrInt8Value(sd *subDecode) {
 func scanListInt8Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 		if v < math.MinInt8 || v > math.MaxInt8 {
 			panic(errInfinity)
 		}
@@ -457,13 +457,13 @@ func scanListInt8Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt16Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt16(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt16(fieldPtr(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrInt16Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt16(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt16(fieldPtrDeep(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -472,7 +472,7 @@ func scanObjPtrInt16Value(sd *subDecode) {
 func scanArrInt16Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	}
 	bindInt16(arrItemPtr(sd), v)
 }
@@ -480,7 +480,7 @@ func scanArrInt16Value(sd *subDecode) {
 func scanListInt16Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 		if v < math.MinInt16 || v > math.MaxInt16 {
 			panic(errInfinity)
 		}
@@ -494,13 +494,13 @@ func scanListInt16Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt32Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt32(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt32(fieldPtr(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrInt32Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt32(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt32(fieldPtrDeep(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -508,14 +508,14 @@ func scanObjPtrInt32Value(sd *subDecode) {
 
 func scanArrInt32Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt32(arrItemPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt32(arrItemPtr(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanListInt32Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 		if v < math.MinInt32 || v > math.MaxInt32 {
 			panic(errInfinity)
 		}
@@ -529,13 +529,13 @@ func scanListInt32Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjInt64Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt64(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt64(fieldPtr(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrInt64Value(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
-		bindInt64(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+		bindInt64(fieldPtrDeep(sd), lang.ParseIntFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -544,7 +544,7 @@ func scanObjPtrInt64Value(sd *subDecode) {
 func scanArrInt64Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	}
 	bindInt64(arrItemPtr(sd), v)
 }
@@ -552,7 +552,7 @@ func scanArrInt64Value(sd *subDecode) {
 func scanListInt64Value(sd *subDecode) {
 	v := int64(0)
 	if start := sd.scanIntValue(); start > 0 {
-		v = lang.ParseInt(sd.str[start:sd.scan])
+		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	} else {
 		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
 	}
@@ -563,13 +563,13 @@ func scanListInt64Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjUintValue(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint(fieldPtr(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrUintValue(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint(fieldPtrDeep(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -578,7 +578,7 @@ func scanObjPtrUintValue(sd *subDecode) {
 func scanArrUintValue(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	}
 	bindUint(arrItemPtr(sd), v)
 }
@@ -586,7 +586,7 @@ func scanArrUintValue(sd *subDecode) {
 func scanListUintValue(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	} else {
 		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
 	}
@@ -597,13 +597,13 @@ func scanListUintValue(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjUint8Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint8(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint8(fieldPtr(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrUint8Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint8(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint8(fieldPtrDeep(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -612,7 +612,7 @@ func scanObjPtrUint8Value(sd *subDecode) {
 func scanArrUint8Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	}
 	bindUint8(arrItemPtr(sd), v)
 }
@@ -620,7 +620,7 @@ func scanArrUint8Value(sd *subDecode) {
 func scanListUint8Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 		if v > math.MaxUint8 {
 			panic(errInfinity)
 		}
@@ -634,13 +634,13 @@ func scanListUint8Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjUint16Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint16(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint16(fieldPtr(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrUint16Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint16(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint16(fieldPtrDeep(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -649,7 +649,7 @@ func scanObjPtrUint16Value(sd *subDecode) {
 func scanArrUint16Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	}
 	bindUint16(arrItemPtr(sd), v)
 }
@@ -657,7 +657,7 @@ func scanArrUint16Value(sd *subDecode) {
 func scanListUint16Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 		if v > math.MaxUint16 {
 			panic(errInfinity)
 		}
@@ -671,13 +671,13 @@ func scanListUint16Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjUint32Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint32(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint32(fieldPtr(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrUint32Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint32(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint32(fieldPtrDeep(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -686,7 +686,7 @@ func scanObjPtrUint32Value(sd *subDecode) {
 func scanArrUint32Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	}
 	bindUint32(arrItemPtr(sd), v)
 }
@@ -694,7 +694,7 @@ func scanArrUint32Value(sd *subDecode) {
 func scanListUint32Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 		if v > math.MaxUint32 {
 			panic(errInfinity)
 		}
@@ -708,13 +708,13 @@ func scanListUint32Value(sd *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjUint64Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint64(fieldPtr(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint64(fieldPtr(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrUint64Value(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
-		bindUint64(fieldPtrDeep(sd), lang.ParseUint(sd.str[start:sd.scan]))
+		bindUint64(fieldPtrDeep(sd), lang.ParseUintFast(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
 	}
@@ -723,7 +723,7 @@ func scanObjPtrUint64Value(sd *subDecode) {
 func scanArrUint64Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	}
 	bindUint64(arrItemPtr(sd), v)
 }
@@ -731,7 +731,7 @@ func scanArrUint64Value(sd *subDecode) {
 func scanListUint64Value(sd *subDecode) {
 	v := uint64(0)
 	if start := sd.scanUintValue(); start > 0 {
-		v = lang.ParseUint(sd.str[start:sd.scan])
+		v = lang.ParseUintFast(sd.str[start:sd.scan])
 		if v > math.MaxUint64 {
 			panic(errInfinity)
 		}
@@ -1099,25 +1099,25 @@ func scanJustBaseValue(sd *subDecode) {
 		// NOTE：只能是数值类型
 		switch sd.dm.itemKind {
 		case reflect.Int:
-			bindInt(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+			bindInt(sd.dstPtr, lang.ParseIntFast(sd.str[sd.scanIntMust():sd.scan]))
 		case reflect.Int8:
-			bindInt8(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+			bindInt8(sd.dstPtr, lang.ParseIntFast(sd.str[sd.scanIntMust():sd.scan]))
 		case reflect.Int16:
-			bindInt16(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+			bindInt16(sd.dstPtr, lang.ParseIntFast(sd.str[sd.scanIntMust():sd.scan]))
 		case reflect.Int32:
-			bindInt32(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+			bindInt32(sd.dstPtr, lang.ParseIntFast(sd.str[sd.scanIntMust():sd.scan]))
 		case reflect.Int64:
-			bindInt64(sd.dstPtr, lang.ParseInt(sd.str[sd.scanIntMust():sd.scan]))
+			bindInt64(sd.dstPtr, lang.ParseIntFast(sd.str[sd.scanIntMust():sd.scan]))
 		case reflect.Uint:
-			bindUint(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+			bindUint(sd.dstPtr, lang.ParseUintFast(sd.str[sd.scanUintMust():sd.scan]))
 		case reflect.Uint8:
-			bindUint8(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+			bindUint8(sd.dstPtr, lang.ParseUintFast(sd.str[sd.scanUintMust():sd.scan]))
 		case reflect.Uint16:
-			bindUint16(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+			bindUint16(sd.dstPtr, lang.ParseUintFast(sd.str[sd.scanUintMust():sd.scan]))
 		case reflect.Uint32:
-			bindUint32(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+			bindUint32(sd.dstPtr, lang.ParseUintFast(sd.str[sd.scanUintMust():sd.scan]))
 		case reflect.Uint64:
-			bindUint64(sd.dstPtr, lang.ParseUint(sd.str[sd.scanUintMust():sd.scan]))
+			bindUint64(sd.dstPtr, lang.ParseUintFast(sd.str[sd.scanUintMust():sd.scan]))
 		case reflect.Float32:
 			bindFloat32(sd.dstPtr, lang.ParseFloat(sd.str[sd.scanNumMust():sd.scan]))
 		case reflect.Float64:

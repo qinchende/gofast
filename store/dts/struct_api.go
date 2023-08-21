@@ -3,52 +3,42 @@
 package dts
 
 import (
+	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"strings"
 	"sync"
 )
 
-// cache
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
-var cachedStructSchemas sync.Map
-
-func cacheSetSchema(typ reflect.Type, val *StructSchema) {
-	cachedStructSchemas.Store(typ, val)
-}
-
-func cacheGetSchema(typ reflect.Type) *StructSchema {
-	if ret, ok := cachedStructSchemas.Load(typ); ok {
-		return ret.(*StructSchema)
-	}
-	return nil
-}
-
 // fetch StructSchema
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Schema(obj any, opts *BindOptions) *StructSchema {
-	if opts.CacheSchema {
-		return fetchSchemaCache(reflect.TypeOf(obj), opts)
-	} else {
-		return buildStructSchema(reflect.TypeOf(obj), opts)
-	}
+	rTyp := reflect.TypeOf(obj)
+	return SchemaByType(rTyp, opts)
 }
 
-func SchemaForDB(obj any) *StructSchema {
+func SchemaAsDB(obj any) *StructSchema {
 	return Schema(obj, dbStructOptions)
 }
 
-func SchemaForInput(obj any) *StructSchema {
+func SchemaAsReq(obj any) *StructSchema {
 	return Schema(obj, reqStructOptions)
 }
 
-func SchemaForConfig(obj any) *StructSchema {
+func SchemaAsConfig(obj any) *StructSchema {
 	return Schema(obj, cfgStructOptions)
 }
 
 // ++++++++++++++++++++++++++
 func SchemaByType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
+	for rTyp.Kind() == reflect.Pointer {
+		rTyp = rTyp.Elem()
+	}
+	if rTyp.Kind() != reflect.Struct {
+		cst.PanicString(fmt.Sprintf("%T is not like struct", rTyp))
+	}
+
 	if opts.CacheSchema {
 		return fetchSchemaCache(rTyp, opts)
 	} else {
@@ -56,15 +46,15 @@ func SchemaByType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	}
 }
 
-func SchemaForDBByType(rTyp reflect.Type) *StructSchema {
+func SchemaAsDBByType(rTyp reflect.Type) *StructSchema {
 	return SchemaByType(rTyp, dbStructOptions)
 }
 
-func SchemaForInputByType(rTyp reflect.Type) *StructSchema {
+func SchemaAsReqByType(rTyp reflect.Type) *StructSchema {
 	return SchemaByType(rTyp, reqStructOptions)
 }
 
-func SchemaForConfigByType(rTyp reflect.Type) *StructSchema {
+func SchemaAsConfigByType(rTyp reflect.Type) *StructSchema {
 	return SchemaByType(rTyp, cfgStructOptions)
 }
 
@@ -142,4 +132,20 @@ func (ss *StructSchema) FIndexes(fls []string) (ret []uint8) {
 		ret[i] = uint8(ss.FieldIndex(fls[i]))
 	}
 	return
+}
+
+// cache
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
+var cachedStructSchemas sync.Map
+
+func cacheSetSchema(typ reflect.Type, val *StructSchema) {
+	cachedStructSchemas.Store(typ, val)
+}
+
+func cacheGetSchema(typ reflect.Type) *StructSchema {
+	if ret, ok := cachedStructSchemas.Load(typ); ok {
+		return ret.(*StructSchema)
+	}
+	return nil
 }

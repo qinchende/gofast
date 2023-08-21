@@ -64,9 +64,6 @@ type (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的Schema元数据
 func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *StructSchema {
-	for rTyp.Kind() == reflect.Pointer {
-		rTyp = rTyp.Elem()
-	}
 	// 看类型，缓存有就直接用，否则计算一次并缓存
 	ss := cacheGetSchema(rTyp)
 	if ss == nil {
@@ -81,10 +78,10 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx, opts)
 
 	if len(fColumns) <= 0 {
-		panic("Struct not contain any fields")
+		cst.PanicString("Struct not contain any fields")
 	}
 	if len(fColumns) > math.MaxUint8 {
-		panic("Struct field items large the 256")
+		cst.PanicString("Struct field items large the 256")
 	}
 
 	// 构造ORM Model元数据
@@ -172,7 +169,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	lang.SortByLen(ss.cTips.items)
 	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1]) // 最长string长度（最后一个就是最长的）
 	if lastLen > math.MaxUint8 {
-		panic("Struct has field large the 256 chars")
+		cst.PanicString("Struct has field large the 256 chars")
 	}
 	ss.cTips.lenOff = make([]uint8, lastLen+1)
 	lastLen = 0
@@ -199,7 +196,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	lang.SortByLen(ss.fTips.items)
 	lastLen = len(ss.fTips.items[len(ss.fTips.items)-1])
 	if lastLen > math.MaxUint8 {
-		panic("Struct has field large the 256 chars")
+		cst.PanicString("Struct has field large the 256 chars")
 	}
 	ss.fTips.lenOff = make([]uint8, lastLen+1)
 	lastLen = 0
@@ -223,7 +220,7 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 // 反射提取结构体的字段（支持嵌套递归）
 func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []fieldOptions) {
 	if rTyp.Kind() != reflect.Struct {
-		cst.PanicString(fmt.Sprintf("%T is not like struct", rTyp))
+		panic(fmt.Sprintf("%T is not like struct", rTyp))
 	}
 
 	fColumns := make([]string, 0)
