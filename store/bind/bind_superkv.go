@@ -26,7 +26,8 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	if dstTyp.Kind() != reflect.Pointer {
 		return errors.New("Target object must be pointer value.")
 	}
-	if dstTyp.Elem().Kind() != reflect.Struct {
+	dstTyp = dstTyp.Elem()
+	if dstTyp.Kind() != reflect.Struct {
 		return fmt.Errorf("%T must be struct.", dst)
 	}
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -68,6 +69,7 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.Super
 		}
 
 		fPtr := unsafe.Pointer(uintptr(ptr) + fa.Offset)
+		// TODO: 完善这里可能出现的情况
 		switch fa.Kind {
 		case reflect.Struct:
 			if err = bindStruct(fPtr, fa.Type, fv, opts); err != nil {
@@ -131,18 +133,24 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOpti
 			startPtr = unsafe.Pointer(sh.Data)
 		}
 
+		// 处理每一项值的绑定
 		for i := 0; i < ct; i++ {
 			itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
 			itVal := v[i]
 
-			// TODO: so many type of value
-			switch dstT.Kind() {
+			// TODO: 完善这里可能出现的情况
+			dstKind := dstT.Kind()
+			switch dstKind {
 			case reflect.Struct:
 				if err = bindStruct(itPtr, dstT, itVal, opts); err != nil {
 					return
 				}
+			case reflect.Array, reflect.Slice:
+				if err = bindList(itPtr, dstT, itVal, opts); err != nil {
+					return
+				}
 			default:
-				dts.BindBaseValueAsConfig(dstT.Kind(), itPtr, itVal)
+				dts.BindBaseValueAsConfig(dstKind, itPtr, itVal)
 			}
 		}
 	default:

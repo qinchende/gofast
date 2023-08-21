@@ -244,58 +244,23 @@ func ToUint8(v any) (ui8 uint8, err error) {
 	}
 }
 
-// fast number value parser
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-var (
-	pow10u64 = [...]uint64{
-		1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e07, 1e08, 1e09,
-		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
-	}
-	pow10u64Len = len(pow10u64)
-)
-
-func ParseUint(s string) uint64 {
-	maxDigit := len(s)
-	if maxDigit > pow10u64Len {
+//
+//go:inline
+func ParseInt(s string) int64 {
+	if i64, err := strconv.ParseInt(s, 10, 64); err != nil {
 		panic(errNumberFmt)
+	} else {
+		return i64
 	}
-	sum := uint64(0)
-	for i := 0; i < maxDigit; i++ {
-		c := uint64(s[i]) - 48
-		digitValue := pow10u64[maxDigit-i-1]
-		sum += c * digitValue
-	}
-	return sum
 }
 
-var (
-	pow10i64 = [...]int64{
-		1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e07, 1e08, 1e09,
-		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18,
-	}
-	pow10i64Len = len(pow10i64)
-)
-
-func ParseInt(s string) int64 {
-	isNegative := false
-	if s[0] == '-' {
-		s = s[1:]
-		isNegative = true
-	}
-	maxDigit := len(s)
-	if maxDigit > pow10i64Len {
+func ParseUint(s string) uint64 {
+	if ui64, err := strconv.ParseUint(s, 10, 64); err != nil {
 		panic(errNumberFmt)
+	} else {
+		return ui64
 	}
-	sum := int64(0)
-	for i := 0; i < maxDigit; i++ {
-		c := int64(s[i]) - 48
-		digitValue := pow10i64[maxDigit-i-1]
-		sum += c * digitValue
-	}
-	if isNegative {
-		return -1 * sum
-	}
-	return sum
 }
 
 //go:inline
@@ -317,4 +282,61 @@ func ParseBool(s string) bool {
 	default:
 		panic(errBoolFmt)
 	}
+}
+
+// Note: 特殊转换函数，提高性能
+// Fast number value parser
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+var (
+	pow10u64 = [...]uint64{
+		1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e07, 1e08, 1e09,
+		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18, 1e19,
+	}
+	pow10u64Len = len(pow10u64)
+)
+
+// 参数s 必须是严格的uint类型
+func ParseUintFast(s string) uint64 {
+	maxDigit := len(s)
+	if maxDigit > pow10u64Len {
+		panic(errNumberFmt)
+	}
+	sum := uint64(0)
+	for i := 0; i < maxDigit; i++ {
+		c := uint64(s[i]) - 48
+		digitValue := pow10u64[maxDigit-i-1]
+		sum += c * digitValue
+	}
+	return sum
+}
+
+var (
+	pow10i64 = [...]int64{
+		1e00, 1e01, 1e02, 1e03, 1e04, 1e05, 1e06, 1e07, 1e08, 1e09,
+		1e10, 1e11, 1e12, 1e13, 1e14, 1e15, 1e16, 1e17, 1e18,
+	}
+	pow10i64Len = len(pow10i64)
+)
+
+// 参数s 必须是严格的int类型
+func ParseIntFast(s string) int64 {
+	isNegative := false
+	if s[0] == '-' {
+		s = s[1:]
+		isNegative = true
+	}
+	maxDigit := len(s)
+	if maxDigit > pow10i64Len {
+		panic(errNumberFmt)
+	}
+	sum := int64(0)
+	for i := 0; i < maxDigit; i++ {
+		c := int64(s[i]) - 48
+		digitValue := pow10i64[maxDigit-i-1]
+		sum += c * digitValue
+	}
+	if isNegative {
+		return -1 * sum
+	}
+	return sum
 }

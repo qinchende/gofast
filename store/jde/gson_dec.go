@@ -261,7 +261,7 @@ func (grs *gsonRowsDecode) scanJsonRowRecode() {
 }
 
 func (sd *subDecode) scanJsonRowUint() (ret uint64) {
-	ret = lang.ParseUint(sd.str[sd.scanUintMust():sd.scan])
+	ret = lang.ParseUintFast(sd.str[sd.scanUintMust():sd.scan])
 	if sd.str[sd.scan] != ',' {
 		panic(errChar)
 	}

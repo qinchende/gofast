@@ -296,7 +296,7 @@ func (dm *decMeta) initPointerMeta(rfType reflect.Type) {
 
 func (dm *decMeta) initStructMeta(rfType reflect.Type) {
 	dm.isStruct = true
-	dm.ss = dts.SchemaForInputByType(rfType)
+	dm.ss = dts.SchemaAsReqByType(rfType)
 	dm.itemRawSize = int(rfType.Size())
 
 	dm.bindStructDec()

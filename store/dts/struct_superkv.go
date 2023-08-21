@@ -19,7 +19,7 @@ type StructKV struct {
 // Note: 这里返回StructKV的指针类型，而不是值类型。主要是因为要讲这个变量赋值给接口 fst.Context.Pms ，不希望发生值拷贝
 func AsSuperKV(v any) (ret *StructKV) {
 	ret = &StructKV{
-		SS:  SchemaForInput(v),
+		SS:  SchemaAsReq(v),
 		Ptr: (*rt.AFace)(unsafe.Pointer(&v)).DataPtr,
 	}
 	return

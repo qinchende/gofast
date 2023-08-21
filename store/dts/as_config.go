@@ -6,6 +6,7 @@ import (
 	"unsafe"
 )
 
+// Note: 这里只处理基础数据类型
 func BindBaseValueAsConfig(kd reflect.Kind, itPtr unsafe.Pointer, itVal any) {
 	switch kd {
 	case reflect.Int:
@@ -41,7 +42,6 @@ func BindBaseValueAsConfig(kd reflect.Kind, itPtr unsafe.Pointer, itVal any) {
 		setBool(itPtr, itVal)
 	case reflect.Interface:
 		setAny(itPtr, itVal)
-
 	}
 }
 

@@ -19,7 +19,7 @@ type BindOptions struct {
 var (
 	// 应用在大量解析数据记录的场景
 	dbStructOptions = &BindOptions{
-		model: AsLoadDB,
+		model: AsDB,
 
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
@@ -57,13 +57,13 @@ var (
 const (
 	AsConfig int8 = iota // 采用解析配置文件的模式
 	AsReq                // 采用解析输入表单的模式
-	AsLoadDB             // 采用解析MySQL记录的模式
+	AsDB                 // 采用解析MySQL记录的模式
 )
 
 // 使用什么典型模式来解析验证数据
 func AsOptions(model int8) (opt *BindOptions) {
 	switch model {
-	case AsLoadDB:
+	case AsDB:
 		opt = dbStructOptions
 	case AsReq:
 		opt = reqStructOptions
