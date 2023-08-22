@@ -15,7 +15,7 @@ var (
 	errNilValue      = errors.New("Value is nil")
 	errConvertValue  = errors.New("Value convert error")
 	errNumOutOfRange = errors.New("Number out of range")
-	errNumberFmt     = errors.New("Error number format")
+	errNumberFmt     = errors.New("Error numeric string format")
 	errBoolFmt       = errors.New("Error bool string format")
 )
 

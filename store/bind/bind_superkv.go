@@ -111,11 +111,11 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOpti
 		ct := len(v)
 
 		if dstT.Kind() == reflect.Array {
-			dstT = dstT.Elem()
 			if dstT.Len() != ct {
 				return errors.New("dts: array length not match.")
 			}
 
+			dstT = dstT.Elem()
 			itSize = dstT.Size()
 			startPtr = ptr
 		} else {
@@ -133,24 +133,27 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOpti
 			startPtr = unsafe.Pointer(sh.Data)
 		}
 
-		// 处理每一项值的绑定
-		for i := 0; i < ct; i++ {
-			itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
-			itVal := v[i]
-
-			// TODO: 完善这里可能出现的情况
-			dstKind := dstT.Kind()
-			switch dstKind {
-			case reflect.Struct:
-				if err = bindStruct(itPtr, dstT, itVal, opts); err != nil {
+		// TODO: 完善这里可能出现的情况
+		dstKind := dstT.Kind()
+		switch dstKind {
+		case reflect.Struct:
+			for i := 0; i < ct; i++ {
+				itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
+				if err = bindStruct(itPtr, dstT, v[i], opts); err != nil {
 					return
 				}
-			case reflect.Array, reflect.Slice:
-				if err = bindList(itPtr, dstT, itVal, opts); err != nil {
+			}
+		case reflect.Array, reflect.Slice:
+			for i := 0; i < ct; i++ {
+				itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
+				if err = bindList(itPtr, dstT, v[i], opts); err != nil {
 					return
 				}
-			default:
-				dts.BindBaseValueAsConfig(dstKind, itPtr, itVal)
+			}
+		default:
+			for i := 0; i < ct; i++ {
+				itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
+				dts.BindBaseValueAsConfig(dstKind, itPtr, v[i])
 			}
 		}
 	default:
