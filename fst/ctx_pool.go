@@ -76,7 +76,8 @@ func (c *Context) createPms() {
 		}
 		c.Pms = gr // 如果Pms是GsonRow类型，从缓冲池中取出对象复用
 	} else {
-		c.Pms = make(cst.KV) // 默认使用map类型保存KV值
+		newMP := make(cst.KV)
+		c.Pms = &newMP // 默认使用map类型保存KV值，c.Pms必须是指针类型
 	}
 }
 
