@@ -4,7 +4,6 @@ package bind
 
 import (
 	"errors"
-	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/validx"
@@ -28,7 +27,7 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	}
 	dstTyp = dstTyp.Elem()
 	if dstTyp.Kind() != reflect.Struct {
-		return fmt.Errorf("%T must be struct.", dst)
+		return errors.New(dstTyp.String() + " must be struct.")
 	}
 	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -36,8 +35,8 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	return bindKVToStructInner(ptr, dstTyp, kvs, opts)
 }
 
-func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
-	sm := dts.SchemaByType(dstType, opts)
+func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
+	sm := dts.SchemaByType(dstT, opts)
 
 	var fls []string
 	if opts.UseFieldName {
@@ -58,7 +57,7 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.Super
 				continue
 			}
 			if vOpt.Required && opts.UseValid {
-				return fmt.Errorf("field %s requied", fName)
+				return errors.New("the field must required: " + fName)
 			}
 			if opts.UseDefValue {
 				fv = vOpt.DefValue
@@ -82,8 +81,14 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.Super
 			}
 			continue
 		case reflect.Map:
+			if err = bindMap(fPtr, fv); err != nil {
+				return
+			}
 			continue
 		case reflect.Pointer:
+			if err = bindPointer(fPtr, fv); err != nil {
+				return
+			}
 			continue
 		default:
 			if fa.KVBinder == nil {
@@ -103,61 +108,65 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstType reflect.Type, kvs cst.Super
 	return
 }
 
+// 绑定列表数据
 func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOptions) (err error) {
-	switch v := val.(type) {
-	case []any:
-		var itSize uintptr
-		var startPtr unsafe.Pointer
-		ct := len(v)
+	// 因为绑定数据来源于JSON，YAML等数据的解析，这类数据在遇到数组时候，几乎都是用 []any 表示
+	list, ok := val.([]any)
+	if !ok {
+		return errors.New("dts: value type must be []any")
+	}
 
-		if dstT.Kind() == reflect.Array {
-			if dstT.Len() != ct {
-				return errors.New("dts: array length not match.")
-			}
+	var itSize uintptr
+	ct := len(list)
 
-			dstT = dstT.Elem()
-			itSize = dstT.Size()
-			startPtr = ptr
+	if dstT.Kind() == reflect.Array {
+		if dstT.Len() != ct {
+			return errors.New("dts: array length not match.")
+		}
+
+		dstT = dstT.Elem()
+		itSize = dstT.Size()
+	} else {
+		dstT = dstT.Elem()
+		itSize = dstT.Size()
+
+		sh := (*reflect.SliceHeader)(ptr)
+		if sh.Cap < ct {
+			newMem := make([]byte, int(itSize)*ct)
+			sh.Data = (*reflect.SliceHeader)(unsafe.Pointer(&newMem)).Data
+			sh.Len, sh.Cap = ct, ct
 		} else {
-			dstT = dstT.Elem()
-			itSize = dstT.Size()
-
-			sh := (*reflect.SliceHeader)(ptr)
-			if sh.Cap < ct {
-				newMem := make([]byte, int(itSize)*ct)
-				sh.Data = (*reflect.SliceHeader)(unsafe.Pointer(&newMem)).Data
-				sh.Len, sh.Cap = ct, ct
-			} else {
-				sh.Len = ct
-			}
-			startPtr = unsafe.Pointer(sh.Data)
+			sh.Len = ct
 		}
+		ptr = unsafe.Pointer(sh.Data)
+	}
 
-		// TODO: 完善这里可能出现的情况
-		dstKind := dstT.Kind()
-		switch dstKind {
-		case reflect.Struct:
-			for i := 0; i < ct; i++ {
-				itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
-				if err = bindStruct(itPtr, dstT, v[i], opts); err != nil {
-					return
-				}
-			}
-		case reflect.Array, reflect.Slice:
-			for i := 0; i < ct; i++ {
-				itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
-				if err = bindList(itPtr, dstT, v[i], opts); err != nil {
-					return
-				}
-			}
-		default:
-			for i := 0; i < ct; i++ {
-				itPtr := unsafe.Pointer(uintptr(startPtr) + uintptr(i)*itSize)
-				dts.BindBaseValueAsConfig(dstKind, itPtr, v[i])
+	// TODO: 完善这里可能出现的情况
+	itKind := dstT.Kind()
+	switch itKind {
+	case reflect.Struct:
+		for i := 0; i < ct; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itSize)
+			if err = bindStruct(itPtr, dstT, list[i], opts); err != nil {
+				return
 			}
 		}
+	case reflect.Array, reflect.Slice:
+		for i := 0; i < ct; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itSize)
+			if err = bindList(itPtr, dstT, list[i], opts); err != nil {
+				return
+			}
+		}
+	case reflect.Map:
+		// TODO: bindMap
+	case reflect.Pointer:
+		// TODO: bindPointer
 	default:
-		return errors.New("dts: only array-like value supported.")
+		for i := 0; i < ct; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itSize)
+			dts.BindBaseValueAsConfig(itKind, itPtr, list[i])
+		}
 	}
 	return
 }
@@ -177,91 +186,10 @@ func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOp
 	return
 }
 
-// 特别类型
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func setPtr(p unsafe.Pointer, val any) {
-	p = *((*unsafe.Pointer)(p))
-	if *((*unsafe.Pointer)(p)) == nil {
-	}
+func bindMap(ptr unsafe.Pointer, val any) (err error) {
+	return
 }
 
-func setMap(p unsafe.Pointer, val any) {
-
+func bindPointer(ptr unsafe.Pointer, val any) (err error) {
+	return
 }
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func checkDestSchema(dest any, bindOpts *BindOptions) (*reflect.Value, *StructSchema, error) {
-//	dstTyp := reflect.TypeOf(dest)
-//	if dstTyp.Kind() != reflect.Pointer {
-//		return nil, nil, errors.New("Target object must be pointer.")
-//	}
-//
-//	dstVal := reflect.Indirect(reflect.ValueOf(dest))
-//	if dstVal.Kind() != reflect.Struct {
-//		return nil, nil, fmt.Errorf("%T not like struct.", dest)
-//	}
-//
-//	return &dstVal, SchemaByType(dstVal.Type(), bindOpts), nil
-//}
-//
-//func isInitialValue(dst reflect.Value) bool {
-//	switch dst.Kind() {
-//	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-//		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-//		return dst.Int() == 0
-//	case reflect.Float64, reflect.Float32:
-//		return dst.Float() == 0
-//	case reflect.String:
-//		return dst.String() == ""
-//	}
-//	return false
-//}
-
-//func sdxSetValue(dstVal reflect.Value, src any, fOpt *fieldOptions, bindOpts *BindOptions) error {
-//	return nil
-//}
-
-//
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// 主要用于给dst加上默认值，然后执行下字段验证
-//func optimizeStruct(dst any, bindOpts *BindOptions) (err error) {
-//	if dst == nil || bindOpts == nil {
-//		return nil
-//	}
-//	dstVal, sm, err := checkDestSchema(dst, bindOpts)
-//	if err != nil {
-//		return err
-//	}
-//
-//	for i := 0; i < len(sm.fields); i++ {
-//		fv := sm.RefValueByIndex(dstVal, int8(i))
-//
-//		// 如果字段是结构体类型
-//		fvType := fv.Type()
-//		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
-//			if err = optimizeStruct(fv.Addr().Interface(), bindOpts); err != nil {
-//				return err
-//			}
-//			continue
-//		}
-//
-//		// 如果字段值看上去像变量刚生成后默认初始化值，那么就加载默认信息
-//		fOpt := sm.fieldsOpts[i]
-//		vOpt := fOpt.valid
-//		if isInitialValue(fv) && bindOpts.UseDefValue && vOpt != nil {
-//			if vOpt.DefValue == "" {
-//				continue
-//			}
-//			if err = sdxSetValue(fv, vOpt.DefValue, fOpt, bindOpts); err != nil {
-//				return err
-//			}
-//		}
-//		// 是否需要验证字段数据的合法性
-//		if bindOpts.UseValid && fOpt != nil {
-//			if err = validx.ValidateField(&fv, vOpt); err != nil {
-//				return err
-//			}
-//		}
-//	}
-//	return nil
-//}
