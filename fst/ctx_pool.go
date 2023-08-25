@@ -71,7 +71,7 @@ func (c *Context) createPms() {
 			gr.Init(routesAttrs[c.RouteIdx].PmsFields)
 		} else {
 			for i := range gr.Row {
-				gr.Row[i].Val = nil // gr.Row reset value
+				gr.Row[i] = nil // gr.Row reset value
 			}
 		}
 		c.Pms = gr // 如果Pms是GsonRow类型，从缓冲池中取出对象复用

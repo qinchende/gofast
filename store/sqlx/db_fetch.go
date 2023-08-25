@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
@@ -114,7 +113,7 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.ModelSchema, gro *gsonR
 		if gro != nil {
 			gro.hasValue = true
 			gro.Cls = ms.Columns()
-			gro.Row = make([]gson.FValue, len(gro.Cls))
+			gro.Row = make([]any, len(gro.Cls))
 
 			for idx, column := range gro.Cls {
 				gro.GsonRow.SetByIndex(idx, ms.ValueByIndex(&dstVal, smColumns[column]))
