@@ -17,7 +17,7 @@ func panicIfErr(err error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Utils
-func checkDestType(dest any) (*orm.ModelSchema, reflect.Type, reflect.Type, bool, bool) {
+func checkDestType(dest any) (*orm.TableSchema, reflect.Type, reflect.Type, bool, bool) {
 	dTyp := reflect.TypeOf(dest)
 	if dTyp.Kind() != reflect.Pointer {
 		cst.PanicString("Target object must be pointer.")

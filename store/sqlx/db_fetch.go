@@ -21,7 +21,7 @@ func ScanRows(dest any, sqlRows *sql.Rows) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ms *orm.ModelSchema) int64 {
+func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ms *orm.TableSchema) int64 {
 	ct, err := ret.RowsAffected()
 	panicIfErr(err)
 
@@ -69,7 +69,7 @@ func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.ModelSchema, gro *gsonResultOne) int64 {
+func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.TableSchema, gro *gsonResultOne) int64 {
 	if !sqlRows.Next() {
 		panicIfErr(sqlRows.Err())
 		return 0
@@ -95,14 +95,13 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.ModelSchema, gro *gsonR
 			ms = orm.Schema(dest)
 		}
 		dbColumns, _ := sqlRows.Columns()
-		smColumns := ms.ColumnsKV()
 		fieldsAddr := make([]any, len(dbColumns))
 
 		// 每一个db-column都应该有对应的变量接收值
 		for cIdx, column := range dbColumns {
-			idx, ok := smColumns[column]
-			if ok {
-				fieldsAddr[cIdx] = ms.AddrByIndex(&dstVal, idx)
+			idx := ms.ColumnIndex(column)
+			if idx >= 0 {
+				fieldsAddr[cIdx] = ms.AddrByIndex(&dstVal, int8(idx))
 			} else {
 				fieldsAddr[cIdx] = new(any) // 这个值会被丢弃
 			}
@@ -116,7 +115,7 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.ModelSchema, gro *gsonR
 			gro.Row = make([]any, len(gro.Cls))
 
 			for idx, column := range gro.Cls {
-				gro.GsonRow.SetByIndex(idx, ms.ValueByIndex(&dstVal, smColumns[column]))
+				gro.GsonRow.SetByIndex(idx, ms.ValueByIndex(&dstVal, int8(ms.ColumnIndex(column))))
 			}
 		}
 	default:
@@ -131,7 +130,7 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 	ms, sliceType, recordType, isPtr, isKV := checkDestType(dest)
 
 	dbColumns, _ := sqlRows.Columns()
-	msColumns := ms.ColumnsKV()
+	//msColumns := ms.ColumnsKV()
 
 	clsLen := len(dbColumns)
 	valuesAddr := make([]any, clsLen)
@@ -181,11 +180,9 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 	} else {
 		clsPos := make([]int8, clsLen)
 		for i := 0; i < clsLen; i++ {
-			idx, ok := msColumns[dbColumns[i]]
-			if ok {
-				clsPos[i] = idx
-			} else {
-				clsPos[i] = -1
+			clsPos[i] = int8(ms.ColumnIndex(dbColumns[i]))
+			//clsPos[i] = idx
+			if clsPos[i] < 0 {
 				valuesAddr[i] = new(any)
 			}
 		}

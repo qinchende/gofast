@@ -17,16 +17,16 @@ type BindOptions struct {
 
 // 内置几种典型的数据解析模式，当然可以根据需要自定义
 var (
-	// 应用在大量解析数据记录的场景
-	dbStructOptions = &BindOptions{
-		model: AsDB,
+	// 应用在解析配置文件的场景
+	cfgStructOptions = &BindOptions{
+		model: AsConfig,
 
 		FieldTag:     cst.FieldTag,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
-		UseFieldName: false,
+		UseFieldName: true,
 		UseDefValue:  true,
-		UseValid:     false,
+		UseValid:     true,
 	}
 
 	// 应用在解析配置文件的场景
@@ -41,16 +41,16 @@ var (
 		UseValid:     true,
 	}
 
-	// 应用在解析配置文件的场景
-	cfgStructOptions = &BindOptions{
-		model: AsConfig,
+	// 应用在大量解析数据记录的场景
+	dbStructOptions = &BindOptions{
+		model: AsDB,
 
-		FieldTag:     cst.FieldTag,
+		FieldTag:     cst.FieldTagDB,
 		ValidTag:     cst.FieldValidTag,
 		CacheSchema:  true,
-		UseFieldName: true,
+		UseFieldName: false,
 		UseDefValue:  true,
-		UseValid:     true,
+		UseValid:     false,
 	}
 )
 

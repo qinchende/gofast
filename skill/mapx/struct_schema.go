@@ -14,7 +14,7 @@ import (
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type StructSchema struct {
-	attrs       orm.ModelAttrs  // 实体类型的相关控制属性
+	attrs       orm.TableAttrs  // 实体类型的相关控制属性
 	columns     []string        // 按顺序存放的tag列名
 	columnsKV   map[string]int8 // pms_name index
 	fields      []string        // 按顺序存放的字段名
@@ -49,14 +49,14 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 
 	// 获取 Model的所有控制属性
 	rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
-	mdAttrs := new(orm.ModelAttrs)
+	mdAttrs := new(orm.TableAttrs)
 	attrsFunc := rTypVal.MethodByName("GfAttrs")
 	if attrsFunc.IsValid() {
 		vls := []reflect.Value{rTypVal}
-		mdAttrs = attrsFunc.Call(vls)[0].Interface().(*orm.ModelAttrs)
+		mdAttrs = attrsFunc.Call(vls)[0].Interface().(*orm.TableAttrs)
 	}
 	if mdAttrs == nil {
-		mdAttrs = &orm.ModelAttrs{}
+		mdAttrs = &orm.TableAttrs{}
 	}
 
 	// 收缩切片

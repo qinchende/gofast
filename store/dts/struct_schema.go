@@ -43,9 +43,9 @@ type (
 
 	// 方便字段数据处理
 	fieldAttr struct {
-		rIndex []int                // 字段定位（反射用到）
-		Valid  *validx.ValidOptions // 验证
-		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
+		RefIndex []int                // 字段定位（反射用到）
+		RefField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
+		Valid    *validx.ValidOptions // 验证
 
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
 		Kind      reflect.Kind // 字段最终类型的Kind类型
@@ -100,9 +100,9 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 	for i := range fOptions {
 		fa := &ss.FieldsAttr[i]
 
-		fa.rIndex = fIndexes[i]
+		fa.RefIndex = fIndexes[i]
 		fa.Valid = fOptions[i].valid
-		fa.sField = fOptions[i].sField
+		fa.RefField = fOptions[i].sField
 
 		fa.Offset = fOptions[i].sField.Offset
 		fa.Type = fOptions[i].sField.Type
@@ -247,6 +247,10 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 
 		// 1. 查找tag，确定列名称
 		col := fi.Tag.Get(opts.FieldTag)
+		// 如果指定的tag找不到，就试这去找通用tag
+		if col == "" && opts.FieldTag != cst.FieldTag {
+			col = fi.Tag.Get(cst.FieldTag)
+		}
 		if col == "" {
 			col = lang.Camel2Snake(fi.Name)
 		}
