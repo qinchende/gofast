@@ -6,10 +6,10 @@ import (
 	"time"
 )
 
-var modelAttrsList map[string]*ModelAttrs
+var tableAttrsList map[string]*TableAttrs
 
-func ShareModelAttrs(list map[string]*ModelAttrs) {
-	modelAttrsList = list
+func ShareTableAttrs(list map[string]*TableAttrs) {
+	tableAttrsList = list
 }
 
 // dbc: 数据库相关的配置参数
@@ -25,16 +25,16 @@ type CommonFields struct {
 	UpdatedAt time.Time // `dbc:"updated_field"`
 }
 
-func (cf *CommonFields) GfAttrs(parent OrmStruct) (attr *ModelAttrs) {
-	if modelAttrsList != nil {
+func (cf *CommonFields) GfAttrs(parent OrmStruct) (attr *TableAttrs) {
+	if tableAttrsList != nil {
 		fullName := ""
 		if parent != nil {
 			fullName = reflect.TypeOf(parent).Elem().String()
 		}
-		attr = modelAttrsList[fullName]
+		attr = tableAttrsList[fullName]
 	}
 	if attr == nil {
-		attr = &ModelAttrs{}
+		attr = &TableAttrs{}
 	}
 	//_ = mapx.Optimize(attr, mapx.LikeConfig) // 添加默认值，验证字段
 	return

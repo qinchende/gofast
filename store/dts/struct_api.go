@@ -61,15 +61,15 @@ func SchemaAsConfigByType(rTyp reflect.Type) *StructSchema {
 // reflect apis
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ss *StructSchema) ValueByIndex(rVal *reflect.Value, idx int8) any {
-	return rVal.FieldByIndex(ss.FieldsAttr[idx].rIndex).Interface()
+	return rVal.FieldByIndex(ss.FieldsAttr[idx].RefIndex).Interface()
 }
 
 func (ss *StructSchema) AddrByIndex(rVal *reflect.Value, idx int8) any {
-	return rVal.FieldByIndex(ss.FieldsAttr[idx].rIndex).Addr().Interface()
+	return rVal.FieldByIndex(ss.FieldsAttr[idx].RefIndex).Addr().Interface()
 }
 
 func (ss *StructSchema) RefValueByIndex(rVal *reflect.Value, idx int8) reflect.Value {
-	idxArr := ss.FieldsAttr[idx].rIndex
+	idxArr := ss.FieldsAttr[idx].RefIndex
 	if len(idxArr) == 1 {
 		return rVal.Field(idxArr[0])
 	}

@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-func insertSql(mss *orm.ModelSchema) string {
-	return mss.InsertSQL(func(ms *orm.ModelSchema) string {
+func insertSql(mss *orm.TableSchema) string {
+	return mss.InsertSQL(func(ms *orm.TableSchema) string {
 		cls := ms.Columns()
 		clsLen := len(cls)
 
@@ -41,14 +41,14 @@ func insertSql(mss *orm.ModelSchema) string {
 	})
 }
 
-func deleteSql(mss *orm.ModelSchema) string {
-	return mss.DeleteSQL(func(ms *orm.ModelSchema) string {
+func deleteSql(mss *orm.TableSchema) string {
+	return mss.DeleteSQL(func(ms *orm.TableSchema) string {
 		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})
 }
 
-func updateSql(mss *orm.ModelSchema) string {
-	return mss.UpdateSQL(func(ms *orm.ModelSchema) string {
+func updateSql(mss *orm.TableSchema) string {
+	return mss.UpdateSQL(func(ms *orm.TableSchema) string {
 		cls := ms.Columns()
 		clsLen := len(cls) - 1
 		sBuf := strings.Builder{}
@@ -72,7 +72,7 @@ func updateSql(mss *orm.ModelSchema) string {
 }
 
 // 更新特定字段
-func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
+func updateSqlByFields(ms *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
 	if len(fNames) == 1 {
 		fNames = strings.Split(fNames[0], ",")
 	}
@@ -82,14 +82,13 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 		cst.PanicString("sqlx: UpdateFields args [fNames] is empty")
 	}
 
-	flsKV := ms.FieldsKV()
 	cls := ms.Columns()
 	sBuf := strings.Builder{}
 	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx, ok := flsKV[fNames[i]]
-		if !ok {
+		idx := ms.FieldIndex(fNames[i])
+		if idx < 0 {
 			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", fNames[i]))
 		}
 
@@ -101,7 +100,7 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 		sBuf.WriteString("=?")
 
 		// 值
-		tValues[i] = ms.ValueByIndex(rVal, idx)
+		tValues[i] = ms.ValueByIndex(rVal, int8(idx))
 	}
 
 	// 更新字段
@@ -124,13 +123,13 @@ func updateSqlByFields(ms *orm.ModelSchema, rVal *reflect.Value, fNames ...strin
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
-func selectSqlForPrimary(mss *orm.ModelSchema) string {
-	return mss.SelectSQL(func(ms *orm.ModelSchema) string {
+func selectSqlForPrimary(mss *orm.TableSchema) string {
+	return mss.SelectSQL(func(ms *orm.TableSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
 	})
 }
 
-func selectSqlForOne(mss *orm.ModelSchema, fields string, where string) string {
+func selectSqlForOne(mss *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -140,7 +139,7 @@ func selectSqlForOne(mss *orm.ModelSchema, fields string, where string) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, mss.TableName(), where)
 }
 
-func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string {
+func selectSqlForSome(mss *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -154,7 +153,7 @@ func selectSqlForSome(mss *orm.ModelSchema, fields string, where string) string 
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func fillPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
+func fillPet(mss *orm.TableSchema, pet *SelectPet) *SelectPet {
 	if pet.isReady {
 		return pet
 	}
@@ -193,17 +192,17 @@ func fillPet(mss *orm.ModelSchema, pet *SelectPet) *SelectPet {
 	return pet
 }
 
-func selectSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+func selectSqlForPet(mss *orm.TableSchema, pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.Limit, pet.Offset)
 }
 
-func selectCountSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+func selectCountSqlForPet(mss *orm.TableSchema, pet *SelectPet) string {
 	if pet.GroupBy == "" {
 		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
 	}
 	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
-func selectPagingSqlForPet(mss *orm.ModelSchema, pet *SelectPet) string {
+func selectPagingSqlForPet(mss *orm.TableSchema, pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }

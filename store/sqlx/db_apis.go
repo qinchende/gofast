@@ -132,7 +132,7 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 }
 
 // 返回 count , total
-func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.ModelSchema) (int64, int64) {
+func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.TableSchema) (int64, int64) {
 	withCache := pet.Cache != nil && pet.Cache.ExpireS > 0
 	gsonStr := pet.Result != nil && pet.Result.GsonStr == true
 
