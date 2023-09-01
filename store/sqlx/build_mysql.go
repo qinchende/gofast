@@ -10,8 +10,8 @@ import (
 )
 
 func insertSql(mss *orm.TableSchema) string {
-	return mss.InsertSQL(func(ms *orm.TableSchema) string {
-		cls := ms.Columns()
+	return mss.InsertSQL(func(ts *orm.TableSchema) string {
+		cls := ts.Columns()
 		clsLen := len(cls)
 
 		sBuf := strings.Builder{}
@@ -19,7 +19,7 @@ func insertSql(mss *orm.TableSchema) string {
 		bVal := make([]byte, (clsLen-1)*2-1)
 
 		// insert 时 auto increment 字段不需要赋值。我们和需要赋值的字段调换位置
-		autoIdx := ms.AutoIndex()
+		autoIdx := ts.AutoIndex()
 		ct := 0
 		for i := 1; i < clsLen; i++ {
 			if ct > 0 {
@@ -37,24 +37,24 @@ func insertSql(mss *orm.TableSchema) string {
 			bVal[ct] = '?'
 			ct++
 		}
-		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ms.TableName(), sBuf.String(), lang.BTS(bVal))
+		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ts.TableName(), sBuf.String(), lang.BTS(bVal))
 	})
 }
 
 func deleteSql(mss *orm.TableSchema) string {
-	return mss.DeleteSQL(func(ms *orm.TableSchema) string {
-		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+	return mss.DeleteSQL(func(ts *orm.TableSchema) string {
+		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
 func updateSql(mss *orm.TableSchema) string {
-	return mss.UpdateSQL(func(ms *orm.TableSchema) string {
-		cls := ms.Columns()
+	return mss.UpdateSQL(func(ts *orm.TableSchema) string {
+		cls := ts.Columns()
 		clsLen := len(cls) - 1
 		sBuf := strings.Builder{}
 		sBuf.Grow(256)
 
-		priIdx := ms.PrimaryIndex()
+		priIdx := ts.PrimaryIndex()
 		for i := 0; i < clsLen; i++ {
 			if i > 0 {
 				sBuf.WriteByte(',')
@@ -67,12 +67,12 @@ func updateSql(mss *orm.TableSchema) string {
 			}
 			sBuf.WriteString("=?")
 		}
-		return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ms.TableName(), sBuf.String(), cls[priIdx])
+		return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ts.TableName(), sBuf.String(), cls[priIdx])
 	})
 }
 
 // 更新特定字段
-func updateSqlByFields(ms *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
+func updateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
 	if len(fNames) == 1 {
 		fNames = strings.Split(fNames[0], ",")
 	}
@@ -82,12 +82,12 @@ func updateSqlByFields(ms *orm.TableSchema, rVal *reflect.Value, fNames ...strin
 		cst.PanicString("sqlx: UpdateFields args [fNames] is empty")
 	}
 
-	cls := ms.Columns()
+	cls := ts.Columns()
 	sBuf := strings.Builder{}
 	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx := ms.FieldIndex(fNames[i])
+		idx := ts.FieldIndex(fNames[i])
 		if idx < 0 {
 			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", fNames[i]))
 		}
@@ -100,32 +100,32 @@ func updateSqlByFields(ms *orm.TableSchema, rVal *reflect.Value, fNames ...strin
 		sBuf.WriteString("=?")
 
 		// 值
-		tValues[i] = ms.ValueByIndex(rVal, int8(idx))
+		tValues[i] = ts.ValueByIndex(rVal, int8(idx))
 	}
 
 	// 更新字段
-	upIdx := ms.UpdatedIndex()
-	priIdx := ms.PrimaryIndex()
+	upIdx := ts.UpdatedIndex()
+	priIdx := ts.PrimaryIndex()
 	if upIdx >= 0 {
 		sBuf.WriteByte(',')
 		sBuf.WriteString(cls[upIdx])
 		sBuf.WriteString("=?")
-		tValues[tgLen] = ms.ValueByIndex(rVal, upIdx)
-		tValues[tgLen+1] = ms.ValueByIndex(rVal, priIdx)
+		tValues[tgLen] = ts.ValueByIndex(rVal, upIdx)
+		tValues[tgLen+1] = ts.ValueByIndex(rVal, priIdx)
 	} else {
-		tValues[tgLen] = ms.ValueByIndex(rVal, priIdx)
+		tValues[tgLen] = ts.ValueByIndex(rVal, priIdx)
 		tValues = tValues[:tgLen+1]
 	}
 
-	return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ms.TableName(), sBuf.String(), cls[priIdx]), tValues
+	return fmt.Sprintf("UPDATE %s SET %s WHERE %s=?;", ts.TableName(), sBuf.String(), cls[priIdx]), tValues
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
 func selectSqlForPrimary(mss *orm.TableSchema) string {
-	return mss.SelectSQL(func(ms *orm.TableSchema) string {
-		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ms.TableName(), ms.Columns()[ms.PrimaryIndex()])
+	return mss.SelectSQL(func(ts *orm.TableSchema) string {
+		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 

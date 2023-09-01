@@ -21,19 +21,19 @@ func ScanRows(dest any, sqlRows *sql.Rows) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ms *orm.TableSchema) int64 {
+func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema) int64 {
 	ct, err := ret.RowsAffected()
 	panicIfErr(err)
 
 	// 判断是否要删除缓存，删除缓存的逻辑要特殊处理，
 	// TODO：删除Key要有策略，比如删除之后加一个删除标记，后面设置缓存策略先查询这个标记，如果有标记就删除标记但本次不设置缓存
-	if ct > 0 && ms.CacheAll() {
+	if ct > 0 && ts.CacheAll() {
 		// 目前只支持第一个redis实例作缓存
 		if conn.rdsNodes != nil {
-			key := ms.CacheLineKey(conn.Attrs.DbName, keyVal)
+			key := ts.CacheLineKey(conn.Attrs.DbName, keyVal)
 			rds := (*conn.rdsNodes)[0]
 			_, _ = rds.Del(key)
-			_, _ = rds.SetEX(key+"_del", "1", ms.ExpireDuration())
+			_, _ = rds.SetEX(key+"_del", "1", ts.ExpireDuration())
 		}
 	}
 
@@ -41,35 +41,35 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ms *orm.TableSchema
 }
 
 func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
-	ms := orm.Schema(dest)
+	ts := orm.Schema(dest)
 
-	key := ms.CacheLineKey(conn.Attrs.DbName, id)
+	key := ts.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
 	cacheStr, err := rds.Get(key)
 	if err == nil && cacheStr != "" {
-		if err = loadRecordFromGsonString(dest, cacheStr, ms); err == nil {
+		if err = bindFromGsonValueString(dest, cacheStr, ts); err == nil {
 			return 1
 		}
 	}
 
-	sqlRows := conn.QuerySql(selectSqlForPrimary(ms), id)
+	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
 
 	var gro gsonResultOne
-	ct := scanSqlRowsOne(dest, sqlRows, ms, &gro)
+	ct := scanSqlRowsOne(dest, sqlRows, ts, &gro)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
 		} else if jsonValBytes, err := jsonx.Marshal(gro.Row); err == nil {
-			_, _ = rds.Set(key, jsonValBytes, ms.ExpireDuration())
+			_, _ = rds.Set(key, jsonValBytes, ts.ExpireDuration())
 		}
 	}
 	return ct
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.TableSchema, gro *gsonResultOne) int64 {
+func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonResultOne) int64 {
 	if !sqlRows.Next() {
 		panicIfErr(sqlRows.Err())
 		return 0
@@ -91,17 +91,17 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.TableSchema, gro *gsonR
 			cst.PanicString("Passed in variable is not settable.")
 		}
 	case reflect.Struct:
-		if ms == nil {
-			ms = orm.Schema(dest)
+		if ts == nil {
+			ts = orm.Schema(dest)
 		}
 		dbColumns, _ := sqlRows.Columns()
 		fieldsAddr := make([]any, len(dbColumns))
 
 		// 每一个db-column都应该有对应的变量接收值
 		for cIdx, column := range dbColumns {
-			idx := ms.ColumnIndex(column)
+			idx := ts.ColumnIndex(column)
 			if idx >= 0 {
-				fieldsAddr[cIdx] = ms.AddrByIndex(&dstVal, int8(idx))
+				fieldsAddr[cIdx] = ts.AddrByIndex(&dstVal, int8(idx))
 			} else {
 				fieldsAddr[cIdx] = new(any) // 这个值会被丢弃
 			}
@@ -111,11 +111,11 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.TableSchema, gro *gsonR
 		// 如果需要，返回行记录的值
 		if gro != nil {
 			gro.hasValue = true
-			gro.Cls = ms.Columns()
+			gro.Cls = ts.Columns()
 			gro.Row = make([]any, len(gro.Cls))
 
 			for idx, column := range gro.Cls {
-				gro.GsonRow.SetByIndex(idx, ms.ValueByIndex(&dstVal, int8(ms.ColumnIndex(column))))
+				gro.GsonRow.SetByIndex(idx, ts.ValueByIndex(&dstVal, int8(ts.ColumnIndex(column))))
 			}
 		}
 	default:
@@ -127,10 +127,10 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ms *orm.TableSchema, gro *gsonR
 // 解析查询到的数据记录
 // TODO: 如果 dest 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
 func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
-	ms, sliceType, recordType, isPtr, isKV := checkDestType(dest)
+	ts, sliceType, recordType, isPtr, isKV := checkDestType(dest)
 
 	dbColumns, _ := sqlRows.Columns()
-	//msColumns := ms.ColumnsKV()
+	//msColumns := ts.ColumnsKV()
 
 	clsLen := len(dbColumns)
 	valuesAddr := make([]any, clsLen)
@@ -180,7 +180,7 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 	} else {
 		clsPos := make([]int8, clsLen)
 		for i := 0; i < clsLen; i++ {
-			clsPos[i] = int8(ms.ColumnIndex(dbColumns[i]))
+			clsPos[i] = int8(ts.ColumnIndex(dbColumns[i]))
 			//clsPos[i] = idx
 			if clsPos[i] < 0 {
 				valuesAddr[i] = new(any)
@@ -193,7 +193,7 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 
 			for i := 0; i < clsLen; i++ {
 				if clsPos[i] >= 0 {
-					valuesAddr[i] = ms.AddrByIndex(&recordVal, clsPos[i])
+					valuesAddr[i] = ts.AddrByIndex(&recordVal, clsPos[i])
 				}
 			}
 

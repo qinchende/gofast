@@ -13,6 +13,14 @@ func DecodeGsonRowsFromString(v any, str string) gson.RowsDecRet {
 	return ret
 }
 
+func DecodeGsonRowFromValueString(v any, str string) gson.RowsDecRet {
+	ret := decGsonRows(v, str)
+	if ret.Err == nil && ret.Scan != len(str) {
+		ret.Err = errJsonRowsStr
+	}
+	return ret
+}
+
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func EncodeGsonRows(v any) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
