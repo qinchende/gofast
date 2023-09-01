@@ -11,14 +11,14 @@ import (
 
 func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 	obj.BeforeSave() // 设置值
-	ms, values := orm.SchemaValues(obj)
+	ts, values := orm.SchemaValues(obj)
 
-	autoIdx := ms.AutoIndex()
+	autoIdx := ts.AutoIndex()
 	if autoIdx > 0 {
 		values[autoIdx] = values[0]
 	}
 
-	ret := conn.ExecSql(insertSql(ms), values[1:]...)
+	ret := conn.ExecSql(insertSql(ts), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
 	ct, err := ret.RowsAffected()
 	panicIfErr(err)
@@ -26,44 +26,44 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 }
 
 func (conn *OrmDB) Delete(obj any) int64 {
-	ms := orm.Schema(obj)
-	val := ms.PrimaryValue(obj)
-	ret := conn.ExecSql(deleteSql(ms), val)
-	return parseSqlResult(ret, val, conn, ms)
+	ts := orm.Schema(obj)
+	val := ts.PrimaryValue(obj)
+	ret := conn.ExecSql(deleteSql(ts), val)
+	return parseSqlResult(ret, val, conn, ts)
 }
 
 func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
 	obj.BeforeSave()
-	ms, values := orm.SchemaValues(obj)
+	ts, values := orm.SchemaValues(obj)
 
 	fLen := len(values)
-	priIdx := ms.PrimaryIndex()
+	priIdx := ts.PrimaryIndex()
 	tVal := values[priIdx]
 	values[priIdx] = values[fLen-1]
 	values[fLen-1] = tVal
 
-	ret := conn.ExecSql(updateSql(ms), values...)
-	return parseSqlResult(ret, tVal, conn, ms)
+	ret := conn.ExecSql(updateSql(ts), values...)
+	return parseSqlResult(ret, tVal, conn, ts)
 }
 
 // 通过给定的结构体字段更新数据
 func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 	dstVal := reflect.Indirect(reflect.ValueOf(obj))
-	ms := orm.Schema(obj)
+	ts := orm.Schema(obj)
 
 	obj.BeforeSave()
-	upSQL, tValues := updateSqlByFields(ms, &dstVal, fNames...)
+	upSQL, tValues := updateSqlByFields(ts, &dstVal, fNames...)
 	ret := conn.ExecSql(upSQL, tValues...)
-	return parseSqlResult(ret, tValues[len(tValues)-1], conn, ms)
+	return parseSqlResult(ret, tValues[len(tValues)-1], conn, ts)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对应ID值的一行记录
 func (conn *OrmDB) QueryPrimary(dest any, id any) int64 {
-	ms := orm.Schema(dest)
-	sqlRows := conn.QuerySql(selectSqlForPrimary(ms), id)
+	ts := orm.Schema(dest)
+	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, ms, nil)
+	return scanSqlRowsOne(dest, sqlRows, ts, nil)
 }
 
 // 对应ID值的一行记录，支持行记录缓存
@@ -77,10 +77,10 @@ func (conn *OrmDB) QueryRow(dest any, where string, args ...any) int64 {
 }
 
 func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any) int64 {
-	ms := orm.Schema(dest)
-	sqlRows := conn.QuerySql(selectSqlForOne(ms, fields, where), args...)
+	ts := orm.Schema(dest)
+	sqlRows := conn.QuerySql(selectSqlForOne(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, ms, nil)
+	return scanSqlRowsOne(dest, sqlRows, ts, nil)
 }
 
 // 自定义SQL语句查询，得到一条记录。或者只取第一条记录的第一个字段值
@@ -108,8 +108,8 @@ func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {
 }
 
 func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any) int64 {
-	ms := orm.Schema(dest)
-	sqlRows := conn.QuerySql(selectSqlForSome(ms, fields, where), args...)
+	ts := orm.Schema(dest)
+	sqlRows := conn.QuerySql(selectSqlForSome(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, nil)
@@ -118,21 +118,21 @@ func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 高级查询，可以自定义更多参数
 func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
-	ms := orm.Schema(pet.Target)
+	ts := orm.Schema(pet.Target)
 
-	fillPet(ms, pet)
+	fillPet(ts, pet)
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlForPet(ms, pet)
+		sql = selectSqlForPet(ts, pet)
 	}
 
-	ct, _ := conn.innerQueryPet(sql, "", pet, ms)
+	ct, _ := conn.innerQueryPet(sql, "", pet, ts)
 	return ct
 }
 
 // 返回 count , total
-func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.TableSchema) (int64, int64) {
+func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ts *orm.TableSchema) (int64, int64) {
 	withCache := pet.Cache != nil && pet.Cache.ExpireS > 0
 	gsonStr := pet.Result != nil && pet.Result.GsonStr == true
 
@@ -141,7 +141,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.T
 	// 1. 需要走缓存版本
 	if withCache {
 		pet.Args = formatArgs(pet.Args)
-		pet.Cache.sqlHash = ms.CacheSqlKey(realSql(sql, pet.Args...))
+		pet.Cache.sqlHash = ts.CacheSqlKey(realSql(sql, pet.Args...))
 
 		cacheStr, err := rds.Get(pet.Cache.sqlHash)
 		if err == nil && cacheStr != "" {
@@ -169,7 +169,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.T
 		// 此条件下一共多少条
 		sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
 		defer CloseSqlRows(sqlRows1)
-		scanSqlRowsOne(&tt, sqlRows1, ms, nil)
+		scanSqlRowsOne(&tt, sqlRows1, ts, nil)
 
 		if tt <= 0 {
 			return 0, 0
@@ -203,35 +203,35 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ms *orm.T
 }
 
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
-	ms := orm.Schema(pet.Target)
+	ts := orm.Schema(pet.Target)
 
-	fillPet(ms, pet)
+	fillPet(ts, pet)
 	sqlCt := pet.SqlCount
 	if sqlCt == "" {
-		sqlCt = selectCountSqlForPet(ms, pet)
+		sqlCt = selectCountSqlForPet(ts, pet)
 	} else if strings.ToLower(sqlCt) == "false" {
 		sqlCt = ""
 	}
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectPagingSqlForPet(ms, pet)
+		sql = selectPagingSqlForPet(ts, pet)
 	}
 
-	return conn.innerQueryPet(sql, sqlCt, pet, ms)
+	return conn.innerQueryPet(sql, sqlCt, pet, ts)
 }
 
 func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
-	ms := orm.Schema(pet.Target)
+	ts := orm.Schema(pet.Target)
 
-	fillPet(ms, pet)
+	fillPet(ts, pet)
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlForPet(ms, pet)
+		sql = selectSqlForPet(ts, pet)
 	}
 
 	pet.Args = formatArgs(pet.Args)
-	pet.Cache.sqlHash = ms.CacheSqlKey(realSql(sql, pet.Args...))
+	pet.Cache.sqlHash = ts.CacheSqlKey(realSql(sql, pet.Args...))
 
 	key := pet.Cache.sqlHash
 	rds := (*conn.rdsNodes)[0]

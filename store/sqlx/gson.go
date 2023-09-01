@@ -20,21 +20,24 @@ type gsonResult struct {
 	onlyGson bool
 }
 
-func loadRecordFromGsonString(dest any, data string, ms *orm.TableSchema) error {
+// 将GsonRow记录值（仅仅是Value部分），绑定到对象中
+func bindFromGsonValueString(dest any, data string, ts *orm.TableSchema) error {
 	var values []any
 	if err := jsonx.UnmarshalFromString(&values, data); err != nil {
 		return err
 	}
 
-	cls := ms.Columns()
+	cls := ts.Columns()
 	recordKV := make(cst.KV, len(cls))
 	for j := 0; j < len(cls); j++ {
 		recordKV[cls[j]] = values[j]
 	}
 
 	return mapx.BindKV(dest, recordKV, mapx.LikeLoadDB)
+	//return nil
 }
 
+// GsonRows的序列字符串绑定到对象数组中
 func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
 	if err := jsonx.UnmarshalFromString(&gr.GsonRows, data); err != nil {
 		return err

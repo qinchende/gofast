@@ -116,7 +116,7 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 func (grs *gsonRowsDecode) scanGsonRows() {
 	sd := &grs.sd
 	sh := (*reflect.SliceHeader)(sd.dstPtr)
-	tpInt := 0
+	flsCT := 0
 
 	pos := sd.scan
 	for isBlankChar[sd.str[pos]] {
@@ -147,7 +147,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		} else if c == ']' {
 			pos++
 			break
-		} else if tpInt > 0 {
+		} else if flsCT > 0 {
 			goto errChar
 		}
 
@@ -165,10 +165,10 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		} else {
 			key = sd.str[start+1 : pos-1]
 		}
-		grs.flsIdx[tpInt] = int8(sd.dm.ss.ColumnIndex(key)) // 比对 column 名称
-		tpInt++
+		grs.flsIdx[flsCT] = int8(sd.dm.ss.ColumnIndex(key)) // 比对 column 名称
+		flsCT++
 	}
-	grs.fc = tpInt // 多少个有效字段
+	grs.fc = flsCT // 多少个有效字段
 
 	// 3. values +++++++++++++++++++++++++++++++++++++++++++++++
 	if sd.str[pos] != ',' {
@@ -181,15 +181,15 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 	pos++
 
 	// 根据记录数量，初始化对象空间
-	tpInt = int(grs.ct)
-	if tpInt > sh.Cap {
-		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, tpInt*sd.dm.itemRawSize)
-		sh.Len, sh.Cap = tpInt, tpInt
+	flsCT = int(grs.ct)
+	if flsCT > sh.Cap {
+		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, flsCT*sd.dm.itemRawSize)
+		sh.Len, sh.Cap = flsCT, flsCT
 	} else {
-		sh.Len = tpInt
+		sh.Len = flsCT
 	}
 
-	tpInt = 0
+	flsCT = 0
 	for {
 		c = sd.str[pos]
 		if c == ',' {
@@ -200,7 +200,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		}
 
 		sd.scan = pos
-		sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(tpInt*sd.dm.itemRawSize))
+		sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(flsCT*sd.dm.itemRawSize))
 		//// 如果是指针，需要分配空间
 		//if sd.dm.isPtr {
 		//	sd.dstPtr = getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
@@ -208,7 +208,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		grs.scanJsonRowRecode()
 		pos = sd.scan
 
-		tpInt++
+		flsCT++
 	}
 
 errChar:
