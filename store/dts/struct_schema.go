@@ -2,6 +2,9 @@
 // Use of this source code is governed by a MIT license
 package dts
 
+// Core Package
+// @@@ Data transfer system @@@ -> dts
+
 import (
 	"fmt"
 	"github.com/qinchende/gofast/cst"
