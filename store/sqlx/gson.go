@@ -21,7 +21,7 @@ type gsonResult struct {
 }
 
 // 将GsonRow记录值（仅仅是Value部分），绑定到对象中
-func bindFromGsonValueString(dest any, data string, ts *orm.TableSchema) error {
+func bindFromGsonValueString(obj any, data string, ts *orm.TableSchema) error {
 	var values []any
 	if err := jsonx.UnmarshalFromString(&values, data); err != nil {
 		return err
@@ -33,17 +33,17 @@ func bindFromGsonValueString(dest any, data string, ts *orm.TableSchema) error {
 		recordKV[cls[j]] = values[j]
 	}
 
-	return mapx.BindKV(dest, recordKV, mapx.LikeLoadDB)
+	return mapx.BindKV(obj, recordKV, mapx.LikeLoadDB)
 	//return nil
 }
 
 // GsonRows的序列字符串绑定到对象数组中
-func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
+func loadRecordsFromGsonString(objs any, data string, gr *gsonResult) error {
 	if err := jsonx.UnmarshalFromString(&gr.GsonRows, data); err != nil {
 		return err
 	}
 
-	_, sliceType, recordType, isPtr, isKV := checkDestType(dest)
+	_, sliceType, recordType, isPtr, isKV := checkDestType(objs)
 	tpRecords := make([]reflect.Value, 0, gr.Ct)
 
 	// 循环解析每一条记录
@@ -74,6 +74,6 @@ func loadRecordsFromGsonString(dest any, data string, gr *gsonResult) error {
 
 	records := reflect.MakeSlice(sliceType, 0, len(tpRecords))
 	records = reflect.Append(records, tpRecords...)
-	reflect.ValueOf(dest).Elem().Set(records)
+	reflect.ValueOf(objs).Elem().Set(records)
 	return nil
 }

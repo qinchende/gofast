@@ -10,6 +10,22 @@ import (
 	"unsafe"
 )
 
+//var (
+//	grsDecPool     = sync.Pool{New: func() any { return &gsonRowsDecode{} }}
+//	cachedGsonRows sync.Map
+//)
+//
+//func cacheSetGsonRows(typAddr *rt.TypeAgent, val *decMeta) {
+//	cachedGsonRows.Store(typAddr, val)
+//}
+//
+//func cacheGetGsonRows(typAddr *rt.TypeAgent) *decMeta {
+//	if ret, ok := cachedGsonRows.Load(typAddr); ok {
+//		return ret.(*decMeta)
+//	}
+//	return nil
+//}
+
 type gsonRowDecode struct {
 	sd     subDecode // 共享的subDecode，用来解析子对象
 	fc     int       // 字段数量
@@ -17,7 +33,7 @@ type gsonRowDecode struct {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func decGsonRow(v any, str string) (ret gson.RowsDecRet) {
+func decGsonRow(obj any, str string) (ret gson.RowsDecRet) {
 	defer func() {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
@@ -30,13 +46,13 @@ func decGsonRow(v any, str string) (ret gson.RowsDecRet) {
 		}
 	}()
 
-	af := (*rt.AFace)(unsafe.Pointer(&v))
+	af := (*rt.AFace)(unsafe.Pointer(&obj))
 	var dm *decMeta
 
 	// check target object
 	if dm = cacheGetGsonRows(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
-		dstTyp := reflect.TypeOf(v)
+		dstTyp := reflect.TypeOf(obj)
 		if dstTyp.Kind() != reflect.Pointer {
 			panic(errValueMustPtr)
 		}

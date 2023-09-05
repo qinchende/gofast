@@ -1,20 +1,28 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/gson"
 )
 
-// Decoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func DecodeGsonRowsFromString(v any, str string) gson.RowsDecRet {
-	ret := decGsonRows(v, str)
+// Decoder
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GsonRow ++++++
+func DecodeGsonRowFromValueBytes(obj any, bs []byte) gson.RowsDecRet {
+	return DecodeGsonRowFromValueString(obj, lang.BTS(bs))
+}
+
+func DecodeGsonRowFromValueString(obj any, str string) gson.RowsDecRet {
+	ret := decGsonRow(obj, str)
 	if ret.Err == nil && ret.Scan != len(str) {
-		ret.Err = errJsonRowsStr
+		ret.Err = errJsonRowStr
 	}
 	return ret
 }
 
-func DecodeGsonRowFromValueString(v any, str string) gson.RowsDecRet {
-	ret := decGsonRows(v, str)
+// GsonRows ++++++
+func DecodeGsonRowsFromString(objs any, str string) gson.RowsDecRet {
+	ret := decGsonRows(objs, str)
 	if ret.Err == nil && ret.Scan != len(str) {
 		ret.Err = errJsonRowsStr
 	}
@@ -22,15 +30,15 @@ func DecodeGsonRowFromValueString(v any, str string) gson.RowsDecRet {
 }
 
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func EncodeGsonRows(v any) ([]byte, error) {
+func EncodeGsonRows(objs any) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
-		Target: v,
+		Target: objs,
 	})
 }
 
-func EncodeGsonRows2(v any, fls string) ([]byte, error) {
+func EncodeGsonRows2(objs any, fls string) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
-		Target: v,
+		Target: objs,
 		FlsStr: fls,
 	})
 }

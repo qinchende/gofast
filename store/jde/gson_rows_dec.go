@@ -38,7 +38,7 @@ type gsonRowsDecode struct {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Struct Json 解析含有 GsonRows字段
+// Struct Json 解析含有 GsonRows字段，其它部分还需要按JSON格式继续解析
 func scanObjGsonPet(sd *subDecode) {
 	pet := (*gson.RowsDecPet)(fieldPtr(sd))
 	ret := decGsonRows(pet.Target, sd.str[sd.scan:])
