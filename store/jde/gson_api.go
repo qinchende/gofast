@@ -8,16 +8,12 @@ import (
 // Decoder
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GsonRow ++++++
-func DecodeGsonRowFromValueBytes(obj any, bs []byte) gson.RowsDecRet {
+func DecodeGsonRowFromValueBytes(obj any, bs []byte) error {
 	return DecodeGsonRowFromValueString(obj, lang.BTS(bs))
 }
 
-func DecodeGsonRowFromValueString(obj any, str string) gson.RowsDecRet {
-	ret := decGsonRow(obj, str)
-	if ret.Err == nil && ret.Scan != len(str) {
-		ret.Err = errJsonRowStr
-	}
-	return ret
+func DecodeGsonRowFromValueString(obj any, str string) error {
+	return decGsonRow(obj, str)
 }
 
 // GsonRows ++++++

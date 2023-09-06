@@ -5,6 +5,7 @@ import (
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/gson"
+	"github.com/qinchende/gofast/store/jde"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
@@ -21,20 +22,22 @@ type gsonResult struct {
 }
 
 // 将GsonRow记录值（仅仅是Value部分），绑定到对象中
-func bindFromGsonValueString(obj any, data string, ts *orm.TableSchema) error {
-	var values []any
-	if err := jsonx.UnmarshalFromString(&values, data); err != nil {
-		return err
-	}
-
-	cls := ts.Columns()
-	recordKV := make(cst.KV, len(cls))
-	for j := 0; j < len(cls); j++ {
-		recordKV[cls[j]] = values[j]
-	}
-
-	return mapx.BindKV(obj, recordKV, mapx.LikeLoadDB)
+func bindFromGsonValueString(obj any, bs []byte, ts *orm.TableSchema) error {
+	//var values []any
+	//if err := jsonx.UnmarshalFromString(&values, data); err != nil {
+	//	return err
+	//}
+	//
+	//cls := ts.Columns()
+	//recordKV := make(cst.KV, len(cls))
+	//for j := 0; j < len(cls); j++ {
+	//	recordKV[cls[j]] = values[j]
+	//}
+	//
+	//return mapx.BindKV(obj, recordKV, mapx.LikeLoadDB)
 	//return nil
+
+	return jde.DecodeGsonRowFromValueBytes(obj, bs)
 }
 
 // GsonRows的序列字符串绑定到对象数组中
