@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
@@ -40,14 +41,14 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 	return ct
 }
 
-func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
-	ts := orm.Schema(dest)
+func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
+	ts := orm.Schema(obj)
 
 	key := ts.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
 	cacheStr, err := rds.Get(key)
 	if err == nil && cacheStr != "" {
-		if err = bindFromGsonValueString(dest, cacheStr, ts); err == nil {
+		if err = bindFromGsonValueString(obj, lang.STB(cacheStr), ts); err == nil {
 			return 1
 		}
 	}
@@ -56,7 +57,7 @@ func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
 	defer CloseSqlRows(sqlRows)
 
 	var gro gsonResultOne
-	ct := scanSqlRowsOne(dest, sqlRows, ts, &gro)
+	ct := scanSqlRowsOne(obj, sqlRows, ts, &gro)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
@@ -69,14 +70,14 @@ func queryByPrimaryWithCache(conn *OrmDB, dest any, id any) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonResultOne) int64 {
+func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonResultOne) int64 {
 	if !sqlRows.Next() {
 		panicIfErr(sqlRows.Err())
 		return 0
 	}
 
-	dstTyp := reflect.TypeOf(dest).Elem()
-	dstVal := reflect.Indirect(reflect.ValueOf(dest))
+	dstTyp := reflect.TypeOf(obj).Elem()
+	dstVal := reflect.Indirect(reflect.ValueOf(obj))
 
 	// 1. 基础值类型只取第一行第一列值。2. 结构体类型只取第一行数据
 	switch dstTyp.Kind() {
@@ -92,7 +93,7 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonR
 		}
 	case reflect.Struct:
 		if ts == nil {
-			ts = orm.Schema(dest)
+			ts = orm.Schema(obj)
 		}
 		dbColumns, _ := sqlRows.Columns()
 		fieldsAddr := make([]any, len(dbColumns))
@@ -126,8 +127,8 @@ func scanSqlRowsOne(dest any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonR
 
 // 解析查询到的数据记录
 // TODO: 如果 dest 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
-func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
-	ts, sliceType, recordType, isPtr, isKV := checkDestType(dest)
+func scanSqlRowsSlice(objs any, sqlRows *sql.Rows, gr *gsonResult) int64 {
+	ts, sliceType, recordType, isPtr, isKV := checkDestType(objs)
 
 	dbColumns, _ := sqlRows.Columns()
 	//msColumns := ts.ColumnsKV()
@@ -227,6 +228,6 @@ func scanSqlRowsSlice(dest any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 
 	records := reflect.MakeSlice(sliceType, 0, len(tpRecords))
 	records = reflect.Append(records, tpRecords...)
-	reflect.ValueOf(dest).Elem().Set(records)
+	reflect.ValueOf(objs).Elem().Set(records)
 	return int64(len(tpRecords))
 }
