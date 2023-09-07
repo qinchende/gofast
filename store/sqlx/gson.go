@@ -6,7 +6,6 @@ import (
 	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"
-	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
 
@@ -22,7 +21,7 @@ type gsonResult struct {
 }
 
 // 将GsonRow记录值（仅仅是Value部分），绑定到对象中
-func bindFromGsonValueString(obj any, bs []byte, ts *orm.TableSchema) error {
+func bindFromGsonValueString(obj any, str string) error {
 	//var values []any
 	//if err := jsonx.UnmarshalFromString(&values, data); err != nil {
 	//	return err
@@ -36,8 +35,7 @@ func bindFromGsonValueString(obj any, bs []byte, ts *orm.TableSchema) error {
 	//
 	//return mapx.BindKV(obj, recordKV, mapx.LikeLoadDB)
 	//return nil
-
-	return jde.DecodeGsonRowFromValueBytes(obj, bs)
+	return jde.DecodeGsonRowFromValueString(obj, str)
 }
 
 // GsonRows的序列字符串绑定到对象数组中

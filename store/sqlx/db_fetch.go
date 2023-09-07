@@ -3,8 +3,7 @@ package sqlx
 import (
 	"database/sql"
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/jde"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 )
@@ -48,7 +47,7 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	rds := (*conn.rdsNodes)[0]
 	cacheStr, err := rds.Get(key)
 	if err == nil && cacheStr != "" {
-		if err = bindFromGsonValueString(obj, lang.STB(cacheStr), ts); err == nil {
+		if err = bindFromGsonValueString(obj, cacheStr); err == nil {
 			return 1
 		}
 	}
@@ -62,7 +61,7 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 		keyDel := key + "_del"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
-		} else if jsonValBytes, err := jsonx.Marshal(gro.Row); err == nil {
+		} else if jsonValBytes, err := jde.EncodeToBytes(gro.Row); err == nil {
 			_, _ = rds.Set(key, jsonValBytes, ts.ExpireDuration())
 		}
 	}

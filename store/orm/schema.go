@@ -32,6 +32,28 @@ func SchemaValues(obj any) (*TableSchema, []any) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func CheckDestType(rTyp reflect.Type) reflect.Type {
+	eTyp := rTyp.Elem()
+	if eTyp.Kind() == reflect.Slice {
+		rTyp = eTyp.Elem()
+	}
+	for rTyp.Kind() == reflect.Pointer {
+		rTyp = rTyp.Elem()
+	}
+	// @@@@@@@@@@ 开始拆解结构体并缓存
+	if rTyp.Kind() != reflect.Struct {
+		//// 如果是 KV map 类型的。统一
+		//if rTyp.Name() == "KV" {
+		//	ts = &TableSchema{}
+		//	cacheSetSchema(rTyp, ts)
+		//	return ts
+		//}
+		cst.PanicString(fmt.Sprintf("Target object must be structs; but got %T", rTyp))
+	}
+	return rTyp
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 反射提取结构体的值（支持内联递归）
 func structValues(values *[]any, nextIndex *int8, obj any) {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
@@ -53,35 +75,34 @@ func structValues(values *[]any, nextIndex *int8, obj any) {
 
 // 提取结构体变量的ORM Schema元数据
 func fetchSchema(rTyp reflect.Type) *TableSchema {
-	eTyp := rTyp.Elem()
-	if eTyp.Kind() == reflect.Slice {
-		rTyp = eTyp.Elem()
-	}
-	for rTyp.Kind() == reflect.Pointer {
-		rTyp = rTyp.Elem()
-	}
+	//eTyp := rTyp.Elem()
+	//if eTyp.Kind() == reflect.Slice {
+	//	rTyp = eTyp.Elem()
+	//}
+	//for rTyp.Kind() == reflect.Pointer {
+	//	rTyp = rTyp.Elem()
+	//}
+	//// @@@@@@@@@@ 开始拆解结构体并缓存
+	//if rTyp.Kind() != reflect.Struct {
+	//	//// 如果是 KV map 类型的。统一
+	//	//if rTyp.Name() == "KV" {
+	//	//	ts = &TableSchema{}
+	//	//	cacheSetSchema(rTyp, ts)
+	//	//	return ts
+	//	//}
+	//	cst.PanicString(fmt.Sprintf("Target object must be structs; but got %T", rTyp))
+	//}
 
 	ts := cacheGetSchema(rTyp) // 看类型，缓存有就直接用，否则计算一次并缓存
 	if ts != nil {
 		return ts
 	}
 
-	// @@@@@@@@@@ 开始拆解结构体并缓存
-	if rTyp.Kind() != reflect.Struct {
-		// 如果是 KV map 类型的。统一
-		if rTyp.Name() == "KV" {
-			ts = &TableSchema{}
-			cacheSetSchema(rTyp, ts)
-			return ts
-		}
-		cst.PanicString(fmt.Sprintf("Target object must be structs; but got %T", rTyp))
-	}
-
 	// 如果是 Struct 类型
 	ss := dts.SchemaAsDBByType(rTyp)
 	// 构造ORM Model元数据
 	ts = &TableSchema{
-		ss:           *ss,
+		ss:           *ss, // NOTE：这里是一个赋值操作，而不是指针引用
 		autoIndex:    -1,
 		primaryIndex: -1,
 		updatedIndex: -1,
@@ -168,14 +189,14 @@ func fetchSchema(rTyp reflect.Type) *TableSchema {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 缓存数据表的Schema
-var cachedModelSchemas sync.Map
+var cachedTableSchemas sync.Map
 
 func cacheSetSchema(typ reflect.Type, val *TableSchema) {
-	cachedModelSchemas.Store(typ, val)
+	cachedTableSchemas.Store(typ, val)
 }
 
 func cacheGetSchema(typ reflect.Type) *TableSchema {
-	if ret, ok := cachedModelSchemas.Load(typ); ok {
+	if ret, ok := cachedTableSchemas.Load(typ); ok {
 		return ret.(*TableSchema)
 	}
 	return nil

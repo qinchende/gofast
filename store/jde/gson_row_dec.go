@@ -11,7 +11,7 @@ import (
 )
 
 var (
-	grDecPool     = sync.Pool{New: func() any { return &gsonRowDecode{} }}
+	//grDecPool     = sync.Pool{New: func() any { return &gsonRowDecode{} }}
 	cachedGsonRow sync.Map
 )
 
@@ -26,11 +26,11 @@ func cacheGetGsonRow(typAddr *rt.TypeAgent) *decMeta {
 	return nil
 }
 
-type gsonRowDecode struct {
-	sd subDecode // 共享的subDecode，用来解析子对象
-	fc int       // 字段数量
-	//flsIdx []uint8   // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
-}
+//type gsonRowDecode struct {
+//	sd     subDecode // 共享的subDecode，用来解析子对象
+//	fc     int       // 字段数量
+//	flsIdx []uint8   // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decGsonRow(obj any, str string) (err error) {
@@ -71,27 +71,29 @@ func decGsonRow(obj any, str string) (err error) {
 
 	// +++++++++++++++++++++++++++++++++++++++
 	// var gr gsonRowsDecode
-	gr := grDecPool.Get().(*gsonRowDecode)
+	//gr := grDecPool.Get().(*gsonRowDecode)
 	// init subDecode
-	sd := &gr.sd
+	sd := jdeDecPool.Get().(*subDecode)
+	//sd := &gr.sd
 	sd.reset()
 	sd.dm = dm
 	sd.str = str
 	sd.dstPtr = af.DataPtr
 
-	gr.fc = len(dm.ss.Columns)
-	gr.scanJsonRowValueString()
+	//gr.fc = len(dm.ss.Columns)
+	sd.scanJsonRowValueString(len(dm.ss.Columns))
 
-	grDecPool.Put(gr)
+	//grDecPool.Put(gr)
+	jdeDecPool.Put(sd)
 
-	if gr.sd.scan != len(str) {
+	if sd.scan != len(str) {
 		err = errJsonRowStr
 	}
 	return
 }
 
-func (gr *gsonRowDecode) scanJsonRowValueString() {
-	sd := &gr.sd
+func (sd *subDecode) scanJsonRowValueString(flsCount int) {
+	//sd := &gr.sd
 
 	if sd.str[sd.scan] != '[' {
 		panic(errChar)
@@ -110,7 +112,7 @@ func (gr *gsonRowDecode) scanJsonRowValueString() {
 		}
 
 		//sd.keyIdx = int(gr.flsIdx[fc])
-		if fc < gr.fc {
+		if fc < flsCount {
 			sd.dm.fieldsDec[fc](sd)
 		} else {
 			sd.skipOneValue()
