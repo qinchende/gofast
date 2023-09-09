@@ -21,11 +21,11 @@ type (
 	StructSchema struct {
 		Attrs      structAttrs // 结构体元数据
 		FieldsAttr []fieldAttr // 字段元数据
+		Fields     []string    // 按顺序存放的字段名
+		Columns    []string    // 按顺序存放的tag列名
 
-		Columns []string    // 按顺序存放的tag列名
-		Fields  []string    // 按顺序存放的字段名
-		cTips   stringsTips // pms_name index
-		fTips   stringsTips // field_name index
+		fTips stringsTips // field_name index
+		cTips stringsTips // pms_name index
 	}
 
 	// 基本信息

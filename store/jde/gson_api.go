@@ -1,18 +1,19 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/gson"
 )
 
 // Decoder
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GsonRow ++++++
-func DecodeGsonRowFromValueBytes(obj any, str string) error {
-	return DecodeGsonRowFromValueString(obj, str)
+func DecodeGsonRowFromValueBytes(obj any, bs []byte) error {
+	return DecodeGsonRowFromValueString(obj, lang.BTS(bs))
 }
 
 func DecodeGsonRowFromValueString(obj any, str string) error {
-	return decGsonRow(obj, str)
+	return decGsonRowOnlyValues(obj, str)
 }
 
 // GsonRows ++++++
@@ -25,6 +26,12 @@ func DecodeGsonRowsFromString(objs any, str string) gson.RowsDecRet {
 }
 
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// GsonRow ++++++
+func EncodeToOnlyGsonRowValuesBytes(obj any) ([]byte, error) {
+	return encGsonRowOnlyValues(obj)
+}
+
+// GsonRows ++++++
 func EncodeGsonRows(objs any) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
 		Target: objs,

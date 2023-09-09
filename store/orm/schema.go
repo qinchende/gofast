@@ -12,11 +12,14 @@ import (
 	"time"
 )
 
+// Orm中的TableSchema
+// 只解决单条记录绑定到单个object，或者多条记录绑定到 list object 类型的变量。
 func Schema(obj any) *TableSchema {
-	return fetchSchema(reflect.TypeOf(obj))
+	return SchemaOfType(reflect.TypeOf(obj))
 }
 
 func SchemaOfType(rTyp reflect.Type) *TableSchema {
+	rTyp = checkDestType(rTyp)
 	return fetchSchema(rTyp)
 }
 
@@ -32,7 +35,7 @@ func SchemaValues(obj any) (*TableSchema, []any) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func CheckDestType(rTyp reflect.Type) reflect.Type {
+func checkDestType(rTyp reflect.Type) reflect.Type {
 	eTyp := rTyp.Elem()
 	if eTyp.Kind() == reflect.Slice {
 		rTyp = eTyp.Elem()
@@ -181,6 +184,9 @@ func fetchSchema(rTyp reflect.Type) *TableSchema {
 	hashStr := lang.ToString(mdAttrs.columnsHash)
 	priKeyName := ss.FieldsAttr[ts.primaryIndex].RefField.Name
 	mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + priKeyName + "#%v"
+	// 默认TableModel单条数据缓存 7 天
+	mdAttrs.ExpireS = 3600 * 24 * 7
+
 	ts.tAttrs = *mdAttrs
 
 	cacheSetSchema(rTyp, ts)

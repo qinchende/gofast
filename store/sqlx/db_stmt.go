@@ -71,7 +71,7 @@ func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) in
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
 	panicIfErr(err)
-	return scanSqlRowsOne(dest, sqlRows, nil, nil)
+	return scanSqlRowsOne(dest, sqlRows, nil)
 }
 
 func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {

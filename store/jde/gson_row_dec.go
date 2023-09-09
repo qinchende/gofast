@@ -12,15 +12,15 @@ import (
 
 var (
 	//grDecPool     = sync.Pool{New: func() any { return &gsonRowDecode{} }}
-	cachedGsonRow sync.Map
+	cachedGsonRowDecMeta sync.Map
 )
 
-func cacheSetGsonRow(typAddr *rt.TypeAgent, val *decMeta) {
-	cachedGsonRow.Store(typAddr, val)
+func cacheSetGsonRowDecMeta(typAddr *rt.TypeAgent, val *decMeta) {
+	cachedGsonRowDecMeta.Store(typAddr, val)
 }
 
-func cacheGetGsonRow(typAddr *rt.TypeAgent) *decMeta {
-	if ret, ok := cachedGsonRow.Load(typAddr); ok {
+func cacheGetGsonRowDecMeta(typAddr *rt.TypeAgent) *decMeta {
+	if ret, ok := cachedGsonRowDecMeta.Load(typAddr); ok {
 		return ret.(*decMeta)
 	}
 	return nil
@@ -32,8 +32,9 @@ func cacheGetGsonRow(typAddr *rt.TypeAgent) *decMeta {
 //	flsIdx []uint8   // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
 //}
 
+// 解析GsonRow的值部分
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func decGsonRow(obj any, str string) (err error) {
+func decGsonRowOnlyValues(obj any, str string) (err error) {
 	defer func() {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
@@ -50,7 +51,7 @@ func decGsonRow(obj any, str string) (err error) {
 	var dm *decMeta
 
 	// check target object
-	if dm = cacheGetGsonRow(af.TypePtr); dm == nil {
+	if dm = cacheGetGsonRowDecMeta(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(obj)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -66,58 +67,51 @@ func decGsonRow(obj any, str string) (err error) {
 			dm = newDecodeMeta(objType)
 			cacheSetMeta(typAddr, dm)
 		}
-		cacheSetGsonRow(af.TypePtr, dm)
+		cacheSetGsonRowDecMeta(af.TypePtr, dm)
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++
-	// var gr gsonRowsDecode
-	//gr := grDecPool.Get().(*gsonRowDecode)
-	// init subDecode
 	sd := jdeDecPool.Get().(*subDecode)
-	//sd := &gr.sd
 	sd.reset()
 	sd.dm = dm
 	sd.str = str
 	sd.dstPtr = af.DataPtr
-
-	//gr.fc = len(dm.ss.Columns)
-	sd.scanJsonRowValueString(len(dm.ss.Columns))
-
-	//grDecPool.Put(gr)
+	sd.scanGsonRowJustValues()
 	jdeDecPool.Put(sd)
 
+	// NOTE：我们是特殊解析GsonRow的值部分，如果JSON字符串没有正常结束，需要报错。
 	if sd.scan != len(str) {
 		err = errJsonRowStr
 	}
 	return
 }
 
-func (sd *subDecode) scanJsonRowValueString(flsCount int) {
-	//sd := &gr.sd
+// 这里待解析字符串的形式只能是 str: -> [item1,item2,item3,...]
+func (sd *subDecode) scanGsonRowJustValues() {
+	flsCount := len(sd.dm.ss.Fields)
 
 	if sd.str[sd.scan] != '[' {
 		panic(errChar)
 	}
 	sd.scan++
 
-	fc := 0
+	fIndex := 0
 	for {
 		if sd.str[sd.scan] == ',' {
 			sd.scan++
 		} else if sd.str[sd.scan] == ']' {
 			sd.scan++
 			return
-		} else if fc > 0 {
+		} else if fIndex > 0 {
 			panic(errList)
 		}
 
-		//sd.keyIdx = int(gr.flsIdx[fc])
-		if fc < flsCount {
-			sd.dm.fieldsDec[fc](sd)
+		if fIndex < flsCount {
+			sd.dm.fieldsDec[fIndex](sd)
 		} else {
 			sd.skipOneValue()
 		}
 
-		fc++
+		fIndex++
 	}
 }
