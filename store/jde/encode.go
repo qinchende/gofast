@@ -105,6 +105,7 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 		//	em.isGson = true
 		//	return
 		//}
+		// TODO: 需要完善这种情况
 		if rfType.String() == cst.StrTypeOfTime {
 			panic(errValueType)
 		}

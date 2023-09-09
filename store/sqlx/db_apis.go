@@ -63,7 +63,7 @@ func (conn *OrmDB) QueryPrimary(dest any, id any) int64 {
 	ts := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, ts, nil)
+	return scanSqlRowsOne(dest, sqlRows, ts)
 }
 
 // 对应ID值的一行记录，支持行记录缓存
@@ -80,14 +80,14 @@ func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any)
 	ts := orm.Schema(dest)
 	sqlRows := conn.QuerySql(selectSqlForOne(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, ts, nil)
+	return scanSqlRowsOne(dest, sqlRows, ts)
 }
 
 // 自定义SQL语句查询，得到一条记录。或者只取第一条记录的第一个字段值
 func (conn *OrmDB) QueryRowSql(dest any, sql string, args ...any) int64 {
 	sqlRows := conn.QuerySql(sql, args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, nil, nil)
+	return scanSqlRowsOne(dest, sqlRows, nil)
 }
 
 // 查询数据库，只返回查询结果条数，而不去解析查询到的数据
@@ -169,7 +169,7 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ts *orm.T
 		// 此条件下一共多少条
 		sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
 		defer CloseSqlRows(sqlRows1)
-		scanSqlRowsOne(&tt, sqlRows1, ts, nil)
+		scanSqlRowsOne(&tt, sqlRows1, ts)
 
 		if tt <= 0 {
 			return 0, 0

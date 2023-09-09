@@ -13,7 +13,7 @@ func CloseSqlRows(rows *sql.Rows) {
 }
 
 func ScanRow(dest any, sqlRows *sql.Rows) int64 {
-	return scanSqlRowsOne(dest, sqlRows, nil, nil)
+	return scanSqlRowsOne(dest, sqlRows, nil)
 }
 
 func ScanRows(dest any, sqlRows *sql.Rows) int64 {
@@ -47,29 +47,31 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	rds := (*conn.rdsNodes)[0]
 	cacheStr, err := rds.Get(key)
 	if err == nil && cacheStr != "" {
-		if err = bindFromGsonValueString(obj, cacheStr); err == nil {
+		if err = jde.DecodeGsonRowFromValueString(obj, cacheStr); err == nil {
 			return 1
 		}
+		// TODO: 缓存解析失败怎么办
 	}
 
 	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
 
-	var gro gsonResultOne
-	ct := scanSqlRowsOne(obj, sqlRows, ts, &gro)
+	//var gro gsonResultOne
+	ct := scanSqlRowsOne(obj, sqlRows, ts)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
-		} else if jsonValBytes, err := jde.EncodeToBytes(gro.Row); err == nil {
-			_, _ = rds.Set(key, jsonValBytes, ts.ExpireDuration())
+		} else if jsonValBytes, err := jde.EncodeToOnlyGsonRowValuesBytes(obj); err == nil {
+			println(jsonValBytes)
+			//_, _ = rds.Set(key, jsonValBytes, ts.ExpireDuration())
 		}
 	}
 	return ct
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonResultOne) int64 {
+func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	if !sqlRows.Next() {
 		panicIfErr(sqlRows.Err())
 		return 0
@@ -108,16 +110,16 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema, gro *gsonRe
 		}
 		panicIfErr(sqlRows.Scan(fieldsAddr...))
 
-		// 如果需要，返回行记录的值
-		if gro != nil {
-			gro.hasValue = true
-			gro.Cls = ts.Columns()
-			gro.Row = make([]any, len(gro.Cls))
-
-			for idx, column := range gro.Cls {
-				gro.GsonRow.SetByIndex(idx, ts.ValueByIndex(&dstVal, int8(ts.ColumnIndex(column))))
-			}
-		}
+		//// 如果需要，返回行记录的值
+		//if gro != nil {
+		//	gro.hasValue = true
+		//	gro.Cls = ts.Columns()
+		//	gro.Row = make([]any, len(gro.Cls))
+		//
+		//	for idx, column := range gro.Cls {
+		//		gro.GsonRow.SetByIndex(idx, ts.ValueByIndex(&dstVal, int8(ts.ColumnIndex(column))))
+		//	}
+		//}
 	default:
 		cst.PanicString("Unsupported unmarshal type.")
 	}
