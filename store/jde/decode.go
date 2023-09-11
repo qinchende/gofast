@@ -245,6 +245,7 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 			dm.bindGsonDec()
 			return
 		}
+		// 不能单独支持
 		if rfType.String() == cst.StrTypeOfTime {
 			panic(errValueType)
 		}
@@ -389,13 +390,19 @@ nextField:
 			dm.fieldsDec[i] = scanObjBoolValue
 		case reflect.Interface:
 			dm.fieldsDec[i] = scanObjAnyValue
-		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+
+		case reflect.Struct:
 			// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
 			if dm.ss.FieldsAttr[i].Type.String() == gson.StrTypeOfRowsPet {
 				dm.fieldsDec[i] = scanObjGsonPet
+			} else if dm.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfTime {
+				dm.fieldsDec[i] = scanObjTimeValue
 			} else {
 				dm.fieldsDec[i] = scanObjMixValue
 			}
+		case reflect.Map, reflect.Array, reflect.Slice:
+			dm.fieldsDec[i] = scanObjMixValue
+
 		default:
 			panic(errValueType)
 		}
@@ -434,7 +441,16 @@ nextField:
 		dm.fieldsDec[i] = scanObjPtrBoolValue
 	case reflect.Interface:
 		dm.fieldsDec[i] = scanObjPtrAnyValue
-	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+	case reflect.Struct:
+		// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
+		if dm.ss.FieldsAttr[i].Type.String() == gson.StrTypeOfRowsPet {
+			dm.fieldsDec[i] = scanObjGsonPet
+		} else if dm.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfTime {
+			dm.fieldsDec[i] = scanObjPtrTimeValue
+		} else {
+			dm.fieldsDec[i] = scanObjPtrMixValue
+		}
+	case reflect.Map, reflect.Array, reflect.Slice:
 		dm.fieldsDec[i] = scanObjPtrMixValue
 	default:
 		panic(errValueType)
@@ -476,7 +492,16 @@ func (dm *decMeta) bindListDec() {
 			dm.itemDec = scanArrBoolValue
 		case reflect.Interface:
 			dm.itemDec = scanArrAnyValue
-		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+		case reflect.Struct:
+			// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
+			if dm.itemType.String() == gson.StrTypeOfRowsPet {
+				dm.itemDec = scanObjGsonPet
+			} else if dm.itemType.String() == cst.StrTypeOfTime {
+				dm.itemDec = scanArrTimeValue
+			} else {
+				dm.itemDec = scanArrMixValue
+			}
+		case reflect.Map, reflect.Array, reflect.Slice:
 			dm.itemDec = scanArrMixValue
 		default:
 			panic(errValueType)
@@ -515,7 +540,14 @@ func (dm *decMeta) bindListDec() {
 		dm.itemDec = scanListBoolValue
 	case reflect.Interface:
 		dm.itemDec = scanListAnyValue
-	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+	case reflect.Struct:
+		if dm.isArray {
+			dm.itemDec = scanArrPtrMixValue
+		} else {
+			dm.itemDec = scanListMixValue // 这里只能是Slice
+		}
+		dm.isArrBind = true // Note：这些情况，无需用到缓冲池
+	case reflect.Map, reflect.Array, reflect.Slice:
 		if dm.isArray {
 			dm.itemDec = scanArrPtrMixValue
 		} else {

@@ -9,9 +9,6 @@ import (
 )
 
 const (
-	timeFormat     = "2006-01-02 15:04:05"
-	timeFormatMini = "01-02 15:04:05"
-
 	slowThreshold = time.Millisecond * 500 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
 )
 

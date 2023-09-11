@@ -50,21 +50,19 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 		if err = jde.DecodeGsonRowFromValueString(obj, cacheStr); err == nil {
 			return 1
 		}
-		// TODO: 缓存解析失败怎么办
+		// TODO: 缓存解析失败怎么办，啥也不管，将再次查询解析并缓存，此时会覆盖旧缓存数据
 	}
 
 	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
 
-	//var gro gsonResultOne
 	ct := scanSqlRowsOne(obj, sqlRows, ts)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
-		} else if jsonValBytes, err := jde.EncodeToOnlyGsonRowValuesBytes(obj); err == nil {
-			println(jsonValBytes)
-			//_, _ = rds.Set(key, jsonValBytes, ts.ExpireDuration())
+		} else if jsonBytes, err2 := jde.EncodeToOnlyGsonRowValuesBytes(obj); err2 == nil {
+			_, _ = rds.Set(key, jsonBytes, ts.ExpireDuration())
 		}
 	}
 	return ct
@@ -96,12 +94,13 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		if ts == nil {
 			ts = orm.Schema(obj)
 		}
+
 		dbColumns, _ := sqlRows.Columns()
 		fieldsAddr := make([]any, len(dbColumns))
 
 		// 每一个db-column都应该有对应的变量接收值
-		for cIdx, column := range dbColumns {
-			idx := ts.ColumnIndex(column)
+		for cIdx := range dbColumns {
+			idx := ts.ColumnIndex(dbColumns[cIdx])
 			if idx >= 0 {
 				fieldsAddr[cIdx] = ts.AddrByIndex(&dstVal, int8(idx))
 			} else {
@@ -109,17 +108,6 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 			}
 		}
 		panicIfErr(sqlRows.Scan(fieldsAddr...))
-
-		//// 如果需要，返回行记录的值
-		//if gro != nil {
-		//	gro.hasValue = true
-		//	gro.Cls = ts.Columns()
-		//	gro.Row = make([]any, len(gro.Cls))
-		//
-		//	for idx, column := range gro.Cls {
-		//		gro.GsonRow.SetByIndex(idx, ts.ValueByIndex(&dstVal, int8(ts.ColumnIndex(column))))
-		//	}
-		//}
 	default:
 		cst.PanicString("Unsupported unmarshal type.")
 	}

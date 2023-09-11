@@ -14,15 +14,15 @@ import (
 )
 
 var (
-	cachedGsonRowsEncMeta sync.Map
+	cachedGsonEncMeta sync.Map
 )
 
-func cacheSetGsonRowsEncMeta(typAddr *rt.TypeAgent, val *encMeta) {
-	cachedGsonRowsEncMeta.Store(typAddr, val)
+func cacheSetGsonEncMeta(typAddr *rt.TypeAgent, val *encMeta) {
+	cachedGsonEncMeta.Store(typAddr, val)
 }
 
-func cacheGetGsonRowsEncMeta(typAddr *rt.TypeAgent) *encMeta {
-	if ret, ok := cachedGsonRowsEncMeta.Load(typAddr); ok {
+func cacheGetGsonEncMeta(typAddr *rt.TypeAgent) *encMeta {
+	if ret, ok := cachedGsonEncMeta.Load(typAddr); ok {
 		return ret.(*encMeta)
 	}
 	return nil
@@ -46,7 +46,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	var em *encMeta
 
 	// check target object
-	if em = cacheGetGsonRowsEncMeta(af.TypePtr); em == nil {
+	if em = cacheGetGsonEncMeta(af.TypePtr); em == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(pet.Target)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -67,7 +67,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 			em = newEncodeMeta(itemType)
 			cacheSetEncMeta(typAddr, em)
 		}
-		cacheSetGsonRowsEncMeta(af.TypePtr, em)
+		cacheSetGsonEncMeta(af.TypePtr, em)
 	}
 
 	// 检查 pet 参数是否齐全，缺失就补齐

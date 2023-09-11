@@ -6,25 +6,8 @@ import (
 	"github.com/qinchende/gofast/core/rt"
 	"reflect"
 	"runtime/debug"
-	"sync"
 	"unsafe"
 )
-
-var (
-	//grDecPool     = sync.Pool{New: func() any { return &gsonRowDecode{} }}
-	cachedGsonRowDecMeta sync.Map
-)
-
-func cacheSetGsonRowDecMeta(typAddr *rt.TypeAgent, val *decMeta) {
-	cachedGsonRowDecMeta.Store(typAddr, val)
-}
-
-func cacheGetGsonRowDecMeta(typAddr *rt.TypeAgent) *decMeta {
-	if ret, ok := cachedGsonRowDecMeta.Load(typAddr); ok {
-		return ret.(*decMeta)
-	}
-	return nil
-}
 
 //type gsonRowDecode struct {
 //	sd     subDecode // 共享的subDecode，用来解析子对象
@@ -51,7 +34,7 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 	var dm *decMeta
 
 	// check target object
-	if dm = cacheGetGsonRowDecMeta(af.TypePtr); dm == nil {
+	if dm = cacheGetGsonDecMeta(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(obj)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -67,7 +50,7 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 			dm = newDecodeMeta(objType)
 			cacheSetMeta(typAddr, dm)
 		}
-		cacheSetGsonRowDecMeta(af.TypePtr, dm)
+		cacheSetGsonDecMeta(af.TypePtr, dm)
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++
@@ -107,6 +90,7 @@ func (sd *subDecode) scanGsonRowJustValues() {
 		}
 
 		if fIndex < flsCount {
+			sd.keyIdx = fIndex
 			sd.dm.fieldsDec[fIndex](sd)
 		} else {
 			sd.skipOneValue()
