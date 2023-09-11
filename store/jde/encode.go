@@ -105,7 +105,7 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 		//	em.isGson = true
 		//	return
 		//}
-		// TODO: 需要完善这种情况
+		// 暂时不支持这种情况独立出现
 		if rfType.String() == cst.StrTypeOfTime {
 			panic(errValueType)
 		}
@@ -295,8 +295,16 @@ nextField:
 	//case reflect.Pointer:
 	//	em.fieldsEnc[i] = encPointer
 
-	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+	case reflect.Struct:
+		// 分情况，如果是时间类型，单独处理
+		if em.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfTime {
+			em.fieldsEnc[i] = encTime
+		} else {
+			em.fieldsEnc[i] = encMixItem
+		}
+	case reflect.Map, reflect.Array, reflect.Slice:
 		em.fieldsEnc[i] = encMixItem
+
 	default:
 		panic(errValueType)
 	}

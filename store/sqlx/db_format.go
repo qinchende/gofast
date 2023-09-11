@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/hashx"
 	"strings"
 	"time"
@@ -13,9 +14,9 @@ func formatArgs(args []any) []any {
 	for idx, item := range args {
 		switch item.(type) {
 		case time.Time:
-			args[idx] = item.(time.Time).Format(timeFormat)
+			args[idx] = item.(time.Time).Format(cst.TimeFmtSaveYmdHms)
 		case *time.Time:
-			args[idx] = item.(*time.Time).Format(timeFormat)
+			args[idx] = item.(*time.Time).Format(cst.TimeFmtSaveYmdHms)
 		}
 	}
 	return args

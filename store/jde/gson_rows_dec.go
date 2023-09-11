@@ -13,16 +13,16 @@ import (
 )
 
 var (
-	grsDecPool     = sync.Pool{New: func() any { return &gsonRowsDecode{} }}
-	cachedGsonRows sync.Map
+	grsDecPool        = sync.Pool{New: func() any { return &gsonRowsDecode{} }}
+	cachedGsonDecMeta sync.Map
 )
 
-func cacheSetGsonRows(typAddr *rt.TypeAgent, val *decMeta) {
-	cachedGsonRows.Store(typAddr, val)
+func cacheSetGsonDecMeta(typAddr *rt.TypeAgent, val *decMeta) {
+	cachedGsonDecMeta.Store(typAddr, val)
 }
 
-func cacheGetGsonRows(typAddr *rt.TypeAgent) *decMeta {
-	if ret, ok := cachedGsonRows.Load(typAddr); ok {
+func cacheGetGsonDecMeta(typAddr *rt.TypeAgent) *decMeta {
+	if ret, ok := cachedGsonDecMeta.Load(typAddr); ok {
 		return ret.(*decMeta)
 	}
 	return nil
@@ -69,7 +69,7 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 	var dm *decMeta
 
 	// check target object
-	if dm = cacheGetGsonRows(af.TypePtr); dm == nil {
+	if dm = cacheGetGsonDecMeta(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(v)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -90,7 +90,7 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 			dm = newDecodeMeta(itemType)
 			cacheSetMeta(typAddr, dm)
 		}
-		cacheSetGsonRows(af.TypePtr, dm)
+		cacheSetGsonDecMeta(af.TypePtr, dm)
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++

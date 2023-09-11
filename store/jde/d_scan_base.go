@@ -1,9 +1,11 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"math"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -378,6 +380,14 @@ func bindBool(p unsafe.Pointer, v bool) {
 
 func bindAny(p unsafe.Pointer, v any) {
 	*(*any)(p) = v
+}
+
+func bindTime(p unsafe.Pointer, v string) {
+	if tm, err := time.Parse(cst.TimeFmtSaveRFC3339, v); err != nil {
+		panic(err)
+	} else {
+		*(*time.Time)(p) = tm
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -879,6 +889,59 @@ func scanListStrValue(sd *subDecode) {
 	}
 	sd.pl.bufStr = append(sd.pl.bufStr, v)
 }
+
+// time.Time +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjTimeValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		sd.scanQuoteStr()
+		bindTime(fieldPtr(sd), sd.str[start:sd.scan-1])
+	default:
+		sd.skipNull()
+	}
+}
+
+func scanObjPtrTimeValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		sd.scanQuoteStr()
+		bindTime(fieldPtrDeep(sd), sd.str[start:sd.scan-1])
+	default:
+		sd.skipNull()
+		fieldSetNil(sd)
+	}
+}
+
+func scanArrTimeValue(sd *subDecode) {
+	v := ""
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		sd.scanQuoteStr()
+		v = sd.str[start : sd.scan-1]
+	default:
+		sd.skipNull()
+	}
+	bindTime(arrItemPtr(sd), v)
+}
+
+//func scanListTimeValue(sd *subDecode) {
+//	v := false
+//	switch sd.str[sd.scan] {
+//	case 't':
+//		sd.skipTrue()
+//		v = true
+//	case 'f':
+//		sd.skipFalse()
+//	default:
+//		sd.skipNull()
+//		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufBol))
+//	}
+//	sd.pl.bufBol = append(sd.pl.bufBol, v)
+//}
 
 // bool +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

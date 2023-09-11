@@ -8,21 +8,11 @@ import (
 	"reflect"
 )
 
-//type gsonResultOne struct {
-//	gson.GsonRow
-//	hasValue bool
-//}
-
 // 缓存实体 gsonResult
 type gsonResult struct {
 	gson.GsonRows
 	onlyGson bool
 }
-
-//// 将GsonRow记录值（仅仅是Value部分），绑定到对象中
-//func bindFromGsonValueString(obj any, str string) error {
-//	return jde.DecodeGsonRowFromValueString(obj, str)
-//}
 
 // GsonRows的序列字符串绑定到对象数组中
 func loadRecordsFromGsonString(objs any, data string, gr *gsonResult) error {

@@ -2,9 +2,11 @@ package jde
 
 import (
 	"github.com/qinchende/gofast/core/rt"
+	"github.com/qinchende/gofast/cst"
 	"golang.org/x/exp/constraints"
 	"reflect"
 	"strconv"
+	"time"
 	"unsafe"
 )
 
@@ -203,6 +205,13 @@ func encBool(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	} else {
 		*bf = append(*bf, "false,"...)
 	}
+}
+
+func encTime(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	tp := *bf
+	tp = append(tp, '"')
+	tp = append(tp, (*time.Time)(ptr).Format(cst.TimeFmtSaveRFC3339)...)
+	*bf = append(tp, "\","...)
 }
 
 func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
