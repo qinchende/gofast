@@ -245,7 +245,7 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 			dm.bindGsonDec()
 			return
 		}
-		// 不能单独支持
+		// 不能单独支持对time.Time类型的解析
 		if rfType.String() == cst.StrTypeOfTime {
 			panic(errValueType)
 		}

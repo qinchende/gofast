@@ -184,8 +184,8 @@ func fetchSchema(rTyp reflect.Type) *TableSchema {
 	hashStr := lang.ToString(mdAttrs.columnsHash)
 	priKeyName := ss.FieldsAttr[ts.primaryIndex].RefField.Name
 	mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + priKeyName + "#%v"
-	// 默认TableModel单条数据缓存 7 天
-	mdAttrs.ExpireS = 3600 * 24 * 7
+	// 默认TableModel单条数据缓存 1 小时
+	mdAttrs.ExpireS = 3600
 
 	ts.tAttrs = *mdAttrs
 
