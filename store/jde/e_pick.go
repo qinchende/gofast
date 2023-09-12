@@ -207,6 +207,7 @@ func encBool(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	}
 }
 
+// 时间默认都是按 RFC3339 格式存储并解析
 func encTime(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	tp := *bf
 	tp = append(tp, '"')

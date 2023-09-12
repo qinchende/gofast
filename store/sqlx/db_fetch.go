@@ -40,6 +40,8 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 	return ct
 }
 
+// 通过表的主键查询到一条记录。并对单条记录缓存。
+// 缓存的数据仅仅为 GsonRow 的 values，而不需要记录 fields ，因为默认都是 按model的字段顺序来记录。
 func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	ts := orm.Schema(obj)
 
