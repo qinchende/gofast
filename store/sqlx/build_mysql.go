@@ -9,8 +9,8 @@ import (
 	"strings"
 )
 
-func insertSql(mss *orm.TableSchema) string {
-	return mss.InsertSQL(func(ts *orm.TableSchema) string {
+func insertSql(ts *orm.TableSchema) string {
+	return ts.InsertSQL(func(ts *orm.TableSchema) string {
 		cls := ts.Columns()
 		clsLen := len(cls)
 
@@ -41,14 +41,14 @@ func insertSql(mss *orm.TableSchema) string {
 	})
 }
 
-func deleteSql(mss *orm.TableSchema) string {
-	return mss.DeleteSQL(func(ts *orm.TableSchema) string {
+func deleteSql(ts *orm.TableSchema) string {
+	return ts.DeleteSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func updateSql(mss *orm.TableSchema) string {
-	return mss.UpdateSQL(func(ts *orm.TableSchema) string {
+func updateSql(ts *orm.TableSchema) string {
+	return ts.UpdateSQL(func(ts *orm.TableSchema) string {
 		cls := ts.Columns()
 		clsLen := len(cls) - 1
 		sBuf := strings.Builder{}
@@ -123,23 +123,23 @@ func updateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...strin
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
-func selectSqlForPrimary(mss *orm.TableSchema) string {
-	return mss.SelectSQL(func(ts *orm.TableSchema) string {
+func selectSqlForPrimary(ts *orm.TableSchema) string {
+	return ts.SelectSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func selectSqlForOne(mss *orm.TableSchema, fields string, where string) string {
+func selectSqlForOne(ts *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
 	if where == "" {
 		where = "1=1"
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, mss.TableName(), where)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, ts.TableName(), where)
 }
 
-func selectSqlForSome(mss *orm.TableSchema, fields string, where string) string {
+func selectSqlForSome(ts *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -149,17 +149,17 @@ func selectSqlForSome(mss *orm.TableSchema, fields string, where string) string 
 	if strings.Index(where, "limit") < 0 {
 		where += " LIMIT 10000" // 最多1万条记录
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, mss.TableName(), where)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, ts.TableName(), where)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func fillPet(mss *orm.TableSchema, pet *SelectPet) *SelectPet {
+func fillPet(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
 	if pet.isReady {
 		return pet
 	}
 
 	if pet.Table == "" {
-		pet.Table = mss.TableName()
+		pet.Table = ts.TableName()
 	}
 	if pet.Columns == "" {
 		pet.Columns = "*"
@@ -192,17 +192,17 @@ func fillPet(mss *orm.TableSchema, pet *SelectPet) *SelectPet {
 	return pet
 }
 
-func selectSqlForPet(mss *orm.TableSchema, pet *SelectPet) string {
+func selectSqlForPet(ts *orm.TableSchema, pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.Limit, pet.Offset)
 }
 
-func selectCountSqlForPet(mss *orm.TableSchema, pet *SelectPet) string {
+func selectCountSqlForPet(ts *orm.TableSchema, pet *SelectPet) string {
 	if pet.GroupBy == "" {
 		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
 	}
 	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
-func selectPagingSqlForPet(mss *orm.TableSchema, pet *SelectPet) string {
+func selectPagingSqlForPet(ts *orm.TableSchema, pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }

@@ -59,28 +59,26 @@ func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对应ID值的一行记录
-func (conn *OrmDB) QueryPrimary(dest any, id any) int64 {
-	ts := orm.Schema(dest)
-	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
-	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, ts)
+func (conn *OrmDB) QueryPrimary(obj any, id any) int64 {
+	ts := orm.Schema(obj)
+	return queryByPrimary(conn, ts, obj, id)
 }
 
-// 对应ID值的一行记录，支持行记录缓存
-func (conn *OrmDB) QueryPrimaryCache(dest any, id any) int64 {
-	return queryByPrimaryWithCache(conn, dest, id)
+// 对应 PrimaryKey（一般是ID）值的一行记录，支持行记录缓存
+func (conn *OrmDB) QueryPrimaryCache(obj any, id any) int64 {
+	return queryByPrimaryWithCache(conn, obj, id)
 }
 
 // 查询一行记录，查询条件自定义
-func (conn *OrmDB) QueryRow(dest any, where string, args ...any) int64 {
-	return conn.QueryRow2(dest, "*", where, args...)
+func (conn *OrmDB) QueryRow(obj any, where string, args ...any) int64 {
+	return conn.QueryRow2(obj, "*", where, args...)
 }
 
-func (conn *OrmDB) QueryRow2(dest any, fields string, where string, args ...any) int64 {
-	ts := orm.Schema(dest)
+func (conn *OrmDB) QueryRow2(obj any, fields string, where string, args ...any) int64 {
+	ts := orm.Schema(obj)
 	sqlRows := conn.QuerySql(selectSqlForOne(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, ts)
+	return scanSqlRowsOne(obj, sqlRows, ts)
 }
 
 // 自定义SQL语句查询，得到一条记录。或者只取第一条记录的第一个字段值

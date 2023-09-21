@@ -66,19 +66,19 @@ type (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 提取结构体变量的Schema元数据
-func fetchSchemaCache(rTyp reflect.Type, opts *BindOptions) *StructSchema {
+func fetchSchemaCache(typ reflect.Type, opts *BindOptions) *StructSchema {
 	// 看类型，缓存有就直接用，否则计算一次并缓存
-	ss := cacheGetSchema(rTyp)
+	ss := cacheGetSchema(typ)
 	if ss == nil {
-		ss = buildStructSchema(rTyp, opts)
-		cacheSetSchema(rTyp, ss)
+		ss = buildStructSchema(typ, opts)
+		cacheSetSchema(typ, ss)
 	}
 	return ss
 }
 
-func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
+func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 	rootIdx := make([]int, 0)
-	fColumns, fFields, fIndexes, fOptions := structFields(rTyp, rootIdx, opts)
+	fColumns, fFields, fIndexes, fOptions := structFields(typ, rootIdx, opts)
 
 	if len(fColumns) <= 0 {
 		cst.PanicString("Struct not contain any fields")
@@ -89,8 +89,8 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 
 	// 构造ORM Model元数据
 	ss := StructSchema{}
-	ss.Attrs.Type = rTyp
-	ss.Attrs.MemSize = int(rTyp.Size())
+	ss.Attrs.Type = typ
+	ss.Attrs.MemSize = int(typ.Size())
 
 	// 收缩切片占用的空间，因为原slice可能有多余的cap
 	ss.Columns = make([]string, len(fColumns))
@@ -220,9 +220,9 @@ func buildStructSchema(rTyp reflect.Type, opts *BindOptions) *StructSchema {
 }
 
 // 反射提取结构体的字段（支持嵌套递归）
-func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []fieldOptions) {
-	if rTyp.Kind() != reflect.Struct {
-		panic(fmt.Sprintf("%T is not like struct", rTyp))
+func structFields(typ reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []fieldOptions) {
+	if typ.Kind() != reflect.Struct {
+		panic(fmt.Sprintf("%T is not like struct", typ))
 	}
 
 	fColumns := make([]string, 0)
@@ -230,8 +230,8 @@ func structFields(rTyp reflect.Type, parentIdx []int, opts *BindOptions) ([]stri
 	fIndexes := make([][]int, 0)
 	fOptions := make([]fieldOptions, 0)
 
-	for i := 0; i < rTyp.NumField(); i++ {
-		fi := rTyp.Field(i)
+	for i := 0; i < typ.NumField(); i++ {
+		fi := typ.Field(i)
 
 		// 结构体，需要递归提取其中的字段
 		fiType := fi.Type

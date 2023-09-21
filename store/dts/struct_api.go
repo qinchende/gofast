@@ -14,8 +14,7 @@ import (
 // fetch StructSchema
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Schema(obj any, opts *BindOptions) *StructSchema {
-	rTyp := reflect.TypeOf(obj)
-	return SchemaByType(rTyp, opts)
+	return SchemaByType(reflect.TypeOf(obj), opts)
 }
 
 func SchemaAsDB(obj any) *StructSchema {
@@ -31,31 +30,31 @@ func SchemaAsConfig(obj any) *StructSchema {
 }
 
 // ++++++++++++++++++++++++++
-func SchemaByType(rTyp reflect.Type, opts *BindOptions) *StructSchema {
-	for rTyp.Kind() == reflect.Pointer {
-		rTyp = rTyp.Elem()
+func SchemaByType(typ reflect.Type, opts *BindOptions) *StructSchema {
+	for typ.Kind() == reflect.Pointer {
+		typ = typ.Elem()
 	}
-	if rTyp.Kind() != reflect.Struct {
-		cst.PanicString(fmt.Sprintf("%T is not like struct", rTyp))
+	if typ.Kind() != reflect.Struct {
+		cst.PanicString(fmt.Sprintf("%T is not like struct", typ))
 	}
 
 	if opts.CacheSchema {
-		return fetchSchemaCache(rTyp, opts)
+		return fetchSchemaCache(typ, opts)
 	} else {
-		return buildStructSchema(rTyp, opts)
+		return buildStructSchema(typ, opts)
 	}
 }
 
-func SchemaAsDBByType(rTyp reflect.Type) *StructSchema {
-	return SchemaByType(rTyp, dbStructOptions)
+func SchemaAsDBByType(typ reflect.Type) *StructSchema {
+	return SchemaByType(typ, dbStructOptions)
 }
 
-func SchemaAsReqByType(rTyp reflect.Type) *StructSchema {
-	return SchemaByType(rTyp, reqStructOptions)
+func SchemaAsReqByType(typ reflect.Type) *StructSchema {
+	return SchemaByType(typ, reqStructOptions)
 }
 
-func SchemaAsConfigByType(rTyp reflect.Type) *StructSchema {
-	return SchemaByType(rTyp, cfgStructOptions)
+func SchemaAsConfigByType(typ reflect.Type) *StructSchema {
+	return SchemaByType(typ, cfgStructOptions)
 }
 
 // reflect apis

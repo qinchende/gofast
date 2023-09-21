@@ -26,12 +26,13 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 	panicIfErr(err)
 
 	// 判断是否要删除缓存，删除缓存的逻辑要特殊处理，
-	// TODO：删除Key要有策略，比如删除之后加一个删除标记，后面设置缓存策略先查询这个标记，如果有标记就删除标记但本次不设置缓存
+	// 删除Key要有策略，比如删除之后加一个删除标记，后面设置缓存策略先查询这个标记，如果有标记就删除标记但本次不设置缓存
 	if ct > 0 && ts.CacheAll() {
 		// 目前只支持第一个redis实例作缓存
 		if conn.rdsNodes != nil {
 			key := ts.CacheLineKey(conn.Attrs.DbName, keyVal)
 			rds := (*conn.rdsNodes)[0]
+			// TODO：NOTE: 下面两句必须保证是原子的，才能尽可能避免BUG
 			_, _ = rds.Del(key)
 			_, _ = rds.SetEX(key+"_del", "1", ts.ExpireDuration())
 		}
@@ -40,10 +41,19 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 	return ct
 }
 
+func queryByPrimary(conn *OrmDB, ts *orm.TableSchema, obj any, id any) int64 {
+	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
+	defer CloseSqlRows(sqlRows)
+	return scanSqlRowsOne(obj, sqlRows, ts)
+}
+
 // 通过表的主键查询到一条记录。并对单条记录缓存。
 // 缓存的数据仅仅为 GsonRow 的 values，而不需要记录 fields ，因为默认都是 按model的字段顺序来记录。
 func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	ts := orm.Schema(obj)
+	if ts.CacheAll() == false {
+		return queryByPrimary(conn, ts, obj, id)
+	}
 
 	key := ts.CacheLineKey(conn.Attrs.DbName, id)
 	rds := (*conn.rdsNodes)[0]
@@ -52,13 +62,10 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 		if err = jde.DecodeGsonRowFromValueString(obj, cacheStr); err == nil {
 			return 1
 		}
-		// TODO: 缓存解析失败怎么办，啥也不管，将再次查询解析并缓存，此时会覆盖旧缓存数据
+		// Note: 缓存解析失败啥也不管，将再次查询解析并缓存，此时会覆盖旧缓存数据
 	}
 
-	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
-	defer CloseSqlRows(sqlRows)
-
-	ct := scanSqlRowsOne(obj, sqlRows, ts)
+	ct := queryByPrimary(conn, ts, obj, id)
 	if ct > 0 {
 		keyDel := key + "_del"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
