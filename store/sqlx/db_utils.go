@@ -26,7 +26,7 @@ func checkDestType(dest any) (*orm.TableSchema, reflect.Type, reflect.Type, bool
 	if sliceType.Kind() != reflect.Slice {
 		cst.PanicString("Target object must be slice.")
 	}
-	ts := orm.SchemaOfType(dTyp)
+	ts := orm.SchemaByType(dTyp)
 
 	isPtr := false
 	isKV := false

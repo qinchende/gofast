@@ -15,12 +15,33 @@ import (
 // Orm中的TableSchema
 // 只解决单条记录绑定到单个object，或者多条记录绑定到 list object 类型的变量。
 func Schema(obj any) *TableSchema {
-	return SchemaOfType(reflect.TypeOf(obj))
+	return SchemaByType(reflect.TypeOf(obj))
 }
 
-func SchemaOfType(rTyp reflect.Type) *TableSchema {
-	rTyp = checkDestType(rTyp)
-	return fetchSchema(rTyp)
+func SchemaByType(typ reflect.Type) *TableSchema {
+	// typ 可能是：*Struct，Struct，*[]Struct，[]Struct 四种形式
+	kd := typ.Kind()
+	if kd == reflect.Pointer {
+		typ = typ.Elem() // 只剥离一层 pointer
+		kd = typ.Kind()
+	}
+	if kd == reflect.Slice {
+		typ = typ.Elem() // 只剥离一层 slice
+		kd = typ.Kind()
+	}
+	// 此时必须是 struct
+	if kd != reflect.Struct {
+		//// 如果是 KV map 类型也默认支持
+		//if typ.Name() == "KV" {
+		//	ts := &TableSchema{}
+		//	cacheSetSchema(typ, ts)
+		//	return ts
+		//}
+		cst.PanicString(fmt.Sprintf("Target must be struct, but got %T", typ.Kind()))
+	}
+
+	// @@@ 开始拆解结构体并缓存
+	return fetchSchema(typ)
 }
 
 // 结构体中属性的数据库字段名称合集
@@ -32,28 +53,6 @@ func SchemaValues(obj any) (*TableSchema, []any) {
 	structValues(&values, &vIndex, obj)
 
 	return ms, values
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func checkDestType(rTyp reflect.Type) reflect.Type {
-	eTyp := rTyp.Elem()
-	if eTyp.Kind() == reflect.Slice {
-		rTyp = eTyp.Elem()
-	}
-	for rTyp.Kind() == reflect.Pointer {
-		rTyp = rTyp.Elem()
-	}
-	// @@@@@@@@@@ 开始拆解结构体并缓存
-	if rTyp.Kind() != reflect.Struct {
-		//// 如果是 KV map 类型的。统一
-		//if rTyp.Name() == "KV" {
-		//	ts = &TableSchema{}
-		//	cacheSetSchema(rTyp, ts)
-		//	return ts
-		//}
-		cst.PanicString(fmt.Sprintf("Target object must be structs; but got %T", rTyp))
-	}
-	return rTyp
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -77,32 +76,14 @@ func structValues(values *[]any, nextIndex *int8, obj any) {
 }
 
 // 提取结构体变量的ORM Schema元数据
-func fetchSchema(rTyp reflect.Type) *TableSchema {
-	//eTyp := rTyp.Elem()
-	//if eTyp.Kind() == reflect.Slice {
-	//	rTyp = eTyp.Elem()
-	//}
-	//for rTyp.Kind() == reflect.Pointer {
-	//	rTyp = rTyp.Elem()
-	//}
-	//// @@@@@@@@@@ 开始拆解结构体并缓存
-	//if rTyp.Kind() != reflect.Struct {
-	//	//// 如果是 KV map 类型的。统一
-	//	//if rTyp.Name() == "KV" {
-	//	//	ts = &TableSchema{}
-	//	//	cacheSetSchema(rTyp, ts)
-	//	//	return ts
-	//	//}
-	//	cst.PanicString(fmt.Sprintf("Target object must be structs; but got %T", rTyp))
-	//}
-
-	ts := cacheGetSchema(rTyp) // 看类型，缓存有就直接用，否则计算一次并缓存
+func fetchSchema(typ reflect.Type) *TableSchema {
+	ts := cacheGetSchema(typ) // 看类型，缓存有就直接用，否则计算一次并缓存
 	if ts != nil {
 		return ts
 	}
 
 	// 如果是 Struct 类型
-	ss := dts.SchemaAsDBByType(rTyp)
+	ss := dts.SchemaAsDBByType(typ)
 	// 构造ORM Model元数据
 	ts = &TableSchema{
 		ss:           *ss, // NOTE：这里是一个赋值操作，而不是指针引用
@@ -157,13 +138,13 @@ func fetchSchema(rTyp reflect.Type) *TableSchema {
 		}
 	}
 	if ts.primaryIndex == -1 {
-		cst.PanicString(fmt.Sprintf("%T, model has no primary key", rTyp)) // 不能没有主键
+		cst.PanicString(fmt.Sprintf("%T, model has no primary key", typ)) // 不能没有主键
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 	// 获取 Model的所有控制属性
-	rTypVal := reflect.ValueOf(reflect.New(rTyp).Interface())
+	rTypVal := reflect.ValueOf(reflect.New(typ).Interface())
 	attrsFunc := rTypVal.MethodByName("GfAttrs")
 	var mdAttrs *TableAttrs
 	if attrsFunc.IsValid() {
@@ -174,7 +155,7 @@ func fetchSchema(rTyp reflect.Type) *TableSchema {
 		mdAttrs = &TableAttrs{}
 	}
 	if mdAttrs.TableName == "" {
-		mdAttrs.TableName = lang.Camel2Snake(rTyp.Name())
+		mdAttrs.TableName = lang.Camel2Snake(typ.Name())
 	}
 
 	// Important Note:
@@ -183,13 +164,15 @@ func fetchSchema(rTyp reflect.Type) *TableSchema {
 	mdAttrs.columnsHash = hashx.Sum64(lang.STB(strings.Join(ss.Columns, ",")))
 	hashStr := lang.ToString(mdAttrs.columnsHash)
 	priKeyName := ss.FieldsAttr[ts.primaryIndex].RefField.Name
+	// 行记录缓存 Key format
 	mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + priKeyName + "#%v"
-	// 默认TableModel单条数据缓存 1 小时
+	// 默认 行记录 缓存 1 小时
 	mdAttrs.ExpireS = 3600
+	mdAttrs.CacheAll = true
 
 	ts.tAttrs = *mdAttrs
 
-	cacheSetSchema(rTyp, ts)
+	cacheSetSchema(typ, ts)
 	return ts
 }
 
