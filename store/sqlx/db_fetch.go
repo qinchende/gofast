@@ -12,15 +12,16 @@ func CloseSqlRows(rows *sql.Rows) {
 	panicIfErr(rows.Close())
 }
 
-func ScanRow(dest any, sqlRows *sql.Rows) int64 {
-	return scanSqlRowsOne(dest, sqlRows, nil)
+func ScanRow(obj any, sqlRows *sql.Rows) int64 {
+	return scanSqlRowsOne(obj, sqlRows, nil)
 }
 
-func ScanRows(dest any, sqlRows *sql.Rows) int64 {
-	return scanSqlRowsSlice(dest, sqlRows, nil)
+func ScanRows(objs any, sqlRows *sql.Rows) int64 {
+	return scanSqlRowsSlice(objs, sqlRows, nil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 在修改数据库记录的情况下（delete | update），处理返回结果，同时改变缓存状态
 func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema) int64 {
 	ct, err := ret.RowsAffected()
 	panicIfErr(err)
@@ -34,13 +35,13 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 			rds := (*conn.rdsNodes)[0]
 			// TODO：NOTE: 下面两句必须保证是原子的，才能尽可能避免BUG
 			_, _ = rds.Del(key)
-			_, _ = rds.SetEX(key+"_del", "1", ts.ExpireDuration())
+			_, _ = rds.SetEX(key+"_del_mark", "1", ts.ExpireDuration())
 		}
 	}
-
 	return ct
 }
 
+// 通过主键查询表记录，同时绑定到对象
 func queryByPrimary(conn *OrmDB, ts *orm.TableSchema, obj any, id any) int64 {
 	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
@@ -67,7 +68,8 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 
 	ct := queryByPrimary(conn, ts, obj, id)
 	if ct > 0 {
-		keyDel := key + "_del"
+		// 先查询缓存删除标记，如果存在标记本次不设置缓存，而且删除标记
+		keyDel := key + "_del_mark"
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
 		} else if jsonBytes, err2 := jde.EncodeToOnlyGsonRowValuesBytes(obj); err2 == nil {
