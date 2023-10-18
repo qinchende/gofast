@@ -8,7 +8,6 @@ import (
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"strings"
-	"sync"
 )
 
 // fetch StructSchema
@@ -29,7 +28,6 @@ func SchemaAsConfig(obj any) *StructSchema {
 	return Schema(obj, cfgStructOptions)
 }
 
-// ++++++++++++++++++++++++++
 func SchemaByType(typ reflect.Type, opts *BindOptions) *StructSchema {
 	for typ.Kind() == reflect.Pointer {
 		typ = typ.Elem()
@@ -107,7 +105,7 @@ func (ss *StructSchema) FieldName(idx int) string {
 	return ss.Fields[idx]
 }
 
-// Gson
+// Gson useful apis
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ss *StructSchema) CTips() (string, []uint8) {
 	return strings.Join(ss.cTips.items, ","), ss.cTips.idxes
@@ -131,20 +129,4 @@ func (ss *StructSchema) FIndexes(fls []string) (ret []uint8) {
 		ret[i] = uint8(ss.FieldIndex(fls[i]))
 	}
 	return
-}
-
-// cache
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 缓存所有需要反序列化的实体结构的解析数据，防止反复不断的进行反射解析操作。
-var cachedStructSchemas sync.Map
-
-func cacheSetSchema(typ reflect.Type, val *StructSchema) {
-	cachedStructSchemas.Store(typ, val)
-}
-
-func cacheGetSchema(typ reflect.Type) *StructSchema {
-	if ret, ok := cachedStructSchemas.Load(typ); ok {
-		return ret.(*StructSchema)
-	}
-	return nil
 }

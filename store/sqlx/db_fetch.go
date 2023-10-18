@@ -9,7 +9,7 @@ import (
 )
 
 func CloseSqlRows(rows *sql.Rows) {
-	panicIfErr(rows.Close())
+	panicIfSqlErr(rows.Close())
 }
 
 func ScanRow(obj any, sqlRows *sql.Rows) int64 {
@@ -24,7 +24,7 @@ func ScanRows(objs any, sqlRows *sql.Rows) int64 {
 // 在修改数据库记录的情况下（delete | update），处理返回结果，同时改变缓存状态
 func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema) int64 {
 	ct, err := ret.RowsAffected()
-	panicIfErr(err)
+	panicIfSqlErr(err)
 
 	// 判断是否要删除缓存，删除缓存的逻辑要特殊处理，
 	// 删除Key要有策略，比如删除之后加一个删除标记，后面设置缓存策略先查询这个标记，如果有标记就删除标记但本次不设置缓存
@@ -35,17 +35,10 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 			rds := (*conn.rdsNodes)[0]
 			// TODO：NOTE: 下面两句必须保证是原子的，才能尽可能避免BUG
 			_, _ = rds.Del(key)
-			_, _ = rds.SetEX(key+"_del_mark", "1", ts.ExpireDuration())
+			_, _ = rds.SetEX(key+cacheDelFlagSuffix, "1", ts.ExpireDuration())
 		}
 	}
 	return ct
-}
-
-// 通过主键查询表记录，同时绑定到对象
-func queryByPrimary(conn *OrmDB, ts *orm.TableSchema, obj any, id any) int64 {
-	sqlRows := conn.QuerySql(selectSqlForPrimary(ts), id)
-	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(obj, sqlRows, ts)
 }
 
 // 通过表的主键查询到一条记录。并对单条记录缓存。
@@ -69,7 +62,7 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	ct := queryByPrimary(conn, ts, obj, id)
 	if ct > 0 {
 		// 先查询缓存删除标记，如果存在标记本次不设置缓存，而且删除标记
-		keyDel := key + "_del_mark"
+		keyDel := key + cacheDelFlagSuffix
 		if cacheStr, _ = rds.Get(keyDel); cacheStr == "1" {
 			_, _ = rds.Del(keyDel)
 		} else if jsonBytes, err2 := jde.EncodeToOnlyGsonRowValuesBytes(obj); err2 == nil {
@@ -79,46 +72,58 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	return ct
 }
 
+// 通过主键查询表记录，同时绑定到对象
+func queryByPrimary(conn *OrmDB, ts *orm.TableSchema, obj any, id any) int64 {
+	sqlRows := conn.QuerySql(selectSqlOfPrimary(ts), id)
+	defer CloseSqlRows(sqlRows)
+	return scanSqlRowsOne(obj, sqlRows, ts)
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	if !sqlRows.Next() {
-		panicIfErr(sqlRows.Err())
+		panicIfSqlErr(sqlRows.Err())
 		return 0
 	}
 
-	dstTyp := reflect.TypeOf(obj).Elem()
 	dstVal := reflect.Indirect(reflect.ValueOf(obj))
-
-	// 1. 基础值类型只取第一行第一列值。2. 结构体类型只取第一行数据
-	switch dstTyp.Kind() {
-	case reflect.Bool,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64,
-		reflect.String:
-		if dstVal.CanSet() {
-			panicIfErr(sqlRows.Scan(dstVal.Addr().Interface()))
-		} else {
-			cst.PanicString("Passed in variable is not settable.")
-		}
-	case reflect.Struct:
+	dstKind := dstVal.Type().Kind()
+	// NOTE: 当前只支持两种情况
+	// 1. 目标值是结构体类型，只取第一行数据
+	if dstKind == reflect.Struct {
 		if ts == nil {
 			ts = orm.Schema(obj)
 		}
 
-		dbColumns, _ := sqlRows.Columns()
-		fieldsAddr := make([]any, len(dbColumns))
+		dbColumns, _ := sqlRows.Columns()         // 查询返回的结果字段
+		valuesAddr := make([]any, len(dbColumns)) // 目标值地址
 
 		// 每一个db-column都应该有对应的变量接收值
 		for cIdx := range dbColumns {
 			idx := ts.ColumnIndex(dbColumns[cIdx])
 			if idx >= 0 {
-				fieldsAddr[cIdx] = ts.AddrByIndex(&dstVal, int8(idx))
+				// TODO：: 这里可以用内存偏移量直接定位字段变量地址。避免使用反射，提高性能
+				valuesAddr[cIdx] = ts.AddrByIndex(&dstVal, int8(idx))
 			} else {
-				fieldsAddr[cIdx] = new(any) // 这个值会被丢弃
+				// 这个值会被丢弃，所以用一个共享的占位变量即可
+				valuesAddr[cIdx] = sharedValueAddr
 			}
 		}
-		panicIfErr(sqlRows.Scan(fieldsAddr...))
+		panicIfSqlErr(sqlRows.Scan(valuesAddr...))
+		return 1
+	}
+
+	// 2. 目标值是基础值类型，只取第一行第一列值
+	switch dstKind {
+	case reflect.Bool, reflect.String,
+		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
+		reflect.Float32, reflect.Float64:
+		if dstVal.CanSet() {
+			panicIfSqlErr(sqlRows.Scan(dstVal.Addr().Interface()))
+		} else {
+			cst.PanicString("Variable can't settable.")
+		}
 	default:
 		cst.PanicString("Unsupported unmarshal type.")
 	}
@@ -126,7 +131,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 }
 
 // 解析查询到的数据记录
-// TODO: 如果 dest 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
+// TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
 func scanSqlRowsSlice(objs any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 	ts, sliceType, recordType, isPtr, isKV := checkDestType(objs)
 
@@ -159,7 +164,7 @@ func scanSqlRowsSlice(objs any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 		}
 
 		for sqlRows.Next() {
-			panicIfErr(sqlRows.Scan(valuesAddr...))
+			panicIfSqlErr(sqlRows.Scan(valuesAddr...))
 
 			if gr != nil {
 				values := make([]any, len(valuesAddr))
@@ -198,7 +203,7 @@ func scanSqlRowsSlice(objs any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 				}
 			}
 
-			panicIfErr(sqlRows.Scan(valuesAddr...))
+			panicIfSqlErr(sqlRows.Scan(valuesAddr...))
 
 			if gr != nil {
 				values := make([]any, len(valuesAddr))

@@ -47,7 +47,7 @@ func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) s
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return result
 }
 
@@ -73,7 +73,7 @@ func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) 
 	if dur > slowThreshold {
 		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return rows
 }
 
@@ -84,7 +84,7 @@ func (conn *OrmDB) TransBegin() *OrmDB {
 
 func (conn *OrmDB) TransCtx(ctx context.Context) *OrmDB {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return &OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 }
 
@@ -94,7 +94,7 @@ func (conn *OrmDB) TransFunc(fn func(newConn *OrmDB)) {
 
 func (conn *OrmDB) TransFuncCtx(ctx context.Context, fn func(newConn *OrmDB)) {
 	tx, err := conn.Writer.BeginTx(ctx, nil)
-	panicIfErr(err)
+	panicIfSqlErr(err)
 
 	nConn := OrmDB{Attrs: conn.Attrs, Ctx: ctx, tx: tx, rdsNodes: conn.rdsNodes}
 	defer nConn.TransEnd()
@@ -111,10 +111,10 @@ func (conn *OrmDB) Rollback() error {
 
 func (conn *OrmDB) TransEnd() {
 	if pic := recover(); pic != nil {
-		panicIfErr(conn.Rollback())
+		panicIfSqlErr(conn.Rollback())
 		cst.Panic(pic)
 	} else {
-		panicIfErr(conn.Commit())
+		panicIfSqlErr(conn.Commit())
 	}
 	// 出现了非常严重的错误，可能没有提交或回滚成功
 }

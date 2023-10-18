@@ -60,8 +60,8 @@ func (ms *TableSchema) FieldIndex(k string) int {
 	return ms.ss.FieldIndex(k)
 }
 
+// SQL
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
 func (ms *TableSchema) InsertSQL(fn func(*TableSchema) string) string {
 	if ms.insertSQL == "" {
 		ms.insertSQL = fn(ms)
@@ -90,15 +90,19 @@ func (ms *TableSchema) DeleteSQL(fn func(*TableSchema) string) string {
 	return ms.deleteSQL
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 返回对象中主键对应字段的值
 func (ms *TableSchema) PrimaryValue(obj any) any {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
 	return rVal.FieldByIndex(ms.ss.FieldsAttr[ms.primaryIndex].RefIndex).Interface()
 }
 
+// 返回指定索引对应字段的值
 func (ms *TableSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.ss.FieldsAttr[index].RefIndex).Interface()
 }
 
+// 返回指定索引对应字段的地址值
 func (ms *TableSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
 	return rVal.FieldByIndex(ms.ss.FieldsAttr[index].RefIndex).Addr().Interface()
 }

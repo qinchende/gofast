@@ -123,13 +123,13 @@ func updateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...strin
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
 
-func selectSqlForPrimary(ts *orm.TableSchema) string {
+func selectSqlOfPrimary(ts *orm.TableSchema) string {
 	return ts.SelectSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func selectSqlForOne(ts *orm.TableSchema, fields string, where string) string {
+func selectSqlOfOne(ts *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -139,7 +139,7 @@ func selectSqlForOne(ts *orm.TableSchema, fields string, where string) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, ts.TableName(), where)
 }
 
-func selectSqlForSome(ts *orm.TableSchema, fields string, where string) string {
+func selectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -192,7 +192,7 @@ func fillPet(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
 	return pet
 }
 
-func selectSqlForPet(ts *orm.TableSchema, pet *SelectPet) string {
+func selectSqlOfPet(ts *orm.TableSchema, pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.Limit, pet.Offset)
 }
 
