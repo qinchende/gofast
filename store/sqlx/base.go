@@ -9,7 +9,17 @@ import (
 )
 
 const (
-	slowThreshold = time.Millisecond * 500 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
+	slowThreshold      = time.Millisecond * 500 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
+	cacheDelFlagSuffix = "_del_mark"
+)
+
+const (
+	CacheMem   uint8 = iota // 默认0：用本地内存缓存，无法实现分布式一致性。但支持存取对象，性能好
+	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
+)
+
+var (
+	sharedValueAddr = new(any)
 )
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
@@ -33,11 +43,6 @@ type StmtConn struct {
 	sqlStr   string          // 预执行SQL语句
 	readonly bool            // 是否连接只读库
 }
-
-const (
-	CacheMem   uint8 = iota // 默认0：用本地内存缓存，无法实现分布式一致性。但支持存取对象，性能好
-	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
-)
 
 // 功能强大的控制参数，这个对象比较大，可以考虑用sync.Pool缓存
 type SelectPet struct {

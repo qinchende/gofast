@@ -27,12 +27,12 @@ func (conn *OrmDB) PrepareCtx(ctx context.Context, sqlStr string, readonly bool)
 		stmt, err = conn.tx.PrepareContext(ctx, sqlStr)
 	}
 
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return &StmtConn{ctx: ctx, stmt: stmt, sqlStr: sqlStr, readonly: readonly}
 }
 
 func (conn *StmtConn) Close() {
-	panicIfErr(conn.stmt.Close())
+	panicIfSqlErr(conn.stmt.Close())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -57,7 +57,7 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 		logx.SlowF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
 	}
 
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	ct, _ := ret.RowsAffected()
 	return ct
 }
@@ -70,7 +70,7 @@ func (conn *StmtConn) QueryRow(dest any, args ...any) int64 {
 func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return scanSqlRowsOne(dest, sqlRows, nil)
 }
 
@@ -81,7 +81,7 @@ func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
 func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return scanSqlRowsSlice(dest, sqlRows, nil)
 }
 

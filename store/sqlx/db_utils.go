@@ -8,7 +8,7 @@ import (
 	"reflect"
 )
 
-func panicIfErr(err error) {
+func panicIfSqlErr(err error) {
 	if err != nil {
 		logx.Error("sqlx: " + err.Error())
 		cst.PanicIfErr(err)

@@ -21,7 +21,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 	ret := conn.ExecSql(insertSql(ts), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
 	ct, err := ret.RowsAffected()
-	panicIfErr(err)
+	panicIfSqlErr(err)
 	return ct
 }
 
@@ -76,7 +76,7 @@ func (conn *OrmDB) QueryRow(obj any, where string, args ...any) int64 {
 
 func (conn *OrmDB) QueryRow2(obj any, fields string, where string, args ...any) int64 {
 	ts := orm.Schema(obj)
-	sqlRows := conn.QuerySql(selectSqlForOne(ts, fields, where), args...)
+	sqlRows := conn.QuerySql(selectSqlOfOne(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 	return scanSqlRowsOne(obj, sqlRows, ts)
 }
@@ -95,7 +95,7 @@ func (conn *OrmDB) QuerySqlJust(sql string, args ...any) (ct int64) {
 	for sqlRows.Next() {
 		ct++
 	}
-	panicIfErr(sqlRows.Err())
+	panicIfSqlErr(sqlRows.Err())
 	return
 }
 
@@ -107,7 +107,7 @@ func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {
 
 func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any) int64 {
 	ts := orm.Schema(dest)
-	sqlRows := conn.QuerySql(selectSqlForSome(ts, fields, where), args...)
+	sqlRows := conn.QuerySql(selectSqlOfSome(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsSlice(dest, sqlRows, nil)
@@ -122,7 +122,7 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlForPet(ts, pet)
+		sql = selectSqlOfPet(ts, pet)
 	}
 
 	ct, _ := conn.innerQueryPet(sql, "", pet, ts)
@@ -132,7 +132,7 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 // 返回 count , total
 func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ts *orm.TableSchema) (int64, int64) {
 	withCache := pet.Cache != nil && pet.Cache.ExpireS > 0
-	gsonStr := pet.Result != nil && pet.Result.GsonStr == true
+	needGsonStr := pet.Result != nil && pet.Result.GsonStr == true
 
 	var gr *gsonResult
 	rds := (*conn.rdsNodes)[0]
@@ -143,18 +143,18 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ts *orm.T
 
 		cacheStr, err := rds.Get(pet.Cache.sqlHash)
 		if err == nil && cacheStr != "" {
-			if gsonStr {
+			if needGsonStr {
 				pet.Result.Target = cacheStr
 				return 1, 0
 			}
 
 			gr = new(gsonResult)
-			panicIfErr(loadRecordsFromGsonString(pet.Target, cacheStr, gr))
+			panicIfSqlErr(loadRecordsFromGsonString(pet.Target, cacheStr, gr))
 			return gr.Ct, gr.Tt
 		}
 		gr = new(gsonResult)
 	}
-	if gsonStr {
+	if needGsonStr {
 		if gr == nil {
 			gr = new(gsonResult)
 		}
@@ -182,18 +182,18 @@ func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ts *orm.T
 	ct := scanSqlRowsSlice(pet.Target, sqlRows, gr)
 
 	var err error
-	if gsonStr {
+	if needGsonStr {
 		ret, err := jsonx.Marshal(gr.GsonRows)
-		panicIfErr(err)
+		panicIfSqlErr(err)
 		pet.Result.Target = lang.BTS(ret)
 	}
 	if ct > 0 && withCache {
 		cacheStr := new(any)
-		if gsonStr {
+		if needGsonStr {
 			*cacheStr = pet.Result.Target
 		} else {
 			*cacheStr, err = jsonx.Marshal(gr.GsonRows)
-			panicIfErr(err)
+			panicIfSqlErr(err)
 		}
 		_, _ = rds.Set(pet.Cache.sqlHash, *cacheStr, time.Duration(pet.Cache.ExpireS)*time.Second)
 	}
@@ -225,7 +225,7 @@ func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlForPet(ts, pet)
+		sql = selectSqlOfPet(ts, pet)
 	}
 
 	pet.Args = formatArgs(pet.Args)
