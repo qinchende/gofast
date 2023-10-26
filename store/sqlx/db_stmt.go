@@ -63,26 +63,26 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (conn *StmtConn) QueryRow(dest any, args ...any) int64 {
-	return conn.QueryRowCtx(conn.ctx, dest, args...)
+func (conn *StmtConn) QueryRow(obj any, args ...any) int64 {
+	return conn.QueryRowCtx(conn.ctx, obj, args...)
 }
 
-func (conn *StmtConn) QueryRowCtx(ctx context.Context, dest any, args ...any) int64 {
+func (conn *StmtConn) QueryRowCtx(ctx context.Context, obj any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
 	panicIfSqlErr(err)
-	return scanSqlRowsOne(dest, sqlRows, nil)
+	return scanSqlRowsOne(obj, sqlRows, nil)
 }
 
-func (conn *StmtConn) QueryRows(dest any, args ...any) int64 {
-	return conn.QueryRowsCtx(conn.ctx, dest, args...)
+func (conn *StmtConn) QueryRows(objs any, args ...any) int64 {
+	return conn.QueryRowsCtx(conn.ctx, objs, args...)
 }
 
-func (conn *StmtConn) QueryRowsCtx(ctx context.Context, dest any, args ...any) int64 {
+func (conn *StmtConn) QueryRowsCtx(ctx context.Context, objs any, args ...any) int64 {
 	sqlRows, err := conn.queryContext(ctx, args...)
 	defer CloseSqlRows(sqlRows)
 	panicIfSqlErr(err)
-	return scanSqlRowsSlice(dest, sqlRows, nil)
+	return scanSqlRowsList(objs, sqlRows)
 }
 
 func (conn *StmtConn) queryContext(ctx context.Context, args ...any) (sqlRows *sql.Rows, err error) {

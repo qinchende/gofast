@@ -23,7 +23,7 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	// 以下是必要的检查
 	dstTyp := reflect.TypeOf(dst)
 	if dstTyp.Kind() != reflect.Pointer {
-		return errors.New("Target object must be pointer value.")
+		return errors.New("Dest object must be pointer value.")
 	}
 	dstTyp = dstTyp.Elem()
 	if dstTyp.Kind() != reflect.Struct {
@@ -116,27 +116,27 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOpti
 		return errors.New("dts: value type must be []any")
 	}
 
-	var itSize uintptr
-	ct := len(list)
+	var dstSize uintptr
+	listLen := len(list)
 
 	if dstT.Kind() == reflect.Array {
-		if dstT.Len() != ct {
+		if dstT.Len() != listLen {
 			return errors.New("dts: array length not match.")
 		}
 
 		dstT = dstT.Elem()
-		itSize = dstT.Size()
+		dstSize = dstT.Size()
 	} else {
 		dstT = dstT.Elem()
-		itSize = dstT.Size()
+		dstSize = dstT.Size()
 
 		sh := (*reflect.SliceHeader)(ptr)
-		if sh.Cap < ct {
-			newMem := make([]byte, int(itSize)*ct)
+		if sh.Cap < listLen {
+			newMem := make([]byte, int(dstSize)*listLen)
 			sh.Data = (*reflect.SliceHeader)(unsafe.Pointer(&newMem)).Data
-			sh.Len, sh.Cap = ct, ct
+			sh.Len, sh.Cap = listLen, listLen
 		} else {
-			sh.Len = ct
+			sh.Len = listLen
 		}
 		ptr = unsafe.Pointer(sh.Data)
 	}
@@ -145,15 +145,15 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOpti
 	itKind := dstT.Kind()
 	switch itKind {
 	case reflect.Struct:
-		for i := 0; i < ct; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itSize)
+		for i := 0; i < listLen; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*dstSize)
 			if err = bindStruct(itPtr, dstT, list[i], opts); err != nil {
 				return
 			}
 		}
 	case reflect.Array, reflect.Slice:
-		for i := 0; i < ct; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itSize)
+		for i := 0; i < listLen; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*dstSize)
 			if err = bindList(itPtr, dstT, list[i], opts); err != nil {
 				return
 			}
@@ -163,8 +163,8 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, val any, opts *dts.BindOpti
 	case reflect.Pointer:
 		// TODO: bindPointer
 	default:
-		for i := 0; i < ct; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itSize)
+		for i := 0; i < listLen; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*dstSize)
 			dts.BindBaseValueAsConfig(itKind, itPtr, list[i])
 		}
 	}

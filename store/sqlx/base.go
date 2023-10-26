@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	sharedValueAddr = new(any)
+	sharedAnyValue = new(any)
 )
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
@@ -46,36 +46,32 @@ type StmtConn struct {
 
 // 功能强大的控制参数，这个对象比较大，可以考虑用sync.Pool缓存
 type SelectPet struct {
-	Target   any        // 解析的目标对象（指针类型）
-	Sql      string     // 自定义完整的SQL语句，注意(Sql和SqlCount是成对出现的)
-	SqlCount string     // 分页场景下自定义查询总数的SQL语句（如果传"false"字符串，将不会查询总数）
-	Table    string     // 表名
-	Columns  string     // 自定义查询字段
-	Where    string     // where
-	OrderBy  string     // order by
-	orderByT string     // order by inner temp
-	GroupBy  string     // group by
-	groupByT string     // group by inner temp
-	Args     []any      // SQL语句参数，防注入
-	PageSize uint32     // 分页大小
-	Page     uint32     // 当前页
-	Offset   uint32     // 查询偏移量
-	Limit    uint32     // 查询限量
-	Cache    *PetCache  // 缓存设置参数
-	Result   *PetResult // 扩展返回数据的形式
-	isReady  bool       // 是否已经初始化
-}
+	Dest any // 解析得到的目标数据，必填项
 
-type PetCache struct {
-	sqlHash   string
-	ExpireS   uint32 // 过期时间（秒）
-	CacheType uint8  // 缓存类型
-}
+	// 用于构造SQL语句的参数
+	Sql      string // 自定义完整的SQL语句，注意(Sql和SqlCount是成对出现的)
+	SqlCount string // 分页场景下自定义查询总数的SQL语句（如果传"false"字符串，将不会查询总数）
+	Table    string // 表名
+	Columns  string // 自定义查询字段
+	Where    string // where
+	Args     []any  // SQL语句参数，防注入
+	OrderBy  string // order by
+	orderByT string // order by inner temp
+	GroupBy  string // group by
+	groupByT string // group by inner temp
+	PageSize uint32 // 分页大小
+	Page     uint32 // 当前页
+	Offset   uint32 // 查询偏移量
+	Limit    uint32 // 查询限量
 
-type PetResult struct {
-	Target  any
-	GsonStr bool // 不解析Target对象，直接返回原始值类型
-}
+	// Gson结果相关
+	GsonVal  any  // 可以指定同时返回 GsonRows 数据
+	GsonNeed bool // 是否需要返回 GsonVal 数据
+	GsonOnly bool // 只需要 GsonVal 数据，不用解析到 Dest
 
-type SP SelectPet
-type PC PetCache
+	// 缓存控制和其它标记字段
+	isReady      bool   // 是否已经初始化
+	CacheType    uint8  // 缓存类型
+	CacheExpireS uint32 // 缓存过期时间秒（设置值大于0，意味着需要缓存，否则不需要缓存）
+	cacheKey     string // 缓存的 key value（hash 值）
+}

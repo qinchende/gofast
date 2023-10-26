@@ -8,9 +8,7 @@ require (
 	github.com/go-sql-driver/mysql v1.7.0
 	github.com/golang/protobuf v1.5.2
 	github.com/json-iterator/go v1.1.12
-	github.com/pkg/profile v1.7.0
 	github.com/prometheus/client_golang v1.13.0
-	github.com/samber/lo v1.37.0
 	github.com/shirou/gopsutil/v3 v3.21.11
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.1

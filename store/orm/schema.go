@@ -19,7 +19,7 @@ func Schema(obj any) *TableSchema {
 }
 
 func SchemaByType(typ reflect.Type) *TableSchema {
-	// typ 可能是：*Struct，Struct，*[]Struct，[]Struct 四种形式
+	// typ 可能是：*Struct，Struct，*[]Struct，[]Struct, *[]*Struct, []*Struct 四种形式
 	kd := typ.Kind()
 	if kd == reflect.Pointer {
 		typ = typ.Elem() // 只剥离一层 pointer
@@ -27,6 +27,10 @@ func SchemaByType(typ reflect.Type) *TableSchema {
 	}
 	if kd == reflect.Slice {
 		typ = typ.Elem() // 只剥离一层 slice
+		kd = typ.Kind()
+	}
+	if kd == reflect.Pointer {
+		typ = typ.Elem() // 再剥离一层 pointer
 		kd = typ.Kind()
 	}
 	// 此时必须是 struct

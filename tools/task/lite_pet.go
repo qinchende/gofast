@@ -39,7 +39,7 @@ func (pet *LitePet) runTask(gorCtx context.Context, now time.Duration) {
 	// 获取上一次执行的时间
 	if pet.lastTime == 0 {
 		if str, err := pet.group.rds.Get(pet.key); err == nil && str != "" {
-			if lst, err2 := time.Parse(cst.TimeFmtSaveRFC3339, str); err2 == nil {
+			if lst, err2 := time.Parse(cst.TimeFmtRFC3339, str); err2 == nil {
 				pet.lastTime = timex.ToDuration(&lst)
 			}
 		}
@@ -61,7 +61,7 @@ func (pet *LitePet) runTask(gorCtx context.Context, now time.Duration) {
 
 func (pet *LitePet) execute(gorCtx context.Context, now time.Duration) {
 	if pet.Task(gorCtx) {
-		pet.group.rds.Set(pet.key, timex.ToTime(now).Format(cst.TimeFmtSaveRFC3339), liteStoreRunFlagExpireTTL)
+		pet.group.rds.Set(pet.key, timex.ToTime(now).Format(cst.TimeFmtRFC3339), liteStoreRunFlagExpireTTL)
 	}
 }
 
