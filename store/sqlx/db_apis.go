@@ -79,10 +79,10 @@ func (conn *OrmDB) QueryRow2(obj any, fields string, where string, args ...any) 
 }
 
 // 自定义SQL语句查询，得到一条记录。或者只取第一条记录的第一个字段值
-func (conn *OrmDB) QueryRowSql(dest any, sql string, args ...any) int64 {
+func (conn *OrmDB) QueryRowSql(obj any, sql string, args ...any) int64 {
 	sqlRows := conn.QuerySql(sql, args...)
 	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(dest, sqlRows, nil)
+	return scanSqlRowsOne(obj, sqlRows, nil)
 }
 
 // 查询数据库，只返回查询结果条数，而不去解析查询到的数据

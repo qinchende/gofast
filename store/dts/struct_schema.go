@@ -43,7 +43,7 @@ type (
 	}
 
 	// 给字段绑定值
-	valueBinder func(p unsafe.Pointer, v any)
+	//valueBinder func(p unsafe.Pointer, v any)
 
 	// 方便字段数据处理
 	fieldAttr struct {
@@ -56,7 +56,9 @@ type (
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
-		KVBinder  valueBinder  // 绑定函数
+
+		KVBinder func(fPtr unsafe.Pointer, v any) // 绑定函数
+		ScanAddr func(sPtr unsafe.Pointer) any
 	}
 
 	fieldOptions struct {
@@ -126,6 +128,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 		switch fa.Kind {
 		case reflect.Int:
 			fa.KVBinder = setInt
+			fa.ScanAddr = fa.intScanner
 		case reflect.Int8:
 			fa.KVBinder = setInt8
 		case reflect.Int16:
@@ -220,6 +223,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 	return &ss
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 反射提取结构体的字段（支持嵌套递归）
 func structFields(typ reflect.Type, parentIdx []int, opts *BindOptions) ([]string, []string, [][]int, []fieldOptions) {
 	if typ.Kind() != reflect.Struct {

@@ -37,7 +37,7 @@ func (ms *TableSchema) ExpireDuration() time.Duration {
 }
 
 func (ms *TableSchema) Columns() []string {
-	return ms.ss.Columns
+	return ms.SS.Columns
 }
 
 func (ms *TableSchema) UpdatedIndex() int8 {
@@ -53,11 +53,11 @@ func (ms *TableSchema) AutoIndex() int8 {
 }
 
 func (ms *TableSchema) ColumnIndex(k string) int {
-	return ms.ss.ColumnIndex(k)
+	return ms.SS.ColumnIndex(k)
 }
 
 func (ms *TableSchema) FieldIndex(k string) int {
-	return ms.ss.FieldIndex(k)
+	return ms.SS.FieldIndex(k)
 }
 
 // SQL
@@ -94,15 +94,15 @@ func (ms *TableSchema) DeleteSQL(fn func(*TableSchema) string) string {
 // 返回对象中主键对应字段的值
 func (ms *TableSchema) PrimaryValue(obj any) any {
 	rVal := reflect.Indirect(reflect.ValueOf(obj))
-	return rVal.FieldByIndex(ms.ss.FieldsAttr[ms.primaryIndex].RefIndex).Interface()
+	return rVal.FieldByIndex(ms.SS.FieldsAttr[ms.primaryIndex].RefIndex).Interface()
 }
 
 // 返回指定索引对应字段的值
 func (ms *TableSchema) ValueByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ms.ss.FieldsAttr[index].RefIndex).Interface()
+	return rVal.FieldByIndex(ms.SS.FieldsAttr[index].RefIndex).Interface()
 }
 
 // 返回指定索引对应字段的地址值
 func (ms *TableSchema) AddrByIndex(rVal *reflect.Value, index int8) any {
-	return rVal.FieldByIndex(ms.ss.FieldsAttr[index].RefIndex).Addr().Interface()
+	return rVal.FieldByIndex(ms.SS.FieldsAttr[index].RefIndex).Addr().Interface()
 }
