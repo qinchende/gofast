@@ -23,7 +23,7 @@ type OrmStruct interface {
 
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type TableSchema struct {
-	ss dts.StructSchema
+	SS dts.StructSchema
 
 	tAttrs TableAttrs // 实体类型的相关控制属性
 

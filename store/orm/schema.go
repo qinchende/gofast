@@ -53,7 +53,7 @@ func SchemaValues(obj any) (*TableSchema, []any) {
 	ms := Schema(obj)
 
 	var vIndex int8 = 0 // 反射取值索引
-	values := make([]any, len(ms.ss.Columns))
+	values := make([]any, len(ms.SS.Columns))
 	structValues(&values, &vIndex, obj)
 
 	return ms, values
@@ -90,7 +90,7 @@ func fetchSchema(typ reflect.Type) *TableSchema {
 	ss := dts.SchemaAsDBByType(typ)
 	// 构造ORM Model元数据
 	ts = &TableSchema{
-		ss:           *ss, // NOTE：这里是一个赋值操作，而不是指针引用
+		SS:           *ss, // NOTE：这里是一个赋值操作，而不是指针引用
 		autoIndex:    -1,
 		primaryIndex: -1,
 		updatedIndex: -1,
