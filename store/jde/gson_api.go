@@ -12,6 +12,8 @@ func DecodeGsonRowFromValueBytes(obj any, bs []byte) error {
 	return DecodeGsonRowFromValueString(obj, lang.BTS(bs))
 }
 
+// 这里解析的 str字符串 只包含GsonRow的 values，而不包含 cls
+// 所以API的名称叫：xxxValueString
 func DecodeGsonRowFromValueString(obj any, str string) error {
 	return decGsonRowOnlyValues(obj, str)
 }

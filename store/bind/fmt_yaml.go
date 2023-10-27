@@ -104,6 +104,7 @@ func convToString(src any) string {
 	case []byte:
 		return string(v)
 	}
+
 	sv := reflect.ValueOf(src)
 	switch sv.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:

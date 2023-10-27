@@ -1,12 +1,9 @@
 package sqlx
 
 import (
-	"github.com/qinchende/gofast/skill/jsonx"
-	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"strings"
-	"time"
 )
 
 func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
@@ -29,7 +26,7 @@ func (conn *OrmDB) Delete(obj any) int64 {
 	ts := orm.Schema(obj)
 	val := ts.PrimaryValue(obj)
 	ret := conn.ExecSql(deleteSql(ts), val)
-	return parseSqlResult(ret, val, conn, ts)
+	return parseSqlResult(conn, ret, val, ts)
 }
 
 func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
@@ -43,7 +40,7 @@ func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
 	values[fLen-1] = tVal
 
 	ret := conn.ExecSql(updateSql(ts), values...)
-	return parseSqlResult(ret, tVal, conn, ts)
+	return parseSqlResult(conn, ret, tVal, ts)
 }
 
 // 通过给定的结构体字段更新数据
@@ -54,14 +51,14 @@ func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 	obj.BeforeSave()
 	upSQL, tValues := updateSqlByFields(ts, &dstVal, fNames...)
 	ret := conn.ExecSql(upSQL, tValues...)
-	return parseSqlResult(ret, tValues[len(tValues)-1], conn, ts)
+	return parseSqlResult(conn, ret, tValues[len(tValues)-1], ts)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对应ID值的一行记录
 func (conn *OrmDB) QueryPrimary(obj any, id any) int64 {
 	ts := orm.Schema(obj)
-	return queryByPrimary(conn, ts, obj, id)
+	return queryByPrimary(conn, obj, id, ts)
 }
 
 // 对应 PrimaryKey（一般是ID）值的一行记录，支持行记录缓存
@@ -89,7 +86,7 @@ func (conn *OrmDB) QueryRowSql(dest any, sql string, args ...any) int64 {
 }
 
 // 查询数据库，只返回查询结果条数，而不去解析查询到的数据
-func (conn *OrmDB) QuerySqlJust(sql string, args ...any) (ct int64) {
+func (conn *OrmDB) QuerySqlCount(sql string, args ...any) (ct int64) {
 	sqlRows := conn.QuerySql(sql, args...)
 	defer CloseSqlRows(sqlRows)
 	for sqlRows.Next() {
@@ -101,137 +98,67 @@ func (conn *OrmDB) QuerySqlJust(sql string, args ...any) (ct int64) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询多行记录
-func (conn *OrmDB) QueryRows(dest any, where string, args ...any) int64 {
-	return conn.QueryRows2(dest, "*", where, args...)
+func (conn *OrmDB) QueryRows(objs any, where string, args ...any) int64 {
+	return conn.QueryRows2(objs, "*", where, args...)
 }
 
-func (conn *OrmDB) QueryRows2(dest any, fields string, where string, args ...any) int64 {
-	ts := orm.Schema(dest)
+func (conn *OrmDB) QueryRows2(objs any, fields string, where string, args ...any) int64 {
+	ts := orm.Schema(objs)
 	sqlRows := conn.QuerySql(selectSqlOfSome(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
-	return scanSqlRowsSlice(dest, sqlRows, nil)
+	return scanSqlRowsList(objs, sqlRows)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 高级查询，可以自定义更多参数
 func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
-	ts := orm.Schema(pet.Target)
-
+	ts := orm.Schema(pet.Dest)
 	fillPet(ts, pet)
-	// 生成Sql语句
+
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlOfPet(ts, pet)
+		sql = selectSqlByPet(ts, pet)
 	}
 
-	ct, _ := conn.innerQueryPet(sql, "", pet, ts)
+	ct, _ := queryByPet(conn, sql, "", pet, ts)
 	return ct
 }
 
-// 返回 count , total
-func (conn *OrmDB) innerQueryPet(sql, sqlCount string, pet *SelectPet, ts *orm.TableSchema) (int64, int64) {
-	withCache := pet.Cache != nil && pet.Cache.ExpireS > 0
-	needGsonStr := pet.Result != nil && pet.Result.GsonStr == true
-
-	var gr *gsonResult
-	rds := (*conn.rdsNodes)[0]
-	// 1. 需要走缓存版本
-	if withCache {
-		pet.Args = formatArgs(pet.Args)
-		pet.Cache.sqlHash = ts.CacheSqlKey(realSql(sql, pet.Args...))
-
-		cacheStr, err := rds.Get(pet.Cache.sqlHash)
-		if err == nil && cacheStr != "" {
-			if needGsonStr {
-				pet.Result.Target = cacheStr
-				return 1, 0
-			}
-
-			gr = new(gsonResult)
-			panicIfSqlErr(loadRecordsFromGsonString(pet.Target, cacheStr, gr))
-			return gr.Ct, gr.Tt
-		}
-		gr = new(gsonResult)
-	}
-	if needGsonStr {
-		if gr == nil {
-			gr = new(gsonResult)
-		}
-		gr.onlyGson = true
-	}
-
-	// 2. 执行SQL查询并设置缓存
-	var tt int64
-	if sqlCount != "" {
-		// 此条件下一共多少条
-		sqlRows1 := conn.QuerySql(sqlCount, pet.Args...)
-		defer CloseSqlRows(sqlRows1)
-		scanSqlRowsOne(&tt, sqlRows1, ts)
-
-		if tt <= 0 {
-			return 0, 0
-		}
-		if gr != nil {
-			gr.Tt = tt
-		}
-	}
-
-	sqlRows := conn.QuerySql(sql, pet.Args...)
-	defer CloseSqlRows(sqlRows)
-	ct := scanSqlRowsSlice(pet.Target, sqlRows, gr)
-
-	var err error
-	if needGsonStr {
-		ret, err := jsonx.Marshal(gr.GsonRows)
-		panicIfSqlErr(err)
-		pet.Result.Target = lang.BTS(ret)
-	}
-	if ct > 0 && withCache {
-		cacheStr := new(any)
-		if needGsonStr {
-			*cacheStr = pet.Result.Target
-		} else {
-			*cacheStr, err = jsonx.Marshal(gr.GsonRows)
-			panicIfSqlErr(err)
-		}
-		_, _ = rds.Set(pet.Cache.sqlHash, *cacheStr, time.Duration(pet.Cache.ExpireS)*time.Second)
-	}
-	return ct, tt
-}
-
+// 分页版本，更方便用于数据查询管理
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
-	ts := orm.Schema(pet.Target)
-
+	ts := orm.Schema(pet.Dest)
 	fillPet(ts, pet)
-	sqlCt := pet.SqlCount
-	if sqlCt == "" {
-		sqlCt = selectCountSqlForPet(ts, pet)
-	} else if strings.ToLower(sqlCt) == "false" {
-		sqlCt = ""
-	}
+
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectPagingSqlForPet(ts, pet)
+		sql = selectPagingSqlByPet(ts, pet)
 	}
 
-	return conn.innerQueryPet(sql, sqlCt, pet, ts)
+	sqlCt := pet.SqlCount
+	if sqlCt == "" {
+		sqlCt = selectCountSqlByPet(ts, pet)
+	} else if strings.ToLower(sqlCt) == "false" { // 不查total，用于无级分页
+		sqlCt = ""
+	}
+
+	return queryByPet(conn, sql, sqlCt, pet, ts)
 }
 
 func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
-	ts := orm.Schema(pet.Target)
+	ts := orm.Schema(pet.Dest)
 
 	fillPet(ts, pet)
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		sql = selectSqlOfPet(ts, pet)
+		sql = selectSqlByPet(ts, pet)
 	}
 
 	pet.Args = formatArgs(pet.Args)
-	pet.Cache.sqlHash = ts.CacheSqlKey(realSql(sql, pet.Args...))
+	pet.cacheKey = ts.CacheSqlKey(realSql(sql, pet.Args...))
 
-	key := pet.Cache.sqlHash
+	key := pet.cacheKey
 	rds := (*conn.rdsNodes)[0]
 	_, err = rds.Del(key)
 	return

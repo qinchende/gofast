@@ -3,9 +3,12 @@ package sqlx
 import (
 	"database/sql"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
+	"time"
 )
 
 func CloseSqlRows(rows *sql.Rows) {
@@ -17,12 +20,12 @@ func ScanRow(obj any, sqlRows *sql.Rows) int64 {
 }
 
 func ScanRows(objs any, sqlRows *sql.Rows) int64 {
-	return scanSqlRowsSlice(objs, sqlRows, nil)
+	return scanSqlRowsList(objs, sqlRows)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 在修改数据库记录的情况下（delete | update），处理返回结果，同时改变缓存状态
-func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema) int64 {
+func parseSqlResult(conn *OrmDB, ret sql.Result, keyVal any, ts *orm.TableSchema) int64 {
 	ct, err := ret.RowsAffected()
 	panicIfSqlErr(err)
 
@@ -46,7 +49,7 @@ func parseSqlResult(ret sql.Result, keyVal any, conn *OrmDB, ts *orm.TableSchema
 func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 	ts := orm.Schema(obj)
 	if ts.CacheAll() == false {
-		return queryByPrimary(conn, ts, obj, id)
+		return queryByPrimary(conn, obj, id, ts)
 	}
 
 	key := ts.CacheLineKey(conn.Attrs.DbName, id)
@@ -59,7 +62,7 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 		// Note: 缓存解析失败啥也不管，将再次查询解析并缓存，此时会覆盖旧缓存数据
 	}
 
-	ct := queryByPrimary(conn, ts, obj, id)
+	ct := queryByPrimary(conn, obj, id, ts)
 	if ct > 0 {
 		// 先查询缓存删除标记，如果存在标记本次不设置缓存，而且删除标记
 		keyDel := key + cacheDelFlagSuffix
@@ -73,13 +76,79 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 }
 
 // 通过主键查询表记录，同时绑定到对象
-func queryByPrimary(conn *OrmDB, ts *orm.TableSchema, obj any, id any) int64 {
+func queryByPrimary(conn *OrmDB, obj any, id any, ts *orm.TableSchema) int64 {
 	sqlRows := conn.QuerySql(selectSqlOfPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
 	return scanSqlRowsOne(obj, sqlRows, ts)
 }
 
+// 返回 count , total
+func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.TableSchema) (ct int64, tt int64) {
+	// 1. 需要缓存
+	if pet.CacheExpireS > 0 {
+		rds := (*conn.rdsNodes)[0]
+		pet.Args = formatArgs(pet.Args)
+		pet.cacheKey = ts.CacheSqlKey(realSql(sql, pet.Args...))
+
+		// 如果有缓存，直接取缓存并解析
+		if cacheStr, err := rds.Get(pet.cacheKey); err == nil && cacheStr != "" {
+			// A. 直接返回GSON字符串
+			if pet.GsonNeed {
+				pet.GsonVal = cacheStr
+				if pet.GsonOnly {
+					return 1, 0 // 不做验证，直接返回缓存中的字符串
+				}
+			}
+
+			// B. GSON字符串解析成对象
+			ret := jde.DecodeGsonRowsFromString(pet.Dest, cacheStr)
+			panicIfSqlErr(ret.Err)
+			return ret.Ct, ret.Tt
+		}
+	}
+
+	// 2. 执行SQL查询，必要时设置缓存
+	// 先查total, 此条件下一共多少条
+	if sqlCount != "" {
+		sqlRowsTt := conn.QuerySql(sqlCount, pet.Args...)
+		defer CloseSqlRows(sqlRowsTt)
+		scanSqlRowsOne(&tt, sqlRowsTt, ts)
+		if tt <= 0 {
+			return 0, 0
+		}
+	}
+
+	// 需要 GsonRows 对象
+	var grs *gson.GsonRows
+	if pet.GsonNeed || pet.CacheExpireS > 0 {
+		grs = new(gson.GsonRows)
+	}
+
+	sqlRows := conn.QuerySql(sql, pet.Args...)
+	defer CloseSqlRows(sqlRows)
+	ct = scanSqlRowsListSuper(pet.Dest, sqlRows, grs, pet.GsonOnly)
+
+	var err error
+	if pet.GsonNeed {
+		pet.GsonVal, err = jde.EncodeToString(grs)
+		panicIfSqlErr(err)
+	}
+	if ct > 0 && pet.CacheExpireS > 0 {
+		cacheStr := new(any)
+		if pet.GsonNeed {
+			*cacheStr = pet.Dest
+		} else {
+			*cacheStr, err = jsonx.Marshal(grs)
+			panicIfSqlErr(err)
+		}
+		rds := (*conn.rdsNodes)[0]
+		_, _ = rds.Set(pet.cacheKey, *cacheStr, time.Duration(pet.CacheExpireS)*time.Second)
+	}
+	return ct, tt
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 解析单条记录
 func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	if !sqlRows.Next() {
 		panicIfSqlErr(sqlRows.Err())
@@ -87,8 +156,10 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	}
 
 	dstVal := reflect.Indirect(reflect.ValueOf(obj))
-	dstKind := dstVal.Type().Kind()
-	// NOTE: 当前只支持两种情况
+	dstType := dstVal.Type()
+	dstKind := dstType.Kind()
+
+	// NOTE: 当前绑定对象支持三种情况
 	// 1. 目标值是结构体类型，只取第一行数据
 	if dstKind == reflect.Struct {
 		if ts == nil {
@@ -96,29 +167,35 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		}
 
 		dbColumns, _ := sqlRows.Columns()         // 查询返回的结果字段
-		valuesAddr := make([]any, len(dbColumns)) // 目标值地址
+		scanValues := make([]any, len(dbColumns)) // 目标值地址
 
-		// 每一个db-column都应该有对应的变量接收值
+		// Note: 每一个db-column都应该有对应的变量接收值
 		for cIdx := range dbColumns {
-			idx := ts.ColumnIndex(dbColumns[cIdx])
-			if idx >= 0 {
+			fIdx := ts.ColumnIndex(dbColumns[cIdx]) // 查询 db-column 对应struct中字段的索引
+			if fIdx >= 0 {
 				// TODO：: 这里可以用内存偏移量直接定位字段变量地址。避免使用反射，提高性能
-				valuesAddr[cIdx] = ts.AddrByIndex(&dstVal, int8(idx))
+				scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
 			} else {
-				// 这个值会被丢弃，所以用一个共享的占位变量即可
-				valuesAddr[cIdx] = sharedValueAddr
+				scanValues[cIdx] = sharedAnyValue // 这个值会被丢弃，所以用一个共享的占位变量即可
 			}
 		}
-		panicIfSqlErr(sqlRows.Scan(valuesAddr...))
+		panicIfSqlErr(sqlRows.Scan(scanValues...))
 		return 1
 	}
 
-	// 2. 目标值是基础值类型，只取第一行第一列值
+	// 2. 如果是 KV 类型呢？
+	if dstKind == reflect.Map {
+		typName := dstType.Name()
+		if typName == "cst.KV" || typName == "KV" {
+			// do kv bind
+		}
+	}
+
+	// 3. 目标值是基础值类型，只取第一行第一列值
 	switch dstKind {
-	case reflect.Bool, reflect.String,
+	case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
 		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64,
-		reflect.Float32, reflect.Float64:
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
 		if dstVal.CanSet() {
 			panicIfSqlErr(sqlRows.Scan(dstVal.Addr().Interface()))
 		} else {
@@ -130,66 +207,68 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	return 1
 }
 
-// 解析查询到的数据记录
-// TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 slice 又如何处理呢？
-func scanSqlRowsSlice(objs any, sqlRows *sql.Rows, gr *gsonResult) int64 {
+func scanSqlRowsList(objs any, sqlRows *sql.Rows) int64 {
+	return scanSqlRowsListSuper(objs, sqlRows, nil, false)
+}
+
+// 解析多条记录
+// TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 list 又如何处理呢？
+func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, dropBind bool) int64 {
 	ts, sliceType, recordType, isPtr, isKV := checkDestType(objs)
 
+	// msColumns := ts.ColumnsKV()
+	var tpRows []reflect.Value
 	dbColumns, _ := sqlRows.Columns()
-	//msColumns := ts.ColumnsKV()
-
 	clsLen := len(dbColumns)
-	valuesAddr := make([]any, clsLen)
-	var tpRecords []reflect.Value
+	scanValues := make([]any, clsLen)
 
 	// 一般来说，我们的分页大小在25左右，即使要扩容，扩容一次到50也差不多了
-	if gr != nil {
-		gr.Cls = dbColumns
-		gr.Rows = make([][]any, 0, 25)
-		if gr.onlyGson != true {
-			tpRecords = make([]reflect.Value, 0, 25)
+	if grs != nil {
+		grs.Cls = dbColumns
+		grs.Rows = make([][]any, 0, 25)
+		if dropBind == false {
+			tpRows = make([]reflect.Value, 0, 25)
 		}
 	}
 
-	// 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
+	// A. 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
 	if isKV {
 		clsType, _ := sqlRows.ColumnTypes()
 		for i := 0; i < clsLen; i++ {
 			typ := clsType[i].ScanType()
+			// 查询结果绝大部分都是sql.RawBytes，直接解析成 string 类型即可
 			if typ.String() == "sql.RawBytes" {
-				valuesAddr[i] = new(string)
+				scanValues[i] = new(string)
 			} else {
-				valuesAddr[i] = new(any)
+				scanValues[i] = new(any)
 			}
 		}
 
 		for sqlRows.Next() {
-			panicIfSqlErr(sqlRows.Scan(valuesAddr...))
-
-			if gr != nil {
-				values := make([]any, len(valuesAddr))
-				copy(values, valuesAddr)
-				gr.Rows = append(gr.Rows, values)
-
-				if gr.onlyGson == true {
-					continue
-				}
+			panicIfSqlErr(sqlRows.Scan(scanValues...))
+			if grs != nil {
+				rowValues := make([]any, len(scanValues))
+				copy(rowValues, scanValues)
+				grs.Rows = append(grs.Rows, rowValues)
+			}
+			if dropBind == true {
+				continue
 			}
 
 			// 每条记录就是一个类JSON的 KV 对象
-			record := make(map[string]any, clsLen)
+			kv := make(map[string]any, clsLen)
 			for i := 0; i < clsLen; i++ {
-				record[dbColumns[i]] = reflect.ValueOf(valuesAddr[i]).Elem().Interface()
+				kv[dbColumns[i]] = reflect.ValueOf(scanValues[i]).Elem().Interface()
 			}
-			tpRecords = append(tpRecords, reflect.ValueOf(record))
+			tpRows = append(tpRows, reflect.ValueOf(kv))
 		}
 	} else {
+		// B. 要么就是某个struct类型
 		clsPos := make([]int8, clsLen)
 		for i := 0; i < clsLen; i++ {
 			clsPos[i] = int8(ts.ColumnIndex(dbColumns[i]))
-			//clsPos[i] = idx
 			if clsPos[i] < 0 {
-				valuesAddr[i] = new(any)
+				scanValues[i] = sharedAnyValue // 这一列的值会被丢弃，所以用一个共享的占位变量即可
 			}
 		}
 
@@ -199,40 +278,37 @@ func scanSqlRowsSlice(objs any, sqlRows *sql.Rows, gr *gsonResult) int64 {
 
 			for i := 0; i < clsLen; i++ {
 				if clsPos[i] >= 0 {
-					valuesAddr[i] = ts.AddrByIndex(&recordVal, clsPos[i])
+					scanValues[i] = ts.AddrByIndex(&recordVal, clsPos[i])
 				}
 			}
 
-			panicIfSqlErr(sqlRows.Scan(valuesAddr...))
-
-			if gr != nil {
-				values := make([]any, len(valuesAddr))
-				copy(values, valuesAddr)
-				gr.Rows = append(gr.Rows, values)
-
-				if gr.onlyGson == true {
-					continue
-				}
+			panicIfSqlErr(sqlRows.Scan(scanValues...))
+			if grs != nil {
+				rowValues := make([]any, len(scanValues))
+				copy(rowValues, scanValues)
+				grs.Rows = append(grs.Rows, rowValues)
+			}
+			if dropBind == true {
+				continue
 			}
 
 			if isPtr {
-				tpRecords = append(tpRecords, recordPtr)
+				tpRows = append(tpRows, recordPtr)
 			} else {
-				tpRecords = append(tpRecords, recordVal)
+				tpRows = append(tpRows, recordVal)
 			}
 		}
 	}
 
-	if gr != nil {
-		gr.Ct = int64(len(gr.Rows))
-
-		if gr.onlyGson == true {
-			return gr.Ct
-		}
+	if grs != nil {
+		grs.Ct = int64(len(grs.Rows))
+	}
+	if dropBind == true {
+		return grs.Ct
 	}
 
-	records := reflect.MakeSlice(sliceType, 0, len(tpRecords))
-	records = reflect.Append(records, tpRecords...)
+	records := reflect.MakeSlice(sliceType, 0, len(tpRows))
+	records = reflect.Append(records, tpRows...)
 	reflect.ValueOf(objs).Elem().Set(records)
-	return int64(len(tpRecords))
+	return int64(len(tpRows))
 }

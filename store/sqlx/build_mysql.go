@@ -122,7 +122,6 @@ func updateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...strin
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
-
 func selectSqlOfPrimary(ts *orm.TableSchema) string {
 	return ts.SelectSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
@@ -192,17 +191,19 @@ func fillPet(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
 	return pet
 }
 
-func selectSqlOfPet(ts *orm.TableSchema, pet *SelectPet) string {
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.Limit, pet.Offset)
+func selectSqlByPet(ts *orm.TableSchema, pet *SelectPet) string {
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
+		pet.orderByT, pet.Limit, pet.Offset)
 }
 
-func selectCountSqlForPet(ts *orm.TableSchema, pet *SelectPet) string {
+func selectCountSqlByPet(ts *orm.TableSchema, pet *SelectPet) string {
 	if pet.GroupBy == "" {
 		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
 	}
 	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
-func selectPagingSqlForPet(ts *orm.TableSchema, pet *SelectPet) string {
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT, pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
+func selectPagingSqlByPet(ts *orm.TableSchema, pet *SelectPet) string {
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
+		pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }

@@ -227,7 +227,7 @@ func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 }
 
 func (lite *LiteGroup) flushTime(kvs cst.KV) {
-	kvs[stateFieldTime] = time.Now().Format(cst.TimeFmtSaveRFC3339)
+	kvs[stateFieldTime] = time.Now().Format(cst.TimeFmtRFC3339)
 
 	jsonStr, _ := jsonx.Marshal(kvs)
 	_, _ = lite.rds.Set(lite.key, jsonStr, liteStoreRunFlagExpireTTL)

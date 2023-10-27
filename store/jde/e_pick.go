@@ -211,7 +211,7 @@ func encBool(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 func encTime(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	tp := *bf
 	tp = append(tp, '"')
-	tp = append(tp, (*time.Time)(ptr).Format(cst.TimeFmtSaveRFC3339)...)
+	tp = append(tp, (*time.Time)(ptr).Format(cst.TimeFmtRFC3339)...)
 	*bf = append(tp, "\","...)
 }
 
