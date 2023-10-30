@@ -131,12 +131,16 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			fa.ScanAddr = fa.intScanner
 		case reflect.Int8:
 			fa.KVBinder = setInt8
+			fa.ScanAddr = fa.int8Scanner
 		case reflect.Int16:
 			fa.KVBinder = setInt16
+			fa.ScanAddr = fa.int16Scanner
 		case reflect.Int32:
 			fa.KVBinder = setInt32
+			fa.ScanAddr = fa.int32Scanner
 		case reflect.Int64:
 			fa.KVBinder = setInt64
+			fa.ScanAddr = fa.int64Scanner
 
 		case reflect.Uint:
 			fa.KVBinder = setUint
@@ -156,10 +160,17 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 
 		case reflect.String:
 			fa.KVBinder = setString
+			fa.ScanAddr = fa.stringScanner
 		case reflect.Bool:
 			fa.KVBinder = setBool
 		case reflect.Interface:
 			fa.KVBinder = setAny
+
+		case reflect.Struct:
+			if fa.Type.String() == "time.Time" {
+				//fa.KVBinder = setTime
+				fa.ScanAddr = fa.timeScanner
+			}
 
 			//case reflect.Pointer:
 			//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:

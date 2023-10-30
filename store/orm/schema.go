@@ -170,9 +170,10 @@ func fetchSchema(typ reflect.Type) *TableSchema {
 	priKeyName := ss.FieldsAttr[ts.primaryIndex].RefField.Name
 	// 行记录缓存 Key format
 	mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + priKeyName + "#%v"
-	// 默认 行记录 缓存 1 小时
-	mdAttrs.ExpireS = 3600
-	mdAttrs.CacheAll = true
+	// 默认 行记录 缓存 3600 second
+	if mdAttrs.CacheAll == true && mdAttrs.ExpireS <= 0 {
+		mdAttrs.ExpireS = 3600
+	}
 
 	ts.tAttrs = *mdAttrs
 

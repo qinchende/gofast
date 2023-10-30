@@ -2,6 +2,7 @@ package sqlx
 
 import (
 	"database/sql"
+	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/store/gson"
@@ -9,6 +10,7 @@ import (
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"time"
+	"unsafe"
 )
 
 func CloseSqlRows(rows *sql.Rows) {
@@ -167,23 +169,24 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		}
 
 		dbColumns, _ := sqlRows.Columns() // 查询返回的结果字段
-		//dbcTypes, _ := sqlRows.ColumnTypes()      // 返回结果字段类型
+		// dbcTypes, _ := sqlRows.ColumnTypes()      // 返回结果字段类型
 		scanValues := make([]any, len(dbColumns)) // 目标值地址
-		//af := (*rt.AFace)(unsafe.Pointer(&obj))
+		objPtr := (*rt.AFace)(unsafe.Pointer(&obj)).DataPtr
 
 		// Note: 每一个db-column都应该有对应的变量接收值
 		for cIdx := range dbColumns {
 			fIdx := ts.ColumnIndex(dbColumns[cIdx]) // 查询 db-column 对应struct中字段的索引
-
-			//typ := dbcTypes[cIdx]
-			//if typ.ScanType().Kind() == ts.SS.FieldsAttr[fIdx].Kind {
-			//
-			//}
+			// typ := dbcTypes[cIdx]
+			// if typ.ScanType().Kind() == ts.SS.FieldsAttr[fIdx].Kind {
+			// }
 
 			if fIdx >= 0 {
-				// TODO：: 这里可以用内存偏移量直接定位字段变量地址。避免使用反射，提高性能
-				//scanValues[cIdx] = ts.SS.FieldsAttr[fIdx].ScanAddr(af.DataPtr) //ts.AddrByIndex(&dstVal, int8(fIdx))
-				scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
+				scanner := ts.SS.FieldsAttr[fIdx].ScanAddr
+				if scanner != nil {
+					scanValues[cIdx] = scanner(objPtr)
+				} else {
+					// scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
+				}
 			} else {
 				scanValues[cIdx] = sharedAnyValue // 这个值会被丢弃，所以用一个共享的占位变量即可
 			}
@@ -191,6 +194,29 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		panicIfSqlErr(sqlRows.Scan(scanValues...))
 		return 1
 	}
+
+	//// older
+	//if dstKind == reflect.Struct {
+	//	if ts == nil {
+	//		ts = orm.SchemaByType(dstType)
+	//	}
+	//
+	//	dbColumns, _ := sqlRows.Columns()         // 查询返回的结果字段
+	//	scanValues := make([]any, len(dbColumns)) // 目标值地址
+	//
+	//	// Note: 每一个db-column都应该有对应的变量接收值
+	//	for cIdx := range dbColumns {
+	//		fIdx := ts.ColumnIndex(dbColumns[cIdx]) // 查询 db-column 对应struct中字段的索引
+	//		if fIdx >= 0 {
+	//			// TODO：: 这里可以用内存偏移量直接定位字段变量地址。避免使用反射，提高性能
+	//			scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
+	//		} else {
+	//			scanValues[cIdx] = sharedAnyValue // 这个值会被丢弃，所以用一个共享的占位变量即可
+	//		}
+	//	}
+	//	panicIfSqlErr(sqlRows.Scan(scanValues...))
+	//	return 1
+	//}
 
 	// 2. 如果是 KV 类型呢？
 	if dstKind == reflect.Map {
