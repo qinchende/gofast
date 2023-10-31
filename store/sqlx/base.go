@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/qinchende/gofast/connx/redis"
+	"github.com/qinchende/gofast/store/dts"
 	"time"
 )
 
@@ -19,7 +20,7 @@ const (
 )
 
 var (
-	sharedAnyValue = new(any)
+	sharedAnyValue = new(dts.SqlSkip)
 )
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
