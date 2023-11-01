@@ -42,6 +42,9 @@ func BindBaseValueAsConfig(kd reflect.Kind, itPtr unsafe.Pointer, itVal any) {
 		setBool(itPtr, itVal)
 	case reflect.Interface:
 		setAny(itPtr, itVal)
+
+		//case reflect.Pointer:
+		//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 	}
 }
 
@@ -208,4 +211,8 @@ func setBool(p unsafe.Pointer, val any) {
 
 func setAny(p unsafe.Pointer, val any) {
 	BindAny(p, val)
+}
+
+func setTime(p unsafe.Pointer, val any) {
+
 }

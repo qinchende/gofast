@@ -58,7 +58,7 @@ type (
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
 
 		KVBinder func(fPtr unsafe.Pointer, v any) // 绑定函数
-		ScanAddr func(sPtr unsafe.Pointer) any
+		SqlValue func(sPtr unsafe.Pointer) any
 	}
 
 	fieldOptions struct {
@@ -128,50 +128,58 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 		switch fa.Kind {
 		case reflect.Int:
 			fa.KVBinder = setInt
-			fa.ScanAddr = fa.intScanner
+			fa.SqlValue = fa.intValue
 		case reflect.Int8:
 			fa.KVBinder = setInt8
-			fa.ScanAddr = fa.int8Scanner
+			fa.SqlValue = fa.int8Value
 		case reflect.Int16:
 			fa.KVBinder = setInt16
-			fa.ScanAddr = fa.int16Scanner
+			fa.SqlValue = fa.int16Value
 		case reflect.Int32:
 			fa.KVBinder = setInt32
-			fa.ScanAddr = fa.int32Scanner
+			fa.SqlValue = fa.int32Value
 		case reflect.Int64:
 			fa.KVBinder = setInt64
-			fa.ScanAddr = fa.int64Scanner
+			fa.SqlValue = fa.int64Value
 
 		case reflect.Uint:
 			fa.KVBinder = setUint
+			fa.SqlValue = fa.uintValue
 		case reflect.Uint8:
 			fa.KVBinder = setUint8
+			fa.SqlValue = fa.uint8Value
 		case reflect.Uint16:
 			fa.KVBinder = setUint16
+			fa.SqlValue = fa.uint16Value
 		case reflect.Uint32:
 			fa.KVBinder = setUint32
+			fa.SqlValue = fa.uint32Value
 		case reflect.Uint64:
 			fa.KVBinder = setUint64
+			fa.SqlValue = fa.uint64Value
 
 		case reflect.Float32:
 			fa.KVBinder = setFloat32
+			fa.SqlValue = fa.float32Value
 		case reflect.Float64:
 			fa.KVBinder = setFloat64
+			fa.SqlValue = fa.float64Value
 
 		case reflect.String:
 			fa.KVBinder = setString
-			fa.ScanAddr = fa.stringScanner
+			fa.SqlValue = fa.stringValue
 		case reflect.Bool:
 			fa.KVBinder = setBool
+			fa.SqlValue = fa.boolValue
 		case reflect.Interface:
 			fa.KVBinder = setAny
+			fa.SqlValue = fa.anyValue
 
 		case reflect.Struct:
 			if fa.Type.String() == "time.Time" {
-				//fa.KVBinder = setTime
-				fa.ScanAddr = fa.timeScanner
+				fa.KVBinder = setTime
+				fa.SqlValue = fa.timeValue
 			}
-
 			//case reflect.Pointer:
 			//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 		}
