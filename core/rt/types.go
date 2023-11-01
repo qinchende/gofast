@@ -18,19 +18,20 @@ type (
 
 	TypeAgent struct{}
 
-	// placeholder interface (to get memory value)
+	// 0. placeholder interface (to get memory value)
+	// 为了得到 interface 变量内存对应的两个字段值
 	AFace struct {
 		TypePtr *TypeAgent
 		DataPtr unsafe.Pointer
 	}
 
-	// empty interface (has no function)
+	// 1. empty interface (has no function)
 	EFace struct {
 		TypePtr *GoType
 		DataPtr unsafe.Pointer
 	}
 
-	// typed interface (define some function)
+	// 2. typed interface (define some function)
 	IFace struct {
 		ItabPtr *GoItab
 		DataPtr unsafe.Pointer
