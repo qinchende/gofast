@@ -2,9 +2,11 @@ package sqlx
 
 import (
 	"database/sql"
+	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"
 	"github.com/qinchende/gofast/store/orm"
@@ -151,26 +153,34 @@ func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.Table
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析单条记录
+// Return:
+// 1. int64 返回解析到的记录数。只可能是 0 或者 1
 func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	if !sqlRows.Next() {
 		panicIfSqlErr(sqlRows.Err())
-		return 0
 	}
 
-	dstVal := reflect.Indirect(reflect.ValueOf(obj))
+	dstVal := reflect.ValueOf(obj)
+	if dstVal.Kind() != reflect.Pointer {
+		cst.PanicString("Dest must be pointer value.")
+	}
+	dstVal = reflect.Indirect(dstVal)
+	if !dstVal.IsValid() {
+		cst.PanicString("Invalid value")
+	}
 	dstType := dstVal.Type()
 	dstKind := dstType.Kind()
+	destPtr := (*rt.AFace)(unsafe.Pointer(&obj)).DataPtr
 
 	// NOTE: 当前绑定对象支持三种情况
 	// 1. 目标值是结构体类型，只取第一行数据
-	if dstKind == reflect.Struct {
+	if dstKind == reflect.Struct && dstType.String() != "time.Time" {
 		if ts == nil {
 			ts = orm.SchemaByType(dstType)
 		}
 
 		dbColumns, _ := sqlRows.Columns()         // 数据库执行返回字段
 		scanValues := make([]any, len(dbColumns)) // 目标值地址
-		objPtr := (*rt.AFace)(unsafe.Pointer(&obj)).DataPtr
 
 		// Note: 每一个db-column都应该有对应的变量接收值
 		for cIdx := range dbColumns {
@@ -178,7 +188,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 			if fIdx >= 0 {
 				scanner := ts.SS.FieldsAttr[fIdx].SqlValue
 				if scanner != nil {
-					scanValues[cIdx] = scanner(objPtr)
+					scanValues[cIdx] = scanner(destPtr)
 				} else {
 					scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
 				}
@@ -190,7 +200,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		return 1
 	}
 
-	//// older
+	//// older +++ modify by cd.net on 20231103
 	//if dstKind == reflect.Struct {
 	//	if ts == nil {
 	//		ts = orm.SchemaByType(dstType)
@@ -212,24 +222,82 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	//	return 1
 	//}
 
-	// 2. 如果是 KV 类型呢？
+	// 2. 如果是 KV 类型呢，即目标值只返回 hash 即可
 	if dstKind == reflect.Map {
-		typName := dstType.Name()
-		if typName == "cst.KV" || typName == "KV" {
-			// todo: do kv bind
+		// 只支持这两种map变量
+		typeStr := dstType.String()
+		if typeStr != "cst.KV" {
+			cst.PanicString(fmt.Sprintf("Unsupported map type of %s.", typeStr))
 		}
+
+		// todo: do kv bind
+		dbColumns, _ := sqlRows.Columns()         // 数据库执行返回字段
+		scanValues := make([]any, len(dbColumns)) // 目标值地址
+		kvs := make(cst.KV, len(dbColumns))
+
+		// 根据结果类型做适当的转换
+		clsTypes, _ := sqlRows.ColumnTypes()
+		for i := range dbColumns {
+			typ := clsTypes[i].ScanType()
+			if typ.String() == "sql.RawBytes" {
+				scanValues[i] = new(string)
+			} else {
+				scanValues[i] = new(any)
+			}
+			kvs[dbColumns[i]] = scanValues[i]
+		}
+		panicIfSqlErr(sqlRows.Scan(scanValues...))
+		dstVal.Set(reflect.ValueOf(kvs))
+		return 1
 	}
 
 	// 3. 目标值是基础值类型，只取第一行第一列值
 	switch dstKind {
-	case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		if dstVal.CanSet() {
-			panicIfSqlErr(sqlRows.Scan(dstVal.Addr().Interface()))
-		} else {
-			cst.PanicString("Variable can't settable.")
-		}
+	case reflect.Int:
+		panicIfSqlErr(sqlRows.Scan(dts.IntValue(destPtr)))
+	case reflect.Int8:
+		panicIfSqlErr(sqlRows.Scan(dts.Int8Value(destPtr)))
+	case reflect.Int16:
+		panicIfSqlErr(sqlRows.Scan(dts.Int16Value(destPtr)))
+	case reflect.Int32:
+		panicIfSqlErr(sqlRows.Scan(dts.Int32Value(destPtr)))
+	case reflect.Int64:
+		panicIfSqlErr(sqlRows.Scan(dts.Int64Value(destPtr)))
+
+	case reflect.Uint:
+		panicIfSqlErr(sqlRows.Scan(dts.UintValue(destPtr)))
+	case reflect.Uint8:
+		panicIfSqlErr(sqlRows.Scan(dts.Uint8Value(destPtr)))
+	case reflect.Uint16:
+		panicIfSqlErr(sqlRows.Scan(dts.Uint16Value(destPtr)))
+	case reflect.Uint32:
+		panicIfSqlErr(sqlRows.Scan(dts.Uint32Value(destPtr)))
+	case reflect.Uint64:
+		panicIfSqlErr(sqlRows.Scan(dts.Uint64Value(destPtr)))
+
+	case reflect.Float32:
+		panicIfSqlErr(sqlRows.Scan(dts.Float32Value(destPtr)))
+	case reflect.Float64:
+		panicIfSqlErr(sqlRows.Scan(dts.Float64Value(destPtr)))
+
+	case reflect.Bool:
+		panicIfSqlErr(sqlRows.Scan(dts.BoolValue(destPtr)))
+	case reflect.String:
+		panicIfSqlErr(sqlRows.Scan(dts.StringValue(destPtr)))
+	case reflect.Struct:
+		// 此时只可能是time.Time -> dstType.String() == "time.Time"
+		panicIfSqlErr(sqlRows.Scan(dts.TimeValue(destPtr)))
+	case reflect.Interface:
+		panicIfSqlErr(sqlRows.Scan(dts.AnyValue(destPtr)))
+
+	//case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
+	//	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+	//	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+	//	if dstVal.CanSet() {
+	//		panicIfSqlErr(sqlRows.Scan(dstVal.Addr().Interface()))
+	//	} else {
+	//		cst.PanicString("Variable can't settable.")
+	//	}
 	default:
 		cst.PanicString("Unsupported unmarshal type.")
 	}
@@ -242,6 +310,8 @@ func scanSqlRowsList(objs any, sqlRows *sql.Rows) int64 {
 
 // 解析多条记录
 // TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 list 又如何处理呢？
+// Return:
+// 1. int64 返回解析到的记录数 >= 0
 func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, dropBind bool) int64 {
 	ts, sliceType, recordType, isPtr, isKV := checkDestType(objs)
 

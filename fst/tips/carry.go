@@ -4,7 +4,7 @@ package tips
 
 import (
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/store/jde"
 	"reflect"
 )
 
@@ -57,7 +57,7 @@ func (it *CarryItem) JSON() any {
 }
 
 func (it *CarryItem) MarshalJSON() ([]byte, error) {
-	return jsonx.Marshal(it.JSON())
+	return jde.EncodeToBytes(it.JSON())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -122,5 +122,5 @@ func (list CarryList) JSON() any {
 }
 
 func (list CarryList) MarshalJSON() ([]byte, error) {
-	return jsonx.Marshal(list.JSON())
+	return jde.EncodeToBytes(list.JSON())
 }
