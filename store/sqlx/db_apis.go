@@ -79,20 +79,17 @@ func (conn *OrmDB) QueryRow2(obj any, fields string, where string, args ...any) 
 }
 
 // 自定义SQL语句查询，得到一条记录。或者只取第一条记录的第一个字段值
-func (conn *OrmDB) QueryRowSql(obj any, sql string, args ...any) int64 {
+func (conn *OrmDB) QuerySqlRow(obj any, sql string, args ...any) int64 {
 	sqlRows := conn.QuerySql(sql, args...)
 	defer CloseSqlRows(sqlRows)
 	return scanSqlRowsOne(obj, sqlRows, nil)
 }
 
-// 查询数据库，只返回查询结果条数，而不去解析查询到的数据
-func (conn *OrmDB) QuerySqlCount(sql string, args ...any) (ct int64) {
+// 执行类似 select count(*) from table where xxx ，得到执行结果第一行第一个值，值必须可转成 int64
+func (conn *OrmDB) QuerySqlInt64(sql string, args ...any) (ct int64) {
 	sqlRows := conn.QuerySql(sql, args...)
 	defer CloseSqlRows(sqlRows)
-	for sqlRows.Next() {
-		ct++
-	}
-	panicIfSqlErr(sqlRows.Err())
+	scanSqlRowsOne(&ct, sqlRows, nil) // 不成功就会抛异常
 	return
 }
 

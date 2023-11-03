@@ -11,135 +11,165 @@ import (
 type (
 	SqlSkip int
 
-	sqlInt   int
-	sqlInt8  int8
-	sqlInt16 int16
-	sqlInt32 int32
-	sqlInt64 int64
+	SqlInt   int
+	SqlInt8  int8
+	SqlInt16 int16
+	SqlInt32 int32
+	SqlInt64 int64
 
-	sqlUint   uint
-	sqlUint8  uint8
-	sqlUint16 uint16
-	sqlUint32 uint32
-	sqlUint64 uint64
+	SqlUint   uint
+	SqlUint8  uint8
+	SqlUint16 uint16
+	SqlUint32 uint32
+	SqlUint64 uint64
 
-	sqlFloat32 float32
-	sqlFloat64 float64
+	SqlFloat32 float32
+	SqlFloat64 float64
+
+	SqlBool bool
 
 	//sqlString string
-	sqlBool   bool
-
 	//sqlAny  any
 	//sqlTime time.Time
 )
+
+// Note: 下面Scan方法中 src 参数是返回的字段数据，这个值的类型在 go-sql-driver/mysql 解析下只可能是：
+// nil | int64 | float32 | float64 | []byte | time.Time 类型
 
 func (val *SqlSkip) Scan(src any) error {
 	return nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (val *sqlInt) Scan(src any) error {
+func (val *SqlInt) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
-		*val = sqlInt(s)
+		*val = SqlInt(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type int", src, src)
 	}
 	return nil
 }
 
-func (val *sqlInt8) Scan(src any) error {
+func (val *SqlInt8) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
-		*val = sqlInt8(s)
+		*val = SqlInt8(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type int8", src, src)
 	}
 	return nil
 }
 
-func (val *sqlInt16) Scan(src any) error {
+func (val *SqlInt16) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
-		*val = sqlInt16(s)
+		*val = SqlInt16(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type int16", src, src)
 	}
 	return nil
 }
 
-func (val *sqlInt32) Scan(src any) error {
+func (val *SqlInt32) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
-		*val = sqlInt32(s)
+		*val = SqlInt32(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type int32", src, src)
 	}
 	return nil
 }
 
-func (val *sqlInt64) Scan(src any) error {
+func (val *SqlInt64) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
-		*val = sqlInt64(s)
-	}
-	return nil
-}
-
-// ++++++++++++++++
-
-func (val *sqlUint) Scan(src any) error {
-	switch s := src.(type) {
-	case int64:
-		*val = sqlUint(s)
-	}
-	return nil
-}
-
-func (val *sqlUint8) Scan(src any) error {
-	switch s := src.(type) {
-	case int64:
-		*val = sqlUint8(s)
-	}
-	return nil
-}
-
-func (val *sqlUint16) Scan(src any) error {
-	switch s := src.(type) {
-	case int64:
-		*val = sqlUint16(s)
-	}
-	return nil
-}
-
-func (val *sqlUint32) Scan(src any) error {
-	switch s := src.(type) {
-	case int64:
-		*val = sqlUint32(s)
-	}
-	return nil
-}
-
-func (val *sqlUint64) Scan(src any) error {
-	switch s := src.(type) {
-	case int64:
-		*val = sqlUint64(s)
+		*val = SqlInt64(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type int64", src, src)
 	}
 	return nil
 }
 
 // ++++++++++++++++
 
-func (val *sqlFloat32) Scan(src any) error {
+func (val *SqlUint) Scan(src any) error {
 	switch s := src.(type) {
+	case int64:
+		*val = SqlUint(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type uint", src, src)
+	}
+	return nil
+}
+
+func (val *SqlUint8) Scan(src any) error {
+	switch s := src.(type) {
+	case int64:
+		*val = SqlUint8(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type uint8", src, src)
+	}
+	return nil
+}
+
+func (val *SqlUint16) Scan(src any) error {
+	switch s := src.(type) {
+	case int64:
+		*val = SqlUint16(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type uint16", src, src)
+	}
+	return nil
+}
+
+func (val *SqlUint32) Scan(src any) error {
+	switch s := src.(type) {
+	case int64:
+		*val = SqlUint32(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type uint32", src, src)
+	}
+	return nil
+}
+
+func (val *SqlUint64) Scan(src any) error {
+	switch s := src.(type) {
+	case int64:
+		*val = SqlUint64(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type uint64", src, src)
+	}
+	return nil
+}
+
+// ++++++++++++++++
+
+func (val *SqlFloat32) Scan(src any) error {
+	switch s := src.(type) {
+	case float32:
+		*val = SqlFloat32(s)
 	case float64:
-		*val = sqlFloat32(s)
+		*val = SqlFloat32(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type float32", src, src)
 	}
 	return nil
 }
 
-func (val *sqlFloat64) Scan(src any) error {
+func (val *SqlFloat64) Scan(src any) error {
 	switch s := src.(type) {
+	case float32:
+		*val = SqlFloat64(s)
 	case float64:
-		*val = sqlFloat64(s)
+		*val = SqlFloat64(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type float64", src, src)
 	}
 	return nil
 }
 
 // ++++++++++++++++
-
 //func (val *sqlString) Scan(src any) error {
 //	switch s := src.(type) {
 //	case []byte:
@@ -148,7 +178,7 @@ func (val *sqlFloat64) Scan(src any) error {
 //	return nil
 //}
 
-func (val *sqlBool) Scan(src any) error {
+func (val *SqlBool) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
 		if s == 1 || s == 0 {
@@ -159,7 +189,7 @@ func (val *sqlBool) Scan(src any) error {
 	case []byte:
 		bv, err := strconv.ParseBool(lang.BTS(s))
 		if err == nil {
-			*val = sqlBool(bv)
+			*val = SqlBool(bv)
 		}
 		return err
 	default:
@@ -170,67 +200,137 @@ func (val *sqlBool) Scan(src any) error {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (fa *fieldAttr) intValue(oPtr unsafe.Pointer) any {
-	return (*sqlInt)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) int8Value(oPtr unsafe.Pointer) any {
-	return (*sqlInt8)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt8)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) int16Value(oPtr unsafe.Pointer) any {
-	return (*sqlInt16)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt16)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) int32Value(oPtr unsafe.Pointer) any {
-	return (*sqlInt32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) int64Value(oPtr unsafe.Pointer) any {
-	return (*sqlInt64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) uintValue(oPtr unsafe.Pointer) any {
-	return (*sqlUint)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) uint8Value(oPtr unsafe.Pointer) any {
-	return (*sqlUint8)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint8)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) uint16Value(oPtr unsafe.Pointer) any {
-	return (*sqlUint16)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint16)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) uint32Value(oPtr unsafe.Pointer) any {
-	return (*sqlUint32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) uint64Value(oPtr unsafe.Pointer) any {
-	return (*sqlUint64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) float32Value(oPtr unsafe.Pointer) any {
-	return (*sqlFloat32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlFloat32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) float64Value(oPtr unsafe.Pointer) any {
-	return (*sqlFloat64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlFloat64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 // ++++++++++++++
+func (fa *fieldAttr) boolValue(oPtr unsafe.Pointer) any {
+	return (*SqlBool)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+}
+
+// ++++++++++++++
+// Note: 获取字符串切片，无法共享底层字节切片。因为 db.conn 读写数据用到的Buffer可能会被复用，值会被覆盖。
 func (fa *fieldAttr) stringValue(oPtr unsafe.Pointer) any {
 	return (*string)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
-func (fa *fieldAttr) boolValue(oPtr unsafe.Pointer) any {
-	return (*sqlBool)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (fa *fieldAttr) anyValue(oPtr unsafe.Pointer) any {
 	return (*any)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
 }
 
 func (fa *fieldAttr) timeValue(oPtr unsafe.Pointer) any {
 	return (*time.Time)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+}
+
+// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+
+func IntValue(ptr unsafe.Pointer) any {
+	return (*SqlInt)(ptr)
+}
+
+func Int8Value(ptr unsafe.Pointer) any {
+	return (*SqlInt8)(ptr)
+}
+
+func Int16Value(ptr unsafe.Pointer) any {
+	return (*SqlInt16)(ptr)
+}
+
+func Int32Value(ptr unsafe.Pointer) any {
+	return (*SqlInt32)(ptr)
+}
+
+func Int64Value(ptr unsafe.Pointer) any {
+	return (*SqlInt64)(ptr)
+}
+
+func UintValue(ptr unsafe.Pointer) any {
+	return (*SqlUint)(ptr)
+}
+
+func Uint8Value(ptr unsafe.Pointer) any {
+	return (*SqlUint8)(ptr)
+}
+
+func Uint16Value(ptr unsafe.Pointer) any {
+	return (*SqlUint16)(ptr)
+}
+
+func Uint32Value(ptr unsafe.Pointer) any {
+	return (*SqlUint32)(ptr)
+}
+
+func Uint64Value(ptr unsafe.Pointer) any {
+	return (*SqlUint64)(ptr)
+}
+
+func Float32Value(ptr unsafe.Pointer) any {
+	return (*SqlFloat32)(ptr)
+}
+
+func Float64Value(ptr unsafe.Pointer) any {
+	return (*SqlFloat64)(ptr)
+}
+
+// ++++++++++++
+func BoolValue(ptr unsafe.Pointer) any {
+	return (*SqlBool)(ptr)
+}
+
+// ++++++++++++
+// Note: 获取字符串切片，无法共享底层字节切片。因为 db.conn 读写数据用到的Buffer可能会被复用，值会被覆盖。
+func StringValue(ptr unsafe.Pointer) any {
+	return (*string)(ptr)
+}
+
+func AnyValue(ptr unsafe.Pointer) any {
+	return (*any)(ptr)
+}
+
+func TimeValue(ptr unsafe.Pointer) any {
+	return (*time.Time)(ptr)
 }

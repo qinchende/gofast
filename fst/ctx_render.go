@@ -6,8 +6,8 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/render"
 	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 )
 
@@ -125,7 +125,7 @@ func (c *Context) AbortFai(code int, msg string, data any) {
 	if data != nil {
 		jsonData["data"] = data
 	}
-	bytes, _ := jsonx.Marshal(jsonData)
+	bytes, _ := jde.EncodeToBytes(jsonData)
 	c.AbortDirect(http.StatusOK, bytes)
 }
 

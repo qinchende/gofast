@@ -79,6 +79,21 @@ func startEncode(v any) (bs []byte, err error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (se *subEncode) getEncMeta(rfType reflect.Type, ptr unsafe.Pointer) {
+	// TODO: need fixed
+	for {
+		if rfType.Kind() == reflect.Pointer {
+			rfType = rfType.Elem()
+		} else {
+			break
+		}
+		if rfType.Kind() == reflect.Interface {
+			rfType = rfType.Elem()
+		}
+		if rfType.Kind() == reflect.Pointer {
+			ptr = (*rt.AFace)(ptr).DataPtr
+		}
+	}
+
 	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
 	if meta := cacheGetEncMeta(typAddr); meta != nil {
 		se.em = meta
