@@ -7,6 +7,9 @@ import (
 	"unsafe"
 )
 
+// Note: 这里是投机取巧了。不是所有的Map都通用，只是尽量解决常见 Map 的编码。
+// 这样避免了复杂的map反射操作，提高性能。
+
 func (se *subEncode) encMap() {
 	if se.em.isSuperKV {
 		se.encMapKV()
@@ -126,7 +129,12 @@ func (se *subEncode) encMapKV() {
 	tp := *se.bf
 
 	tp = append(tp, '{')
-	theMap := *(*map[string]any)(se.srcPtr)
+	// planA
+	// theMap := *(*map[string]any)(se.srcPtr)
+	// planB
+	var theMap map[string]any
+	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = se.srcPtr
+
 	for k, v := range theMap {
 		tp = append(tp, '"')
 		tp = append(tp, k...)
@@ -147,7 +155,10 @@ func encMapStrAny[TV any](bf *[]byte, ptr unsafe.Pointer, valTyp reflect.Type, v
 	tp := *bf
 
 	tp = append(tp, '{')
-	theMap := *(*map[string]TV)(ptr)
+	// theMap := *(*map[string]TV)(ptr)
+	var theMap map[string]TV
+	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = ptr
+
 	for k, v := range theMap {
 		// key
 		tp = append(tp, '"')
@@ -171,7 +182,10 @@ func encMapAnyAny[TK string | constraints.Integer, TV any](bf *[]byte, ptr unsaf
 	keyEnc encKeyFunc, valTyp reflect.Type, valEnc encValFunc) {
 
 	*bf = append(*bf, '{')
-	theMap := *(*map[TK]TV)(ptr)
+	// theMap := *(*map[TK]TV)(ptr)
+	var theMap map[TK]TV
+	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = ptr
+
 	for k, v := range theMap {
 		// key
 		*bf = append(*bf, '"')
