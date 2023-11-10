@@ -242,7 +242,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 			if typ.String() == "sql.RawBytes" {
 				scanValues[i] = new(string)
 			} else {
-				scanValues[i] = new(any)
+				scanValues[i] = &scanValues[i]
 			}
 			kvs[dbColumns[i]] = scanValues[i]
 		}

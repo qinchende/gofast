@@ -85,10 +85,9 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 			panic(errValueMustStruct)
 		}
 
-		typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&itemType)).DataPtr)
-		if dm = cacheGetMeta(typAddr); dm == nil {
+		if dm = cacheGetMeta(itemType); dm == nil {
 			dm = newDecodeMeta(itemType)
-			cacheSetMeta(typAddr, dm)
+			cacheSetMeta(itemType, dm)
 		}
 		cacheSetGsonDecMeta(af.TypePtr, dm)
 	}

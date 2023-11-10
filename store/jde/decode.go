@@ -210,12 +210,11 @@ func (sd *subDecode) resetShareDecode() {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // rfType 是 剥离 Pointer 之后的最终类型
 func (sd *subDecode) getDecMeta(rfType reflect.Type, ptr unsafe.Pointer) {
-	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
-	if meta := cacheGetMeta(typAddr); meta != nil {
+	if meta := cacheGetMeta(rfType); meta != nil {
 		sd.dm = meta
 	} else {
 		sd.dm = newDecodeMeta(rfType)
-		cacheSetMeta(typAddr, sd.dm)
+		cacheSetMeta(rfType, sd.dm)
 	}
 
 	if sd.dm.isSuperKV {

@@ -38,7 +38,7 @@ func (r JSON) WriteContentType(w http.ResponseWriter) {
 // WriteJSON marshals the given interface object and writes it with custom ContentType.
 func WriteJSON(w http.ResponseWriter, obj any) error {
 	setContentType(w, jsonContentType)
-	jsonBytes, err := jde.EncodeToBytes(&obj)
+	jsonBytes, err := jde.EncodeToBytes(obj)
 	if err != nil {
 		return err
 	}

@@ -45,10 +45,9 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 			panic(errValueMustStruct)
 		}
 
-		typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&objType)).DataPtr)
-		if dm = cacheGetMeta(typAddr); dm == nil {
+		if dm = cacheGetMeta(objType); dm == nil {
 			dm = newDecodeMeta(objType)
-			cacheSetMeta(typAddr, dm)
+			cacheSetMeta(objType, dm)
 		}
 		cacheSetGsonDecMeta(af.TypePtr, dm)
 	}

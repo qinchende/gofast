@@ -79,35 +79,28 @@ func startEncode(v any) (bs []byte, err error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (se *subEncode) getEncMeta(rfType reflect.Type, ptr unsafe.Pointer) {
-	// TODO: need fixed
-	for {
-		if rfType.Kind() == reflect.Pointer {
-			rfType = rfType.Elem()
-		} else {
-			break
-		}
-		if rfType.Kind() == reflect.Interface {
-			rfType = rfType.Elem()
-		}
-		if rfType.Kind() == reflect.Pointer {
-			ptr = (*rt.AFace)(ptr).DataPtr
+	// modify by cd.net on 20231109
+	// 最多只能剥掉一层指针
+	if rfType.Kind() == reflect.Pointer {
+		rfType = rfType.Elem()
+		// Note：有些类型本质其实是指针，但是reflect.Kind() != reflect.Pointer
+		// 比如：map | channel | func
+		// 此时需要统一变量 ptr 的含义
+		if rfType.Kind() == reflect.Map {
+			ptr = *(*unsafe.Pointer)(ptr)
 		}
 	}
 
-	typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&rfType)).DataPtr)
-	if meta := cacheGetEncMeta(typAddr); meta != nil {
+	if meta := cacheGetEncMeta(rfType); meta != nil {
 		se.em = meta
 	} else {
 		se.em = newEncodeMeta(rfType)
-		cacheSetEncMeta(typAddr, se.em)
+		cacheSetEncMeta(rfType, se.em)
 	}
 	se.srcPtr = ptr
 }
 
 func newEncodeMeta(rfType reflect.Type) *encMeta {
-	if rfType.Kind() == reflect.Pointer {
-		rfType = rfType.Elem()
-	}
 	em := encMeta{}
 
 	switch kd := rfType.Kind(); kd {
@@ -139,6 +132,7 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 	return &em
 }
 
+// 该类型中，项目值的类型解析
 func (em *encMeta) peelPtr(rfType reflect.Type) {
 	em.itemType = rfType.Elem()
 	em.itemKind = em.itemType.Kind()

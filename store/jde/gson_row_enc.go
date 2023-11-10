@@ -38,10 +38,9 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 			panic(errValueMustStruct)
 		}
 
-		typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&objType)).DataPtr)
-		if em = cacheGetEncMeta(typAddr); em == nil {
+		if em = cacheGetEncMeta(objType); em == nil {
 			em = newEncodeMeta(objType)
-			cacheSetEncMeta(typAddr, em)
+			cacheSetEncMeta(objType, em)
 		}
 		cacheSetGsonEncMeta(af.TypePtr, em)
 	}

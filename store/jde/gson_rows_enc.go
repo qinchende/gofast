@@ -62,10 +62,9 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 			panic(errValueMustStruct)
 		}
 
-		typAddr := (*rt.TypeAgent)((*rt.AFace)(unsafe.Pointer(&itemType)).DataPtr)
-		if em = cacheGetEncMeta(typAddr); em == nil {
+		if em = cacheGetEncMeta(itemType); em == nil {
 			em = newEncodeMeta(itemType)
-			cacheSetEncMeta(typAddr, em)
+			cacheSetEncMeta(itemType, em)
 		}
 		cacheSetGsonEncMeta(af.TypePtr, em)
 	}
