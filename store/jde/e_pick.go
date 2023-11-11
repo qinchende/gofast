@@ -218,7 +218,7 @@ func encTime(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	oldPtr := ptr
 
-	//ei := (*rt.AFace)(ptr)
+	// ei := (*rt.AFace)(ptr)
 	ptr = (*rt.AFace)(ptr).DataPtr
 	if ptr == nil {
 		*bf = append(*bf, "null,"...)
@@ -227,37 +227,40 @@ func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 
 	switch (*((*any)(oldPtr))).(type) {
 
-	case int:
+	case int, *int:
 		encInt[int](bf, ptr, nil)
-	case int8:
+	case int8, *int8:
 		encInt[int8](bf, ptr, nil)
-	case int16:
+	case int16, *int16:
 		encInt[int16](bf, ptr, nil)
-	case int32:
+	case int32, *int32:
 		encInt[int32](bf, ptr, nil)
-	case int64:
+	case int64, *int64:
 		encInt[int64](bf, ptr, nil)
 
-	case uint:
+	case uint, *uint:
 		encUint[uint](bf, ptr, nil)
-	case uint8:
+	case uint8, *uint8:
 		encUint[uint8](bf, ptr, nil)
-	case uint16:
+	case uint16, *uint16:
 		encUint[uint16](bf, ptr, nil)
-	case uint32:
+	case uint32, *uint32:
 		encUint[uint32](bf, ptr, nil)
-	case uint64:
+	case uint64, *uint64:
 		encUint[uint64](bf, ptr, nil)
 
-	case float32:
+	case float32, *float32:
 		encFloat32(bf, ptr, nil)
-	case float64:
+	case float64, *float64:
 		encFloat64(bf, ptr, nil)
 
-	case bool:
+	case bool, *bool:
 		encBool(bf, ptr, nil)
-	case string:
+	case string, *string:
 		encString(bf, ptr, nil)
+
+	case time.Time, *time.Time:
+		encTime(bf, ptr, nil)
 
 	default:
 		encMixItem(bf, ptr, reflect.TypeOf(*((*any)(oldPtr))))
