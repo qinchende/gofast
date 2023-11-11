@@ -104,8 +104,6 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 	em := encMeta{}
 
 	switch kd := rfType.Kind(); kd {
-	case reflect.Array, reflect.Slice:
-		em.initListMeta(rfType)
 	case reflect.Struct:
 		// GoFast Special type GsonRow
 		//if rfType.String() == gson.StrTypeOfGsonRow {
@@ -113,11 +111,16 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 		//	em.isGson = true
 		//	return
 		//}
+
 		// 暂时不支持这种情况独立出现
 		if rfType.String() == cst.StrTypeOfTime {
-			panic(errValueType)
+			em.itemKind = kd
+			em.bindPick()
+		} else {
+			em.initStructMeta(rfType)
 		}
-		em.initStructMeta(rfType)
+	case reflect.Array, reflect.Slice:
+		em.initListMeta(rfType)
 	case reflect.Map:
 		// Map type
 		em.initMapMeta(rfType)
@@ -126,7 +129,8 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 		em.initPointerMeta(rfType)
 	default:
 		// Others normal types
-		bindPick(kd, &em.itemEnc)
+		em.itemKind = kd
+		em.bindPick()
 	}
 
 	return &em
@@ -171,7 +175,7 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 		em.itemRawSize = int(em.itemType.Size())
 	}
 
-	bindPick(em.itemKind, &em.itemEnc)
+	em.bindPick()
 }
 
 // ++++++++++++++++++++++++++++++ Struct
@@ -197,60 +201,103 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 	// Note: map 中的 key 只支持几种特定类型
 	em.keyKind = rfType.Key().Kind()
 	em.keySize = uint32(rfType.Key().Size())
-	switch em.keyKind {
-	case reflect.String,
-		reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
-	default:
-		panic(errMapType)
-	}
-	bindMapKeyPick(em.keyKind, &em.keyEnc)
+	//switch em.keyKind {
+	//case reflect.String,
+	//	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+	//	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+	//default:
+	//	panic(errMapType)
+	//}
+	em.bindMapKeyPick()
 
 	// map 中的 value 可能是指针类型，需要拆包
 	em.peelPtr(rfType)
-	bindPick(em.itemKind, &em.itemEnc)
+	em.bindPick()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func bindPick(kind reflect.Kind, pick *encValFunc) {
-	switch kind {
+func (em *encMeta) bindPick() {
+	switch em.itemKind {
 	case reflect.Int:
-		*pick = encInt[int]
+		em.itemEnc = encInt[int]
 	case reflect.Int8:
-		*pick = encInt[int8]
+		em.itemEnc = encInt[int8]
 	case reflect.Int16:
-		*pick = encInt[int16]
+		em.itemEnc = encInt[int16]
 	case reflect.Int32:
-		*pick = encInt[int32]
+		em.itemEnc = encInt[int32]
 	case reflect.Int64:
-		*pick = encInt[int64]
+		em.itemEnc = encInt[int64]
 	case reflect.Uint:
-		*pick = encUint[uint]
+		em.itemEnc = encUint[uint]
 	case reflect.Uint8:
-		*pick = encUint[uint8]
+		em.itemEnc = encUint[uint8]
 	case reflect.Uint16:
-		*pick = encUint[uint16]
+		em.itemEnc = encUint[uint16]
 	case reflect.Uint32:
-		*pick = encUint[uint32]
+		em.itemEnc = encUint[uint32]
 	case reflect.Uint64:
-		*pick = encUint[uint64]
+		em.itemEnc = encUint[uint64]
 	case reflect.Float32:
-		*pick = encFloat32
+		em.itemEnc = encFloat32
 	case reflect.Float64:
-		*pick = encFloat64
+		em.itemEnc = encFloat64
 
 	case reflect.String:
-		*pick = encString
+		em.itemEnc = encString
 	case reflect.Bool:
-		*pick = encBool
+		em.itemEnc = encBool
 
 	case reflect.Interface:
-		*pick = encAny
+		em.itemEnc = encAny
 	//case reflect.Pointer:
-	//	*pick = encPointer
+	//	em.itemEnc = encPointer
 
-	case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
-		*pick = encMixItem
+	case reflect.Struct:
+		// 分情况，如果是时间类型，单独处理
+		if em.itemType.String() == cst.StrTypeOfTime {
+			em.itemEnc = encTime
+		} else {
+			em.itemEnc = encMixItem
+		}
+
+	case reflect.Map, reflect.Array, reflect.Slice:
+		em.itemEnc = encMixItem
+	default:
+		panic(errValueType)
+	}
+	return
+}
+
+// 编码map的Key值，当前只支持如下的Key值类型。
+func (em *encMeta) bindMapKeyPick() {
+	switch em.keyKind {
+	case reflect.Int:
+		em.keyEnc = encIntOnly[int]
+	case reflect.Int8:
+		em.keyEnc = encIntOnly[int8]
+	case reflect.Int16:
+		em.keyEnc = encIntOnly[int16]
+	case reflect.Int32:
+		em.keyEnc = encIntOnly[int32]
+	case reflect.Int64:
+		em.keyEnc = encIntOnly[int64]
+
+	case reflect.Uint:
+		em.keyEnc = encUintOnly[uint]
+	case reflect.Uint8:
+		em.keyEnc = encUintOnly[uint8]
+	case reflect.Uint16:
+		em.keyEnc = encUintOnly[uint16]
+	case reflect.Uint32:
+		em.keyEnc = encUintOnly[uint32]
+	case reflect.Uint64:
+		em.keyEnc = encUintOnly[uint64]
+	case reflect.Uintptr:
+		em.keyEnc = encUintOnly[uint64]
+
+	case reflect.String:
+		em.keyEnc = encStringOnly
 	default:
 		panic(errValueType)
 	}
@@ -318,38 +365,4 @@ nextField:
 		panic(errValueType)
 	}
 	goto nextField
-}
-
-func bindMapKeyPick(kind reflect.Kind, pick *encKeyFunc) {
-	switch kind {
-	case reflect.Int:
-		*pick = encIntOnly[int]
-	case reflect.Int8:
-		*pick = encIntOnly[int8]
-	case reflect.Int16:
-		*pick = encIntOnly[int16]
-	case reflect.Int32:
-		*pick = encIntOnly[int32]
-	case reflect.Int64:
-		*pick = encIntOnly[int64]
-
-	case reflect.Uint:
-		*pick = encUintOnly[uint]
-	case reflect.Uint8:
-		*pick = encUintOnly[uint8]
-	case reflect.Uint16:
-		*pick = encUintOnly[uint16]
-	case reflect.Uint32:
-		*pick = encUintOnly[uint32]
-	case reflect.Uint64:
-		*pick = encUintOnly[uint64]
-	case reflect.Uintptr:
-		*pick = encUintOnly[uint64]
-
-	case reflect.String:
-		*pick = encStringOnly
-	default:
-		panic(errValueType)
-	}
-	return
 }

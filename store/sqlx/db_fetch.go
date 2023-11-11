@@ -224,31 +224,41 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 
 	// 2. 如果是 KV 类型呢，即目标值只返回 hash 即可
 	if dstKind == reflect.Map {
-		// 只支持这两种map变量
-		typeStr := dstType.String()
-		if typeStr != "cst.KV" {
-			cst.PanicString(fmt.Sprintf("Unsupported map type of %s.", typeStr))
-		}
+		// 此时只支持 *cst.KV 类型值的传入
+		if kv, ok := obj.(*cst.KV); ok {
+			// todo: do kv bind
+			dbColumns, _ := sqlRows.Columns() // 数据库执行返回字段
+			size := len(dbColumns)
+			scanValues := make([]any, size) // 目标值地址
+			kvs := make(cst.KV, size)
 
-		// todo: do kv bind
-		dbColumns, _ := sqlRows.Columns()         // 数据库执行返回字段
-		scanValues := make([]any, len(dbColumns)) // 目标值地址
-		kvs := make(cst.KV, len(dbColumns))
-
-		// 根据结果类型做适当的转换
-		clsTypes, _ := sqlRows.ColumnTypes()
-		for i := range dbColumns {
-			typ := clsTypes[i].ScanType()
-			if typ.String() == "sql.RawBytes" {
-				scanValues[i] = new(string)
-			} else {
-				scanValues[i] = &scanValues[i]
+			// 根据结果类型做适当的转换
+			clsTypes, _ := sqlRows.ColumnTypes()
+			for i := range dbColumns {
+				typ := clsTypes[i].ScanType()
+				if typ.String() == "sql.RawBytes" {
+					scanValues[i] = (*string)(unsafe.Pointer(&scanValues[i]))
+				} else {
+					scanValues[i] = &scanValues[i]
+				}
+				kvs[dbColumns[i]] = scanValues[i]
 			}
-			kvs[dbColumns[i]] = scanValues[i]
+
+			panicIfSqlErr(sqlRows.Scan(scanValues...))
+
+			// Note：去掉多余的一层 interface{}，这样将来在编解码JSON等场景下要容易的多
+			for k, v := range kvs {
+				switch v.(type) {
+				case *any:
+					kvs[k] = *(v.(*any))
+				}
+			}
+
+			*kv = kvs
+			return 1
 		}
-		panicIfSqlErr(sqlRows.Scan(scanValues...))
-		dstVal.Set(reflect.ValueOf(kvs))
-		return 1
+
+		cst.PanicString(fmt.Sprintf("Unsupported map type of %s.", dstType))
 	}
 
 	// 3. 目标值是基础值类型，只取第一行第一列值
