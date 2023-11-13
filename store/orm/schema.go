@@ -48,6 +48,11 @@ func SchemaByType(typ reflect.Type) *TableSchema {
 	return fetchSchema(typ)
 }
 
+// 对传入的类型检查已经做过，直接取TableSchema即可
+func SchemaByTypeDirect(typ reflect.Type) *TableSchema {
+	return fetchSchema(typ)
+}
+
 // 结构体中属性的数据库字段名称合集
 func SchemaValues(obj any) (*TableSchema, []any) {
 	ms := Schema(obj)

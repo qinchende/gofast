@@ -85,7 +85,7 @@ func (se *subEncode) getEncMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 		rfType = rfType.Elem()
 		// Note：有些类型本质其实是指针，但是reflect.Kind() != reflect.Pointer
 		// 比如：map | channel | func
-		// 此时需要统一变量 ptr 的含义
+		// 此时需要统一变量值 ptr 指向的内存
 		if rfType.Kind() == reflect.Map {
 			ptr = *(*unsafe.Pointer)(ptr)
 		}
@@ -112,7 +112,7 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 		//	return
 		//}
 
-		// 暂时不支持这种情况独立出现
+		// time.Time 在Go中是一个系统级 struct 类型。变量占用24个字节
 		if rfType.String() == cst.StrTypeOfTime {
 			em.itemKind = kd
 			em.bindPick()
@@ -251,7 +251,7 @@ func (em *encMeta) bindPick() {
 	case reflect.Interface:
 		em.itemEnc = encAny
 	//case reflect.Pointer:
-	//	em.itemEnc = encPointer
+	//	em.itemEnc = encPointer // 此时不可能为reflect.Pointer 类型
 
 	case reflect.Struct:
 		// 分情况，如果是时间类型，单独处理
