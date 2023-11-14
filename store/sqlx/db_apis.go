@@ -111,7 +111,7 @@ func (conn *OrmDB) QueryRows2(objs any, fields string, where string, args ...any
 // 高级查询，可以自定义更多参数
 func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 	ts := orm.Schema(pet.Dest)
-	fillPet(ts, pet)
+	buildPet(ts, pet)
 
 	sql := pet.Sql
 	if sql == "" {
@@ -125,7 +125,7 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 // 分页版本，更方便用于数据查询管理
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 	ts := orm.Schema(pet.Dest)
-	fillPet(ts, pet)
+	buildPet(ts, pet)
 
 	sql := pet.Sql
 	if sql == "" {
@@ -145,7 +145,7 @@ func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
 	ts := orm.Schema(pet.Dest)
 
-	fillPet(ts, pet)
+	buildPet(ts, pet)
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {

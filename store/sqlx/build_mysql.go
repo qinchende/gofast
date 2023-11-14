@@ -152,7 +152,7 @@ func selectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func fillPet(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
+func buildPet(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
 	if pet.isReady {
 		return pet
 	}

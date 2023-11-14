@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"
@@ -142,7 +141,7 @@ func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.Table
 		if pet.GsonNeed {
 			*cacheStr = pet.Dest
 		} else {
-			*cacheStr, err = jsonx.Marshal(grs)
+			*cacheStr, err = jde.EncodeToString(grs)
 			panicIfSqlErr(err)
 		}
 		rds := (*conn.rdsNodes)[0]
@@ -170,7 +169,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	}
 	dstType := dstVal.Type()
 	dstKind := dstType.Kind()
-	destPtr := (*rt.AFace)(unsafe.Pointer(&obj)).DataPtr
+	objPtr := (*rt.AFace)(unsafe.Pointer(&obj)).DataPtr
 
 	// NOTE: 当前绑定对象支持三种情况
 	// 1. 目标值是结构体类型，只取第一行数据
@@ -188,7 +187,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 			if fIdx >= 0 {
 				scanner := ts.SS.FieldsAttr[fIdx].SqlValue
 				if scanner != nil {
-					scanValues[cIdx] = scanner(destPtr)
+					scanValues[cIdx] = scanner(objPtr)
 				} else {
 					scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
 				}
@@ -264,41 +263,41 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	// 3. 目标值是基础值类型，只取第一行第一列值
 	switch dstKind {
 	case reflect.Int:
-		panicIfSqlErr(sqlRows.Scan(dts.IntValue(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.IntValue(objPtr)))
 	case reflect.Int8:
-		panicIfSqlErr(sqlRows.Scan(dts.Int8Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Int8Value(objPtr)))
 	case reflect.Int16:
-		panicIfSqlErr(sqlRows.Scan(dts.Int16Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Int16Value(objPtr)))
 	case reflect.Int32:
-		panicIfSqlErr(sqlRows.Scan(dts.Int32Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Int32Value(objPtr)))
 	case reflect.Int64:
-		panicIfSqlErr(sqlRows.Scan(dts.Int64Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Int64Value(objPtr)))
 
 	case reflect.Uint:
-		panicIfSqlErr(sqlRows.Scan(dts.UintValue(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.UintValue(objPtr)))
 	case reflect.Uint8:
-		panicIfSqlErr(sqlRows.Scan(dts.Uint8Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Uint8Value(objPtr)))
 	case reflect.Uint16:
-		panicIfSqlErr(sqlRows.Scan(dts.Uint16Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Uint16Value(objPtr)))
 	case reflect.Uint32:
-		panicIfSqlErr(sqlRows.Scan(dts.Uint32Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Uint32Value(objPtr)))
 	case reflect.Uint64:
-		panicIfSqlErr(sqlRows.Scan(dts.Uint64Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Uint64Value(objPtr)))
 
 	case reflect.Float32:
-		panicIfSqlErr(sqlRows.Scan(dts.Float32Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Float32Value(objPtr)))
 	case reflect.Float64:
-		panicIfSqlErr(sqlRows.Scan(dts.Float64Value(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.Float64Value(objPtr)))
 
 	case reflect.Bool:
-		panicIfSqlErr(sqlRows.Scan(dts.BoolValue(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.BoolValue(objPtr)))
 	case reflect.String:
-		panicIfSqlErr(sqlRows.Scan(dts.StringValue(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.StringValue(objPtr)))
 	case reflect.Struct:
 		// 此时只可能是time.Time -> dstType.String() == "time.Time"
-		panicIfSqlErr(sqlRows.Scan(dts.TimeValue(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.TimeValue(objPtr)))
 	case reflect.Interface:
-		panicIfSqlErr(sqlRows.Scan(dts.AnyValue(destPtr)))
+		panicIfSqlErr(sqlRows.Scan(dts.AnyValue(objPtr)))
 
 	//case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
 	//	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
@@ -322,9 +321,27 @@ func scanSqlRowsList(objs any, sqlRows *sql.Rows) int64 {
 // TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 list 又如何处理呢？
 // Return:
 // 1. int64 返回解析到的记录数 >= 0
-func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, dropBind bool) int64 {
-	ts, sliceType, recordType, isPtr, isKV := checkDestType(objs)
+func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, gsonOnly bool) int64 {
+	// 先检查目标值的类型
+	destType := reflect.TypeOf(objs)
+	if destType.Kind() != reflect.Pointer {
+		cst.PanicString("Dest must be pointer value.")
+	}
+	listType := destType.Elem()
+	// NOTE：多行记录查询，考虑支持类型为 Slice或Array 的目标值
+	if listType.Kind() != reflect.Slice {
+		cst.PanicString("Dest must be slice value.")
+	}
 
+	//itemIsPtr := false
+	itemType := listType.Elem()
+	// 可能slice中每一项为指针类型
+	if itemType.Kind() == reflect.Pointer {
+		//itemIsPtr = true
+		itemType = itemType.Elem()
+	}
+
+	// 申请运算过程中用到的临时变量+++++++++++++++++++
 	// msColumns := ts.ColumnsKV()
 	var tpRows []reflect.Value
 	dbColumns, _ := sqlRows.Columns()
@@ -335,13 +352,82 @@ func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, dropB
 	if grs != nil {
 		grs.Cls = dbColumns
 		grs.Rows = make([][]any, 0, 25)
-		if dropBind == false {
+		if gsonOnly == false {
 			tpRows = make([]reflect.Value, 0, 25)
 		}
 	}
+	// +++++++++++++++++++++++++++++++++++++++++++++++
 
-	// A. 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
-	if isKV {
+	// 目前只支持2种 item 类型
+	itemKind := itemType.Kind()
+	if itemKind == reflect.Struct {
+		// A. 要么就是某个struct类型
+
+		// 此时直接获取类型的 TableSchema 即可，无需类型判断
+		ts := orm.SchemaByTypeDirect(itemType)
+
+		clsPos := make([]int8, clsLen)
+		for i := 0; i < clsLen; i++ {
+			clsPos[i] = int8(ts.ColumnIndex(dbColumns[i]))
+			if clsPos[i] < 0 {
+				scanValues[i] = sharedAnyValue // 这一列的值会被丢弃，所以用一个共享的占位变量即可
+			}
+		}
+
+		//dbColumns, _ := sqlRows.Columns()         // 数据库执行返回字段
+		//scanValues := make([]any, len(dbColumns)) // 目标值地址
+
+		//// Note: 每一个db-column都应该有对应的变量接收值
+		//for cIdx := range dbColumns {
+		//	fIdx := ts.ColumnIndex(dbColumns[cIdx]) // 查询 db-column 对应struct中字段的索引
+		//	if fIdx >= 0 {
+		//		scanner := ts.SS.FieldsAttr[fIdx].SqlValue
+		//		if scanner != nil {
+		//			scanValues[cIdx] = scanner(destPtr)
+		//		} else {
+		//			scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
+		//		}
+		//	} else {
+		//		scanValues[cIdx] = sharedAnyValue // 这个值会被丢弃，所以用一个共享的占位变量即可
+		//	}
+		//}
+
+		for sqlRows.Next() {
+			//recordPtr := reflect.New(itemType)
+			//recordVal := reflect.Indirect(recordPtr)
+			//
+			//for cIdx := 0; cIdx < clsLen; cIdx++ {
+			//	if clsPos[cIdx] >= 0 {
+			//		//scanValues[i] = ts.AddrByIndex(&recordVal, clsPos[i])
+			//		scanner := ts.SS.FieldsAttr[clsPos[cIdx]].SqlValue
+			//		if scanner != nil {
+			//			scanValues[cIdx] = scanner(destPtr)
+			//		} else {
+			//			scanValues[cIdx] = ts.AddrByIndex(&dstVal, clsPos[cIdx])
+			//		}
+			//	}
+			//}
+
+			panicIfSqlErr(sqlRows.Scan(scanValues...))
+			if grs != nil {
+				rowValues := make([]any, len(scanValues))
+				copy(rowValues, scanValues)
+				grs.Rows = append(grs.Rows, rowValues)
+			}
+			if gsonOnly == true {
+				continue
+			}
+
+			//if itemIsPtr {
+			//	tpRows = append(tpRows, recordPtr)
+			//} else {
+			//	tpRows = append(tpRows, recordVal)
+			//}
+		}
+
+	} else if itemKind == reflect.Map && itemType.String() == "cst.KV" {
+		// B. 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
+
 		clsType, _ := sqlRows.ColumnTypes()
 		for i := 0; i < clsLen; i++ {
 			typ := clsType[i].ScanType()
@@ -360,7 +446,7 @@ func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, dropB
 				copy(rowValues, scanValues)
 				grs.Rows = append(grs.Rows, rowValues)
 			}
-			if dropBind == true {
+			if gsonOnly == true {
 				continue
 			}
 
@@ -372,51 +458,17 @@ func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, dropB
 			tpRows = append(tpRows, reflect.ValueOf(kv))
 		}
 	} else {
-		// B. 要么就是某个struct类型
-		clsPos := make([]int8, clsLen)
-		for i := 0; i < clsLen; i++ {
-			clsPos[i] = int8(ts.ColumnIndex(dbColumns[i]))
-			if clsPos[i] < 0 {
-				scanValues[i] = sharedAnyValue // 这一列的值会被丢弃，所以用一个共享的占位变量即可
-			}
-		}
-
-		for sqlRows.Next() {
-			recordPtr := reflect.New(recordType)
-			recordVal := reflect.Indirect(recordPtr)
-
-			for i := 0; i < clsLen; i++ {
-				if clsPos[i] >= 0 {
-					scanValues[i] = ts.AddrByIndex(&recordVal, clsPos[i])
-				}
-			}
-
-			panicIfSqlErr(sqlRows.Scan(scanValues...))
-			if grs != nil {
-				rowValues := make([]any, len(scanValues))
-				copy(rowValues, scanValues)
-				grs.Rows = append(grs.Rows, rowValues)
-			}
-			if dropBind == true {
-				continue
-			}
-
-			if isPtr {
-				tpRows = append(tpRows, recordPtr)
-			} else {
-				tpRows = append(tpRows, recordVal)
-			}
-		}
+		cst.PanicString("Unsupported dest type.")
 	}
 
 	if grs != nil {
 		grs.Ct = int64(len(grs.Rows))
 	}
-	if dropBind == true {
+	if gsonOnly == true {
 		return grs.Ct
 	}
 
-	records := reflect.MakeSlice(sliceType, 0, len(tpRows))
+	records := reflect.MakeSlice(listType, 0, len(tpRows))
 	records = reflect.Append(records, tpRows...)
 	reflect.ValueOf(objs).Elem().Set(records)
 	return int64(len(tpRows))

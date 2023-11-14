@@ -169,7 +169,8 @@ func (val *SqlFloat64) Scan(src any) error {
 	return nil
 }
 
-// ++++++++++++++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Note: src共享了底层切片数组，需要copy到新内存
 //func (val *sqlString) Scan(src any) error {
 //	switch s := src.(type) {
 //	case []byte:
