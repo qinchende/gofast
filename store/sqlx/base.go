@@ -47,7 +47,7 @@ type StmtConn struct {
 
 // 功能强大的控制参数，这个对象比较大，可以考虑用sync.Pool缓存
 type SelectPet struct {
-	Dest any // 解析得到的目标数据，必填项
+	List any // 解析得到的目标数据，必填项
 
 	// 用于构造SQL语句的参数
 	Sql      string // 自定义完整的SQL语句，注意(Sql和SqlCount是成对出现的)
@@ -66,9 +66,9 @@ type SelectPet struct {
 	Limit    uint32 // 查询限量
 
 	// Gson结果相关
-	GsonVal  any  // 可以指定同时返回 GsonRows 数据
-	GsonNeed bool // 是否需要返回 GsonVal 数据，此时GsonVal的值可能是字符串，也可能是GsonRows对象？
-	GsonOnly bool // 只需要 GsonVal 数据，不用解析到 Dest
+	GsonStr  string // 可以指定同时返回 GsonRows 数据
+	GsonNeed bool   // 是否需要返回 GsonStr 数据，此时GsonVal的值可能是字符串，也可能是GsonRows对象？
+	GsonOnly bool   // 只需要 GsonStr 数据，不用解析到 List
 
 	// 缓存控制和其它标记字段
 	isReady      bool   // 是否已经初始化

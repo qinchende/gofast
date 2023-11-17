@@ -30,8 +30,8 @@ type RowsDecRet struct {
 
 // 用来Encode ++++++++++++++++
 type RowsEncPet struct {
-	Target   any
-	Tt       int64
-	FlsStr   string
-	FlsIdxes []uint8
+	List      any     // 对象列表
+	Tt        int64   // 无分页的总数，分页使用
+	FieldsStr string  // GsonRows 字段 用 逗号拼接好的字符串
+	FieldsIdx []uint8 // GsonRows 数据中 Fields 对应在 struct 的索引
 }

@@ -23,8 +23,8 @@ func (ms *TableSchema) CacheLineKey(dbName, id any) string {
 	return fmt.Sprintf(ms.tAttrs.cacheKeyFmt, dbName, id)
 }
 
-func (ms *TableSchema) CacheSqlKey(sql string) string {
-	return "Gf#Pet#" + hashx.Md5HexString(sql)
+func (ms *TableSchema) CacheSqlKey(dbName, sql string) string {
+	return fmt.Sprintf("Gf#Pet#%v#%s#%s", dbName, ms.tAttrs.TableName, hashx.Md5HexString(sql))
 }
 
 func (ms *TableSchema) ExpireS() uint32 {

@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/core/rt"
 	"reflect"
 	"unsafe"
 )
@@ -285,20 +286,23 @@ func scanArrPtrMixValue(sd *subDecode) {
 // slice 中可能是实体对象，也可能是对象指针
 func scanListMixValue(sd *subDecode) {
 	sh := (*reflect.SliceHeader)(sd.dstPtr)
-	if sd.arrIdx == sh.Cap {
-		var oldMem = []byte{}
-		old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
-		old.Data, old.Len, old.Cap = sh.Data, sh.Len*sd.dm.itemRawSize, sh.Cap*sd.dm.itemRawSize
+	ptr := rt.SliceNextItem(sh, sd.dm.itemRawSize)
 
-		// TODO: 需要有更高效的扩容算法
-		newLen := int(float64(sh.Cap)*1.6) + 4 // 一种简易的动态扩容算法
-		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*sd.dm.itemRawSize, newLen*sd.dm.itemRawSize)
-		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, newLen*sd.dm.itemRawSize)
-
-		copy(*(*[]byte)(sd.dstPtr), oldMem)
-		sh.Len, sh.Cap = sd.arrIdx, newLen
-	}
-	ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*sd.dm.itemRawSize))
+	//itSize := sd.dm.itemRawSize
+	//if sd.arrIdx == sh.Cap {
+	//	var oldMem = []byte{}
+	//	old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
+	//	old.Data, old.Len, old.Cap = sh.Data, sh.Len*itSize, sh.Cap*itSize
+	//
+	//	// TODO: 需要有更高效的扩容算法
+	//	newLen := int(float64(sh.Cap)*1.6) + 4 // 一种简易的动态扩容算法
+	//	//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*itSize, newLen*itSize)
+	//	*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*itSize, newLen*itSize)
+	//
+	//	copy(*(*[]byte)(sd.dstPtr), oldMem)
+	//	sh.Len, sh.Cap = sd.arrIdx, newLen
+	//}
+	//ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*itSize))
 
 	switch sd.str[sd.scan] {
 	case '{', '[':
@@ -319,7 +323,7 @@ func scanListMixValue(sd *subDecode) {
 		}
 	}
 	sd.arrIdx++
-	sh.Len = sd.arrIdx
+	//sh.Len = sd.arrIdx
 }
 
 // pointer +++++

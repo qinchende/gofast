@@ -10,6 +10,7 @@ import (
 	"github.com/qinchende/gofast/store/jde"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
+	"strings"
 	"time"
 	"unsafe"
 )
@@ -87,30 +88,30 @@ func queryByPrimary(conn *OrmDB, obj any, id any, ts *orm.TableSchema) int64 {
 
 // 返回 count , total
 func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.TableSchema) (ct int64, tt int64) {
-	// 1. 需要缓存
+	// 1. 需要缓存 ++++++++++++++++++++++++++++++++++++++++++++++
 	if pet.CacheExpireS > 0 {
 		rds := (*conn.rdsNodes)[0]
 		pet.Args = formatArgs(pet.Args)
-		pet.cacheKey = ts.CacheSqlKey(realSql(sql, pet.Args...))
+		pet.cacheKey = ts.CacheSqlKey(conn.Attrs.DbName, realSql(sql, pet.Args...))
 
 		// 如果有缓存，直接取缓存并解析
 		if cacheStr, err := rds.Get(pet.cacheKey); err == nil && cacheStr != "" {
 			// A. 直接返回GSON字符串
 			if pet.GsonNeed {
-				pet.GsonVal = cacheStr
+				pet.GsonStr = cacheStr
 				if pet.GsonOnly {
 					return 1, 0 // 不做验证，直接返回缓存中的字符串
 				}
 			}
 
 			// B. GSON字符串解析成对象
-			ret := jde.DecodeGsonRowsFromString(pet.Dest, cacheStr)
+			ret := jde.DecodeGsonRowsFromString(pet.List, cacheStr)
 			panicIfSqlErr(ret.Err)
 			return ret.Ct, ret.Tt
 		}
 	}
 
-	// 2. 执行SQL查询，必要时设置缓存
+	// 2. 执行SQL查询，必要时设置缓存 +++++++++++++++++++++++++++
 	// 先查total, 此条件下一共多少条
 	if sqlCount != "" {
 		sqlRowsTt := conn.QuerySql(sqlCount, pet.Args...)
@@ -122,36 +123,39 @@ func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.Table
 	}
 
 	// 需要 GsonRows 对象
-	var grs *gson.GsonRows
+	var rowsPet *gson.RowsEncPet
 	if pet.GsonNeed || pet.CacheExpireS > 0 {
-		grs = new(gson.GsonRows)
+		rowsPet = new(gson.RowsEncPet)
+		rowsPet.Tt = tt
 	}
 
 	sqlRows := conn.QuerySql(sql, pet.Args...)
 	defer CloseSqlRows(sqlRows)
-	ct = scanSqlRowsListSuper(pet.Dest, sqlRows, grs, pet.GsonOnly)
+	ct = scanSqlRowsListSuper(pet.List, sqlRows, rowsPet, pet.GsonOnly)
 
 	var err error
 	if pet.GsonNeed {
-		pet.GsonVal, err = jde.EncodeToString(grs)
+		pet.GsonStr, err = jde.EncodeGsonRowsPetString(rowsPet)
 		panicIfSqlErr(err)
 	}
 	if ct > 0 && pet.CacheExpireS > 0 {
-		cacheStr := new(any)
+		jsonStr := ""
 		if pet.GsonNeed {
-			*cacheStr = pet.Dest
+			jsonStr = pet.GsonStr
 		} else {
-			*cacheStr, err = jde.EncodeToString(grs)
+			jsonStr, err = jde.EncodeGsonRowsPetString(rowsPet)
 			panicIfSqlErr(err)
 		}
 		rds := (*conn.rdsNodes)[0]
-		_, _ = rds.Set(pet.cacheKey, *cacheStr, time.Duration(pet.CacheExpireS)*time.Second)
+		_, _ = rds.SetEX(pet.cacheKey, jsonStr, time.Duration(pet.CacheExpireS)*time.Second)
 	}
 	return ct, tt
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 解析单条记录
+// Params:
+// 1. obj 只能是*Type，Type可以是 Struct | cst.KV | [base-type]
 // Return:
 // 1. int64 返回解析到的记录数。只可能是 0 或者 1
 func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
@@ -319,18 +323,20 @@ func scanSqlRowsList(objs any, sqlRows *sql.Rows) int64 {
 
 // 解析多条记录
 // TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 list 又如何处理呢？
+// Params:
+// 1. objs 只能是*[]Type，Type可以是 Struct | cst.KV | [base type]，项目值也可以是指针嵌套
 // Return:
 // 1. int64 返回解析到的记录数 >= 0
-func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, gsonOnly bool) int64 {
+func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, rowsPet *gson.RowsEncPet, gsonOnly bool) int64 {
 	// 先检查目标值的类型
-	destType := reflect.TypeOf(objs)
-	if destType.Kind() != reflect.Pointer {
-		cst.PanicString("Dest must be pointer value.")
+	dstType := reflect.TypeOf(list)
+	if dstType.Kind() != reflect.Pointer {
+		cst.PanicString("List must be pointer value.")
 	}
-	listType := destType.Elem()
+	listType := dstType.Elem()
 	// NOTE：多行记录查询，考虑支持类型为 Slice或Array 的目标值
 	if listType.Kind() != reflect.Slice {
-		cst.PanicString("Dest must be slice value.")
+		cst.PanicString("List must be slice value.")
 	}
 
 	//itemIsPtr := false
@@ -341,135 +347,117 @@ func scanSqlRowsListSuper(objs any, sqlRows *sql.Rows, grs *gson.GsonRows, gsonO
 		itemType = itemType.Elem()
 	}
 
-	// 申请运算过程中用到的临时变量+++++++++++++++++++
+	// 申请运算过程中用到的临时变量 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// msColumns := ts.ColumnsKV()
-	var tpRows []reflect.Value
+	//var tpRows []reflect.Value
 	dbColumns, _ := sqlRows.Columns()
 	clsLen := len(dbColumns)
 	scanValues := make([]any, clsLen)
 
-	// 一般来说，我们的分页大小在25左右，即使要扩容，扩容一次到50也差不多了
-	if grs != nil {
-		grs.Cls = dbColumns
-		grs.Rows = make([][]any, 0, 25)
-		if gsonOnly == false {
-			tpRows = make([]reflect.Value, 0, 25)
-		}
-	}
-	// +++++++++++++++++++++++++++++++++++++++++++++++
-
 	// 目前只支持2种 item 类型
 	itemKind := itemType.Kind()
-	if itemKind == reflect.Struct {
-		// A. 要么就是某个struct类型
 
-		// 此时直接获取类型的 TableSchema 即可，无需类型判断
+	// A. 要么就是某个struct类型 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+	if itemKind == reflect.Struct {
+		// 此时直接获取类型的 TableSchema 即可，无需多余的检查
 		ts := orm.SchemaByTypeDirect(itemType)
 
-		clsPos := make([]int8, clsLen)
+		fIndexes := make([]int8, clsLen)
 		for i := 0; i < clsLen; i++ {
-			clsPos[i] = int8(ts.ColumnIndex(dbColumns[i]))
-			if clsPos[i] < 0 {
-				scanValues[i] = sharedAnyValue // 这一列的值会被丢弃，所以用一个共享的占位变量即可
+			fIndexes[i] = int8(ts.ColumnIndex(dbColumns[i]))
+			// 数据库返回的此字段不是我们实体的字段，跳过即可
+			if fIndexes[i] < 0 {
+				scanValues[i] = sharedAnyValue
 			}
 		}
 
-		//dbColumns, _ := sqlRows.Columns()         // 数据库执行返回字段
-		//scanValues := make([]any, len(dbColumns)) // 目标值地址
-
-		//// Note: 每一个db-column都应该有对应的变量接收值
-		//for cIdx := range dbColumns {
-		//	fIdx := ts.ColumnIndex(dbColumns[cIdx]) // 查询 db-column 对应struct中字段的索引
-		//	if fIdx >= 0 {
-		//		scanner := ts.SS.FieldsAttr[fIdx].SqlValue
-		//		if scanner != nil {
-		//			scanValues[cIdx] = scanner(destPtr)
-		//		} else {
-		//			scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
-		//		}
-		//	} else {
-		//		scanValues[cIdx] = sharedAnyValue // 这个值会被丢弃，所以用一个共享的占位变量即可
-		//	}
-		//}
-
+		sh := (*reflect.SliceHeader)((*rt.AFace)(unsafe.Pointer(&list)).DataPtr)
 		for sqlRows.Next() {
-			//recordPtr := reflect.New(itemType)
-			//recordVal := reflect.Indirect(recordPtr)
-			//
-			//for cIdx := 0; cIdx < clsLen; cIdx++ {
-			//	if clsPos[cIdx] >= 0 {
-			//		//scanValues[i] = ts.AddrByIndex(&recordVal, clsPos[i])
-			//		scanner := ts.SS.FieldsAttr[clsPos[cIdx]].SqlValue
-			//		if scanner != nil {
-			//			scanValues[cIdx] = scanner(destPtr)
-			//		} else {
-			//			scanValues[cIdx] = ts.AddrByIndex(&dstVal, clsPos[cIdx])
-			//		}
-			//	}
-			//}
+			objPtr := rt.SliceNextItem(sh, ts.SS.Attrs.MemSize)
 
+			for i, fIdx := range fIndexes {
+				if fIdx < 0 {
+					continue
+				}
+				scanner := ts.SS.FieldsAttr[fIdx].SqlValue
+				if scanner != nil {
+					scanValues[i] = scanner(objPtr)
+				} else {
+					// 暂时不支持非基础数据类型的字段（有这种字段就抛异常）
+					cst.PanicString("Unsupported the struct field " + ts.SS.FieldsAttr[fIdx].RefField.Name)
+					// scanValues[cIdx] = ts.AddrByIndex(&dstVal, fIndexes[cIdx])
+				}
+			}
 			panicIfSqlErr(sqlRows.Scan(scanValues...))
-			if grs != nil {
-				rowValues := make([]any, len(scanValues))
-				copy(rowValues, scanValues)
-				grs.Rows = append(grs.Rows, rowValues)
-			}
-			if gsonOnly == true {
-				continue
-			}
-
-			//if itemIsPtr {
-			//	tpRows = append(tpRows, recordPtr)
-			//} else {
-			//	tpRows = append(tpRows, recordVal)
-			//}
 		}
 
-	} else if itemKind == reflect.Map && itemType.String() == "cst.KV" {
-		// B. 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象
+		// 需要返回 GsonEncPet
+		if rowsPet != nil {
+			var buf strings.Builder
+			rowsPet.FieldsIdx = make([]uint8, 0, clsLen)
 
-		clsType, _ := sqlRows.ColumnTypes()
-		for i := 0; i < clsLen; i++ {
-			typ := clsType[i].ScanType()
-			// 查询结果绝大部分都是sql.RawBytes，直接解析成 string 类型即可
-			if typ.String() == "sql.RawBytes" {
-				scanValues[i] = new(string)
-			} else {
-				scanValues[i] = new(any)
-			}
-		}
-
-		for sqlRows.Next() {
-			panicIfSqlErr(sqlRows.Scan(scanValues...))
-			if grs != nil {
-				rowValues := make([]any, len(scanValues))
-				copy(rowValues, scanValues)
-				grs.Rows = append(grs.Rows, rowValues)
-			}
-			if gsonOnly == true {
-				continue
-			}
-
-			// 每条记录就是一个类JSON的 KV 对象
-			kv := make(map[string]any, clsLen)
 			for i := 0; i < clsLen; i++ {
-				kv[dbColumns[i]] = reflect.ValueOf(scanValues[i]).Elem().Interface()
+				if fIndexes[i] < 0 {
+					continue
+				}
+				if len(rowsPet.FieldsIdx) > 0 {
+					buf.WriteByte(',')
+				}
+				rowsPet.FieldsIdx = append(rowsPet.FieldsIdx, uint8(fIndexes[i]))
+				buf.WriteByte('"')
+				buf.WriteString(dbColumns[i])
+				buf.WriteByte('"')
 			}
-			tpRows = append(tpRows, reflect.ValueOf(kv))
+
+			rowsPet.FieldsStr = buf.String()
+			rowsPet.List = list
 		}
-	} else {
-		cst.PanicString("Unsupported dest type.")
+
+		return int64(sh.Len)
 	}
 
-	if grs != nil {
-		grs.Ct = int64(len(grs.Rows))
-	}
-	if gsonOnly == true {
-		return grs.Ct
-	}
+	// B. 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象 +++++++++++++++++++++++++++++++++++++++++++++
+	// 这种情况可以暂时不考虑
+	//if itemKind == reflect.Map && itemType.String() == "cst.KV" {
+	//	clsType, _ := sqlRows.ColumnTypes()
+	//	for i := 0; i < clsLen; i++ {
+	//		typ := clsType[i].ScanType()
+	//		// 查询结果绝大部分都是sql.RawBytes，直接解析成 string 类型即可
+	//		if typ.String() == "sql.RawBytes" {
+	//			scanValues[i] = new(string)
+	//		} else {
+	//			scanValues[i] = new(any)
+	//		}
+	//	}
+	//
+	//	for sqlRows.Next() {
+	//		panicIfSqlErr(sqlRows.Scan(scanValues...))
+	//		if grs != nil {
+	//			rowValues := make([]any, len(scanValues))
+	//			copy(rowValues, scanValues)
+	//			grs.Rows = append(grs.Rows, rowValues)
+	//		}
+	//		if gsonOnly == true {
+	//			continue
+	//		}
+	//
+	//		// 每条记录就是一个类JSON的 KV 对象
+	//		kv := make(map[string]any, clsLen)
+	//		for i := 0; i < clsLen; i++ {
+	//			kv[dbColumns[i]] = reflect.ValueOf(scanValues[i]).Elem().Interface()
+	//		}
+	//		//tpRows = append(tpRows, reflect.ValueOf(kv))
+	//	}
+	//
+	//	if grs != nil {
+	//		grs.Ct = int64(len(grs.Rows))
+	//	}
+	//	if gsonOnly == true {
+	//		return grs.Ct
+	//	}
+	//	//return int64(len(tpRows))
+	//}
 
-	records := reflect.MakeSlice(listType, 0, len(tpRows))
-	records = reflect.Append(records, tpRows...)
-	reflect.ValueOf(objs).Elem().Set(records)
-	return int64(len(tpRows))
+	cst.PanicString("Unsupported dest type.")
+	return 0
 }

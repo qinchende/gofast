@@ -36,17 +36,22 @@ func EncodeToOnlyGsonRowValuesBytes(obj any) ([]byte, error) {
 // GsonRows ++++++
 func EncodeGsonRows(objs any) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
-		Target: objs,
+		List: objs,
 	})
 }
 
 func EncodeGsonRows2(objs any, fls string) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
-		Target: objs,
-		FlsStr: fls,
+		List:      objs,
+		FieldsStr: fls,
 	})
 }
 
-func EncodeGsonRowsPet(pet gson.RowsEncPet) ([]byte, error) {
-	return encGsonRows(pet)
+func EncodeGsonRowsPet(pet *gson.RowsEncPet) ([]byte, error) {
+	return encGsonRows(*pet)
+}
+
+func EncodeGsonRowsPetString(pet *gson.RowsEncPet) (string, error) {
+	ret, err := encGsonRows(*pet)
+	return lang.BTS(ret), err
 }
