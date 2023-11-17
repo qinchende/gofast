@@ -42,13 +42,13 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 		}
 	}()
 
-	af := (*rt.AFace)(unsafe.Pointer(&pet.Target))
+	af := (*rt.AFace)(unsafe.Pointer(&pet.List))
 	var em *encMeta
 
 	// check target object
 	if em = cacheGetGsonEncMeta(af.TypePtr); em == nil {
 		// +++++++++++++ check type
-		dstTyp := reflect.TypeOf(pet.Target)
+		dstTyp := reflect.TypeOf(pet.List)
 		if dstTyp.Kind() != reflect.Pointer {
 			panic(errValueMustPtr)
 		}
@@ -70,10 +70,10 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	}
 
 	// 检查 pet 参数是否齐全，缺失就补齐
-	if len(pet.FlsStr) == 0 {
-		pet.FlsStr, pet.FlsIdxes = em.ss.CTips()
-	} else if len(pet.FlsIdxes) == 0 {
-		pet.FlsIdxes = em.ss.CIndexes(strings.Split(pet.FlsStr, ","))
+	if len(pet.FieldsStr) == 0 {
+		pet.FieldsStr, pet.FieldsIdx = em.ss.CTips()
+	} else if len(pet.FieldsIdx) == 0 {
+		pet.FieldsIdx = em.ss.CIndexes(strings.Split(pet.FieldsStr, ","))
 	}
 
 	se := subEncode{}
@@ -104,11 +104,11 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 	tp = append(tp, ",["...)
 
 	// 2. 字段
-	tp = append(tp, pet.FlsStr...)
+	tp = append(tp, pet.FieldsStr...)
 	tp = append(tp, "],["...)
 
 	// 3. 记录值
-	flsSize := len(pet.FlsIdxes)
+	flsSize := len(pet.FieldsIdx)
 	fls := se.em.ss.FieldsAttr
 	// 循环记录
 	for i := 0; i < sh.Len; i++ {
@@ -117,7 +117,7 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 		tp = append(tp, '[')
 		// 循环字段
 		for j := 0; j < flsSize; j++ {
-			idx := pet.FlsIdxes[j]
+			idx := pet.FieldsIdx[j]
 
 			ptr := unsafe.Pointer(uintptr(se.srcPtr) + fls[idx].Offset)
 			ptrCt := fls[idx].PtrLevel
@@ -150,5 +150,5 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 	if sh.Len > 0 {
 		tp = tp[:len(tp)-1]
 	}
-	*se.bf = append(tp, ']')
+	*se.bf = append(tp, "]]"...)
 }

@@ -43,7 +43,8 @@ type (
 	}
 
 	// 给字段绑定值
-	//valueBinder func(p unsafe.Pointer, v any)
+	kvBinderFunc func(fPtr unsafe.Pointer, v any)
+	SqlValueFunc func(sPtr unsafe.Pointer) any
 
 	// 方便字段数据处理
 	fieldAttr struct {
@@ -57,8 +58,8 @@ type (
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
 
-		KVBinder func(fPtr unsafe.Pointer, v any) // 绑定函数
-		SqlValue func(sPtr unsafe.Pointer) any
+		KVBinder kvBinderFunc // 绑定函数
+		SqlValue SqlValueFunc
 	}
 
 	fieldOptions struct {
@@ -179,9 +180,11 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			if fa.Type.String() == "time.Time" {
 				fa.KVBinder = setTime
 				fa.SqlValue = fa.timeValue
+			} else {
+
 			}
-			//case reflect.Pointer:
-			//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+		case reflect.Pointer:
+		case reflect.Map, reflect.Array, reflect.Slice:
 		}
 	}
 
@@ -213,7 +216,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 	}
 
 	// fTips
-	// +++++++++++++++
+	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	ss.fTips.items = make([]string, len(fFields))
 	ss.fTips.idxes = make([]uint8, len(fFields))
 
