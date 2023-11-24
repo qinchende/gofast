@@ -17,6 +17,8 @@ func SliceAutoGrow(sh *reflect.SliceHeader, itemSize int) {
 		newLen := int(float64(sh.Cap)*1.6) + 5 // 一种简易的动态扩容算法
 		//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*itemSize, newLen*itemSize)
 
+		// 不管什么类型的数据，底层存放在内存字节序列当中，我们只需要申请足量的字节序列，
+		// 之后想让这段序列代表啥数据类型都行。
 		bsPtr := (*[]byte)(unsafe.Pointer(sh))
 		*bsPtr = make([]byte, sh.Len*itemSize, newLen*itemSize)
 		copy(*bsPtr, oldMem)

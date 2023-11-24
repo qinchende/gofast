@@ -341,11 +341,13 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, rowsPet *gson.RowsEncPet,
 
 	//itemIsPtr := false
 	itemType := listType.Elem()
-	// 可能slice中每一项为指针类型
-	if itemType.Kind() == reflect.Pointer {
-		//itemIsPtr = true
-		itemType = itemType.Elem()
-	}
+
+	// NOTE： 暂时不支持这种情况
+	//// 可能slice中每一项为指针类型
+	//if itemType.Kind() == reflect.Pointer {
+	//	//itemIsPtr = true
+	//	itemType = itemType.Elem()
+	//}
 
 	// 申请运算过程中用到的临时变量 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// msColumns := ts.ColumnsKV()
@@ -359,7 +361,7 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, rowsPet *gson.RowsEncPet,
 
 	// A. 要么就是某个struct类型 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	if itemKind == reflect.Struct {
-		// 此时直接获取类型的 TableSchema 即可，无需多余的检查
+		// 此时直接获取类型的 TableSchema 即可，无需多余的检查，因为前面已经检查过了
 		ts := orm.SchemaByTypeDirect(itemType)
 
 		fIndexes := make([]int8, clsLen)
@@ -417,47 +419,82 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, rowsPet *gson.RowsEncPet,
 	}
 
 	// B. 接受者如果是KV类型，相当于解析成了JSON格式，而不是具体类型的对象 +++++++++++++++++++++++++++++++++++++++++++++
-	// 这种情况可以暂时不考虑
-	//if itemKind == reflect.Map && itemType.String() == "cst.KV" {
-	//	clsType, _ := sqlRows.ColumnTypes()
-	//	for i := 0; i < clsLen; i++ {
-	//		typ := clsType[i].ScanType()
-	//		// 查询结果绝大部分都是sql.RawBytes，直接解析成 string 类型即可
-	//		if typ.String() == "sql.RawBytes" {
-	//			scanValues[i] = new(string)
-	//		} else {
-	//			scanValues[i] = new(any)
-	//		}
-	//	}
-	//
-	//	for sqlRows.Next() {
-	//		panicIfSqlErr(sqlRows.Scan(scanValues...))
-	//		if grs != nil {
-	//			rowValues := make([]any, len(scanValues))
-	//			copy(rowValues, scanValues)
-	//			grs.Rows = append(grs.Rows, rowValues)
-	//		}
-	//		if gsonOnly == true {
-	//			continue
-	//		}
-	//
-	//		// 每条记录就是一个类JSON的 KV 对象
-	//		kv := make(map[string]any, clsLen)
-	//		for i := 0; i < clsLen; i++ {
-	//			kv[dbColumns[i]] = reflect.ValueOf(scanValues[i]).Elem().Interface()
-	//		}
-	//		//tpRows = append(tpRows, reflect.ValueOf(kv))
-	//	}
-	//
-	//	if grs != nil {
-	//		grs.Ct = int64(len(grs.Rows))
-	//	}
-	//	if gsonOnly == true {
-	//		return grs.Ct
-	//	}
-	//	//return int64(len(tpRows))
-	//}
+	// 希望查询数据库表的值就转换成 json , 没有指定对应的实体Model
+	if itemKind == reflect.Map {
+		// 此时只支持 *[]cst.KV 类型
+		kvList, ok := list.(*[]cst.KV)
+		if !ok {
+			cst.PanicString(fmt.Sprintf("Unsupported map type of %s.", dstType))
+			return 0
+		}
 
-	cst.PanicString("Unsupported dest type.")
+		// 根据结果类型做适当的转换
+		clsTypes, _ := sqlRows.ColumnTypes()
+		for sqlRows.Next() {
+			kv := make(cst.KV, clsLen)
+			for i := range dbColumns {
+				typ := clsTypes[i].ScanType()
+				if typ.String() == "sql.RawBytes" {
+					scanValues[i] = (*string)(unsafe.Pointer(&scanValues[i]))
+				} else {
+					scanValues[i] = &scanValues[i]
+				}
+				kv[dbColumns[i]] = scanValues[i]
+			}
+			panicIfSqlErr(sqlRows.Scan(scanValues...))
+
+			// Note：去掉多余的一层 interface{}，这样将来在编解码JSON等场景下要容易的多
+			for k, v := range kv {
+				switch v.(type) {
+				case *any:
+					kv[k] = *(v.(*any))
+				}
+			}
+
+			*kvList = append(*kvList, kv)
+		}
+		return int64(len(*kvList))
+
+		// +++++++++++++++++++++++++++++++++++++++++++++++
+		//clsType, _ := sqlRows.ColumnTypes()
+		//for i := 0; i < clsLen; i++ {
+		//	typ := clsType[i].ScanType()
+		//	// 查询结果绝大部分都是sql.RawBytes，直接解析成 string 类型即可
+		//	if typ.String() == "sql.RawBytes" {
+		//		scanValues[i] = new(string)
+		//	} else {
+		//		scanValues[i] = new(any)
+		//	}
+		//}
+		//
+		//for sqlRows.Next() {
+		//	panicIfSqlErr(sqlRows.Scan(scanValues...))
+		//	if grs != nil {
+		//		rowValues := make([]any, len(scanValues))
+		//		copy(rowValues, scanValues)
+		//		grs.Rows = append(grs.Rows, rowValues)
+		//	}
+		//	if gsonOnly == true {
+		//		continue
+		//	}
+		//
+		//	// 每条记录就是一个类JSON的 KV 对象
+		//	kv := make(map[string]any, clsLen)
+		//	for i := 0; i < clsLen; i++ {
+		//		kv[dbColumns[i]] = reflect.ValueOf(scanValues[i]).Elem().Interface()
+		//	}
+		//	//tpRows = append(tpRows, reflect.ValueOf(kv))
+		//}
+		//
+		//if grs != nil {
+		//	grs.Ct = int64(len(grs.Rows))
+		//}
+		//if gsonOnly == true {
+		//	return grs.Ct
+		//}
+		//return int64(len(tpRows))
+	}
+
+	cst.PanicString("Unsupported the dest value type.")
 	return 0
 }
