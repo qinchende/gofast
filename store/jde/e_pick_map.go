@@ -7,7 +7,7 @@ import (
 	"unsafe"
 )
 
-// Note: 这里是投机取巧了。不是所有的Map都通用，只是尽量解决常见 Map 的编码。
+// Note: 这里是投机取巧了。不是所有的Map都通用，只是尽量解决常见 Map 的编码。比如：cst.KV | map[string]any
 // 这样避免了复杂的map反射操作，提高性能。
 
 func (se *subEncode) encMap() {

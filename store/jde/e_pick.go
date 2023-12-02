@@ -11,32 +11,60 @@ import (
 )
 
 func (se *subEncode) encStart() {
-	if se.em.isList {
+	switch {
+	case se.em.isList:
 		if se.em.isArray {
 			if se.em.isPtr {
 				se.encListPtr(se.em.arrLen)
 			} else {
 				se.encList(se.em.arrLen)
 			}
-		} else {
-			sh := (*reflect.SliceHeader)(se.srcPtr)
-			se.srcPtr = unsafe.Pointer(sh.Data)
-
-			if se.em.isPtr {
-				se.encListPtr(sh.Len)
-			} else {
-				se.encList(sh.Len)
-			}
+			break
 		}
-	} else if se.em.isStruct {
+
+		// slice
+		sh := (*reflect.SliceHeader)(se.srcPtr)
+		se.srcPtr = unsafe.Pointer(sh.Data)
+		if se.em.isPtr {
+			se.encListPtr(sh.Len)
+		} else {
+			se.encList(sh.Len)
+		}
+	case se.em.isStruct:
 		se.encStruct()
-	} else if se.em.isMap {
+	case se.em.isMap:
 		se.encMap()
-	} else if se.em.isPtr {
+	case se.em.isPtr:
 		se.encPointer()
-	} else {
+	default:
 		se.encBasic()
 	}
+	//if se.em.isList {
+	//	if se.em.isArray {
+	//		if se.em.isPtr {
+	//			se.encListPtr(se.em.arrLen)
+	//		} else {
+	//			se.encList(se.em.arrLen)
+	//		}
+	//	} else {
+	//		sh := (*reflect.SliceHeader)(se.srcPtr)
+	//		se.srcPtr = unsafe.Pointer(sh.Data)
+	//
+	//		if se.em.isPtr {
+	//			se.encListPtr(sh.Len)
+	//		} else {
+	//			se.encList(sh.Len)
+	//		}
+	//	}
+	//} else if se.em.isStruct {
+	//	se.encStruct()
+	//} else if se.em.isMap {
+	//	se.encMap()
+	//} else if se.em.isPtr {
+	//	se.encPointer()
+	//} else {
+	//	se.encBasic()
+	//}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++
@@ -69,9 +97,20 @@ peelPtr:
 // List type value
 func (se *subEncode) encList(size int) {
 	*se.bf = append(*se.bf, '[')
+
 	for i := 0; i < size; i++ {
-		se.em.itemEnc(se.bf, unsafe.Pointer(uintptr(se.srcPtr)+uintptr(i*se.em.itemRawSize)), se.em.itemType)
+		itPtr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
+
+		// TODO: 一些本身就是引用类型的数据，需要找到他们指向值的地址
+		// 比如 map | function | channel 等类型
+		if se.em.itemKind == reflect.Map {
+			itPtr = *(*unsafe.Pointer)(itPtr)
+			se.em.itemEnc(se.bf, itPtr, se.em.itemType)
+		} else {
+			se.em.itemEnc(se.bf, itPtr, se.em.itemType)
+		}
 	}
+
 	if size > 0 {
 		*se.bf = (*se.bf)[:len(*se.bf)-1]
 	}
@@ -86,11 +125,11 @@ func (se *subEncode) encListPtr(size int) {
 	tp = append(tp, '[')
 	for i := 0; i < size; i++ {
 		ptrCt := ptrLevel
-		ptr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
+		itPtr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
 
 	peelPtr:
-		ptr = *(*unsafe.Pointer)(ptr)
-		if ptr == nil {
+		itPtr = *(*unsafe.Pointer)(itPtr)
+		if itPtr == nil {
 			tp = append(tp, "null,"...)
 			continue
 		}
@@ -100,7 +139,12 @@ func (se *subEncode) encListPtr(size int) {
 		}
 
 		*se.bf = tp
-		se.em.itemEnc(se.bf, ptr, se.em.itemType)
+		// add by cd.net on 2023-12-01
+		// []*map 类似这种数据源，不要再剥离一次指针，指向map值的内存
+		if se.em.itemKind == reflect.Map {
+			itPtr = *(*unsafe.Pointer)(itPtr)
+		}
+		se.em.itemEnc(se.bf, itPtr, se.em.itemType)
 		tp = *se.bf
 	}
 	if size > 0 {

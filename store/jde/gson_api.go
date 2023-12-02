@@ -29,25 +29,25 @@ func DecodeGsonRowsFromString(objs any, str string) gson.RowsDecRet {
 
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GsonRow ++++++
-func EncodeToOnlyGsonRowValuesBytes(obj any) ([]byte, error) {
+func EncodeGsonRowOnlyValuesBytes(obj any) ([]byte, error) {
 	return encGsonRowOnlyValues(obj)
 }
 
 // GsonRows ++++++
-func EncodeGsonRows(objs any) ([]byte, error) {
+func EncodeGsonRowsBytes(objs any) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
 		List: objs,
 	})
 }
 
-func EncodeGsonRows2(objs any, fls string) ([]byte, error) {
+func EncodeGsonRows2Bytes(objs any, cls []string) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{
-		List:      objs,
-		FieldsStr: fls,
+		List: objs,
+		Cls:  cls,
 	})
 }
 
-func EncodeGsonRowsPet(pet *gson.RowsEncPet) ([]byte, error) {
+func EncodeGsonRowsPetBytes(pet *gson.RowsEncPet) ([]byte, error) {
 	return encGsonRows(*pet)
 }
 

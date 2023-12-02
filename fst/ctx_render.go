@@ -115,15 +115,15 @@ func (c *Context) kvSucFai(status string, code int, msg string, data any) {
 }
 
 // 直接将出入的值作为JSON数据返回
-func (c *Context) SucGsonData(key, val string) {
+func (c *Context) SucGsonString(key, val string) {
 	var buf strings.Builder
 	buf.Grow(128)
 
 	buf.WriteString(`{"status":"suc","code":1,`)
 	if c.Sess != nil && c.Sess.SidIsNew() {
-		buf.WriteString(`"tok":`)
+		buf.WriteString(`"tok":"`)
 		buf.WriteString(c.Sess.Sid())
-		buf.WriteByte(',')
+		buf.WriteString(`",`)
 	}
 	buf.WriteString(`"`)
 	buf.WriteString(key)

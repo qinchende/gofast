@@ -15,6 +15,10 @@ const (
 	dbUpdatedKeyFlag    = "updated_field" // 更新时间
 )
 
+var (
+	kvTableSchema = new(TableSchema) // 虚拟 cst.KV 类型 对应的 TableSchema 变量
+)
+
 type OrmStruct interface {
 	GfAttrs(parent OrmStruct) *TableAttrs
 	BeforeSave()

@@ -66,7 +66,7 @@ type SelectPet struct {
 	Limit    uint32 // 查询限量
 
 	// Gson结果相关
-	GsonStr  string // 可以指定同时返回 GsonRows 数据
+	GsonStr  string // 已经是序列化之后的字符串
 	GsonNeed bool   // 是否需要返回 GsonStr 数据，此时GsonVal的值可能是字符串，也可能是GsonRows对象？
 	GsonOnly bool   // 只需要 GsonStr 数据，不用解析到 List
 
