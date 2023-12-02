@@ -4,11 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/gson"
 	"reflect"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"sync"
 	"unsafe"
 )
@@ -57,8 +57,11 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 			panic(errValueMustSlice)
 		}
 		itemType := sliceType.Elem()
-		// TODO：只支持struct切片，而不是struct指针切片
-		if itemType.Kind() != reflect.Struct {
+
+		// 支持2种数据源：
+		// A. struct B. cst.KV
+		kd := itemType.Kind()
+		if kd != reflect.Struct && itemType.String() != "cst.KV" {
 			panic(errValueMustStruct)
 		}
 
@@ -70,10 +73,15 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	}
 
 	// 检查 pet 参数是否齐全，缺失就补齐
-	if len(pet.FieldsStr) == 0 {
-		pet.FieldsStr, pet.FieldsIdx = em.ss.CTips()
-	} else if len(pet.FieldsIdx) == 0 {
-		pet.FieldsIdx = em.ss.CIndexes(strings.Split(pet.FieldsStr, ","))
+	if em.isStruct {
+		if len(pet.Cls) == 0 {
+			pet.Cls, pet.ClsIdx = em.ss.CTips()
+		}
+		if len(pet.ClsIdx) == 0 {
+			pet.ClsIdx = em.ss.CIndexes(pet.Cls)
+		}
+	} else {
+
 	}
 
 	se := subEncode{}
@@ -81,7 +89,11 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	se.srcPtr = af.DataPtr
 
 	se.newBytesBuf()
-	se.encListGson(pet)
+	if em.isStruct {
+		se.encStructListByPet(pet)
+	} else {
+		se.encMapListByPet(pet)
+	}
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
 	se.freeBytesBuf()
@@ -89,7 +101,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	return
 }
 
-func (se *subEncode) encListGson(pet gson.RowsEncPet) {
+func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 	tp := *se.bf
 	tp = append(tp, '[')
 
@@ -104,11 +116,18 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 	tp = append(tp, ",["...)
 
 	// 2. 字段
-	tp = append(tp, pet.FieldsStr...)
+	for i := 0; i < len(pet.Cls); i++ {
+		if i != 0 {
+			tp = append(tp, ',')
+		}
+		tp = append(tp, '"')
+		tp = append(tp, pet.Cls[i]...)
+		tp = append(tp, '"')
+	}
 	tp = append(tp, "],["...)
 
 	// 3. 记录值
-	flsSize := len(pet.FieldsIdx)
+	flsSize := len(pet.ClsIdx)
 	fls := se.em.ss.FieldsAttr
 	// 循环记录
 	for i := 0; i < sh.Len; i++ {
@@ -117,7 +136,7 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 		tp = append(tp, '[')
 		// 循环字段
 		for j := 0; j < flsSize; j++ {
-			idx := pet.FieldsIdx[j]
+			idx := pet.ClsIdx[j]
 
 			ptr := unsafe.Pointer(uintptr(se.srcPtr) + fls[idx].Offset)
 			ptrCt := fls[idx].PtrLevel
@@ -142,6 +161,62 @@ func (se *subEncode) encListGson(pet gson.RowsEncPet) {
 			tp = *se.bf
 		}
 		if flsSize > 0 {
+			tp = tp[:len(tp)-1]
+		}
+		tp = append(tp, "],"...)
+	}
+
+	if sh.Len > 0 {
+		tp = tp[:len(tp)-1]
+	}
+	*se.bf = append(tp, "]]"...)
+}
+
+func (se *subEncode) encMapListByPet(pet gson.RowsEncPet) {
+	tp := *se.bf
+	tp = append(tp, '[')
+
+	// struct slice
+	sh := (*reflect.SliceHeader)(se.srcPtr)
+
+	// 0. 当前记录数量
+	tp = append(tp, strconv.FormatInt(int64(sh.Len), 10)...)
+	tp = append(tp, ',')
+	// 1. 总记录数量
+	tp = append(tp, strconv.FormatInt(pet.Tt, 10)...)
+	tp = append(tp, ",["...)
+
+	// 2. 字段
+	for i := 0; i < len(pet.Cls); i++ {
+		if i != 0 {
+			tp = append(tp, ',')
+		}
+		tp = append(tp, '"')
+		tp = append(tp, pet.Cls[i]...)
+		tp = append(tp, '"')
+	}
+	tp = append(tp, "],["...)
+
+	// 3. 记录值
+	//flsStr := strings.ReplaceAll(pet.ClsStr, `"`, "")
+	//keys := strings.Split(flsStr, ",")
+	kvList, ok := pet.List.(*[]cst.KV)
+	if !ok {
+		panic(errValueType)
+	}
+
+	for i := 0; i < len(*kvList); i++ {
+		kv := (*kvList)[i]
+
+		tp = append(tp, '[')
+		for idx := range pet.Cls {
+			val := kv[pet.Cls[idx]]
+
+			*se.bf = tp
+			encAny(se.bf, unsafe.Pointer(&val), nil)
+			tp = *se.bf
+		}
+		if len(pet.Cls) > 0 {
 			tp = tp[:len(tp)-1]
 		}
 		tp = append(tp, "],"...)

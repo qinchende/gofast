@@ -7,7 +7,6 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
-	"strings"
 )
 
 // fetch StructSchema
@@ -107,12 +106,20 @@ func (ss *StructSchema) FieldName(idx int) string {
 
 // Gson useful apis
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (ss *StructSchema) CTips() (string, []uint8) {
-	return strings.Join(ss.cTips.items, ","), ss.cTips.idxes
+//func (ss *StructSchema) CTips() (string, []uint8) {
+//	return strings.Join(ss.cTips.items, ","), ss.cTips.idxes
+//}
+//
+//func (ss *StructSchema) FTips() (string, []uint8) {
+//	return strings.Join(ss.fTips.items, ","), ss.fTips.idxes
+//}
+
+func (ss *StructSchema) CTips() ([]string, []uint8) {
+	return ss.cTips.items, ss.cTips.idxes
 }
 
-func (ss *StructSchema) FTips() (string, []uint8) {
-	return strings.Join(ss.fTips.items, ","), ss.fTips.idxes
+func (ss *StructSchema) FTips() ([]string, []uint8) {
+	return ss.fTips.items, ss.fTips.idxes
 }
 
 func (ss *StructSchema) CIndexes(cls []string) (ret []uint8) {

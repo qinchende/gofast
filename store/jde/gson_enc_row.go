@@ -34,6 +34,7 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 			panic(errValueMustPtr)
 		}
 		objType := dstTyp.Elem()
+		// TODO: 目前只支持 数据源是 struct 类型
 		if objType.Kind() != reflect.Struct {
 			panic(errValueMustStruct)
 		}
@@ -58,6 +59,8 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 	return
 }
 
+// 单条记录序列化保存，只保存值部分，不用保存字段。结果：[v1,v2,v3,...]
+// Note：记录必须是 struct 对象
 func (se *subEncode) encGsonRowJustValues() {
 	tp := *se.bf
 	tp = append(tp, '[')

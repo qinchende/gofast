@@ -19,7 +19,7 @@ func Schema(obj any) *TableSchema {
 }
 
 func SchemaByType(typ reflect.Type) *TableSchema {
-	// typ 可能是：*Struct，Struct，*[]Struct，[]Struct, *[]*Struct, []*Struct 四种形式
+	// typ 可能是：*Struct，Struct，*[]Struct，[]Struct, *[]*Struct, []*Struct, *[]cst.KV 等类型
 	kd := typ.Kind()
 	if kd == reflect.Pointer {
 		typ = typ.Elem() // 只剥离一层 pointer
@@ -35,12 +35,13 @@ func SchemaByType(typ reflect.Type) *TableSchema {
 	}
 	// 此时必须是 struct
 	if kd != reflect.Struct {
-		//// 如果是 KV map 类型也默认支持
-		//if typ.Name() == "KV" {
-		//	ts := &TableSchema{}
-		//	cacheSetSchema(typ, ts)
-		//	return ts
-		//}
+		// 如果是 cst.KV 类型也默认支持，意味着此时想到得到JSON数据
+		// 非 struct 类型中，只支持 cst.KV
+		if typ.String() == "cst.KV" {
+			ts := kvTableSchema
+			cacheSetSchema(typ, ts)
+			return ts
+		}
 		cst.PanicString(fmt.Sprintf("Target must be struct, but got %T", typ.Kind()))
 	}
 

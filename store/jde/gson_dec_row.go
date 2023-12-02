@@ -68,7 +68,7 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 	return
 }
 
-// 这里待解析字符串的形式只能是 str: -> [item1,item2,item3,...]
+// 这里待解析字符串的形式只能是 str: -> [v1,v2,v3,...]
 func (sd *subDecode) scanGsonRowJustValues() {
 	flsCount := len(sd.dm.ss.Fields)
 
