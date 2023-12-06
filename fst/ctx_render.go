@@ -114,8 +114,8 @@ func (c *Context) kvSucFai(status string, code int, msg string, data any) {
 	c.Json(http.StatusOK, jsonData)
 }
 
-// 直接将出入的值作为JSON数据返回
-func (c *Context) SucGsonString(key, val string) {
+// 主要用于JSON片段值 val 的返回，返回之前加入通用参数
+func (c *Context) SucJsonPart(key, val string) {
 	var buf strings.Builder
 	buf.Grow(128)
 

@@ -16,7 +16,8 @@ const (
 )
 
 var (
-	kvTableSchema = new(TableSchema) // 虚拟 cst.KV 类型 对应的 TableSchema 变量
+	nilTableSchema = new(TableSchema) // 虚拟 nil 变量 对应的 TableSchema 变量
+	kvTableSchema  = new(TableSchema) // 虚拟 cst.KV 类型 对应的 TableSchema 变量
 )
 
 type OrmStruct interface {

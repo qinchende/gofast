@@ -18,6 +18,13 @@ func Schema(obj any) *TableSchema {
 	return SchemaByType(reflect.TypeOf(obj))
 }
 
+func SchemaNil(obj any) *TableSchema {
+	if obj == nil {
+		return nilTableSchema
+	}
+	return SchemaByType(reflect.TypeOf(obj))
+}
+
 func SchemaByType(typ reflect.Type) *TableSchema {
 	// typ 可能是：*Struct，Struct，*[]Struct，[]Struct, *[]*Struct, []*Struct, *[]cst.KV 等类型
 	kd := typ.Kind()
