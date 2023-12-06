@@ -321,12 +321,17 @@ func scanSqlRowsList(objs any, sqlRows *sql.Rows) int64 {
 }
 
 // 解析多条记录
-// TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 list 又如何处理呢？
 // Params:
-// 1. objs 只能是*[]Type，Type可以是 Struct | cst.KV | [base type]，项目值也可以是指针嵌套
+// 1. list 只能是*[]Type，Type可以是 Struct | cst.KV
+// TODO: 如果目标值类型 不是某个 struct，而是一个值类型的 list 又如何处理呢？
 // Return:
 // 1. int64 返回解析到的记录数 >= 0
 func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) int64 {
+	// 只需要GsonStr的时候
+	if list == nil {
+
+	}
+
 	// 先检查目标值的类型
 	dstType := reflect.TypeOf(list)
 	if dstType.Kind() != reflect.Pointer {
@@ -448,6 +453,6 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 		return int64(len(*kvList))
 	}
 
-	cst.PanicString("Unsupported the dest value type.")
+	cst.PanicString("Unsupported the target value type.")
 	return 0
 }

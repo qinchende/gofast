@@ -152,9 +152,9 @@ func selectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func buildPetSql(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
+func (pet *SelectPet) readyForSql(ts *orm.TableSchema) {
 	if pet.isReady {
-		return pet
+		return
 	}
 
 	if pet.Table == "" {
@@ -188,22 +188,21 @@ func buildPetSql(ts *orm.TableSchema, pet *SelectPet) *SelectPet {
 	}
 
 	pet.isReady = true
-	return pet
 }
 
-func selectSqlByPet(ts *orm.TableSchema, pet *SelectPet) string {
+func selectSqlByPet(pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
 		pet.orderByT, pet.Limit, pet.Offset)
 }
 
-func selectCountSqlByPet(ts *orm.TableSchema, pet *SelectPet) string {
+func selectCountSqlByPet(pet *SelectPet) string {
 	if pet.GroupBy == "" {
 		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
 	}
 	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
-func selectPagingSqlByPet(ts *orm.TableSchema, pet *SelectPet) string {
+func selectPagingSqlByPet(pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
 		pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }

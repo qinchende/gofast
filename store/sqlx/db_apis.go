@@ -110,12 +110,11 @@ func (conn *OrmDB) QueryRows2(objs any, fields string, where string, args ...any
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 高级查询，可以自定义更多参数
 func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
-	ts := orm.Schema(pet.List)
-
+	ts := orm.SchemaNil(pet.List)
 	sql := pet.Sql
 	if sql == "" {
-		buildPetSql(ts, pet)
-		sql = selectSqlByPet(ts, pet)
+		pet.readyForSql(ts)
+		sql = selectSqlByPet(pet)
 	}
 
 	ct, _ := queryByPet(conn, sql, "", pet, ts)
@@ -125,16 +124,16 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 // 分页版本，更方便用于数据查询管理
 func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 	ts := orm.Schema(pet.List)
-
 	sql := pet.Sql
 	if sql == "" {
-		buildPetSql(ts, pet)
-		sql = selectPagingSqlByPet(ts, pet)
+		pet.readyForSql(ts)
+		sql = selectPagingSqlByPet(pet)
 	}
 
 	sqlCt := pet.SqlCount
 	if sqlCt == "" {
-		sqlCt = selectCountSqlByPet(ts, pet)
+		pet.readyForSql(ts)
+		sqlCt = selectCountSqlByPet(pet)
 	} else if strings.ToLower(sqlCt) == "false" { // 不查total，用于无级分页
 		sqlCt = ""
 	}
@@ -148,8 +147,8 @@ func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		buildPetSql(ts, pet)
-		sql = selectSqlByPet(ts, pet)
+		pet.readyForSql(ts)
+		sql = selectSqlByPet(pet)
 	}
 
 	pet.Args = formatArgs(pet.Args)
