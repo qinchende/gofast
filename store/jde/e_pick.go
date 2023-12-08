@@ -239,6 +239,13 @@ func encString(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	*bf = append(tp, "\","...)
 }
 
+func encBytes(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
+	tp := *bf
+	tp = append(tp, '"')
+	tp = append(tp, *((*[]byte)(ptr))...)
+	*bf = append(tp, "\","...)
+}
+
 func encStringOnly(bf *[]byte, ptr unsafe.Pointer) {
 	*bf = append(*bf, *((*string)(ptr))...)
 }
@@ -302,6 +309,9 @@ func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 		encBool(bf, ptr, nil)
 	case string, *string:
 		encString(bf, ptr, nil)
+
+	case []byte, *[]byte:
+		encBytes(bf, ptr, nil)
 
 	case time.Time, *time.Time:
 		encTime(bf, ptr, nil)

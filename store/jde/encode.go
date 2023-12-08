@@ -261,7 +261,15 @@ func (em *encMeta) bindPick() {
 			em.itemEnc = encMixItem
 		}
 
-	case reflect.Map, reflect.Array, reflect.Slice:
+	case reflect.Slice:
+		// 分情况，如果是字节切片，单独处理
+		if em.itemType.String() == cst.StrTypeOfBytes {
+			em.itemEnc = encBytes
+		} else {
+			em.itemEnc = encMixItem
+		}
+
+	case reflect.Map, reflect.Array:
 		em.itemEnc = encMixItem
 	default:
 		panic(errValueType)
@@ -358,7 +366,14 @@ nextField:
 		} else {
 			em.fieldsEnc[i] = encMixItem
 		}
-	case reflect.Map, reflect.Array, reflect.Slice:
+	case reflect.Slice:
+		// 分情况，如果是字节切片，单独处理
+		if em.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfBytes {
+			em.fieldsEnc[i] = encBytes
+		} else {
+			em.fieldsEnc[i] = encMixItem
+		}
+	case reflect.Map, reflect.Array:
 		em.fieldsEnc[i] = encMixItem
 
 	default:

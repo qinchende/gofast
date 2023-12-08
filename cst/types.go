@@ -16,6 +16,7 @@ const (
 	StrTypeOfStrAnyMap = "map[string]interface {}"
 	StrTypeOfStrStrMap = "map[string]string"
 	StrTypeOfTime      = "time.Time"
+	StrTypeOfBytes     = "[]byte"
 )
 
 // 可能用map，也可能自定义数组等合适的数据结构存取。

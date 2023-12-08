@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"
@@ -121,32 +122,35 @@ func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.Table
 		}
 	}
 
-	// 需要 GsonRows 对象
-	var encPet *gson.RowsEncPet
-	if pet.GsonNeed || pet.CacheExpireS > 0 {
-		encPet = new(gson.RowsEncPet)
-		encPet.Tt = tt
-	}
-
 	sqlRows := conn.QuerySql(sql, pet.Args...)
 	defer CloseSqlRows(sqlRows)
-	ct = scanSqlRowsListSuper(pet.List, sqlRows, encPet)
 
-	var err error
-	if pet.GsonNeed {
-		pet.GsonStr, err = jde.EncodeGsonRowsPetString(encPet)
-		panicIfSqlErr(err)
-	}
-	if ct > 0 && pet.CacheExpireS > 0 {
-		jsonStr := ""
-		if pet.GsonNeed {
-			jsonStr = pet.GsonStr
-		} else {
-			jsonStr, err = jde.EncodeGsonRowsPetString(encPet)
+	// 分两种情况解析：
+	// A. 只需要将结果转成GsonStr
+	// B. 需要解析成指定对象，同时可能也需要GsonStr
+	if pet.GsonOnly || (pet.GsonNeed && pet.List == nil) {
+		ct = scanSqlRowsToGson(sqlRows, pet, tt) // 直接将数据库查询结果转换成 GsonRows 格式数据
+	} else {
+		// 需要 GsonRows 对象
+		var encPet *gson.RowsEncPet
+		if pet.GsonNeed || pet.CacheExpireS > 0 {
+			encPet = new(gson.RowsEncPet)
+			encPet.Tt = tt
+		}
+
+		ct = scanSqlRowsListSuper(pet.List, sqlRows, encPet)
+
+		if encPet != nil {
+			var err error
+			pet.GsonStr, err = jde.EncodeGsonRowsPetString(encPet)
 			panicIfSqlErr(err)
 		}
+	}
+
+	// 可能需要缓存结果 +++++
+	if pet.CacheExpireS > 0 {
 		rds := (*conn.rdsNodes)[0]
-		_, _ = rds.SetEX(pet.cacheKey, jsonStr, time.Duration(pet.CacheExpireS)*time.Second)
+		_, _ = rds.SetEX(pet.cacheKey, pet.GsonStr, time.Duration(pet.CacheExpireS)*time.Second)
 	}
 	return ct, tt
 }
@@ -201,28 +205,6 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		panicIfSqlErr(sqlRows.Scan(scanValues...))
 		return 1
 	}
-
-	//// older +++ modify by cd.net on 20231103
-	//if dstKind == reflect.Struct {
-	//	if ts == nil {
-	//		ts = orm.SchemaByType(dstType)
-	//	}
-	//
-	//	dbColumns, _ := sqlRows.Columns()         // 查询返回的结果字段
-	//	scanValues := make([]any, len(dbColumns)) // 目标值地址
-	//
-	//	// Note: 每一个db-column都应该有对应的变量接收值
-	//	for cIdx := range dbColumns {
-	//		fIdx := ts.ColumnIndex(dbColumns[cIdx]) // 查询 db-column 对应struct中字段的索引
-	//		if fIdx >= 0 {
-	//			scanValues[cIdx] = ts.AddrByIndex(&dstVal, int8(fIdx))
-	//		} else {
-	//			scanValues[cIdx] = sharedAnyValue // 这个值会被丢弃，所以用一个共享的占位变量即可
-	//		}
-	//	}
-	//	panicIfSqlErr(sqlRows.Scan(scanValues...))
-	//	return 1
-	//}
 
 	// 2. 如果是 KV 类型呢，即目标值只返回 hash 即可
 	if dstKind == reflect.Map {
@@ -327,11 +309,6 @@ func scanSqlRowsList(objs any, sqlRows *sql.Rows) int64 {
 // Return:
 // 1. int64 返回解析到的记录数 >= 0
 func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) int64 {
-	// 只需要GsonStr的时候
-	if list == nil {
-
-	}
-
 	// 先检查目标值的类型
 	dstType := reflect.TypeOf(list)
 	if dstType.Kind() != reflect.Pointer {
@@ -455,4 +432,27 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 
 	cst.PanicString("Unsupported the target value type.")
 	return 0
+}
+
+// 直接将数据库查询结果转换成GsonStr
+func scanSqlRowsToGson(sqlRows *sql.Rows, pet *SelectPet, tt int64) (ct int64) {
+	dbColumns, _ := sqlRows.Columns()
+	clsLen := len(dbColumns)
+	scanValues := make([]any, clsLen)
+
+	bf := make([]byte, 0, 256)
+	for sqlRows.Next() {
+		ct++
+		for i := 0; i < clsLen; i++ {
+			scanValues[i] = &scanValues[i]
+		}
+		panicIfSqlErr(sqlRows.Scan(scanValues...))
+		jde.EncodeGsonRowOnlyValuePart(&bf, scanValues)
+	}
+	if ct > 0 {
+		bf = bf[:len(bf)-1]
+	}
+
+	pet.GsonStr = lang.BTS(bf)
+	return
 }
