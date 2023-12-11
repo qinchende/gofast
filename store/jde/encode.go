@@ -3,6 +3,7 @@ package jde
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/dts"
@@ -67,13 +68,13 @@ func startEncode(v any) (bs []byte, err error) {
 
 	se := subEncode{}
 	se.getEncMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
-	se.newBytesBuf()
+	se.bf = pool.GetBytesNormal()
 
 	se.encStart()
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
 
-	se.freeBytesBuf()
+	pool.FreeBytes(se.bf)
 	return
 }
 

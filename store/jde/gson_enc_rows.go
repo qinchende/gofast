@@ -3,6 +3,7 @@ package jde
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/gson"
@@ -88,7 +89,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	se.em = em
 	se.srcPtr = af.DataPtr
 
-	se.newBytesBuf()
+	se.bf = pool.GetBytesNormal()
 	if em.isStruct {
 		se.encStructListByPet(pet)
 	} else {
@@ -96,7 +97,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	}
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
-	se.freeBytesBuf()
+	pool.FreeBytes(se.bf)
 
 	return
 }

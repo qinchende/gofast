@@ -80,8 +80,10 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 			panic(errValueMustSlice)
 		}
 		itemType := sliceType.Elem()
-		// TODO：只支持struct切片，而不是struct指针切片
-		if itemType.Kind() != reflect.Struct {
+		// 支持2种数据源：
+		// A. struct B. cst.KV
+		kd := itemType.Kind()
+		if kd != reflect.Struct && itemType.String() != "cst.KV" {
 			panic(errValueMustStruct)
 		}
 

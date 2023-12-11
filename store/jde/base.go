@@ -9,9 +9,8 @@ import (
 )
 
 const (
-	ptrTypeByteSize  = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
-	maxJsonStrLen    = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
-	defEncodeBufSize = 8 * 1024                       // 默认缓存编码结果的bytes大小
+	ptrTypeByteSize = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
+	maxJsonStrLen   = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
 )
 
 var (
