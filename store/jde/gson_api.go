@@ -33,6 +33,10 @@ func EncodeGsonRowOnlyValuesBytes(obj any) ([]byte, error) {
 	return encGsonRowOnlyValues(obj)
 }
 
+func EncodeGsonRowOnlyValuesFromList(bf *[]byte, values []any) {
+	encGsonRowFromValues(bf, values)
+}
+
 // GsonRows ++++++
 func EncodeGsonRowsBytes(objs any) ([]byte, error) {
 	return encGsonRows(gson.RowsEncPet{

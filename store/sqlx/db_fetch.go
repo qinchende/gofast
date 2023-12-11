@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"
@@ -129,7 +128,8 @@ func queryByPet(conn *OrmDB, sql, sqlCount string, pet *SelectPet, ts *orm.Table
 	// A. 只需要将结果转成GsonStr
 	// B. 需要解析成指定对象，同时可能也需要GsonStr
 	if pet.GsonOnly || (pet.GsonNeed && pet.List == nil) {
-		ct = scanSqlRowsToGson(sqlRows, pet, tt) // 直接将数据库查询结果转换成 GsonRows 格式数据
+		// 直接将数据库查询结果转换成 GsonRows 格式数据
+		ct, pet.GsonStr = jde.EncodeGsonRowsFromSqlRows(sqlRows, tt)
 	} else {
 		// 需要 GsonRows 对象
 		var encPet *gson.RowsEncPet
@@ -432,27 +432,4 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 
 	cst.PanicString("Unsupported the target value type.")
 	return 0
-}
-
-// 直接将数据库查询结果转换成GsonStr
-func scanSqlRowsToGson(sqlRows *sql.Rows, pet *SelectPet, tt int64) (ct int64) {
-	dbColumns, _ := sqlRows.Columns()
-	clsLen := len(dbColumns)
-	scanValues := make([]any, clsLen)
-
-	bf := make([]byte, 0, 256)
-	for sqlRows.Next() {
-		ct++
-		for i := 0; i < clsLen; i++ {
-			scanValues[i] = &scanValues[i]
-		}
-		panicIfSqlErr(sqlRows.Scan(scanValues...))
-		jde.EncodeGsonRowOnlyValuePart(&bf, scanValues)
-	}
-	if ct > 0 {
-		bf = bf[:len(bf)-1]
-	}
-
-	pet.GsonStr = lang.BTS(bf)
-	return
 }

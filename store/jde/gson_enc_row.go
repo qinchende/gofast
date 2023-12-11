@@ -3,6 +3,7 @@ package jde
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/core/rt"
 	"reflect"
 	"runtime/debug"
@@ -50,11 +51,11 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 	se.em = em
 	se.srcPtr = af.DataPtr
 
-	se.newBytesBuf()
+	se.bf = pool.GetBytesNormal()
 	se.encGsonRowJustValues()
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
-	se.freeBytesBuf()
+	pool.FreeBytes(se.bf)
 
 	return
 }
@@ -97,4 +98,18 @@ func (se *subEncode) encGsonRowJustValues() {
 	}
 
 	*se.bf = append(tp, ']')
+}
+
+func encGsonRowFromValues(bf *[]byte, values []any) {
+	*bf = append(*bf, '[')
+	for _, val := range values {
+		encAny(bf, unsafe.Pointer(&val), nil)
+	}
+
+	tp := *bf
+	if len(values) > 0 {
+		tp = tp[:len(tp)-1]
+	}
+	tp = append(tp, `],`...)
+	*bf = tp
 }
