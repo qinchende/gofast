@@ -55,7 +55,7 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, bindOpts *BindOptions) (err error)
 
 		// 如果字段是结构体类型
 		fvType := fv.Type()
-		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
+		if fvType.Kind() == reflect.Struct && fvType != cst.TypeTime {
 			// 如果sv 无法转换成 cst.KV 类型，将要抛出异常
 			switch sv.(type) {
 			case map[string]any:
@@ -164,7 +164,7 @@ func optimizeStruct(dst any, bindOpts *BindOptions) (err error) {
 
 		// 如果字段是结构体类型
 		fvType := fv.Type()
-		if fvType.Kind() == reflect.Struct && fvType.String() != "time.Time" {
+		if fvType.Kind() == reflect.Struct && fvType != cst.TypeTime {
 			if err = optimizeStruct(fv.Addr().Interface(), bindOpts); err != nil {
 				return err
 			}

@@ -26,11 +26,8 @@ func checkDestType(dest any) (reflect.Type, reflect.Type, bool, bool) {
 	if recordType.Kind() == reflect.Pointer {
 		isPtr = true
 		recordType = recordType.Elem()
-	} else {
-		typName := recordType.Name()
-		if typName == "cst.KV" || typName == "KV" {
-			isKV = true
-		}
+	} else if recordType == cst.TypeCstKV {
+		isKV = true
 	}
 
 	return sliceType, recordType, isPtr, isKV

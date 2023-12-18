@@ -106,15 +106,15 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 
 	switch kd := rfType.Kind(); kd {
 	case reflect.Struct:
-		// GoFast Special type GsonRow
-		//if rfType.String() == gson.StrTypeOfGsonRow {
+		//// GoFast Special type GsonRow
+		//if rfType == gson.TypeGsonRow {
 		//	em.isSuperKV = true
 		//	em.isGson = true
 		//	return
 		//}
 
 		// time.Time 在Go中是一个系统级 struct 类型。变量占用24个字节
-		if rfType.String() == cst.StrTypeOfTime {
+		if rfType == cst.TypeTime {
 			em.itemKind = kd
 			em.bindPick()
 		} else {
@@ -194,8 +194,7 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 	em.isMap = true
 
 	// 特殊的Map单独处理，提高性能, 当前只支持 map[string]any 形式
-	typStr := rfType.String()
-	if typStr == cst.StrTypeOfKV || typStr == cst.StrTypeOfStrAnyMap {
+	if rfType == cst.TypeCstKV || rfType == cst.TypeStrAnyMap {
 		em.isSuperKV = true
 	}
 
@@ -256,7 +255,7 @@ func (em *encMeta) bindPick() {
 
 	case reflect.Struct:
 		// 分情况，如果是时间类型，单独处理
-		if em.itemType.String() == cst.StrTypeOfTime {
+		if em.itemType == cst.TypeTime {
 			em.itemEnc = encTime
 		} else {
 			em.itemEnc = encMixItem
@@ -264,7 +263,7 @@ func (em *encMeta) bindPick() {
 
 	case reflect.Slice:
 		// 分情况，如果是字节切片，单独处理
-		if em.itemType.String() == cst.StrTypeOfBytes {
+		if em.itemType == cst.TypeBytes {
 			em.itemEnc = encBytes
 		} else {
 			em.itemEnc = encMixItem
@@ -362,14 +361,14 @@ nextField:
 
 	case reflect.Struct:
 		// 分情况，如果是时间类型，单独处理
-		if em.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfTime {
+		if em.ss.FieldsAttr[i].Type == cst.TypeTime {
 			em.fieldsEnc[i] = encTime
 		} else {
 			em.fieldsEnc[i] = encMixItem
 		}
 	case reflect.Slice:
 		// 分情况，如果是字节切片，单独处理
-		if em.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfBytes {
+		if em.ss.FieldsAttr[i].Type == cst.TypeBytes {
 			em.fieldsEnc[i] = encBytes
 		} else {
 			em.fieldsEnc[i] = encMixItem

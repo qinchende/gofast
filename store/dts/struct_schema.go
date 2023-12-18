@@ -177,7 +177,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			fa.SqlValue = fa.anyValue
 
 		case reflect.Struct:
-			if fa.Type.String() == "time.Time" {
+			if fa.Type == cst.TypeTime {
 				fa.KVBinder = setTime
 				fa.SqlValue = fa.timeValue
 			} else {
@@ -262,7 +262,7 @@ func structFields(typ reflect.Type, parentIdx []int, opts *BindOptions) ([]strin
 
 		// 结构体，需要递归提取其中的字段
 		fiType := fi.Type
-		if fi.Anonymous && fiType.Kind() == reflect.Struct && fiType.String() != "time.Time" {
+		if fi.Anonymous && fiType.Kind() == reflect.Struct && fiType != cst.TypeTime {
 			newPIdx := make([]int, 0)
 			newPIdx = append(newPIdx, parentIdx...)
 			newPIdx = append(newPIdx, i)

@@ -180,7 +180,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 
 	// NOTE: 当前绑定对象支持三种情况
 	// 1. 目标值是结构体类型，只取第一行数据
-	if dstKind == reflect.Struct && dstType.String() != "time.Time" {
+	if dstKind == reflect.Struct && dstType != cst.TypeTime {
 		if ts == nil {
 			ts = orm.SchemaByType(dstType)
 		}
@@ -219,8 +219,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 			// 根据结果类型做适当的转换
 			clsTypes, _ := sqlRows.ColumnTypes()
 			for i := range dbColumns {
-				typ := clsTypes[i].ScanType()
-				if typ.String() == "sql.RawBytes" {
+				if clsTypes[i].ScanType() == TypeSqlRawBytes {
 					scanValues[i] = (*string)(unsafe.Pointer(&scanValues[i]))
 				} else {
 					scanValues[i] = &scanValues[i]
@@ -279,7 +278,7 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 	case reflect.String:
 		panicIfSqlErr(sqlRows.Scan(dts.StringValue(objPtr)))
 	case reflect.Struct:
-		// 此时只可能是time.Time -> dstType.String() == "time.Time"
+		// 此时只可能是time.Time
 		panicIfSqlErr(sqlRows.Scan(dts.TimeValue(objPtr)))
 	case reflect.Interface:
 		panicIfSqlErr(sqlRows.Scan(dts.AnyValue(objPtr)))
@@ -324,7 +323,6 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 	// 申请运算过程中用到的临时变量 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	dbColumns, _ := sqlRows.Columns()
 	clsLen := len(dbColumns)
-	scanValues := make([]any, clsLen)
 
 	// 目前只支持2种 item 类型
 	itemKind := itemType.Kind()
@@ -334,6 +332,7 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 		// 此时直接获取类型的 TableSchema 即可，无需多余的检查，因为前面已经检查过了
 		ts := orm.SchemaByTypeDirect(itemType)
 
+		scanValues := make([]any, clsLen)
 		fIndexes := make([]int8, clsLen)
 		for i := 0; i < clsLen; i++ {
 			fIndexes[i] = int8(ts.ColumnIndex(dbColumns[i]))
@@ -398,10 +397,11 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 		// 根据结果类型做适当的转换
 		clsTypes, _ := sqlRows.ColumnTypes()
 		for sqlRows.Next() {
+			scanValues := make([]any, clsLen)
 			kv := make(cst.KV, clsLen)
+
 			for i := range dbColumns {
-				typ := clsTypes[i].ScanType()
-				if typ.String() == "sql.RawBytes" {
+				if clsTypes[i].ScanType() == TypeSqlRawBytes {
 					scanValues[i] = (*string)(unsafe.Pointer(&scanValues[i]))
 				} else {
 					scanValues[i] = &scanValues[i]

@@ -44,7 +44,7 @@ func SchemaByType(typ reflect.Type) *TableSchema {
 	if kd != reflect.Struct {
 		// 如果是 cst.KV 类型也默认支持，意味着此时想到得到JSON数据
 		// 非 struct 类型中，只支持 cst.KV
-		if typ.String() == "cst.KV" {
+		if typ == cst.TypeCstKV {
 			ts := kvTableSchema
 			cacheSetSchema(typ, ts)
 			return ts
