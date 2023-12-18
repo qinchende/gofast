@@ -37,11 +37,11 @@ func GetBytesLarge() *[]byte {
 }
 
 func FreeBytes(bs *[]byte) {
-	if len(*bs) > bytesSizeMax {
+	if cap(*bs) >= bytesSizeMax {
 		return
-	} else if len(*bs) > bytesSizeLarge {
+	} else if cap(*bs) >= bytesSizeLarge {
 		bytesPoolLarge.Put(bs)
-	} else if len(*bs) > bytesSizeNormal {
+	} else if cap(*bs) >= bytesSizeNormal {
 		bytesPoolNormal.Put(bs)
 	} else {
 		bytesPoolMini.Put(bs)
@@ -52,13 +52,13 @@ func FreeBytes(bs *[]byte) {
 // 自定义一个 BytesPool 对象，方便管理自定义大小以下的 BytesBuffer
 type BytesPool struct {
 	capability int
-	pool       *sync.Pool
+	pool       sync.Pool
 }
 
 func NewBytesPool(capability int) *BytesPool {
 	return &BytesPool{
 		capability: capability,
-		pool: &sync.Pool{
+		pool: sync.Pool{
 			New: func() any {
 				return new(bytes.Buffer)
 			},

@@ -4,18 +4,17 @@ import (
 	"database/sql"
 	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/cst"
-	"strconv"
 )
 
 // 直接将数据库查询结果转换成GsonStr
-func EncodeGsonRowsFromSqlRows(sqlRows *sql.Rows, tt int64) (ct int64, str string) {
+func EncodeGsonRowsFromSqlRows(sqlRows *sql.Rows, tt int64) (ct int64, gsonStr string) {
 	dbColumns, _ := sqlRows.Columns()
 	clsLen := len(dbColumns)
 	scanValues := make([]any, clsLen)
 
 	// 先计算数据库
-	bf := pool.GetBytesNormal()
-	defer pool.FreeBytes(bf)
+	bs1 := pool.GetBytesNormal()
+	defer pool.FreeBytes(bs1)
 
 	for sqlRows.Next() {
 		ct++
@@ -23,41 +22,22 @@ func EncodeGsonRowsFromSqlRows(sqlRows *sql.Rows, tt int64) (ct int64, str strin
 			scanValues[i] = &scanValues[i]
 		}
 		cst.PanicIfErr(sqlRows.Scan(scanValues...))
-		encGsonRowFromValues(bf, scanValues)
+		encGsonRowFromValues(bs1, scanValues)
 	}
 
-	bf2 := pool.GetBytesNormal()
-	defer pool.FreeBytes(bf2)
+	bs2 := pool.GetBytesNormal()
+	defer pool.FreeBytes(bs2)
 
-	tp := *bf2
-	tp = append(tp, '[')
-
-	// 0. 当前记录数量
-	tp = append(tp, strconv.FormatInt(int64(ct), 10)...)
-	tp = append(tp, ',')
-	// 1. 总记录数量
-	tp = append(tp, strconv.FormatInt(tt, 10)...)
-	tp = append(tp, ",["...)
-
-	// 2. 字段
-	for i := 0; i < len(dbColumns); i++ {
-		if i != 0 {
-			tp = append(tp, ',')
-		}
-		tp = append(tp, '"')
-		tp = append(tp, dbColumns[i]...)
-		tp = append(tp, '"')
-	}
-	tp = append(tp, "],["...)
+	ret := encGsonRowsHeader(*bs2, ct, tt, dbColumns)
 
 	// 3. 记录值
-	tp = append(tp, (*bf)...)
+	ret = append(ret, (*bs1)...)
 	if ct > 0 {
-		tp = tp[:len(tp)-1]
+		ret = ret[:len(ret)-1]
 	}
 
 	// 4. 收尾
-	tp = append(tp, "]]"...)
-	str = string(tp)
+	ret = append(ret, "]]"...)
+	gsonStr = string(ret)
 	return
 }

@@ -24,12 +24,13 @@ type (
 		mp     *cst.KV        // map
 		gr     *gson.GsonRow  // GsonRow
 		dm     *decMeta       // Struct | Slice,Array
-		dstPtr unsafe.Pointer // 目标值dst的地址
+		dstPtr unsafe.Pointer // 目标对象的内存地址
 
 		// 当前解析JSON的状态信息 ++++++
 		str  string // 本段字符串
 		scan int    // 自己的扫描进度，当解析错误时，这个就是定位
 
+		// 辅助变量
 		pl     *listPool // 当解析数组时候用到的一系列临时队列
 		escPos []int     // 存放转义字符'\'的索引位置
 		keyIdx int       // key index
@@ -210,11 +211,11 @@ func (sd *subDecode) resetShareDecode() {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // rfType 是 剥离 Pointer 之后的最终类型
 func (sd *subDecode) getDecMeta(rfType reflect.Type, ptr unsafe.Pointer) {
-	if meta := cacheGetMeta(rfType); meta != nil {
+	if meta := cacheGetDecMeta(rfType); meta != nil {
 		sd.dm = meta
 	} else {
 		sd.dm = newDecodeMeta(rfType)
-		cacheSetMeta(rfType, sd.dm)
+		cacheSetDecMeta(rfType, sd.dm)
 	}
 
 	if sd.dm.isSuperKV {
@@ -238,20 +239,20 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 		dm.initListMeta(rfType)
 	case reflect.Struct:
 		// 模拟泛型解析，提高性能
-		if rfType.String() == gson.StrTypeOfGsonRow {
+		if rfType == gson.TypeGsonRow {
 			dm.isSuperKV = true
 			dm.isGson = true
 			dm.bindGsonDec()
 			return
 		}
 		// 不能单独支持对time.Time类型的解析
-		if rfType.String() == cst.StrTypeOfTime {
+		if rfType == cst.TypeTime {
 			panic(errValueType)
 		}
 		dm.initStructMeta(rfType)
 	case reflect.Map:
 		// 只能解析到map[string]any，其它map类型暂时不支持
-		if rfType.String() == cst.StrTypeOfKV || rfType.String() == cst.StrTypeOfStrAnyMap {
+		if rfType == cst.TypeCstKV || rfType == cst.TypeStrAnyMap {
 			dm.isSuperKV = true
 			dm.isMap = true
 			dm.bindMapDec()
@@ -392,9 +393,9 @@ nextField:
 
 		case reflect.Struct:
 			// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
-			if dm.ss.FieldsAttr[i].Type.String() == gson.StrTypeOfRowsPet {
+			if dm.ss.FieldsAttr[i].Type == gson.TypeRowsDecPet {
 				dm.fieldsDec[i] = scanObjGsonPet
-			} else if dm.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfTime {
+			} else if dm.ss.FieldsAttr[i].Type == cst.TypeTime {
 				dm.fieldsDec[i] = scanObjTimeValue
 			} else {
 				dm.fieldsDec[i] = scanObjMixValue
@@ -442,9 +443,9 @@ nextField:
 		dm.fieldsDec[i] = scanObjPtrAnyValue
 	case reflect.Struct:
 		// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
-		if dm.ss.FieldsAttr[i].Type.String() == gson.StrTypeOfRowsPet {
+		if dm.ss.FieldsAttr[i].Type == gson.TypeRowsDecPet {
 			dm.fieldsDec[i] = scanObjGsonPet
-		} else if dm.ss.FieldsAttr[i].Type.String() == cst.StrTypeOfTime {
+		} else if dm.ss.FieldsAttr[i].Type == cst.TypeTime {
 			dm.fieldsDec[i] = scanObjPtrTimeValue
 		} else {
 			dm.fieldsDec[i] = scanObjPtrMixValue
@@ -493,9 +494,9 @@ func (dm *decMeta) bindListDec() {
 			dm.itemDec = scanArrAnyValue
 		case reflect.Struct:
 			// Note: 有个特殊情况，当处理GsonRows解析时候，要特殊处理
-			if dm.itemType.String() == gson.StrTypeOfRowsPet {
+			if dm.itemType == gson.TypeRowsDecPet {
 				dm.itemDec = scanObjGsonPet
-			} else if dm.itemType.String() == cst.StrTypeOfTime {
+			} else if dm.itemType == cst.TypeTime {
 				dm.itemDec = scanArrTimeValue
 			} else {
 				dm.itemDec = scanArrMixValue

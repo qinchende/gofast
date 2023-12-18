@@ -9,12 +9,6 @@ import (
 	"unsafe"
 )
 
-//type gsonRowDecode struct {
-//	sd     subDecode // 共享的subDecode，用来解析子对象
-//	fc     int       // 字段数量
-//	flsIdx []uint8   // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
-//}
-
 // 解析GsonRow的值部分
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decGsonRowOnlyValues(obj any, str string) (err error) {
@@ -34,7 +28,7 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 	var dm *decMeta
 
 	// check target object
-	if dm = cacheGetGsonDecMeta(af.TypePtr); dm == nil {
+	if dm = cacheGetDecMetaFast(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(obj)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -45,11 +39,11 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 			panic(errValueMustStruct)
 		}
 
-		if dm = cacheGetMeta(objType); dm == nil {
+		if dm = cacheGetDecMeta(objType); dm == nil {
 			dm = newDecodeMeta(objType)
-			cacheSetMeta(objType, dm)
+			cacheSetDecMeta(objType, dm)
 		}
-		cacheSetGsonDecMeta(af.TypePtr, dm)
+		cacheSetDecMetaFast(af.TypePtr, dm)
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++

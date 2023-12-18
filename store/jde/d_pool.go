@@ -3,26 +3,8 @@ package jde
 import (
 	"golang.org/x/exp/constraints"
 	"reflect"
-	"sync"
 	"unsafe"
 )
-
-var (
-	jdeDecPool     = sync.Pool{New: func() any { return &subDecode{} }}
-	jdeBufPool     = sync.Pool{New: func() any { return &listPool{} }}
-	cachedDestMeta sync.Map // cached dest value meta info
-)
-
-func cacheSetMeta(typAddr any, val *decMeta) {
-	cachedDestMeta.Store(typAddr, val)
-}
-
-func cacheGetMeta(typAddr any) *decMeta {
-	if ret, ok := cachedDestMeta.Load(typAddr); ok {
-		return ret.(*decMeta)
-	}
-	return nil
-}
 
 // TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
 type listPool struct {

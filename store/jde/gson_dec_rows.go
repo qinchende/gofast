@@ -4,37 +4,22 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/core/rt"
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/gson"
 	"reflect"
 	"runtime/debug"
-	"sync"
 	"unsafe"
 )
-
-var (
-	grsDecPool        = sync.Pool{New: func() any { return &gsonRowsDecode{} }}
-	cachedGsonDecMeta sync.Map
-)
-
-func cacheSetGsonDecMeta(typAddr *rt.TypeAgent, val *decMeta) {
-	cachedGsonDecMeta.Store(typAddr, val)
-}
-
-func cacheGetGsonDecMeta(typAddr *rt.TypeAgent) *decMeta {
-	if ret, ok := cachedGsonDecMeta.Load(typAddr); ok {
-		return ret.(*decMeta)
-	}
-	return nil
-}
 
 type gsonRowsDecode struct {
 	sd subDecode // 共享的subDecode，用来解析子对象
 	ct int64     // 记录条数
 	tt int64     // 当前查询条件总记录数（用于分页）
 
-	fc     int       // 字段数量
-	flsIdx [128]int8 // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
+	clsCt   int       // 字段数量
+	clsIdx  [128]int8 // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
+	columns []string  // 字段名称
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -52,7 +37,7 @@ func scanObjGsonPet(sd *subDecode) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
+func decGsonRows(v any, source string) (ret gson.RowsDecRet) {
 	defer func() {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
@@ -65,11 +50,11 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 		}
 	}()
 
-	af := (*rt.AFace)(unsafe.Pointer(&v))
 	var dm *decMeta
+	af := (*rt.AFace)(unsafe.Pointer(&v))
 
 	// check target object
-	if dm = cacheGetGsonDecMeta(af.TypePtr); dm == nil {
+	if dm = cacheGetDecMetaFast(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(v)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -80,44 +65,48 @@ func decGsonRows(v any, str string) (ret gson.RowsDecRet) {
 			panic(errValueMustSlice)
 		}
 		itemType := sliceType.Elem()
+
 		// 支持2种数据源：
 		// A. struct B. cst.KV
 		kd := itemType.Kind()
-		if kd != reflect.Struct && itemType.String() != "cst.KV" {
+		if kd != reflect.Struct && itemType != cst.TypeCstKV {
 			panic(errValueMustStruct)
 		}
 
-		if dm = cacheGetMeta(itemType); dm == nil {
+		if dm = cacheGetDecMeta(itemType); dm == nil {
 			dm = newDecodeMeta(itemType)
-			cacheSetMeta(itemType, dm)
+			cacheSetDecMeta(itemType, dm)
 		}
-		cacheSetGsonDecMeta(af.TypePtr, dm)
+		cacheSetDecMetaFast(af.TypePtr, dm)
 	}
 
 	// +++++++++++++++++++++++++++++++++++++++
-	// var grs gsonRowsDecode
 	grs := grsDecPool.Get().(*gsonRowsDecode)
+	defer grsDecPool.Put(grs)
 
-	// init subDecode
-	sd := &grs.sd
-	sd.reset()
-	sd.dm = dm
-	sd.str = str
-	sd.dstPtr = af.DataPtr
+	grs.initDecode(dm, af.DataPtr, source)
 	grs.scanGsonRows()
 
 	ret.Ct = grs.ct
 	ret.Tt = grs.tt
 	ret.Scan = grs.sd.scan
-
-	grsDecPool.Put(grs)
 	return
+}
+
+func (grs *gsonRowsDecode) initDecode(dm *decMeta, ptr unsafe.Pointer, source string) {
+	sd := &grs.sd
+	sd.reset()
+	sd.dm = dm
+	sd.str = source
+	sd.dstPtr = ptr
+	grs.columns = grs.columns[0:0]
 }
 
 func (grs *gsonRowsDecode) scanGsonRows() {
 	sd := &grs.sd
+	dm := sd.dm
 	sh := (*reflect.SliceHeader)(sd.dstPtr)
-	flsCT := 0
+	tmpCT := 0
 
 	pos := sd.scan
 	for isBlankChar[sd.str[pos]] {
@@ -148,7 +137,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		} else if c == ']' {
 			pos++
 			break
-		} else if flsCT > 0 {
+		} else if tmpCT > 0 {
 			goto errChar
 		}
 
@@ -166,10 +155,14 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		} else {
 			key = sd.str[start+1 : pos-1]
 		}
-		grs.flsIdx[flsCT] = int8(sd.dm.ss.ColumnIndex(key)) // 比对 column 名称
-		flsCT++
+		if dm.isStruct {
+			grs.clsIdx[tmpCT] = int8(dm.ss.ColumnIndex(key)) // 比对 column 名称
+		} else {
+			grs.columns = append(grs.columns, key)
+		}
+		tmpCT++
 	}
-	grs.fc = flsCT // 多少个有效字段
+	grs.clsCt = tmpCT // 多少个有效字段
 
 	// 3. values +++++++++++++++++++++++++++++++++++++++++++++++
 	if sd.str[pos] != ',' {
@@ -181,35 +174,72 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 	}
 	pos++
 
-	// 根据记录数量，初始化对象空间
-	flsCT = int(grs.ct)
-	if flsCT > sh.Cap {
-		*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*sd.dm.itemRawSize, flsCT*sd.dm.itemRawSize)
-		sh.Len, sh.Cap = flsCT, flsCT
-	} else {
-		sh.Len = flsCT
-	}
-
-	flsCT = 0
-	for {
-		c = sd.str[pos]
-		if c == ',' {
-			pos++
-		} else if c == ']' {
-			pos++
-			goto finished
+	if dm.isStruct {
+		// 根据记录数量，初始化对象空间 +++
+		tmpCT = int(grs.ct)
+		if tmpCT > sh.Cap {
+			*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*dm.itemRawSize, tmpCT*dm.itemRawSize)
+			sh.Len, sh.Cap = tmpCT, tmpCT
+		} else {
+			sh.Len = tmpCT
 		}
+		// END分配内存空间 ++++++++++++++++
 
-		sd.scan = pos
-		sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(flsCT*sd.dm.itemRawSize))
-		//// 如果是指针，需要分配空间
-		//if sd.dm.isPtr {
-		//	sd.dstPtr = getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
-		//}
-		grs.scanJsonRowRecode()
-		pos = sd.scan
+		tmpCT = 0
+		for {
+			c = sd.str[pos]
+			if c == ',' {
+				pos++
+			} else if c == ']' {
+				pos++
+				goto finished
+			}
 
-		flsCT++
+			sd.scan = pos
+			sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(tmpCT*dm.itemRawSize))
+			//// 如果是指针，需要分配空间
+			//if sd.dm.isPtr {
+			//	sd.dstPtr = getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
+			//}
+			grs.scanStructRecord()
+			pos = sd.scan
+
+			tmpCT++
+		}
+	} else {
+		// 根据记录数量，初始化对象空间 +++
+		tmpCT = int(grs.ct)
+		if tmpCT > sh.Cap {
+			*(*[]cst.KV)(sd.dstPtr) = make([]cst.KV, tmpCT)
+			sh.Len, sh.Cap = tmpCT, tmpCT
+		} else {
+			sh.Len = tmpCT
+		}
+		// END分配内存空间 ++++++++++++++++
+
+		tmpCT = 0
+		for {
+			c = sd.str[pos]
+			if c == ',' {
+				pos++
+			} else if c == ']' {
+				pos++
+				goto finished
+			}
+
+			sd.scan = pos
+			sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(tmpCT*ptrTypeByteSize))
+
+			// 给 cst.KV类型指针 初始化变量
+			theMap := make(cst.KV, grs.clsCt)
+			sd.mp = &theMap
+			*(*unsafe.Pointer)(sd.dstPtr) = *(*unsafe.Pointer)((unsafe.Pointer)(sd.mp))
+
+			grs.scanKVRecord()
+			pos = sd.scan
+
+			tmpCT++
+		}
 	}
 
 errChar:
@@ -231,7 +261,7 @@ finished:
 	sd.scan = pos
 }
 
-func (grs *gsonRowsDecode) scanJsonRowRecode() {
+func (grs *gsonRowsDecode) scanStructRecord() {
 	sd := &grs.sd
 
 	if sd.str[sd.scan] != '[' {
@@ -250,13 +280,36 @@ func (grs *gsonRowsDecode) scanJsonRowRecode() {
 			panic(errList)
 		}
 
-		sd.keyIdx = int(grs.flsIdx[fc])
-		if sd.keyIdx >= 0 && fc < grs.fc {
+		sd.keyIdx = int(grs.clsIdx[fc])
+		if sd.keyIdx >= 0 && fc < grs.clsCt {
 			sd.dm.fieldsDec[sd.keyIdx](sd)
 		} else {
 			sd.skipOneValue()
 		}
 
+		fc++
+	}
+}
+
+func (grs *gsonRowsDecode) scanKVRecord() {
+	sd := &grs.sd
+
+	if sd.str[sd.scan] != '[' {
+		panic(errChar)
+	}
+	sd.scan++
+
+	fc := 0
+	for {
+		if sd.str[sd.scan] == ',' {
+			sd.scan++
+		} else if sd.str[sd.scan] == ']' {
+			sd.scan++
+			return
+		} else if fc > 0 {
+			panic(errList)
+		}
+		sd.dm.kvPairDec(sd, grs.columns[fc])
 		fc++
 	}
 }

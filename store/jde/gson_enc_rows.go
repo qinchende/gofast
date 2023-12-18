@@ -10,24 +10,8 @@ import (
 	"reflect"
 	"runtime/debug"
 	"strconv"
-	"sync"
 	"unsafe"
 )
-
-var (
-	cachedGsonEncMeta sync.Map
-)
-
-func cacheSetGsonEncMeta(typAddr *rt.TypeAgent, val *encMeta) {
-	cachedGsonEncMeta.Store(typAddr, val)
-}
-
-func cacheGetGsonEncMeta(typAddr *rt.TypeAgent) *encMeta {
-	if ret, ok := cachedGsonEncMeta.Load(typAddr); ok {
-		return ret.(*encMeta)
-	}
-	return nil
-}
 
 // Encoder +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
@@ -47,7 +31,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	var em *encMeta
 
 	// check target object
-	if em = cacheGetGsonEncMeta(af.TypePtr); em == nil {
+	if em = cacheGetEncMetaFast(af.TypePtr); em == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(pet.List)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -62,7 +46,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 		// 支持2种数据源：
 		// A. struct B. cst.KV
 		kd := itemType.Kind()
-		if kd != reflect.Struct && itemType.String() != "cst.KV" {
+		if kd != reflect.Struct && itemType != cst.TypeCstKV {
 			panic(errValueMustStruct)
 		}
 
@@ -70,7 +54,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 			em = newEncodeMeta(itemType)
 			cacheSetEncMeta(itemType, em)
 		}
-		cacheSetGsonEncMeta(af.TypePtr, em)
+		cacheSetEncMetaFast(af.TypePtr, em)
 	}
 
 	// 检查 pet 参数是否齐全，缺失就补齐
@@ -103,29 +87,9 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 }
 
 func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
-	tp := *se.bf
-	tp = append(tp, '[')
-
 	// struct slice
 	sh := (*reflect.SliceHeader)(se.srcPtr)
-
-	// 0. 当前记录数量
-	tp = append(tp, strconv.FormatInt(int64(sh.Len), 10)...)
-	tp = append(tp, ',')
-	// 1. 总记录数量
-	tp = append(tp, strconv.FormatInt(pet.Tt, 10)...)
-	tp = append(tp, ",["...)
-
-	// 2. 字段
-	for i := 0; i < len(pet.Cls); i++ {
-		if i != 0 {
-			tp = append(tp, ',')
-		}
-		tp = append(tp, '"')
-		tp = append(tp, pet.Cls[i]...)
-		tp = append(tp, '"')
-	}
-	tp = append(tp, "],["...)
+	tp := encGsonRowsHeader(*se.bf, int64(sh.Len), pet.Tt, pet.Cls)
 
 	// 3. 记录值
 	flsSize := len(pet.ClsIdx)
@@ -174,29 +138,9 @@ func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 }
 
 func (se *subEncode) encMapListByPet(pet gson.RowsEncPet) {
-	tp := *se.bf
-	tp = append(tp, '[')
-
 	// struct slice
 	sh := (*reflect.SliceHeader)(se.srcPtr)
-
-	// 0. 当前记录数量
-	tp = append(tp, strconv.FormatInt(int64(sh.Len), 10)...)
-	tp = append(tp, ',')
-	// 1. 总记录数量
-	tp = append(tp, strconv.FormatInt(pet.Tt, 10)...)
-	tp = append(tp, ",["...)
-
-	// 2. 字段
-	for i := 0; i < len(pet.Cls); i++ {
-		if i != 0 {
-			tp = append(tp, ',')
-		}
-		tp = append(tp, '"')
-		tp = append(tp, pet.Cls[i]...)
-		tp = append(tp, '"')
-	}
-	tp = append(tp, "],["...)
+	tp := encGsonRowsHeader(*se.bf, int64(sh.Len), pet.Tt, pet.Cls)
 
 	// 3. 记录值
 	//flsStr := strings.ReplaceAll(pet.ClsStr, `"`, "")
@@ -227,4 +171,29 @@ func (se *subEncode) encMapListByPet(pet gson.RowsEncPet) {
 		tp = tp[:len(tp)-1]
 	}
 	*se.bf = append(tp, "]]"...)
+}
+
+// encode gson rows 的前半部分
+func encGsonRowsHeader(tp []byte, ct, tt int64, cls []string) []byte {
+	tp = append(tp, '[')
+
+	// 0. 当前记录数量
+	tp = append(tp, strconv.FormatInt(ct, 10)...)
+	tp = append(tp, ',')
+
+	// 1. 总记录数量
+	tp = append(tp, strconv.FormatInt(tt, 10)...)
+	tp = append(tp, ",["...)
+
+	// 2. 字段
+	for i := 0; i < len(cls); i++ {
+		if i != 0 {
+			tp = append(tp, ',')
+		}
+		tp = append(tp, '"')
+		tp = append(tp, cls[i]...)
+		tp = append(tp, '"')
+	}
+	tp = append(tp, "],["...)
+	return tp
 }

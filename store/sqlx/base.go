@@ -6,22 +6,27 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/store/dts"
+	"reflect"
 	"time"
 )
 
 const (
 	slowThreshold      = time.Millisecond * 500 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
 	cacheDelFlagSuffix = "_del_mark"
-)
 
-const (
 	CacheMem   uint8 = iota // 默认0：用本地内存缓存，无法实现分布式一致性。但支持存取对象，性能好
 	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
 )
 
 var (
 	sharedAnyValue = new(dts.SqlSkip)
+
+	TypeSqlRawBytes reflect.Type
 )
+
+func init() {
+	TypeSqlRawBytes = reflect.TypeOf(sql.RawBytes{})
+}
 
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type OrmDB struct {

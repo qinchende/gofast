@@ -28,7 +28,7 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 	var em *encMeta
 
 	// check target object
-	if em = cacheGetGsonEncMeta(af.TypePtr); em == nil {
+	if em = cacheGetEncMetaFast(af.TypePtr); em == nil {
 		// +++++++++++++ check type
 		dstTyp := reflect.TypeOf(obj)
 		if dstTyp.Kind() != reflect.Pointer {
@@ -44,7 +44,7 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 			em = newEncodeMeta(objType)
 			cacheSetEncMeta(objType, em)
 		}
-		cacheSetGsonEncMeta(af.TypePtr, em)
+		cacheSetEncMetaFast(af.TypePtr, em)
 	}
 
 	se := subEncode{}

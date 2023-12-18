@@ -10,15 +10,6 @@ type (
 	TypeString string
 )
 
-const (
-	StrTypeOfKV        = "cst.KV"
-	StrTypeOfWebKV     = "cst.WebKV"
-	StrTypeOfStrAnyMap = "map[string]interface {}"
-	StrTypeOfStrStrMap = "map[string]string"
-	StrTypeOfTime      = "time.Time"
-	StrTypeOfBytes     = "[]byte"
-)
-
 // 可能用map，也可能自定义数组等合适的数据结构存取。
 // 比如上下文中用来保存解析到的请求数据，主要是KV形式
 type SuperKV interface {
