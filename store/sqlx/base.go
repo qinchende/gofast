@@ -7,27 +7,29 @@ import (
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/store/dts"
 	"reflect"
+	"sync"
 	"time"
 )
 
 const (
 	slowThreshold      = time.Millisecond * 500 // 执行超过500ms的语句需要优化分析，我们先打印出慢日志
 	cacheDelFlagSuffix = "_del_mark"
-
+)
+const (
 	CacheMem   uint8 = iota // 默认0：用本地内存缓存，无法实现分布式一致性。但支持存取对象，性能好
 	CacheRedis              // 1：强大的redis缓存，支持分布式。需要序列化和反序列化，开销比内存型大
 )
 
 var (
-	sharedAnyValue = new(dts.SqlSkip)
-
 	TypeSqlRawBytes reflect.Type
+	sharedAnyValue  = new(dts.SqlSkip)
 )
 
 func init() {
 	TypeSqlRawBytes = reflect.TypeOf(sql.RawBytes{})
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type OrmDB struct {
 	Attrs    *DBAttrs
@@ -80,4 +82,28 @@ type SelectPet struct {
 	CacheType    uint8  // 缓存类型
 	CacheExpireS uint32 // 缓存过期时间秒（设置值大于0，意味着需要缓存，否则不需要缓存）
 	cacheKey     string // 缓存的 key value（hash 值）
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// SelectPet pool
+var (
+	_SelectPetDefValue SelectPet
+	selectPetPool      = sync.Pool{New: func() any { return &SelectPet{} }}
+)
+
+// 取缓存对象，并初始化成默认值
+func GetSelectPet() *SelectPet {
+	pet := selectPetPool.Get().(*SelectPet)
+	*pet = _SelectPetDefValue
+	return pet
+}
+
+// 直接取缓存对象并返回，该对象数据没有被初始化，使用需谨慎
+func GetSelectPetRaw() *SelectPet {
+	return selectPetPool.Get().(*SelectPet)
+}
+
+// 回收对象
+func PutSelectPet(pet *SelectPet) {
+	selectPetPool.Put(pet)
 }

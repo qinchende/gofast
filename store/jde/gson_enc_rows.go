@@ -33,26 +33,26 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	// check target object
 	if em = cacheGetEncMetaFast(af.TypePtr); em == nil {
 		// +++++++++++++ check type
-		dstTyp := reflect.TypeOf(pet.List)
-		if dstTyp.Kind() != reflect.Pointer {
+		rfType := reflect.TypeOf(pet.List)
+		if rfType.Kind() != reflect.Pointer {
 			panic(errValueMustPtr)
 		}
-		sliceType := dstTyp.Elem()
-		if sliceType.Kind() != reflect.Slice {
+		rfType = rfType.Elem()
+		if rfType.Kind() != reflect.Slice {
 			panic(errValueMustSlice)
 		}
-		itemType := sliceType.Elem()
+		rfType = rfType.Elem()
 
 		// 支持2种数据源：
 		// A. struct B. cst.KV
-		kd := itemType.Kind()
-		if kd != reflect.Struct && itemType != cst.TypeCstKV {
+		kd := rfType.Kind()
+		if kd != reflect.Struct && rfType != cst.TypeCstKV {
 			panic(errValueMustStruct)
 		}
 
-		if em = cacheGetEncMeta(itemType); em == nil {
-			em = newEncodeMeta(itemType)
-			cacheSetEncMeta(itemType, em)
+		if em = cacheGetEncMeta(rfType); em == nil {
+			em = newEncodeMeta(rfType)
+			cacheSetEncMeta(rfType, em)
 		}
 		cacheSetEncMetaFast(af.TypePtr, em)
 	}
@@ -73,7 +73,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 	se.em = em
 	se.srcPtr = af.DataPtr
 
-	se.bf = pool.GetBytesNormal()
+	se.bf = pool.GetBytes()
 	if em.isStruct {
 		se.encStructListByPet(pet)
 	} else {
@@ -96,7 +96,7 @@ func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 	fls := se.em.ss.FieldsAttr
 	// 循环记录
 	for i := 0; i < sh.Len; i++ {
-		se.srcPtr = unsafe.Pointer(sh.Data + uintptr(i*se.em.itemRawSize))
+		se.srcPtr = unsafe.Pointer(sh.Data + uintptr(i*se.em.itemMemSize))
 
 		tp = append(tp, '[')
 		// 循环字段

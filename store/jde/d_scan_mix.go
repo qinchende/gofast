@@ -2,6 +2,7 @@ package jde
 
 import (
 	"github.com/qinchende/gofast/core/rt"
+	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"unsafe"
 )
@@ -43,11 +44,11 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType
 // array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func arrItemPtr(sd *subDecode) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemRawSize))
+	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 }
 
 func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemRawSize))
+	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 
 	// 只有field字段为map或者slice的时候，值才可能是nil
 	if sd.dm.itemKind == reflect.Map {
@@ -59,7 +60,7 @@ func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
 }
 
 func arrMixItemPtrDeep(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemRawSize))
+	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
 	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
 }
 
@@ -74,7 +75,7 @@ func (sd *subDecode) resetArrLeftItems() {
 		dfValue = zeroValues[sd.dm.itemKind]
 	}
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemRawSize))) = dfValue
+		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemMemSize))) = dfValue
 	}
 }
 
@@ -148,11 +149,15 @@ func scanMapAnyValue(sd *subDecode, k string) {
 			sd.mp.SetString(k, sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
-		if start := sd.scanNumValue(); start > 0 {
-			//sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
+		if start, hasDot := sd.scanNumValue(); start > 0 {
+			if hasDot {
+				sd.mp.Set(k, lang.ParseFloat(sd.str[start:sd.scan]))
+			} else {
+				sd.mp.Set(k, lang.ParseInt(sd.str[start:sd.scan]))
+			}
 			// 可以选项，不解析，直接返回字符串
 			// NumberAsString
-			sd.mp.SetString(k, sd.str[start:sd.scan])
+			//sd.mp.SetString(k, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -194,10 +199,15 @@ func scanGsonValue(sd *subDecode, k string) {
 			sd.gr.SetStringByIndex(kIdx, sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
-		if start := sd.scanNumValue(); start > 0 {
+		if start, hasDot := sd.scanNumValue(); start > 0 {
+			if hasDot {
+				sd.gr.SetByIndex(kIdx, lang.ParseFloat(sd.str[start:sd.scan]))
+			} else {
+				sd.gr.SetByIndex(kIdx, lang.ParseInt(sd.str[start:sd.scan]))
+			}
 			//sd.gr.SetByIndex(kIdx, lang.ParseFloat(sd.str[start:sd.scan]))
 			// NumberAsString
-			sd.gr.SetStringByIndex(kIdx, sd.str[start:sd.scan])
+			//sd.gr.SetStringByIndex(kIdx, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -286,23 +296,7 @@ func scanArrPtrMixValue(sd *subDecode) {
 // slice 中可能是实体对象，也可能是对象指针
 func scanListMixValue(sd *subDecode) {
 	sh := (*reflect.SliceHeader)(sd.dstPtr)
-	ptr := rt.SliceNextItem(sh, sd.dm.itemRawSize)
-
-	//itSize := sd.dm.itemRawSize
-	//if sd.arrIdx == sh.Cap {
-	//	var oldMem = []byte{}
-	//	old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
-	//	old.Data, old.Len, old.Cap = sh.Data, sh.Len*itSize, sh.Cap*itSize
-	//
-	//	// TODO: 需要有更高效的扩容算法
-	//	newLen := int(float64(sh.Cap)*1.6) + 4 // 一种简易的动态扩容算法
-	//	//fmt.Printf("growing len: %d, cap: %d \n\n", sh.Len*itSize, newLen*itSize)
-	//	*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*itSize, newLen*itSize)
-	//
-	//	copy(*(*[]byte)(sd.dstPtr), oldMem)
-	//	sh.Len, sh.Cap = sd.arrIdx, newLen
-	//}
-	//ptr := unsafe.Pointer(sh.Data + uintptr(sd.arrIdx*itSize))
+	ptr := rt.SliceNextItem(sh, sd.dm.itemMemSize)
 
 	switch sd.str[sd.scan] {
 	case '{', '[':

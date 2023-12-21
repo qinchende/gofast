@@ -30,18 +30,18 @@ func decGsonRowOnlyValues(obj any, str string) (err error) {
 	// check target object
 	if dm = cacheGetDecMetaFast(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
-		dstTyp := reflect.TypeOf(obj)
-		if dstTyp.Kind() != reflect.Pointer {
+		rfType := reflect.TypeOf(obj)
+		if rfType.Kind() != reflect.Pointer {
 			panic(errValueMustPtr)
 		}
-		objType := dstTyp.Elem()
-		if objType.Kind() != reflect.Struct {
+		rfType = rfType.Elem()
+		if rfType.Kind() != reflect.Struct {
 			panic(errValueMustStruct)
 		}
 
-		if dm = cacheGetDecMeta(objType); dm == nil {
-			dm = newDecodeMeta(objType)
-			cacheSetDecMeta(objType, dm)
+		if dm = cacheGetDecMeta(rfType); dm == nil {
+			dm = newDecodeMeta(rfType)
+			cacheSetDecMeta(rfType, dm)
 		}
 		cacheSetDecMetaFast(af.TypePtr, dm)
 	}

@@ -7,8 +7,8 @@ import (
 
 var (
 	jdeDecPool = sync.Pool{New: func() any { return &subDecode{} }}
-	jdeBufPool = sync.Pool{New: func() any { return &listPool{} }}
 	grsDecPool = sync.Pool{New: func() any { return &gsonRowsDecode{} }}
+	jdeBufPool = sync.Pool{New: func() any { return &listPool{} }}
 
 	cachedDecMeta     sync.Map
 	cachedDecMetaFast sync.Map

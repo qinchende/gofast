@@ -30,7 +30,7 @@ type (
 		itemType    reflect.Type
 		itemKind    reflect.Kind
 		itemEnc     encValFunc
-		itemRawSize int // item类型对应的内存字节大小
+		itemMemSize int // item类型对应的内存字节大小
 		arrLen      int // 数组长度
 
 		// map
@@ -68,7 +68,7 @@ func startEncode(v any) (bs []byte, err error) {
 
 	se := subEncode{}
 	se.getEncMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
-	se.bf = pool.GetBytesNormal()
+	se.bf = pool.GetBytes()
 
 	se.encStart()
 	bs = make([]byte, len(*se.bf))
@@ -141,7 +141,7 @@ func newEncodeMeta(rfType reflect.Type) *encMeta {
 func (em *encMeta) peelPtr(rfType reflect.Type) {
 	em.itemType = rfType.Elem()
 	em.itemKind = em.itemType.Kind()
-	em.itemRawSize = int(em.itemType.Size())
+	em.itemMemSize = int(em.itemType.Size())
 
 peelLoop:
 	if em.itemKind == reflect.Pointer {
@@ -173,7 +173,7 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 		if em.isPtr {
 			return
 		}
-		em.itemRawSize = int(em.itemType.Size())
+		em.itemMemSize = int(em.itemType.Size())
 	}
 
 	em.bindPick()
@@ -183,7 +183,7 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 func (em *encMeta) initStructMeta(rfType reflect.Type) {
 	em.isStruct = true
 	em.ss = dts.SchemaAsReqByType(rfType)
-	em.itemRawSize = int(rfType.Size())
+	em.itemMemSize = int(rfType.Size())
 
 	em.bindStructPick()
 }

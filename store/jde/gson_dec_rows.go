@@ -56,26 +56,26 @@ func decGsonRows(v any, source string) (ret gson.RowsDecRet) {
 	// check target object
 	if dm = cacheGetDecMetaFast(af.TypePtr); dm == nil {
 		// +++++++++++++ check type
-		dstTyp := reflect.TypeOf(v)
-		if dstTyp.Kind() != reflect.Pointer {
+		rfType := reflect.TypeOf(v)
+		if rfType.Kind() != reflect.Pointer {
 			panic(errValueMustPtr)
 		}
-		sliceType := dstTyp.Elem()
-		if sliceType.Kind() != reflect.Slice {
+		rfType = rfType.Elem()
+		if rfType.Kind() != reflect.Slice {
 			panic(errValueMustSlice)
 		}
-		itemType := sliceType.Elem()
+		rfType = rfType.Elem()
 
 		// 支持2种数据源：
 		// A. struct B. cst.KV
-		kd := itemType.Kind()
-		if kd != reflect.Struct && itemType != cst.TypeCstKV {
+		kd := rfType.Kind()
+		if kd != reflect.Struct && rfType != cst.TypeCstKV {
 			panic(errValueMustStruct)
 		}
 
-		if dm = cacheGetDecMeta(itemType); dm == nil {
-			dm = newDecodeMeta(itemType)
-			cacheSetDecMeta(itemType, dm)
+		if dm = cacheGetDecMeta(rfType); dm == nil {
+			dm = newDecodeMeta(rfType)
+			cacheSetDecMeta(rfType, dm)
 		}
 		cacheSetDecMetaFast(af.TypePtr, dm)
 	}
@@ -94,11 +94,10 @@ func decGsonRows(v any, source string) (ret gson.RowsDecRet) {
 }
 
 func (grs *gsonRowsDecode) initDecode(dm *decMeta, ptr unsafe.Pointer, source string) {
-	sd := &grs.sd
-	sd.reset()
-	sd.dm = dm
-	sd.str = source
-	sd.dstPtr = ptr
+	grs.sd.reset()
+	grs.sd.dm = dm
+	grs.sd.str = source
+	grs.sd.dstPtr = ptr
 	grs.columns = grs.columns[0:0]
 }
 
@@ -178,7 +177,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		// 根据记录数量，初始化对象空间 +++
 		tmpCT = int(grs.ct)
 		if tmpCT > sh.Cap {
-			*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*dm.itemRawSize, tmpCT*dm.itemRawSize)
+			*(*[]byte)(sd.dstPtr) = make([]byte, sh.Len*dm.itemMemSize, tmpCT*dm.itemMemSize)
 			sh.Len, sh.Cap = tmpCT, tmpCT
 		} else {
 			sh.Len = tmpCT
@@ -196,7 +195,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 			}
 
 			sd.scan = pos
-			sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(tmpCT*dm.itemRawSize))
+			sd.dstPtr = unsafe.Pointer(sh.Data + uintptr(tmpCT*dm.itemMemSize))
 			//// 如果是指针，需要分配空间
 			//if sd.dm.isPtr {
 			//	sd.dstPtr = getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
