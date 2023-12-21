@@ -53,7 +53,7 @@ type (
 		itemType    reflect.Type
 		itemKind    reflect.Kind
 		itemDec     decValFunc
-		itemRawSize int // 数组属性，item类型对应的内存字节大小
+		itemMemSize int // 数组属性，item类型对应的内存字节大小
 		arrLen      int // 数组属性，数组长度
 
 		// status
@@ -270,7 +270,7 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 func (dm *decMeta) peelPtr(rfType reflect.Type) {
 	dm.itemType = rfType.Elem()
 	dm.itemKind = dm.itemType.Kind()
-	dm.itemRawSize = int(dm.itemType.Size())
+	dm.itemMemSize = int(dm.itemType.Size())
 
 peelLoop:
 	if dm.itemKind == reflect.Pointer {
@@ -298,7 +298,7 @@ func (dm *decMeta) initPointerMeta(rfType reflect.Type) {
 func (dm *decMeta) initStructMeta(rfType reflect.Type) {
 	dm.isStruct = true
 	dm.ss = dts.SchemaAsReqByType(rfType)
-	dm.itemRawSize = int(rfType.Size())
+	dm.itemMemSize = int(rfType.Size())
 
 	dm.bindStructDec()
 }
@@ -325,7 +325,7 @@ func (dm *decMeta) initListMeta(rfType reflect.Type) {
 		if dm.isPtr {
 			return
 		}
-		dm.itemRawSize = int(dm.itemType.Size())
+		dm.itemMemSize = int(dm.itemType.Size())
 		dm.isArrBind = true
 	}
 

@@ -13,7 +13,7 @@ func EncodeGsonRowsFromSqlRows(sqlRows *sql.Rows, tt int64) (ct int64, gsonStr s
 	scanValues := make([]any, clsLen)
 
 	// 先计算数据库
-	bs1 := pool.GetBytesNormal()
+	bs1 := pool.GetBytes()
 	defer pool.FreeBytes(bs1)
 
 	for sqlRows.Next() {
@@ -25,7 +25,7 @@ func EncodeGsonRowsFromSqlRows(sqlRows *sql.Rows, tt int64) (ct int64, gsonStr s
 		encGsonRowFromValues(bs1, scanValues)
 	}
 
-	bs2 := pool.GetBytesNormal()
+	bs2 := pool.GetBytes()
 	defer pool.FreeBytes(bs2)
 
 	ret := encGsonRowsHeader(*bs2, ct, tt, dbColumns)

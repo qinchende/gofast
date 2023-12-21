@@ -15,7 +15,7 @@ func (se *subEncode) encMap() {
 		se.encMapKV()
 		return
 	} else if se.em.keyKind == reflect.String && !se.em.isPtr {
-		switch se.em.itemRawSize {
+		switch se.em.itemMemSize {
 		case 1:
 			encMapStrAny[rt.TByte1](se.bf, se.srcPtr, se.em.itemType, se.em.itemEnc)
 		case 2:
@@ -35,7 +35,7 @@ func (se *subEncode) encMap() {
 	}
 
 	ks := se.em.keySize
-	vs := se.em.itemRawSize
+	vs := se.em.itemMemSize
 
 	switch ks {
 	case 1:

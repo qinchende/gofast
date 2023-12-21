@@ -132,7 +132,7 @@ over:
 
 // 匹配一个数值
 // 0.234 | 234.23 | 23424 | 3.8e+07 | 3.7E-7 | -0.3 | -3.7E-7
-func (sd *subDecode) scanNumValue() int {
+func (sd *subDecode) scanNumValue() (int, bool) {
 	pos := sd.scan
 	start := pos
 	var hasDot, needNum bool
@@ -202,9 +202,9 @@ over:
 	// 还剩下最后一种可能：null
 	if start == pos {
 		sd.skipNull()
-		return -1
+		return -1, hasDot
 	}
-	return start
+	return start, hasDot
 }
 
 func (sd *subDecode) scanNumMust() int {
@@ -422,9 +422,9 @@ func scanListIntValue(sd *subDecode) {
 	if start := sd.scanIntValue(); start > 0 {
 		v = lang.ParseIntFast(sd.str[start:sd.scan])
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufInt))
 	}
-	sd.pl.bufI64 = append(sd.pl.bufI64, v)
+	sd.pl.bufInt = append(sd.pl.bufInt, int(v))
 }
 
 // int8 +++++
@@ -459,9 +459,9 @@ func scanListInt8Value(sd *subDecode) {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI8))
 	}
-	sd.pl.bufI64 = append(sd.pl.bufI64, v)
+	sd.pl.bufI8 = append(sd.pl.bufI8, int8(v))
 }
 
 // int16 +++++
@@ -496,9 +496,9 @@ func scanListInt16Value(sd *subDecode) {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI16))
 	}
-	sd.pl.bufI64 = append(sd.pl.bufI64, v)
+	sd.pl.bufI16 = append(sd.pl.bufI16, int16(v))
 }
 
 // int32 +++++
@@ -531,9 +531,9 @@ func scanListInt32Value(sd *subDecode) {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufI32))
 	}
-	sd.pl.bufI64 = append(sd.pl.bufI64, v)
+	sd.pl.bufI32 = append(sd.pl.bufI32, int32(v))
 }
 
 // int64 +++++
@@ -599,9 +599,9 @@ func scanListUintValue(sd *subDecode) {
 	if start := sd.scanUintValue(); start > 0 {
 		v = lang.ParseUintFast(sd.str[start:sd.scan])
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufUint))
 	}
-	sd.pl.bufU64 = append(sd.pl.bufU64, v)
+	sd.pl.bufUint = append(sd.pl.bufUint, uint(v))
 }
 
 // uint8 +++++
@@ -636,9 +636,9 @@ func scanListUint8Value(sd *subDecode) {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU8))
 	}
-	sd.pl.bufU64 = append(sd.pl.bufU64, v)
+	sd.pl.bufU8 = append(sd.pl.bufU8, uint8(v))
 }
 
 // uint16 +++++
@@ -673,9 +673,9 @@ func scanListUint16Value(sd *subDecode) {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU16))
 	}
-	sd.pl.bufU64 = append(sd.pl.bufU64, v)
+	sd.pl.bufU16 = append(sd.pl.bufU16, uint16(v))
 }
 
 // uint32 +++++
@@ -710,9 +710,9 @@ func scanListUint32Value(sd *subDecode) {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufU32))
 	}
-	sd.pl.bufU64 = append(sd.pl.bufU64, v)
+	sd.pl.bufU32 = append(sd.pl.bufU32, uint32(v))
 }
 
 // uint64 +++++
@@ -755,13 +755,13 @@ func scanListUint64Value(sd *subDecode) {
 // float32
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjFloat32Value(sd *subDecode) {
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		bindFloat32(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrFloat32Value(sd *subDecode) {
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		bindFloat32(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
@@ -770,7 +770,7 @@ func scanObjPtrFloat32Value(sd *subDecode) {
 
 func scanArrFloat32Value(sd *subDecode) {
 	v := float64(0)
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		v = lang.ParseFloat(sd.str[start:sd.scan])
 	}
 	bindFloat32(arrItemPtr(sd), v)
@@ -778,27 +778,27 @@ func scanArrFloat32Value(sd *subDecode) {
 
 func scanListFloat32Value(sd *subDecode) {
 	v := float64(0)
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		v = lang.ParseFloat(sd.str[start:sd.scan])
 		if v < math.SmallestNonzeroFloat32 || v > math.MaxFloat32 {
 			panic(errInfinity)
 		}
 	} else {
-		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufF64))
+		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufF32))
 	}
-	sd.pl.bufF64 = append(sd.pl.bufF64, v)
+	sd.pl.bufF32 = append(sd.pl.bufF32, float32(v))
 }
 
 // float64
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjFloat64Value(sd *subDecode) {
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		bindFloat64(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
 	}
 }
 
 func scanObjPtrFloat64Value(sd *subDecode) {
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		bindFloat64(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
 	} else {
 		fieldSetNil(sd)
@@ -807,7 +807,7 @@ func scanObjPtrFloat64Value(sd *subDecode) {
 
 func scanArrFloat64Value(sd *subDecode) {
 	v := float64(0)
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		v = lang.ParseFloat(sd.str[start:sd.scan])
 	}
 	bindFloat64(arrItemPtr(sd), v)
@@ -815,7 +815,7 @@ func scanArrFloat64Value(sd *subDecode) {
 
 func scanListFloat64Value(sd *subDecode) {
 	v := float64(0)
-	if start := sd.scanNumValue(); start > 0 {
+	if start, _ := sd.scanNumValue(); start > 0 {
 		v = lang.ParseFloat(sd.str[start:sd.scan])
 	} else {
 		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufF64))
@@ -1023,10 +1023,14 @@ func scanObjAnyValue(sd *subDecode) {
 			bindAny(fieldPtr(sd), sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
-		if start := sd.scanNumValue(); start > 0 {
-			//bindAny(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
-			// NumberAsString
-			bindAny(fieldPtr(sd), sd.str[start:sd.scan])
+		if start, hasDot := sd.scanNumValue(); start > 0 {
+			if hasDot {
+				bindAny(fieldPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			} else {
+				bindAny(fieldPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+			}
+			//// NumberAsString
+			//bindAny(fieldPtr(sd), sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -1058,10 +1062,14 @@ func scanObjPtrAnyValue(sd *subDecode) {
 			bindAny(fieldPtrDeep(sd), sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
-		if start := sd.scanNumValue(); start > 0 {
-			//bindAny(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
-			// NumberAsString
-			bindAny(fieldPtrDeep(sd), sd.str[start:sd.scan])
+		if start, hasDot := sd.scanNumValue(); start > 0 {
+			if hasDot {
+				bindAny(fieldPtrDeep(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			} else {
+				bindAny(fieldPtrDeep(sd), lang.ParseInt(sd.str[start:sd.scan]))
+			}
+			//// NumberAsString
+			//bindAny(fieldPtrDeep(sd), sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -1094,10 +1102,14 @@ func scanArrAnyValue(sd *subDecode) {
 			bindAny(arrItemPtr(sd), sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
-		if start := sd.scanNumValue(); start > 0 {
-			//bindAny(arrItemPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
-			// NumberAsString
-			bindAny(arrItemPtr(sd), sd.str[start:sd.scan])
+		if start, hasDot := sd.scanNumValue(); start > 0 {
+			if hasDot {
+				bindAny(arrItemPtr(sd), lang.ParseFloat(sd.str[start:sd.scan]))
+			} else {
+				bindAny(arrItemPtr(sd), lang.ParseInt(sd.str[start:sd.scan]))
+			}
+			//// NumberAsString
+			//bindAny(arrItemPtr(sd), sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()
@@ -1130,10 +1142,14 @@ func scanListAnyValue(sd *subDecode) {
 			sd.pl.bufAny = append(sd.pl.bufAny, sd.str[start:sd.scan-1])
 		}
 	case c >= '0' && c <= '9', c == '-':
-		if start := sd.scanNumValue(); start > 0 {
-			//sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseFloat(sd.str[start:sd.scan]))
-			// NumberAsString
-			sd.pl.bufAny = append(sd.pl.bufAny, sd.str[start:sd.scan])
+		if start, hasDot := sd.scanNumValue(); start > 0 {
+			if hasDot {
+				sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseFloat(sd.str[start:sd.scan]))
+			} else {
+				sd.pl.bufAny = append(sd.pl.bufAny, lang.ParseInt(sd.str[start:sd.scan]))
+			}
+			//// NumberAsString
+			//sd.pl.bufAny = append(sd.pl.bufAny, sd.str[start:sd.scan])
 		}
 	case c == 't':
 		sd.skipTrue()

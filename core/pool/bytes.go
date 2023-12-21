@@ -6,16 +6,16 @@ import (
 )
 
 const (
-	bytesSizeMini   = 128
-	bytesSizeNormal = 1024
-	bytesSizeLarge  = 1024 * 8
-	bytesSizeMax    = 1024 * 1024 // 最大1M缓存
+	bytesSizeMini  = 128         // 128B
+	bytesSizeDef   = 1024        // 1KB
+	bytesSizeLarge = 1024 * 8    // 8KB
+	bytesSizeMax   = 1024 * 1024 // 1MB 超过这个就直接丢
 )
 
 var (
-	bytesPoolMini   = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeMini); return &bs }}   // 小字节序列 < 1K
-	bytesPoolNormal = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeNormal); return &bs }} // 普通字节序列 < 8K
-	bytesPoolLarge  = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeLarge); return &bs }}  // 超大字节序列 > 8K
+	bytesPoolMini  = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeMini); return &bs }}  // 小字节序列 < 1K
+	bytesPoolDef   = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeDef); return &bs }}   // 普通字节序列 < 8K
+	bytesPoolLarge = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeLarge); return &bs }} // 超大字节序列 > 8K
 )
 
 func GetBytesMini() *[]byte {
@@ -24,8 +24,8 @@ func GetBytesMini() *[]byte {
 	return bf
 }
 
-func GetBytesNormal() *[]byte {
-	bf := bytesPoolNormal.Get().(*[]byte)
+func GetBytes() *[]byte {
+	bf := bytesPoolDef.Get().(*[]byte)
 	*bf = (*bf)[0:0]
 	return bf
 }
@@ -37,12 +37,12 @@ func GetBytesLarge() *[]byte {
 }
 
 func FreeBytes(bs *[]byte) {
-	if cap(*bs) >= bytesSizeMax {
+	if cap(*bs) > bytesSizeMax {
 		return
 	} else if cap(*bs) >= bytesSizeLarge {
 		bytesPoolLarge.Put(bs)
-	} else if cap(*bs) >= bytesSizeNormal {
-		bytesPoolNormal.Put(bs)
+	} else if cap(*bs) >= bytesSizeDef {
+		bytesPoolDef.Put(bs)
 	} else {
 		bytesPoolMini.Put(bs)
 	}

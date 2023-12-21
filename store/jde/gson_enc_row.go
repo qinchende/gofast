@@ -30,19 +30,19 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 	// check target object
 	if em = cacheGetEncMetaFast(af.TypePtr); em == nil {
 		// +++++++++++++ check type
-		dstTyp := reflect.TypeOf(obj)
-		if dstTyp.Kind() != reflect.Pointer {
+		rfType := reflect.TypeOf(obj)
+		if rfType.Kind() != reflect.Pointer {
 			panic(errValueMustPtr)
 		}
-		objType := dstTyp.Elem()
+		rfType = rfType.Elem()
 		// TODO: 目前只支持 数据源是 struct 类型
-		if objType.Kind() != reflect.Struct {
+		if rfType.Kind() != reflect.Struct {
 			panic(errValueMustStruct)
 		}
 
-		if em = cacheGetEncMeta(objType); em == nil {
-			em = newEncodeMeta(objType)
-			cacheSetEncMeta(objType, em)
+		if em = cacheGetEncMeta(rfType); em == nil {
+			em = newEncodeMeta(rfType)
+			cacheSetEncMeta(rfType, em)
 		}
 		cacheSetEncMetaFast(af.TypePtr, em)
 	}
@@ -51,7 +51,7 @@ func encGsonRowOnlyValues(obj any) (bs []byte, err error) {
 	se.em = em
 	se.srcPtr = af.DataPtr
 
-	se.bf = pool.GetBytesNormal()
+	se.bf = pool.GetBytes()
 	se.encGsonRowJustValues()
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)

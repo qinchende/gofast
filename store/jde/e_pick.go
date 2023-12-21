@@ -99,7 +99,7 @@ func (se *subEncode) encList(size int) {
 	*se.bf = append(*se.bf, '[')
 
 	for i := 0; i < size; i++ {
-		itPtr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
+		itPtr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemMemSize))
 
 		// TODO: 一些本身就是引用类型的数据，需要找到他们指向值的地址
 		// 比如 map | function | channel 等类型
@@ -125,7 +125,7 @@ func (se *subEncode) encListPtr(size int) {
 	tp = append(tp, '[')
 	for i := 0; i < size; i++ {
 		ptrCt := ptrLevel
-		itPtr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemRawSize))
+		itPtr := unsafe.Pointer(uintptr(se.srcPtr) + uintptr(i*se.em.itemMemSize))
 
 	peelPtr:
 		itPtr = *(*unsafe.Pointer)(itPtr)

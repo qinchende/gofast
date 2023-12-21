@@ -1,39 +1,108 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/core/pool"
 	"golang.org/x/exp/constraints"
 	"reflect"
 	"unsafe"
 )
 
-// TODO: buffer pool 需要有个机制，释放那些某次偶发申请太大的buffer，而导致长时间不释放的问题
+// 解析Slice数据的时候，先用缓冲池装载，等全部解析完成之后再从缓冲池中提取结果。
 type listPool struct {
+	nulPos []int // 用来记录JSON中某一项为 null 的索引位置
+
+	bufInt []int
+	bufI8  []int8
+	bufI16 []int16
+	bufI32 []int32
 	bufI64 []int64
-	bufU64 []uint64
+
+	bufUint []uint
+	bufU8   []uint8
+	bufU16  []uint16
+	bufU32  []uint32
+	bufU64  []uint64
+
+	bufF32 []float32
 	bufF64 []float64
+
 	bufStr []string
 	bufBol []bool
 	bufAny []any
-	nulPos []int // 指针类型值，可能是nil
+
+	_memBytes *[]byte
 }
+
+// 默认值
+var _listPoolDefValue listPool
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
+	// 如果是数组，本来就具备内存空间，不需要借助缓存
 	if sd.dm.isArrBind {
 		return
 	}
 
-	// 获取缓存空间
-	sd.pl = jdeBufPool.Get().(*listPool)
+	pl := jdeBufPool.Get().(*listPool)
+	// 获取缓存内存空间
+	pl._memBytes = pool.GetBytes()
+	shMem := (*reflect.SliceHeader)(unsafe.Pointer(pl._memBytes))
 
-	sd.pl.bufI64 = sd.pl.bufI64[0:0]
-	sd.pl.bufU64 = sd.pl.bufU64[0:0]
-	sd.pl.bufF64 = sd.pl.bufF64[0:0]
-	sd.pl.bufStr = sd.pl.bufStr[0:0]
-	sd.pl.bufBol = sd.pl.bufBol[0:0]
-	sd.pl.bufAny = sd.pl.bufAny[0:0]
+	var sh *reflect.SliceHeader
+	switch sd.dm.itemKind {
+	case reflect.Int:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufInt))
+		sh.Cap = shMem.Cap / 8
+	case reflect.Int8:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI8))
+		sh.Cap = shMem.Cap
+	case reflect.Int16:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI16))
+		sh.Cap = shMem.Cap / 2
+	case reflect.Int32:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI32))
+		sh.Cap = shMem.Cap / 4
+	case reflect.Int64:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI64))
+		sh.Cap = shMem.Cap / 8
 
-	sd.pl.nulPos = sd.pl.nulPos[0:0] // 必须要初始化
+	case reflect.Uint:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufUint))
+		sh.Cap = shMem.Cap / 8
+	case reflect.Uint8:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU8))
+		sh.Cap = shMem.Cap
+	case reflect.Uint16:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU16))
+		sh.Cap = shMem.Cap / 2
+	case reflect.Uint32:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU32))
+		sh.Cap = shMem.Cap / 4
+	case reflect.Uint64:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU64))
+		sh.Cap = shMem.Cap / 8
+
+	case reflect.Float32:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufF32))
+		sh.Cap = shMem.Cap / 4
+	case reflect.Float64:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufF64))
+		sh.Cap = shMem.Cap / 8
+
+	case reflect.String:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufStr))
+		sh.Cap = shMem.Cap / 16
+	case reflect.Bool:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufBol))
+		sh.Cap = shMem.Cap
+	case reflect.Interface:
+		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufAny))
+		sh.Cap = shMem.Cap / 16
+	}
+	sh.Data = shMem.Data
+	sh.Len = 0
+
+	sd.pl = pl
 }
 
 func (sd *subDecode) flushListPool() {
@@ -44,29 +113,29 @@ func (sd *subDecode) flushListPool() {
 
 	switch sd.dm.itemKind {
 	case reflect.Int:
-		flushCast[int, int64](sd, sd.pl.bufI64)
+		flushNoCast[int](sd, sd.pl.bufInt)
 	case reflect.Int8:
-		flushCast[int8, int64](sd, sd.pl.bufI64)
+		flushNoCast[int8](sd, sd.pl.bufI8)
 	case reflect.Int16:
-		flushCast[int16, int64](sd, sd.pl.bufI64)
+		flushNoCast[int16](sd, sd.pl.bufI16)
 	case reflect.Int32:
-		flushCast[int32, int64](sd, sd.pl.bufI64)
+		flushNoCast[int32](sd, sd.pl.bufI32)
 	case reflect.Int64:
 		flushNoCast[int64](sd, sd.pl.bufI64)
 
 	case reflect.Uint:
-		flushCast[int, uint64](sd, sd.pl.bufU64)
+		flushNoCast[uint](sd, sd.pl.bufUint)
 	case reflect.Uint8:
-		flushCast[uint8, uint64](sd, sd.pl.bufU64)
+		flushNoCast[uint8](sd, sd.pl.bufU8)
 	case reflect.Uint16:
-		flushCast[uint16, uint64](sd, sd.pl.bufU64)
+		flushNoCast[uint16](sd, sd.pl.bufU16)
 	case reflect.Uint32:
-		flushCast[uint32, uint64](sd, sd.pl.bufU64)
+		flushNoCast[uint32](sd, sd.pl.bufU32)
 	case reflect.Uint64:
 		flushNoCast[uint64](sd, sd.pl.bufU64)
 
 	case reflect.Float32:
-		flushCast[float32, float64](sd, sd.pl.bufF64)
+		flushNoCast[float32](sd, sd.pl.bufF32)
 	case reflect.Float64:
 		flushNoCast[float64](sd, sd.pl.bufF64)
 
@@ -79,6 +148,19 @@ func (sd *subDecode) flushListPool() {
 	}
 	//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 	// 上面这几种情况，通过特殊方法处理
+
+	// 回收数组的内存空间
+	pool.FreeBytes(sd.pl._memBytes)
+
+	// Reset pl 对象
+	if cap(sd.pl.nulPos) > 0 {
+		// 保留已分配的内存
+		tp := sd.pl.nulPos
+		*sd.pl = _listPoolDefValue
+		sd.pl.nulPos = tp[0:0]
+	} else {
+		*sd.pl = _listPoolDefValue
+	}
 
 	// 用完了就归还
 	jdeBufPool.Put(sd.pl)
