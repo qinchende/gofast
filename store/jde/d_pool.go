@@ -150,6 +150,7 @@ func (sd *subDecode) flushListPool() {
 	// 上面这几种情况，通过特殊方法处理
 
 	// 回收数组的内存空间
+	// Note: 解析的工程中slice可能要扩容，这里回收的内存是原始内存还是扩容后的内存呢？
 	pool.FreeBytes(sd.pl._memBytes)
 
 	// Reset pl 对象
