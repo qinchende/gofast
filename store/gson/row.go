@@ -1,6 +1,9 @@
 package gson
 
-import "github.com/qinchende/gofast/skill/lang"
+import (
+	"github.com/qinchende/gofast/skill/lang"
+	"unsafe"
+)
 
 // 每个字段值占用4个字，32字节
 //type FValue struct {
@@ -68,8 +71,12 @@ func (gr *GsonRow) GetString(k string) (v string, ok bool) {
 // 初始化内存空间
 func (gr *GsonRow) Init(cls []string) {
 	gr.Cls = cls
-	gr.Row = make([]any, gr.Len())
-	gr.str = make([]string, gr.Len())
+	size := len(cls)
+	tmp := make([]any, size*2)
+
+	gr.Row = tmp[:size]
+	ptr := unsafe.SliceData(tmp[size:])
+	gr.str = unsafe.Slice((*string)(unsafe.Pointer(ptr)), size)
 }
 
 func (gr *GsonRow) KeyIndex(k string) int {

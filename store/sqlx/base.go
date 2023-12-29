@@ -62,6 +62,7 @@ type SelectPet struct {
 	Table    string // 表名
 	Columns  string // 自定义查询字段
 	Where    string // where
+	ArgsMem  [5]any // 最多5个变量的内存空间，用此参数可以避免一次切片内存分配
 	Args     []any  // SQL语句参数，防注入
 	OrderBy  string // order by
 	orderByT string // order by inner temp

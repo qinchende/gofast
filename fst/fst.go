@@ -51,7 +51,7 @@ type HomeRouter struct {
 	routerTrees methodTrees
 
 	fstMem *fstMemSpace // 主要以数组结构的形式，存储了 Routes & Handlers
-	pools  webPools     // 配合Context，可能用到的资源缓冲池
+	pools  reqPools     // 配合Context，可能用到的资源缓冲池
 }
 
 // 一个快速创建Server的函数，使用默认配置参数，方便调用。
@@ -231,7 +231,7 @@ func (gft *GoFast) BuildRoutes() {
 	gft.execAppHandlers(gft.eBeforeBuildRoutesHds) // before build routes
 	gft.buildAllRoutes()
 	RebuildRHandlers(gft.RoutesLen()) // 构建所有路由的全局属性配置
-	gft.pools.initWebPools(gft)
+	gft.initRoutePools()
 	gft.execAppHandlers(gft.eAfterBuildRoutesHds) // after build routes
 }
 

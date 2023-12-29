@@ -9,3 +9,15 @@ func (c *Context) FullPath() string {
 		return ""
 	}
 }
+
+func (c *Context) SetRouteToAny() {
+	c.route.ptrNode = c.myApp.miniNodeAny
+}
+
+func (c *Context) SetRouteTo404() {
+	c.route.ptrNode = c.myApp.miniNode404
+}
+
+func (c *Context) SetRouteTo405() {
+	c.route.ptrNode = c.myApp.miniNode405
+}
