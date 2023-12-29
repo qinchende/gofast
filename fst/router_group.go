@@ -12,11 +12,11 @@ import (
 	"strings"
 )
 
-//func (gp *RouteGroup) Attrs(attrs *GAttrs) *RouteGroup {
+//func (gp *RouteGroup) Bind(attrs *GAttrs) *RouteGroup {
 //	if gp.attrs == nil {
 //		gp.attrs = attrs
 //	} else {
-//		gp.attrs.PmsFields = append(gp.attrs.PmsFields, attrs.PmsFields...)
+//		gp.attrs.pmsFields = append(gp.attrs.pmsFields, attrs.pmsFields...)
 //	}
 //	return gp
 //}
@@ -154,7 +154,8 @@ func (gp *RouteGroup) StaticFile(relPath, filepath string) *RouteGroup {
 // of the Router's NotFound handler.
 // To use the operating system's file system implementation,
 // use :
-//     router.Static("/static", "/var/www")
+//
+//	router.Static("/static", "/var/www")
 func (gp *RouteGroup) Static(relPath, root string) *RouteGroup {
 	return gp.StaticFS(relPath, Dir(root, false))
 }

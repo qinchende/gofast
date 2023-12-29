@@ -1,109 +1,56 @@
-// Copyright 2020 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
 package fst
 
-func (c *Context) SetRouteToAny() {
-	c.route.ptrNode = c.myApp.miniNodeAny
-}
+import (
+	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/skill/lang"
+)
 
-func (c *Context) SetRouteTo404() {
-	c.route.ptrNode = c.myApp.miniNode404
-}
+var rHandlers []*RHandler // 所有配置项汇总
+type (
+	pmsCreator func() cst.SuperKV
+	RHandler   struct {
+		rIndex    uint16     // 索引位置
+		handler   CtxHandler // 处理函数
+		pmsFunc   pmsCreator // 解析到具体的struct对象
+		pmsFields []string   // 从结构体类型解析出的字段，需要排序，相当于解析到 map
+	}
+)
 
-func (c *Context) SetRouteTo405() {
-	c.route.ptrNode = c.myApp.miniNode405
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (c *Context) execHandlers() {
-	if c.execIdx == maxRouteHandlers {
+// 添加一个路由属性对象
+func (rh *RHandler) BindRoute(ri *RouteItem) {
+	// 该路由还没有绑定任何处理函数
+	if ri.routeIdx <= 0 && rh.handler != nil {
+		ri.Handle(rh.handler)
+	}
+	// 如果不是有效的RouteItem
+	if ri.routeIdx <= 0 {
 		return
 	}
-
-	c.RouteIdx = c.route.ptrNode.routeIdx
-	c.handlers = c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-	c.execIdx = -1
-	c.Next()
+	rh.rIndex = ri.routeIdx
+	rHandlers = append(rHandlers, rh)
 }
 
-// 执行下一个中间件函数
-func (c *Context) Next() {
-	c.execIdx++
-	for c.execIdx < int8(len(c.handlers.hdsIdxChain)) {
-		c.myApp.fstMem.tidyHandlers[c.handlers.hdsIdxChain[c.execIdx]](c)
-		// 可能被设置成了 abort ，这样后面的 handlers 不用再调用了
-		if c.execIdx == maxRouteHandlers {
-			break
-		}
-		c.execIdx++
-	}
+// 克隆对象
+func (rh *RHandler) Clone() RouteAttrs {
+	clone := *rh
+	return &clone
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 此时还没有执行execHandlers, c.handlers还没有赋值
-func (c *Context) execAfterMatchHandlers() {
-	it := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
+// 构建所有路由的属性数组。没有指定的就用默认值填充。
+func RebuildRHandlers(routesLen uint16) {
+	raw := rHandlers
+	rHandlers = make([]*RHandler, routesLen)
 
-	for gp.afterMatchLen > 0 {
-		c.myApp.fstMem.tidyHandlers[gp.afterMatchIdx](c)
-		gp.afterMatchLen--
-		gp.afterMatchIdx++
-	}
-	for it.afterMatchLen > 0 {
-		c.myApp.fstMem.tidyHandlers[it.afterMatchIdx](c)
-		it.afterMatchLen--
-		it.afterMatchIdx++
+	for i := range raw {
+		lang.SortByLen(raw[i].pmsFields)
+		rHandlers[raw[i].rIndex] = raw[i]
 	}
 }
 
-// NOTE: 下面的钩子函数不需要中断执行链。
-func (c *Context) execBeforeSendHandlers() {
-	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
-
-	for gp.beforeSendLen > 0 {
-		c.myApp.fstMem.tidyHandlers[gp.beforeSendIdx](c)
-		gp.beforeSendLen--
-		gp.beforeSendIdx++
-	}
-	for it.beforeSendLen > 0 {
-		c.myApp.fstMem.tidyHandlers[it.beforeSendIdx](c)
-		it.beforeSendLen--
-		it.beforeSendIdx++
+func SuperHandler(hd CtxHandler, fn pmsCreator, cls []string) *RHandler {
+	return &RHandler{
+		handler:   hd,
+		pmsFunc:   fn,
+		pmsFields: cls,
 	}
 }
-
-func (c *Context) execAfterSendHandlers() {
-	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
-
-	for it.afterSendLen > 0 {
-		c.myApp.fstMem.tidyHandlers[it.afterSendIdx](c)
-		it.afterSendLen--
-		it.afterSendIdx++
-	}
-	for gp.afterSendLen > 0 {
-		c.myApp.fstMem.tidyHandlers[gp.afterSendIdx](c)
-		gp.afterSendLen--
-		gp.afterSendIdx++
-	}
-}
-
-//
-//// 执行异常处理之前的需要调用的函数
-//func (c *Context) ExecAfterPanicHandlers() {
-//	it := c.handlers // c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsItemIdx]
-//	gp := c.myApp.fstMem.hdsNodes[c.route.ptrNode.hdsGroupIdx]
-//
-//	for it.afterPanicLen > 0 {
-//		c.myApp.fstMem.tidyHandlers[it.afterPanicIdx](c)
-//		it.afterPanicLen--
-//		it.afterPanicIdx++
-//	}
-//	for gp.afterPanicLen > 0 {
-//		c.myApp.fstMem.tidyHandlers[gp.afterPanicIdx](c)
-//		gp.afterPanicLen--
-//		gp.afterPanicIdx++
-//	}
-//}
