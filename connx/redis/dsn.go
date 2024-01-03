@@ -2,7 +2,7 @@ package redis
 
 import (
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/mapx"
+	"github.com/qinchende/gofast/store/bind"
 	"strings"
 )
 
@@ -16,6 +16,6 @@ func ParseDsn(connStr string) *ConnCnf {
 		kvs[item[:idx]] = item[idx+1:]
 	}
 
-	_ = mapx.BindKV(rdsCnf, kvs, mapx.LikeConfig)
+	_ = bind.BindKV(rdsCnf, kvs, bind.AsConfig)
 	return rdsCnf
 }

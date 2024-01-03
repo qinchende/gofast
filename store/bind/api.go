@@ -38,18 +38,14 @@ func BindListX(dst any, src any, opts *dts.BindOptions) error {
 	return bindList((unsafe.Pointer)(&dst), dstT, src, opts)
 }
 
-//// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func Optimize(dst any, model int8) error {
-//	return optimizeStruct(dst, AsOptions(model))
-//
-//}
-//func OptimizeX(dst any, opts *BindOptions) error {
-//	return optimizeStruct(dst, opts)
-//}
+// 根据结构体配置信息，优化字段值 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Note：比如用在配置文件读取后默认值的设置
+// 1. 没有赋值的字段，如果指定了默认值，就自动设置成默认值
+// 2. 字段值根据valid规则，做合法性验证
+func Optimize(dst any, model int8) error {
+	return optimizeStruct(dst, dts.AsOptions(model))
 
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// 提取对象的字段的column名
-//func Columns(obj any, like int8) []string {
-//	sm := Schema(obj, AsOptions(like))
-//	return sm.columns
-//}
+}
+func OptimizeX(dst any, opts *dts.BindOptions) error {
+	return optimizeStruct(dst, opts)
+}
