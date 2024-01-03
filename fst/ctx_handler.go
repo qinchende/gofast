@@ -47,7 +47,7 @@ func RebuildRHandlers(routesLen uint16) {
 	}
 }
 
-func SuperHandler(hd CtxHandler, fn pmsCreator, cls []string) *RHandler {
+func WrapHandler(hd CtxHandler, fn pmsCreator, cls []string) *RHandler {
 	return &RHandler{
 		handler:   hd,
 		pmsFunc:   fn,

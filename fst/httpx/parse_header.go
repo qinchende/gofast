@@ -3,13 +3,12 @@
 package httpx
 
 import (
-	"github.com/qinchende/gofast/skill/mapx"
+	"github.com/qinchende/gofast/store/bind"
 	"io"
 	"net/http"
 	"strings"
 )
 
-//
 //func Parse(r *http.Request, v any) error {
 //	if err := ParsePath(r, v); err != nil {
 //		return err
@@ -21,7 +20,7 @@ import (
 //
 //	return ParseJsonBody(r, v)
 //}
-
+//
 //// Parses the form request.
 //func ParseForm(r *http.Request, v any) error {
 //	if err := r.ParseForm(); err != nil {
@@ -34,7 +33,7 @@ import (
 //		}
 //	}
 //
-//	params := make(map[string]any, len(r.Form))
+//	params := make(cst.KV, len(r.Form))
 //	for name := range r.Form {
 //		formValue := r.Form.Get(name)
 //		if len(formValue) > 0 {
@@ -42,7 +41,7 @@ import (
 //		}
 //	}
 //
-//	return mapx.BindKV(v, params, mapx.LikeLoadDB)
+//	return bind.BindKV(v, params, bind.AsLoadDB)
 //}
 
 func ParseHeader(headerValue string) map[string]string {
@@ -75,17 +74,17 @@ func ParseJsonBody(r *http.Request, v any) error {
 		reader = strings.NewReader(emptyJson)
 	}
 
-	return mapx.BindJsonReader(v, reader, mapx.LikeLoadDB)
+	return bind.BindJsonReader(v, reader, bind.AsLoadDB)
 }
 
-////// Parses the symbols reside in url path.
-////// Like http://localhost/bag/:name
-////func ParsePath(r *http.Request, v any) error {
-////	vars := Vars(r)
-////	kv := make(map[string]any, len(vars))
-////	for k, v := range vars {
-////		kv[k] = v
-////	}
-////
-////	return mapx.BindKV(v, kv, mapx.LikeLoadDB)
-////}
+//// Parses the symbols reside in url path.
+//// Like http://localhost/bag/:name
+//func ParsePath(r *http.Request, v any) error {
+//	vars := Vars(r)
+//	kv := make(cst.KV, len(vars))
+//	for k, v := range vars {
+//		kv[k] = v
+//	}
+//
+//	return bind.BindKV(v, kv, bind.AsLoadDB)
+//}

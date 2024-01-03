@@ -8,8 +8,8 @@ import (
 	"github.com/qinchende/gofast/skill/gmp"
 	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/mapx"
 	"github.com/qinchende/gofast/skill/timex"
+	"github.com/qinchende/gofast/store/bind"
 	"sync"
 	"time"
 )
@@ -60,7 +60,7 @@ func (lite *LiteGroup) AddTask(pet *LitePet) {
 	pet.group = lite
 	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task)
 
-	if err := mapx.Optimize(pet, mapx.LikeConfig); err != nil {
+	if err := bind.Optimize(pet, bind.AsConfig); err != nil {
 		logx.TimerError(err.Error())
 		return
 	}

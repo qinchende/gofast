@@ -4,6 +4,7 @@ package bind
 
 import (
 	"errors"
+	"fmt"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/validx"
@@ -192,4 +193,78 @@ func bindMap(ptr unsafe.Pointer, val any) (err error) {
 
 func bindPointer(ptr unsafe.Pointer, val any) (err error) {
 	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 主要用于给dst加上默认值，然后执行下字段验证
+func optimizeStruct(dst any, opts *dts.BindOptions) (err error) {
+	if dst == nil || opts == nil {
+		return nil
+	}
+	dstVal, sm, err := checkDestSchema(dst, opts)
+	if err != nil {
+		return err
+	}
+
+	ptr := (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr
+	for i := 0; i < len(sm.Fields); i++ {
+		fv := sm.RefValueByIndex(dstVal, int8(i))
+
+		// 如果字段是结构体类型
+		fvType := fv.Type()
+		if fvType.Kind() == reflect.Struct && fvType != cst.TypeTime {
+			if err = optimizeStruct(fv.Addr().Interface(), opts); err != nil {
+				return err
+			}
+			continue
+		}
+
+		// 如果字段值看上去像变量刚生成后默认初始化值，那么就加载默认信息
+		fa := sm.FieldsAttr[i]
+		vOpt := fa.Valid
+		if isInitialValue(fv) && opts.UseDefValue && vOpt != nil {
+			if vOpt.DefValue == "" {
+				continue
+			}
+			fPtr := unsafe.Pointer(uintptr(ptr) + fa.Offset)
+			if err = bindStruct(fPtr, fa.Type, fv, opts); err != nil {
+				return
+			}
+		}
+		// 是否需要验证字段数据的合法性
+		if opts.UseValid && vOpt != nil {
+			if err = validx.ValidateField(&fv, vOpt); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func isInitialValue(dst reflect.Value) bool {
+	switch dst.Kind() {
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
+		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
+		return dst.Int() == 0
+	case reflect.Float64, reflect.Float32:
+		return dst.Float() == 0
+	case reflect.String:
+		return dst.String() == ""
+	default:
+		return false
+	}
+}
+
+func checkDestSchema(dest any, bindOpts *dts.BindOptions) (*reflect.Value, *dts.StructSchema, error) {
+	dstTyp := reflect.TypeOf(dest)
+	if dstTyp.Kind() != reflect.Pointer {
+		return nil, nil, errors.New("Target object must be pointer.")
+	}
+
+	dstVal := reflect.Indirect(reflect.ValueOf(dest))
+	if dstVal.Kind() != reflect.Struct {
+		return nil, nil, fmt.Errorf("%T not like struct.", dest)
+	}
+
+	return &dstVal, dts.SchemaByType(dstVal.Type(), bindOpts), nil
 }

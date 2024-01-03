@@ -32,10 +32,3 @@ func Optimize(dst any, like int8) error {
 func OptimizeX(dst any, opts *BindOptions) error {
 	return optimizeStruct(dst, opts)
 }
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 提取对象的字段的column名
-func Columns(obj any, like int8) []string {
-	sm := Schema(obj, matchOptions(like))
-	return sm.columns
-}

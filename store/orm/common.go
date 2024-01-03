@@ -36,7 +36,6 @@ func (cf *CommonFields) GfAttrs(parent OrmStruct) (attr *TableAttrs) {
 	if attr == nil {
 		attr = &TableAttrs{}
 	}
-	//_ = mapx.Optimize(attr, mapx.LikeConfig) // 添加默认值，验证字段
 	return
 }
 
