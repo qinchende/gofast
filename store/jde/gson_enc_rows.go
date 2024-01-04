@@ -88,7 +88,7 @@ func encGsonRows(pet gson.RowsEncPet) (bs []byte, err error) {
 
 func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 	// struct slice
-	sh := (*reflect.SliceHeader)(se.srcPtr)
+	sh := (*rt.SliceHeader)(se.srcPtr)
 	tp := encGsonRowsHeader(*se.bf, int64(sh.Len), pet.Tt, pet.Cls)
 
 	// 3. 记录值
@@ -96,7 +96,7 @@ func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 	fls := se.em.ss.FieldsAttr
 	// 循环记录
 	for i := 0; i < sh.Len; i++ {
-		se.srcPtr = unsafe.Pointer(sh.Data + uintptr(i*se.em.itemMemSize))
+		se.srcPtr = unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(i*se.em.itemMemSize))
 
 		tp = append(tp, '[')
 		// 循环字段
@@ -139,7 +139,7 @@ func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 
 func (se *subEncode) encMapListByPet(pet gson.RowsEncPet) {
 	// struct slice
-	sh := (*reflect.SliceHeader)(se.srcPtr)
+	sh := (*rt.SliceHeader)(se.srcPtr)
 	tp := encGsonRowsHeader(*se.bf, int64(sh.Len), pet.Tt, pet.Cls)
 
 	// 3. 记录值

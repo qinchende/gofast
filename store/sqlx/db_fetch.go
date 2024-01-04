@@ -246,6 +246,8 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 
 	// 3. 目标值是基础值类型，只取第一行第一列值
 	switch dstKind {
+	default:
+		cst.PanicString("Unsupported unmarshal type.")
 	case reflect.Int:
 		panicIfSqlErr(sqlRows.Scan(dts.IntValue(objPtr)))
 	case reflect.Int8:
@@ -282,17 +284,6 @@ func scanSqlRowsOne(obj any, sqlRows *sql.Rows, ts *orm.TableSchema) int64 {
 		panicIfSqlErr(sqlRows.Scan(dts.TimeValue(objPtr)))
 	case reflect.Interface:
 		panicIfSqlErr(sqlRows.Scan(dts.AnyValue(objPtr)))
-
-	//case reflect.Bool, reflect.String, reflect.Float32, reflect.Float64,
-	//	reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
-	//	reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-	//	if dstVal.CanSet() {
-	//		panicIfSqlErr(sqlRows.Scan(dstVal.Addr().Interface()))
-	//	} else {
-	//		cst.PanicString("Variable can't settable.")
-	//	}
-	default:
-		cst.PanicString("Unsupported unmarshal type.")
 	}
 	return 1
 }
@@ -342,7 +333,7 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 			}
 		}
 
-		sh := (*reflect.SliceHeader)((*rt.AFace)(unsafe.Pointer(&list)).DataPtr)
+		sh := (*rt.SliceHeader)((*rt.AFace)(unsafe.Pointer(&list)).DataPtr)
 		for sqlRows.Next() {
 			objPtr := rt.SliceNextItem(sh, ts.SS.Attrs.MemSize)
 

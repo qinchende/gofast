@@ -2,36 +2,31 @@ package lang
 
 import (
 	"fmt"
-	"reflect"
 	"strconv"
 	"unsafe"
 )
 
 // NOTE：STB 和 BTS 这种黑魔法转换是不推荐使用的，特殊场景可能会出现意想不到的错误。
 // go 1.20后期版本中会提供标准库，实现类似的功能
-// StringToBytes converts string to byte slice without a memory allocation.
-//func StringToBytes(s string) []byte {
-//	return STB(s)
-//}
 func STB(s string) (b []byte) {
-	sh := *(*reflect.StringHeader)(unsafe.Pointer(&s))
-	bh := (*reflect.SliceHeader)(unsafe.Pointer(&b))
-	bh.Data, bh.Len, bh.Cap = sh.Data, sh.Len, sh.Len
-	return b
+	return unsafe.Slice(unsafe.StringData(s), len(s))
+
+	//sh := *(*rt.StringHeader)(unsafe.Pointer(&s))
+	//bh := (*rt.SliceHeader)(unsafe.Pointer(&b))
+	//bh.DataPtr, bh.Len, bh.Cap = sh.DataPtr, sh.Len, sh.Len
+	//return b
+
 	// 还有下面这种写法
 	//l := len(s)
-	//return *(*[]byte)(unsafe.Pointer(&reflect.SliceHeader{
+	//return *(*[]byte)(unsafe.Pointer(&rt.SliceHeader{
 	//	Data: (*(*reflect.StringHeader)(unsafe.Pointer(&s))).Data,
 	//	Len:  l,
 	//	Cap:  l,
 	//}))
 }
 
-// BytesToString converts byte slice to string without a memory allocation.
-//func BytesToString(b []byte) string {
-//	return BTS(b)
-//}
 func BTS(b []byte) string {
+	// unsafe.String(unsafe.SliceData(b), len(b))
 	return *(*string)(unsafe.Pointer(&b))
 }
 
@@ -56,9 +51,9 @@ func ToString2(v any) (s string, err error) {
 	case error:
 		s = vt.Error()
 	case float32:
-		s = strconv.FormatFloat(float64(vt), 'f', -1, 32)
+		s = strconv.FormatFloat(float64(vt), 'g', -1, 32)
 	case float64:
-		s = strconv.FormatFloat(vt, 'f', -1, 64)
+		s = strconv.FormatFloat(vt, 'g', -1, 64)
 	case int:
 		s = strconv.Itoa(vt)
 	case int8:
@@ -84,6 +79,7 @@ func ToString2(v any) (s string, err error) {
 	case fmt.Stringer:
 		s = vt.String()
 	default:
+		//s = fmt.Sprint(v)
 		s = fmt.Sprintf("%+v", v)
 	}
 	return

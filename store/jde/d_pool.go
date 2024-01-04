@@ -2,6 +2,7 @@ package jde
 
 import (
 	"github.com/qinchende/gofast/core/pool"
+	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
 	"reflect"
 	"unsafe"
@@ -46,60 +47,60 @@ func (sd *subDecode) resetListPool() {
 	pl := jdeBufPool.Get().(*listPool)
 	// 获取缓存内存空间
 	pl._memBytes = pool.GetBytes()
-	shMem := (*reflect.SliceHeader)(unsafe.Pointer(pl._memBytes))
+	shMem := (*rt.SliceHeader)(unsafe.Pointer(pl._memBytes))
 
-	var sh *reflect.SliceHeader
+	var sh *rt.SliceHeader
 	switch sd.dm.itemKind {
 	case reflect.Int:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufInt))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufInt))
 		sh.Cap = shMem.Cap / 8
 	case reflect.Int8:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI8))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufI8))
 		sh.Cap = shMem.Cap
 	case reflect.Int16:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI16))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufI16))
 		sh.Cap = shMem.Cap / 2
 	case reflect.Int32:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI32))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufI32))
 		sh.Cap = shMem.Cap / 4
 	case reflect.Int64:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufI64))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufI64))
 		sh.Cap = shMem.Cap / 8
 
 	case reflect.Uint:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufUint))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufUint))
 		sh.Cap = shMem.Cap / 8
 	case reflect.Uint8:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU8))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufU8))
 		sh.Cap = shMem.Cap
 	case reflect.Uint16:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU16))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufU16))
 		sh.Cap = shMem.Cap / 2
 	case reflect.Uint32:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU32))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufU32))
 		sh.Cap = shMem.Cap / 4
 	case reflect.Uint64:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufU64))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufU64))
 		sh.Cap = shMem.Cap / 8
 
 	case reflect.Float32:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufF32))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufF32))
 		sh.Cap = shMem.Cap / 4
 	case reflect.Float64:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufF64))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufF64))
 		sh.Cap = shMem.Cap / 8
 
 	case reflect.String:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufStr))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufStr))
 		sh.Cap = shMem.Cap / 16
 	case reflect.Bool:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufBol))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufBol))
 		sh.Cap = shMem.Cap
 	case reflect.Interface:
-		sh = (*reflect.SliceHeader)(unsafe.Pointer(&pl.bufAny))
+		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufAny))
 		sh.Cap = shMem.Cap / 16
 	}
-	sh.Data = shMem.Data
+	sh.DataPtr = shMem.DataPtr
 	sh.Len = 0
 
 	sd.pl = pl
@@ -230,8 +231,8 @@ func copySlice[T any | *any | **any](sd *subDecode, ptrLevel uint8, sList []T) [
 	// 如果是ptr类型的array，而且已到最后一级指针
 	if ptrLevel == 0 && sd.dm.isArray {
 		oriArr := []*T{}
-		bh := (*reflect.SliceHeader)(unsafe.Pointer(&oriArr))
-		bh.Data, bh.Len, bh.Cap = uintptr(sd.dstPtr), sd.dm.arrLen, sd.dm.arrLen
+		bh := (*rt.SliceHeader)(unsafe.Pointer(&oriArr))
+		bh.DataPtr, bh.Len, bh.Cap = sd.dstPtr, sd.dm.arrLen, sd.dm.arrLen
 
 		for i := 0; i < size; i++ {
 			oriArr[i] = &sList[i]

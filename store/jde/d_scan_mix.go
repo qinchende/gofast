@@ -29,7 +29,7 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType
 			newPtr = unsafe.Pointer(new(unsafe.Pointer))
 			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(rfType).UnsafePointer()
 		case reflect.Slice:
-			newPtr = unsafe.Pointer(&reflect.SliceHeader{})
+			newPtr = unsafe.Pointer(&rt.SliceHeader{})
 			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(rfType, 0, 0).UnsafePointer()
 		default:
 			newPtr = reflect.New(rfType).UnsafePointer()
@@ -295,7 +295,7 @@ func scanArrPtrMixValue(sd *subDecode) {
 
 // slice 中可能是实体对象，也可能是对象指针
 func scanListMixValue(sd *subDecode) {
-	sh := (*reflect.SliceHeader)(sd.dstPtr)
+	sh := (*rt.SliceHeader)(sd.dstPtr)
 	ptr := rt.SliceNextItem(sh, sd.dm.itemMemSize)
 
 	switch sd.str[sd.scan] {

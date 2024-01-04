@@ -3,48 +3,49 @@ package dts
 import (
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
 // Note: 这里只处理基础数据类型
-func BindBaseValueAsConfig(kd reflect.Kind, itPtr unsafe.Pointer, itVal any) {
+func BindBaseValueAsConfig(kd reflect.Kind, ptr unsafe.Pointer, v any) {
 	switch kd {
 	case reflect.Int:
-		setInt(itPtr, itVal)
+		setInt(ptr, v)
 	case reflect.Int8:
-		setInt8(itPtr, itVal)
+		setInt8(ptr, v)
 	case reflect.Int16:
-		setInt16(itPtr, itVal)
+		setInt16(ptr, v)
 	case reflect.Int32:
-		setInt32(itPtr, itVal)
+		setInt32(ptr, v)
 	case reflect.Int64:
-		setInt64(itPtr, itVal)
+		setInt64(ptr, v)
 
 	case reflect.Uint:
-		setUint(itPtr, itVal)
+		setUint(ptr, v)
 	case reflect.Uint8:
-		setUint8(itPtr, itVal)
+		setUint8(ptr, v)
 	case reflect.Uint16:
-		setUint16(itPtr, itVal)
+		setUint16(ptr, v)
 	case reflect.Uint32:
-		setUint32(itPtr, itVal)
+		setUint32(ptr, v)
 	case reflect.Uint64:
-		setUint64(itPtr, itVal)
+		setUint64(ptr, v)
 
 	case reflect.Float32:
-		setFloat32(itPtr, itVal)
+		setFloat32(ptr, v)
 	case reflect.Float64:
-		setFloat64(itPtr, itVal)
+		setFloat64(ptr, v)
 
 	case reflect.String:
-		setString(itPtr, itVal)
+		setString(ptr, v)
 	case reflect.Bool:
-		setBool(itPtr, itVal)
+		setBool(ptr, v)
 	case reflect.Interface:
-		setAny(itPtr, itVal)
-
+		setAny(ptr, v)
 		//case reflect.Pointer:
 		//case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
+	default:
 	}
 }
 
@@ -214,5 +215,8 @@ func setAny(p unsafe.Pointer, val any) {
 }
 
 func setTime(p unsafe.Pointer, val any) {
-
+	switch v := val.(type) {
+	case time.Time:
+		BindTime(p, v)
+	}
 }
