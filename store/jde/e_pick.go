@@ -23,8 +23,8 @@ func (se *subEncode) encStart() {
 		}
 
 		// slice
-		sh := (*reflect.SliceHeader)(se.srcPtr)
-		se.srcPtr = unsafe.Pointer(sh.Data)
+		sh := (*rt.SliceHeader)(se.srcPtr)
+		se.srcPtr = sh.DataPtr
 		if se.em.isPtr {
 			se.encListPtr(sh.Len)
 		} else {
@@ -39,32 +39,6 @@ func (se *subEncode) encStart() {
 	default:
 		se.encBasic()
 	}
-	//if se.em.isList {
-	//	if se.em.isArray {
-	//		if se.em.isPtr {
-	//			se.encListPtr(se.em.arrLen)
-	//		} else {
-	//			se.encList(se.em.arrLen)
-	//		}
-	//	} else {
-	//		sh := (*reflect.SliceHeader)(se.srcPtr)
-	//		se.srcPtr = unsafe.Pointer(sh.Data)
-	//
-	//		if se.em.isPtr {
-	//			se.encListPtr(sh.Len)
-	//		} else {
-	//			se.encList(sh.Len)
-	//		}
-	//	}
-	//} else if se.em.isStruct {
-	//	se.encStruct()
-	//} else if se.em.isMap {
-	//	se.encMap()
-	//} else if se.em.isPtr {
-	//	se.encPointer()
-	//} else {
-	//	se.encBasic()
-	//}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++

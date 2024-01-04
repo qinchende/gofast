@@ -1,7 +1,7 @@
 package jde
 
 import (
-	"reflect"
+	"github.com/qinchende/gofast/core/rt"
 	"unicode/utf8"
 	"unsafe"
 )
@@ -12,8 +12,8 @@ func (sd *subDecode) unescapeEnd() int {
 	pos := sd.escPos[0]
 
 	var bs []byte
-	sh := (*reflect.SliceHeader)(unsafe.Pointer(&bs))
-	sh.Data = (*(*reflect.StringHeader)(unsafe.Pointer(&sd.str))).Data
+	sh := (*rt.SliceHeader)(unsafe.Pointer(&bs))
+	sh.DataPtr = (*(*rt.StringHeader)(unsafe.Pointer(&sd.str))).DataPtr
 	sh.Len, sh.Cap = pos, sd.scan
 
 	for i := 0; i < len(sd.escPos); i++ {

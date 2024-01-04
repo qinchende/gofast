@@ -1,17 +1,16 @@
 package rt
 
 import (
-	"reflect"
 	"unsafe"
 )
 
-func SliceAutoGrow(sh *reflect.SliceHeader, itemSize int) {
+func SliceAutoGrow(sh *SliceHeader, itemSize int) {
 	oldLen := sh.Len
 	// 如果已经没有待用内存空间，就执行扩容算法
 	if oldLen == sh.Cap {
 		var oldMem = []byte{}
-		old := (*reflect.SliceHeader)(unsafe.Pointer(&oldMem))
-		old.Data, old.Len, old.Cap = sh.Data, sh.Len*itemSize, sh.Cap*itemSize
+		old := (*SliceHeader)(unsafe.Pointer(&oldMem))
+		old.DataPtr, old.Len, old.Cap = sh.DataPtr, sh.Len*itemSize, sh.Cap*itemSize
 
 		// TODO: 需要研究更高效的扩容算法
 		newLen := int(float64(sh.Cap)*1.6) + 5 // 一种简易的动态扩容算法
@@ -28,9 +27,9 @@ func SliceAutoGrow(sh *reflect.SliceHeader, itemSize int) {
 }
 
 // 返回下一个值内存空间的地址
-func SliceNextItem(sh *reflect.SliceHeader, itemSize int) (ptr unsafe.Pointer) {
+func SliceNextItem(sh *SliceHeader, itemSize int) (ptr unsafe.Pointer) {
 	SliceAutoGrow(sh, itemSize)
-	ptr = unsafe.Pointer(sh.Data + uintptr(sh.Len*itemSize))
+	ptr = unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(sh.Len*itemSize))
 	sh.Len++
 	return
 }

@@ -3,6 +3,7 @@ package dts
 import (
 	"errors"
 	"math"
+	"time"
 	"unsafe"
 )
 
@@ -10,6 +11,23 @@ var (
 	errNumOutOfRange  = errors.New("dts: number out of range")
 	errNotSupportType = errors.New("dts: can't support the value type")
 )
+
+//func SetInt(kd reflect.Kind, ptr unsafe.Pointer, x int64) {
+//	switch kd {
+//	default:
+//		panic(errNotSupportType)
+//	case reflect.Int:
+//		*(*int)(ptr) = int(x)
+//	case reflect.Int8:
+//		*(*int8)(ptr) = int8(x)
+//	case reflect.Int16:
+//		*(*int16)(ptr) = int16(x)
+//	case reflect.Int32:
+//		*(*int32)(ptr) = int32(x)
+//	case reflect.Int64:
+//		*(*int64)(ptr) = x
+//	}
+//}
 
 // 通用的绑定函数，将给定值写入指定的地址内存
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -96,4 +114,8 @@ func BindBool(p unsafe.Pointer, v bool) {
 
 func BindAny(p unsafe.Pointer, v any) {
 	*(*any)(p) = v
+}
+
+func BindTime(p unsafe.Pointer, v time.Time) {
+	*(*time.Time)(p) = v
 }

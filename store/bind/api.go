@@ -44,7 +44,6 @@ func BindListX(dst any, src any, opts *dts.BindOptions) error {
 // 2. 字段值根据valid规则，做合法性验证
 func Optimize(dst any, model int8) error {
 	return optimizeStruct(dst, dts.AsOptions(model))
-
 }
 func OptimizeX(dst any, opts *dts.BindOptions) error {
 	return optimizeStruct(dst, opts)

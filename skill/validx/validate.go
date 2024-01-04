@@ -116,6 +116,8 @@ func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 		err = checkNumberRange(fValue.Float(), vOpts.Range)
 	case reflect.Struct:
 		// todo: 如果是 time.Time 类型如何处理
+	default:
+		return
 	}
 	return
 }
@@ -205,6 +207,8 @@ func ValidateFieldSmart(ptr unsafe.Pointer, kd reflect.Kind, vOpts *ValidOptions
 		err = checkNumberRange(*(*float64)(ptr), vOpts.Range)
 	case reflect.Struct:
 		// todo: 如果是 time.Time 类型如何处理
+	default:
+		return nil
 	}
 	return
 }
