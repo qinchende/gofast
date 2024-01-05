@@ -12,6 +12,20 @@ import (
 	"unsafe"
 )
 
+func checkStructDest(dst any) (dstTyp reflect.Type, ptr unsafe.Pointer, err error) {
+	// 以下是必要的检查
+	dstTyp = reflect.TypeOf(dst)
+	if dstTyp.Kind() != reflect.Pointer {
+		return nil, nil, errors.New("Dest object must be pointer value.")
+	}
+	dstTyp = dstTyp.Elem()
+	if dstTyp.Kind() != reflect.Struct {
+		return nil, nil, errors.New(dstTyp.String() + " must be struct.")
+	}
+	ptr = (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr
+	return
+}
+
 // object:
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
 func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
@@ -19,20 +33,11 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	if dst == nil || kvs == nil || kvs.Len() == 0 || opts == nil {
 		return nil
 	}
-
-	// 以下是必要的检查
-	dstTyp := reflect.TypeOf(dst)
-	if dstTyp.Kind() != reflect.Pointer {
-		return errors.New("Dest object must be pointer value.")
+	if dstType, ptr, err := checkStructDest(dst); err != nil {
+		return err
+	} else {
+		return bindKVToStructInner(ptr, dstType, kvs, opts)
 	}
-	dstTyp = dstTyp.Elem()
-	if dstTyp.Kind() != reflect.Struct {
-		return errors.New(dstTyp.String() + " must be struct.")
-	}
-	// ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-	ptr := (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr
-	return bindKVToStructInner(ptr, dstTyp, kvs, opts)
 }
 
 func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
@@ -47,8 +52,8 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV,
 
 	// 两种循环方式。1：目标结构的字段  2：源字段（一般情况下，这种更好）
 	for i := 0; i < len(fls); i++ {
-		fa := &sm.FieldsAttr[i] // 这个肯定不能为 nil
-		vOpt := fa.Valid        // 这个可能是 nil
+		fa := &sm.FieldsAttr[i] // 肯定不是nil
+		vOpt := fa.Valid        // 可能是nil
 		fName := fls[i]
 		fv, ok := kvs.Get(fName)
 
@@ -57,7 +62,7 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV,
 				continue
 			}
 			if vOpt.Required && opts.UseValid {
-				return errors.New("the field must required: " + fName)
+				return errors.New("bind: must required field " + fName)
 			}
 			if opts.UseDefValue {
 				fv = vOpt.DefValue
@@ -67,8 +72,8 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV,
 			}
 		}
 
-		fPtr := unsafe.Pointer(uintptr(ptr) + fa.Offset)
-		// TODO: 完善这里可能出现的情况
+		fPtr := fa.MyPtr(ptr)
+		// TODO: 完善这里可能出现的情况, fPtr 可能为 nil
 		switch fa.Kind {
 		case reflect.Struct:
 			if err = bindStruct(fPtr, fa.Type, fv, opts); err != nil {
@@ -85,11 +90,6 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV,
 				return
 			}
 			continue
-		case reflect.Pointer:
-			if err = bindPointer(fPtr, fv); err != nil {
-				return
-			}
-			continue
 		default:
 			if fa.KVBinder == nil {
 				continue
@@ -100,7 +100,7 @@ func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV,
 
 		// 是否需要验证字段数据的合法性
 		if opts.UseValid && vOpt != nil {
-			if err = validx.ValidateFieldSmart(fPtr, fa.Kind, vOpt); err != nil {
+			if err = validx.ValidateFieldPtr(fPtr, fa.Kind, vOpt); err != nil {
 				return
 			}
 		}
@@ -184,59 +184,53 @@ func bindMap(ptr unsafe.Pointer, val any) (err error) {
 	return
 }
 
-func bindPointer(ptr unsafe.Pointer, val any) (err error) {
-	return
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主要用于给dst加上默认值，然后执行下字段验证
-func optimizeStruct(dst any, opts *dts.BindOptions) (err error) {
+func optimizeStruct(dst any, opts *dts.BindOptions) error {
 	if dst == nil || opts == nil {
 		return nil
 	}
-
-	// 以下是必要的检查
-	dstTyp := reflect.TypeOf(dst)
-	if dstTyp.Kind() != reflect.Pointer {
-		return errors.New("Dest object must be pointer value.")
+	if dstType, ptr, err := checkStructDest(dst); err != nil {
+		return err
+	} else {
+		return optimizeStructInner(ptr, dstType, opts)
 	}
-	dstTyp = dstTyp.Elem()
-	if dstTyp.Kind() != reflect.Struct {
-		return errors.New(dstTyp.String() + " must be struct.")
-	}
-
-	ptr := (*rt.AFace)(unsafe.Pointer(&dst)).DataPtr
-	return optimizeStructInner(ptr, dstTyp, opts)
 }
 
 func optimizeStructInner(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOptions) (err error) {
 	sm := dts.SchemaByType(dstT, opts)
 
 	for i := 0; i < len(sm.Fields); i++ {
-		fa := &sm.FieldsAttr[i] // 这个肯定不能为 nil
+		fa := &sm.FieldsAttr[i] // 肯定不会是nil
 		fKind := fa.Kind
-		fPtr := unsafe.Pointer(uintptr(ptr) + fa.Offset)
+		fPtr := fa.MyPtr(ptr)
 
 		// 如果字段是结构体类型
 		if fKind == reflect.Struct && fa.Type != cst.TypeTime {
-			if err = optimizeStructInner(fPtr, dstT, opts); err != nil {
+			// Note：指向其它结构体的字段，不做处理，防止嵌套循环验证
+			if fa.PtrLevel > 0 {
+				continue
+			}
+			if err = optimizeStructInner(fPtr, fa.Type, opts); err != nil {
 				return
 			}
 			continue
 		}
 
-		// 如果字段值看上去像变量刚生成后默认初始化值，那么就加载默认信息
 		vOpt := fa.Valid
-		if isInitialValue(fKind, fPtr) && opts.UseDefValue && vOpt != nil {
-			if vOpt.DefValue == "" || fa.KVBinder == nil {
-				continue
-			}
+		if vOpt == nil {
+			continue
+		}
+
+		fPtr = dts.PeelPtr(fPtr, fa.PtrLevel)
+		// 如果字段是初始化值，尝试设置默认值
+		if opts.UseDefValue && vOpt.DefValue != "" && isInitialValue(fKind, fPtr) && fa.KVBinder != nil && fPtr != nil {
 			fa.KVBinder(fPtr, vOpt.DefValue)
 		}
 
 		// Check: 是否需要验证字段数据的合法性
-		if opts.UseValid && vOpt != nil {
-			if err = validx.ValidateFieldSmart(fPtr, fKind, vOpt); err != nil {
+		if opts.UseValid {
+			if err = validx.ValidateFieldPtr(fPtr, fKind, vOpt); err != nil {
 				return
 			}
 		}

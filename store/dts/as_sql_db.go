@@ -11,11 +11,12 @@ import (
 type (
 	SqlSkip int
 
-	SqlInt   int
-	SqlInt8  int8
-	SqlInt16 int16
-	SqlInt32 int32
-	SqlInt64 int64
+	SqlInt      int
+	SqlInt8     int8
+	SqlInt16    int16
+	SqlInt32    int32
+	SqlInt64    int64
+	SqlDuration int64
 
 	SqlUint   uint
 	SqlUint8  uint8
@@ -85,6 +86,22 @@ func (val *SqlInt64) Scan(src any) error {
 	switch s := src.(type) {
 	case int64:
 		*val = SqlInt64(s)
+	default:
+		return fmt.Errorf("dts: couldn't convert %v (%T) into type int64", src, src)
+	}
+	return nil
+}
+
+func (val *SqlDuration) Scan(src any) error {
+	switch s := src.(type) {
+	case int64:
+		*val = SqlDuration(s)
+	case string:
+		if d, err := time.ParseDuration(s); err != nil {
+			return err
+		} else {
+			*val = SqlDuration(d)
+		}
 	default:
 		return fmt.Errorf("dts: couldn't convert %v (%T) into type int64", src, src)
 	}
@@ -201,70 +218,74 @@ func (val *SqlBool) Scan(src any) error {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (fa *fieldAttr) intValue(oPtr unsafe.Pointer) any {
-	return (*SqlInt)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) int8Value(oPtr unsafe.Pointer) any {
-	return (*SqlInt8)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt8)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) int16Value(oPtr unsafe.Pointer) any {
-	return (*SqlInt16)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt16)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) int32Value(oPtr unsafe.Pointer) any {
-	return (*SqlInt32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt32)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) int64Value(oPtr unsafe.Pointer) any {
-	return (*SqlInt64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlInt64)(fa.MyPtr(oPtr))
+}
+
+func (fa *fieldAttr) durationValue(oPtr unsafe.Pointer) any {
+	return (*SqlDuration)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) uintValue(oPtr unsafe.Pointer) any {
-	return (*SqlUint)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) uint8Value(oPtr unsafe.Pointer) any {
-	return (*SqlUint8)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint8)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) uint16Value(oPtr unsafe.Pointer) any {
-	return (*SqlUint16)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint16)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) uint32Value(oPtr unsafe.Pointer) any {
-	return (*SqlUint32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint32)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) uint64Value(oPtr unsafe.Pointer) any {
-	return (*SqlUint64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlUint64)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) float32Value(oPtr unsafe.Pointer) any {
-	return (*SqlFloat32)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlFloat32)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) float64Value(oPtr unsafe.Pointer) any {
-	return (*SqlFloat64)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlFloat64)(fa.MyPtr(oPtr))
 }
 
 // ++++++++++++++
 func (fa *fieldAttr) boolValue(oPtr unsafe.Pointer) any {
-	return (*SqlBool)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*SqlBool)(fa.MyPtr(oPtr))
 }
 
 // ++++++++++++++
 // Note: 获取字符串切片，无法共享底层字节切片。因为 db.conn 读写数据用到的Buffer可能会被复用，值会被覆盖。
 func (fa *fieldAttr) stringValue(oPtr unsafe.Pointer) any {
-	return (*string)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*string)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) anyValue(oPtr unsafe.Pointer) any {
-	return (*any)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*any)(fa.MyPtr(oPtr))
 }
 
 func (fa *fieldAttr) timeValue(oPtr unsafe.Pointer) any {
-	return (*time.Time)(unsafe.Pointer(uintptr(oPtr) + fa.Offset))
+	return (*time.Time)(fa.MyPtr(oPtr))
 }
 
 // @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@

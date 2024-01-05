@@ -1,6 +1,7 @@
 package dts
 
 import (
+	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"time"
@@ -104,7 +105,22 @@ func setInt64(p unsafe.Pointer, val any) {
 	case string:
 		BindInt64(p, lang.ParseInt(v))
 	case *string:
-		BindInt32(p, lang.ParseInt(*v))
+		BindInt64(p, lang.ParseInt(*v))
+	}
+}
+
+func setDuration(p unsafe.Pointer, val any) {
+	switch v := val.(type) {
+	case int64:
+		BindInt64(p, v)
+	case string:
+		d, err := time.ParseDuration(v)
+		cst.PanicIfErr(err)
+		BindInt64(p, int64(d))
+	case *string:
+		d, err := time.ParseDuration(*v)
+		cst.PanicIfErr(err)
+		BindInt64(p, int64(d))
 	}
 }
 
