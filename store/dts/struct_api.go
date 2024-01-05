@@ -7,6 +7,7 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
+	"unsafe"
 )
 
 // fetch StructSchema
@@ -136,4 +137,26 @@ func (ss *StructSchema) FIndexes(fls []string) (ret []uint8) {
 		ret[i] = uint8(ss.FieldIndex(fls[i]))
 	}
 	return
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//
+//go:inline
+func (fa *fieldAttr) MyPtr(structPtr unsafe.Pointer) unsafe.Pointer {
+	return unsafe.Pointer(uintptr(structPtr) + fa.Offset)
+}
+
+//go:inline
+func PeelPtr(ptr unsafe.Pointer, level uint8) unsafe.Pointer {
+	if level == 0 || ptr == nil {
+		return ptr
+	}
+	for level > 0 {
+		ptr = *(*unsafe.Pointer)(ptr)
+		if ptr == nil {
+			break
+		}
+		level--
+	}
+	return ptr
 }

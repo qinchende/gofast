@@ -18,6 +18,7 @@ var (
 	TypeCstKV     reflect.Type
 	TypeStrAnyMap reflect.Type
 	TypeTime      reflect.Type
+	TypeDuration  reflect.Type
 	TypeBytes     reflect.Type
 )
 
@@ -25,5 +26,6 @@ func init() {
 	TypeCstKV = reflect.TypeOf(KV{})
 	TypeStrAnyMap = reflect.TypeOf(map[string]any{})
 	TypeTime = reflect.TypeOf(time.Time{})
+	TypeDuration = reflect.TypeOf(*new(time.Duration))
 	TypeBytes = reflect.TypeOf(make([]byte, 0))
 }

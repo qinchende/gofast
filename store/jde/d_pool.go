@@ -35,7 +35,7 @@ type listPool struct {
 }
 
 // 默认值
-var _listPoolDefValue listPool
+var _listPoolInitializer listPool
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (sd *subDecode) resetListPool() {
@@ -51,6 +51,7 @@ func (sd *subDecode) resetListPool() {
 
 	var sh *rt.SliceHeader
 	switch sd.dm.itemKind {
+	default:
 	case reflect.Int:
 		sh = (*rt.SliceHeader)(unsafe.Pointer(&pl.bufInt))
 		sh.Cap = shMem.Cap / 8
@@ -113,6 +114,7 @@ func (sd *subDecode) flushListPool() {
 	}
 
 	switch sd.dm.itemKind {
+	default:
 	case reflect.Int:
 		flushNoCast[int](sd, sd.pl.bufInt)
 	case reflect.Int8:
@@ -158,10 +160,10 @@ func (sd *subDecode) flushListPool() {
 	if cap(sd.pl.nulPos) > 0 {
 		// 保留已分配的内存
 		tp := sd.pl.nulPos
-		*sd.pl = _listPoolDefValue
+		*sd.pl = _listPoolInitializer
 		sd.pl.nulPos = tp[0:0]
 	} else {
-		*sd.pl = _listPoolDefValue
+		*sd.pl = _listPoolInitializer
 	}
 
 	// 用完了就归还

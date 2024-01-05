@@ -113,6 +113,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 
 		fa.Offset = fOptions[i].sField.Offset
 		fa.Type = fOptions[i].sField.Type
+		// 如果struct字段中有指针类型，需要穿透到非指针类型，同时记录指针层级数
 		for fa.Type.Kind() == reflect.Pointer {
 			fa.PtrLevel++
 			fa.Type = fa.Type.Elem()
@@ -121,6 +122,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 		switch fa.Kind {
 		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 			fa.IsMixType = true
+		default:
 		}
 
 		// +++ set KVBinder function and other attributes
@@ -140,8 +142,13 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			fa.KVBinder = setInt32
 			fa.SqlValue = fa.int32Value
 		case reflect.Int64:
-			fa.KVBinder = setInt64
-			fa.SqlValue = fa.int64Value
+			if fa.Type == cst.TypeDuration {
+				fa.KVBinder = setDuration
+				fa.SqlValue = fa.durationValue
+			} else {
+				fa.KVBinder = setInt64
+				fa.SqlValue = fa.int64Value
+			}
 
 		case reflect.Uint:
 			fa.KVBinder = setUint
@@ -185,6 +192,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			}
 		case reflect.Pointer:
 		case reflect.Map, reflect.Array, reflect.Slice:
+		default:
 		}
 	}
 

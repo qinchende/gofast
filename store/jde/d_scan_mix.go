@@ -87,7 +87,7 @@ func fieldPtr(sd *subDecode) unsafe.Pointer {
 
 func fieldMixPtr(sd *subDecode) unsafe.Pointer {
 	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + fa.Offset)
+	ptr := fa.MyPtr(sd.dstPtr)
 
 	if fa.Kind == reflect.Map {
 		if *(*unsafe.Pointer)(ptr) == nil {
@@ -116,7 +116,7 @@ func fieldMixPtr(sd *subDecode) unsafe.Pointer {
 
 func fieldPtrDeep(sd *subDecode) unsafe.Pointer {
 	fa := &sd.dm.ss.FieldsAttr[sd.keyIdx]
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + fa.Offset)
+	ptr := fa.MyPtr(sd.dstPtr)
 	return getPtrValueAddr(ptr, fa.PtrLevel, fa.Kind, fa.Type)
 }
 

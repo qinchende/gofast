@@ -13,7 +13,8 @@ import (
 )
 
 var (
-	errNumberRange = errors.New("wrong number range setting")
+	errNumberRange  = errors.New("validx: wrong number range setting")
+	errFieldAddress = errors.New("validx: field address is nil")
 )
 
 var regexMap = map[string]*regexp.Regexp{
@@ -123,9 +124,13 @@ func ValidateField(fValue *reflect.Value, vOpts *ValidOptions) (err error) {
 }
 
 // 验证值
-func ValidateFieldSmart(ptr unsafe.Pointer, kd reflect.Kind, vOpts *ValidOptions) (err error) {
+func ValidateFieldPtr(ptr unsafe.Pointer, kd reflect.Kind, vOpts *ValidOptions) (err error) {
 	if vOpts == nil {
 		return nil
+	}
+	// 没有内存的字段要报错
+	if ptr == nil {
+		return errFieldAddress
 	}
 
 	switch kd {

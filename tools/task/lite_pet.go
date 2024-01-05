@@ -13,11 +13,11 @@ type LitePet struct {
 
 	StartTime string        `v:"def=00:00,len=[5:5]"` // "00:00"
 	EndTime   string        `v:"def=23:59,len=[5:5]"` // "23:59"
-	IntervalS time.Duration `v:"def=60"`              // 循环执行间隔s
+	IntervalS time.Duration `v:"def=60s"`             // 循环执行间隔s
 	crossDay  bool          ``                        // 定时任务是否可跨日运行
 
-	JustOnce   bool          `v:""`       // 是否只运行一次
-	JustDelayS time.Duration `v:"def=60"` // 启动之后延时多少秒执行
+	JustOnce   bool          `v:""`        // 是否只运行一次
+	JustDelayS time.Duration `v:"def=60s"` // 启动之后延时多少秒执行
 
 	group    *LiteGroup    `v:""`            // 分组
 	key      string        `v:"len=[1:250]"` // 任务运行标记数据对应的key
@@ -61,7 +61,7 @@ func (pet *LitePet) runTask(gorCtx context.Context, now time.Duration) {
 
 func (pet *LitePet) execute(gorCtx context.Context, now time.Duration) {
 	if pet.Task(gorCtx) {
-		pet.group.rds.Set(pet.key, timex.ToTime(now).Format(cst.TimeFmtRFC3339), liteStoreRunFlagExpireTTL)
+		_, _ = pet.group.rds.Set(pet.key, timex.ToTime(now).Format(cst.TimeFmtRFC3339), liteStoreRunFlagExpireTTL)
 	}
 }
 
