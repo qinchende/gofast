@@ -36,11 +36,11 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	if dstType, ptr, err := checkStructDest(dst); err != nil {
 		return err
 	} else {
-		return bindKVToStructInner(ptr, dstType, kvs, opts)
+		return bindKVToStructIter(ptr, dstType, kvs, opts)
 	}
 }
 
-func bindKVToStructInner(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
+func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
 	sm := dts.SchemaByType(dstT, opts)
 
 	var fls []string
@@ -116,45 +116,32 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOpti
 		return errors.New("dts: value type must be []any")
 	}
 
-	var dstSize uintptr
-	listLen := len(list)
+	srcLen := len(list)
+	dstKind := dstT.Kind()
 
-	if dstT.Kind() == reflect.Array {
-		if dstT.Len() != listLen {
-			return errors.New("dts: array length not match.")
-		}
-
-		dstT = dstT.Elem()
-		dstSize = dstT.Size()
-	} else {
-		dstT = dstT.Elem()
-		dstSize = dstT.Size()
-
-		sh := (*rt.SliceHeader)(ptr)
-		if sh.Cap < listLen {
-			newMem := make([]byte, int(dstSize)*listLen)
-			sh.DataPtr = (*rt.SliceHeader)(unsafe.Pointer(&newMem)).DataPtr
-			sh.Len, sh.Cap = listLen, listLen
-		} else {
-			sh.Len = listLen
-		}
-		ptr = sh.DataPtr
+	if dstKind == reflect.Array && dstT.Len() != srcLen {
+		return errors.New("dts: array length not match.")
 	}
 
-	// TODO: 完善这里可能出现的情况
-	itKind := dstT.Kind()
-	switch itKind {
+	itemType := dstT.Elem()
+	itemBytes := itemType.Size()
+
+	if dstKind == reflect.Slice {
+		ptr = rt.SliceToArray(ptr, int(itemBytes), srcLen)
+	}
+
+	switch itemKind := itemType.Kind(); itemKind {
 	case reflect.Struct:
-		for i := 0; i < listLen; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*dstSize)
-			if err = bindStruct(itPtr, dstT, list[i], opts); err != nil {
+		for i := 0; i < srcLen; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itemBytes)
+			if err = bindStruct(itPtr, itemType, list[i], opts); err != nil {
 				return
 			}
 		}
 	case reflect.Array, reflect.Slice:
-		for i := 0; i < listLen; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*dstSize)
-			if err = bindList(itPtr, dstT, list[i], opts); err != nil {
+		for i := 0; i < srcLen; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itemBytes)
+			if err = bindList(itPtr, itemType, list[i], opts); err != nil {
 				return
 			}
 		}
@@ -163,9 +150,9 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOpti
 	case reflect.Pointer:
 		// TODO: bindPointer
 	default:
-		for i := 0; i < listLen; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*dstSize)
-			dts.BindBaseValueAsConfig(itKind, itPtr, list[i])
+		for i := 0; i < srcLen; i++ {
+			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itemBytes)
+			dts.BindBaseValueAsConfig(itemKind, itPtr, list[i])
 		}
 	}
 	return
@@ -174,7 +161,7 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOpti
 func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOptions) error {
 	switch v := src.(type) {
 	case map[string]any:
-		return bindKVToStructInner(ptr, dstT, cst.KV(v), opts)
+		return bindKVToStructIter(ptr, dstT, cst.KV(v), opts)
 	default:
 		return nil
 	}
@@ -193,11 +180,11 @@ func optimizeStruct(dst any, opts *dts.BindOptions) error {
 	if dstType, ptr, err := checkStructDest(dst); err != nil {
 		return err
 	} else {
-		return optimizeStructInner(ptr, dstType, opts)
+		return optimizeStructIter(ptr, dstType, opts)
 	}
 }
 
-func optimizeStructInner(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOptions) (err error) {
+func optimizeStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOptions) (err error) {
 	sm := dts.SchemaByType(dstT, opts)
 
 	for i := 0; i < len(sm.Fields); i++ {
@@ -211,7 +198,7 @@ func optimizeStructInner(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOp
 			if fa.PtrLevel > 0 {
 				continue
 			}
-			if err = optimizeStructInner(fPtr, fa.Type, opts); err != nil {
+			if err = optimizeStructIter(fPtr, fa.Type, opts); err != nil {
 				return
 			}
 			continue

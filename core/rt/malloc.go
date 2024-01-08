@@ -33,3 +33,16 @@ func SliceNextItem(sh *SliceHeader, itemSize int) (ptr unsafe.Pointer) {
 	sh.Len++
 	return
 }
+
+// 为Slice对象分配足够的内存空间，并像Array一样，返回第一个值的地址
+func SliceToArray(slicePtr unsafe.Pointer, itemSize int, sliceLen int) unsafe.Pointer {
+	sh := (*SliceHeader)(slicePtr)
+	if sh.Cap < sliceLen {
+		newMem := make([]byte, itemSize*sliceLen)
+		sh.DataPtr = (*SliceHeader)(unsafe.Pointer(&newMem)).DataPtr
+		sh.Len, sh.Cap = sliceLen, sliceLen
+	} else {
+		sh.Len = sliceLen
+	}
+	return sh.DataPtr
+}
