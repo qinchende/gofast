@@ -20,7 +20,7 @@ type routeEvents struct {
 type RouteGroup struct {
 	routeEvents              // 直接作用于本节点的事件可能为空
 	combEvents   routeEvents // 合并父节点的分组事件，routeEvents可能为空，但是combEvents几乎不会为空
-	myApp        *GoFast
+	app          *GoFast
 	prefix       string
 	children     []*RouteGroup
 	hdsIdx       int16  // 记录当前分组 对应新事件数组中的起始位置索引

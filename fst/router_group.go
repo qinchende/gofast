@@ -26,7 +26,7 @@ import (
 func (gp *RouteGroup) Group(relPath string) *RouteGroup {
 	gpNew := &RouteGroup{
 		prefix: gp.fixAbsolutePath(relPath),
-		myApp:  gp.myApp,
+		app:    gp.app,
 		hdsIdx: -1,
 	}
 	gp.children = append(gp.children, gpNew)
@@ -190,7 +190,7 @@ func (gp *RouteGroup) createStaticHandler(relPath string, fs http.FileSystem) Ct
 		if err != nil {
 			// 没有匹配到静态文件，用系统中 404 （NoRoute handler）做响应处理
 			c.Res.WriteHeader(http.StatusNotFound)
-			c.route.ptrNode = gp.myApp.miniNode404
+			c.route.ptrNode = gp.app.miniNode404
 			c.execHandlers()
 			return
 		}

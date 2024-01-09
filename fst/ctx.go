@@ -13,7 +13,7 @@ import (
 // Context is the most important part of GoFast. It allows us to pass variables between middleware,
 // manage the flow, validate the JSON of a request and render a JSON response for example.
 type Context struct {
-	myApp *GoFast // 用于上下文
+	app *GoFast // 用于上下文
 
 	EnterTime time.Duration       // 请求传递进入框架逻辑的时间
 	Res       *httpx.ResponseWrap // 被封装后的Response

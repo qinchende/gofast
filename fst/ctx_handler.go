@@ -3,15 +3,16 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/dts"
 )
 
 var rHandlers []*RHandler // 所有配置项汇总
 type (
-	pmsCreator func() cst.SuperKV
+	newSuperKV func() cst.SuperKV
 	RHandler   struct {
 		rIndex    uint16     // 索引位置
 		handler   CtxHandler // 处理函数
-		pmsFunc   pmsCreator // 解析到具体的struct对象
+		pmsNew    newSuperKV // 解析到具体的struct对象
 		pmsFields []string   // 从结构体类型解析出的字段，需要排序，相当于解析到 map
 	}
 )
@@ -47,10 +48,23 @@ func RebuildRHandlers(routesLen uint16) {
 	}
 }
 
-func WrapHandler(hd CtxHandler, fn pmsCreator, cls []string) *RHandler {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func WrapHandler(hd CtxHandler, fn newSuperKV, cls []string) *RHandler {
 	return &RHandler{
 		handler:   hd,
-		pmsFunc:   fn,
+		pmsNew:    fn,
 		pmsFields: cls,
 	}
+}
+
+func ToSuperKV(v any) cst.SuperKV {
+	return dts.AsSuperKV(v)
+}
+
+func NewSuperKV[T any]() cst.SuperKV {
+	return dts.AsSuperKV(new(T))
+}
+
+func PmsAs[T any](c *Context) *T {
+	return (*T)((c.Pms).(*dts.StructKV).Ptr)
 }

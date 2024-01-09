@@ -11,19 +11,19 @@ func init() {
 	initGoFastServer()
 }
 
-var myApp *fst.GoFast
+var myWeb *fst.GoFast
 
 func initGoFastServer() {
 	// 新建Server
-	myApp = fst.CreateServer(&fst.GfConfig{
+	myWeb = fst.CreateServer(&fst.GfConfig{
 		RunMode: fst.ProductMode,
 	})
 
 	gftAddMiddlewareHandlers(middlewareNum)
 	addRoutes(routersLevel, func(url string) {
-		myApp.Handle(http.MethodGet, url, gftHandle2)
+		myWeb.Handle(http.MethodGet, url, gftHandle2)
 	})
-	myApp.BuildRoutes()
+	myWeb.BuildRoutes()
 }
 
 func gftMiddlewareHandle(ctx *fst.Context) int {
@@ -54,12 +54,12 @@ func gftHandle2(_ *fst.Context) {
 // add GoFast middlewares
 func gftAddMiddlewareHandlers(ct int) {
 	for i := 0; i < ct; i++ {
-		myApp.Before(func(context *fst.Context) {
+		myWeb.Before(func(context *fst.Context) {
 			gftMiddlewareHandle(context)
 		})
 	}
 }
 
 func BenchmarkGoFastWebRouter(b *testing.B) {
-	benchRequest(b, myApp)
+	benchRequest(b, myWeb)
 }

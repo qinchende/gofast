@@ -58,7 +58,7 @@ func (gft *GoFast) SpecialAfter(hds ...CtxHandler) {
 // RouteGroup
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (gp *RouteGroup) regGroupCtxHandler(eType string, hds []CtxHandler) *RouteGroup {
-	_, ct := gp.regCtxHandler(gp.myApp.fstMem, eType, hds)
+	_, ct := gp.regCtxHandler(gp.app.fstMem, eType, hds)
 	gp.selfHdsLen += ct // 记录分组中一共加入的 各种处理 函数个数
 	return gp
 }
@@ -94,7 +94,7 @@ func (gp *RouteGroup) AfterMatch(hds ...CtxHandler) *RouteGroup {
 // RouteItem
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (ri *RouteItem) regItemCtxHandler(eType string, hds []CtxHandler) *RouteItem {
-	ri.regCtxHandler(ri.group.myApp.fstMem, eType, hds)
+	ri.regCtxHandler(ri.group.app.fstMem, eType, hds)
 	return ri
 }
 

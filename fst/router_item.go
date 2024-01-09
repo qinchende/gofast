@@ -13,12 +13,12 @@ func (ri *RouteItem) Handle(hds ...CtxHandler) *RouteItem {
 	cst.PanicIf(ri.routeIdx > 0, "this route already registered.")
 	cst.PanicIf(len(hds) <= 0, "there must be at least one handler")
 
-	myApp := ri.group.myApp
-	ri.eHds = addCtxHandlers(myApp.fstMem, hds)
+	server := ri.group.app
+	ri.eHds = addCtxHandlers(server.fstMem, hds)
 	// 保存了所有的合法路由规则，暂不生成路由树，待所有环境初始化完成之后再构造路由前缀树
-	ri.routeIdx = uint16(len(myApp.allRoutes))
-	myApp.allRoutes = append(myApp.allRoutes, ri)
-	cst.PanicIf(len(myApp.allRoutes) > math.MaxInt16, "Too many routers more than MaxInt16.")
+	ri.routeIdx = uint16(len(server.allRoutes))
+	server.allRoutes = append(server.allRoutes, ri)
+	cst.PanicIf(len(server.allRoutes) > math.MaxInt16, "Too many routers more than MaxInt16.")
 	return ri
 }
 

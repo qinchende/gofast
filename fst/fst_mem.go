@@ -4,7 +4,7 @@ package fst
 
 // 自定义内存数据库，存放路由树所有相关的数据
 type fstMemSpace struct {
-	myApp *GoFast
+	app *GoFast
 
 	// 我们需要自己定义一个切片，管理所有的 Context handlers.
 	// 所有handler函数都需要加到这里来，形成一个全局的handler数组，以后任何路由都只记录这里的索引，执行时需要通过索引

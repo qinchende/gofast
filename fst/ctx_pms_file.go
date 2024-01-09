@@ -11,7 +11,7 @@ import (
 //// 返回所有上传文件的Form表单结构
 //// MultipartForm is the parsed multipart form, including file uploads.
 //func (c *Context) MultipartForm() (*multipart.Form, error) {
-//	err := httpx.ParseMultipartForm(c.Pms2, c.Req.Raw, c.myApp.WebConfig.MaxMultipartBytes)
+//	err := httpx.ParseMultipartForm(c.Pms2, c.Req.Raw, c.app.WebConfig.MaxMultipartBytes)
 //	return c.Req.Raw.MultipartForm, err
 //}
 

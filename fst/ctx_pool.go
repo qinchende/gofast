@@ -5,10 +5,8 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst/httpx"
-	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"sync"
-	"unsafe"
 )
 
 // Request Context 中可能用到的 对象资源池，复用内存对象，避免更多的GC，提高性能。
@@ -24,9 +22,9 @@ func (gft *GoFast) initRoutePools() {
 	// 所有有效请求都需要用到 fst.Context 上下文信息
 	rp.ctxPool.New = func() any {
 		return &Context{
-			myApp: gft,
-			Res:   &httpx.ResponseWrap{},
-			Req:   &httpx.RequestWrap{},
+			app: gft,
+			Res: &httpx.ResponseWrap{},
+			Req: &httpx.RequestWrap{},
 		}
 	}
 
@@ -38,7 +36,7 @@ func (gft *GoFast) initRoutePools() {
 
 		// 不需要用到对象池
 		// 因为 1. pms为一般的cst.KV  2. pms对象已有NewPms自定义创建函数
-		if rh == nil || rh.pmsFunc != nil {
+		if rh == nil || rh.pmsNew != nil {
 			continue
 		}
 		if len(rh.pmsFields) > 0 {
@@ -62,7 +60,10 @@ func (rp *reqPools) getContext() *Context {
 }
 
 func (rp *reqPools) putContext(c *Context) {
-	rp.putPms(c)
+	pp := c.app.pools.pmsPools[c.RouteIdx]
+	if pp != nil {
+		pp.Put(c.Pms)
+	}
 	rp.ctxPool.Put(c)
 }
 
@@ -71,13 +72,13 @@ func (rp *reqPools) putContext(c *Context) {
 func (c *Context) createPms() {
 	// 有自定义Pms解析对象
 	ra := rHandlers[c.RouteIdx]
-	if ra != nil && ra.pmsFunc != nil {
-		c.Pms = ra.pmsFunc()
+	if ra != nil && ra.pmsNew != nil {
+		c.Pms = ra.pmsNew()
 		return
 	}
 
 	// 找 GsonRow 的缓存
-	pp := c.myApp.pools.pmsPools[c.RouteIdx]
+	pp := c.app.pools.pmsPools[c.RouteIdx]
 	if pp == nil {
 		newMP := make(cst.KV)
 		c.Pms = &newMP // 默认使用map类型保存KV值，c.Pms必须是指针类型
@@ -89,19 +90,7 @@ func (c *Context) createPms() {
 	if gr.Cls == nil {
 		gr.Init(ra.pmsFields)
 	} else {
-		copy(gr.Row, c.myApp.pools.nilValues[:len(gr.Cls)]) // reset member
+		copy(gr.Row, c.app.pools.nilValues[:len(gr.Cls)]) // reset member
 	}
 	c.Pms = gr
-}
-
-func (rp *reqPools) putPms(c *Context) {
-	pp := c.myApp.pools.pmsPools[c.RouteIdx]
-	if pp != nil {
-		pp.Put(c.Pms)
-	}
-}
-
-// 直接绑定struct对应的内存地址
-func (c *Context) PmsPointer() unsafe.Pointer {
-	return (c.Pms).(*dts.StructKV).Ptr
 }

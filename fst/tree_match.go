@@ -111,7 +111,7 @@ matchChildNode:
 
 checkRTS:
 	// 是否允许重定向，是否有 RedirectTrailingSlash 可以匹配
-	if fstMem.myApp.WebConfig.RedirectTrailingSlash {
+	if fstMem.app.WebConfig.RedirectTrailingSlash {
 		if pLen == 0 {
 			for id := uint16(0); id < uint16(n.childLen); id++ {
 				pNode = &fstMem.allRadixMiniNodes[n.childStart+id]

@@ -12,26 +12,26 @@ func init() {
 	initGoFastServer()
 }
 
-var myApp *fst.GoFast
+var myWeb *fst.GoFast
 
 func initGoFastServer() {
-	myApp = fst.Default()
+	myWeb = fst.Default()
 
 	// 添加一定数量的中间件函数
 	for i := 0; i < middlewareNum; i++ {
-		myApp.Before(func(ctx *fst.Context) {})
+		myWeb.Before(func(ctx *fst.Context) {})
 	}
 	addRoutes(func(url string) {
-		myApp.Handle(http.MethodGet, url, func(c *fst.Context) {})
+		myWeb.Handle(http.MethodGet, url, func(c *fst.Context) {})
 	})
-	myApp.BuildRoutes()
+	myWeb.BuildRoutes()
 }
 
 func BenchmarkGoFastWebRouter(b *testing.B) {
-	benchRequest(b, myApp)
+	benchRequest(b, myWeb)
 }
 
 func TestRequestGoFast(t *testing.T) {
-	w := test.ExecRequest(myApp, http.MethodGet, reqPool[0].URL.Path)
+	w := test.ExecRequest(myWeb, http.MethodGet, reqPool[0].URL.Path)
 	assert.Equal(t, http.StatusOK, w.Code)
 }
