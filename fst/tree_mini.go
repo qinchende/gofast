@@ -276,7 +276,7 @@ func allocateMemSpace(gft *GoFast) {
 // 返回所有节点新增加处理函数个数的和
 func gpCombineHandlers(gp *RouteGroup) uint16 {
 	// 所有分组个数
-	gp.myApp.fstMem.routeGroupLen++
+	gp.app.fstMem.routeGroupLen++
 	if gp.children == nil {
 		return gp.parentHdsLen
 	}
@@ -327,7 +327,7 @@ func gpRebuildHandlers(gp *RouteGroup) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 为每个最后一级的分组，将 routeEvent 变成内存占用更小的 handlersNode
 func (gp *RouteGroup) rebuildHandlers() {
-	fstMem := gp.myApp.fstMem
+	fstMem := gp.app.fstMem
 	setNewNode(fstMem, &gp.combEvents)
 
 	gp.hdsIdx = int16(fstMem.hdsNodesLen)
@@ -336,7 +336,7 @@ func (gp *RouteGroup) rebuildHandlers() {
 
 // 为每个路由节点，将 routeEvent 变成内存占用更小的 handlersNode
 func (ri *RouteItem) rebuildHandlers() (idx int16) {
-	fstMem := ri.group.myApp.fstMem
+	fstMem := ri.group.app.fstMem
 	setNewNode(fstMem, &ri.routeEvents)
 	idx = int16(fstMem.hdsNodesLen)
 	fstMem.hdsNodesLen++

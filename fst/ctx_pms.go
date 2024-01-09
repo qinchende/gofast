@@ -46,7 +46,7 @@ func (c *Context) QueryValues() cst.WebKV {
 	if val == nil {
 		val = make(cst.WebKV)
 		httpx.ParseQuery(val, c.Req.Raw.URL.RawQuery)
-		if c.myApp.WebConfig.CacheQueryValues {
+		if c.app.WebConfig.CacheQueryValues {
 			c.setQueryCache(val)
 		}
 	}
@@ -57,7 +57,7 @@ func (c *Context) QueryValues() cst.WebKV {
 func (c *Context) ParseForm() error {
 	if c.Req.Raw.PostForm == nil {
 		// 如果解析出错，就当做解析不出参数，参数为空
-		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
+		maxMemory := c.app.WebConfig.MaxMultipartBytes
 		if err := c.Req.Raw.ParseMultipartForm(maxMemory); err != http.ErrNotMultipart {
 			return err
 		}
@@ -87,7 +87,7 @@ func (c *Context) CollectPms() error {
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {
 		// +++ Form表单 或者 文件上传
-		maxMemory := c.myApp.WebConfig.MaxMultipartBytes
+		maxMemory := c.app.WebConfig.MaxMultipartBytes
 		if err := httpx.ParseMultipartForm(c.Pms, c.Req.Raw, ctType, maxMemory); err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (c *Context) CollectPms() error {
 
 	// Url query params
 	if !urlParsed {
-		if c.myApp.WebConfig.CacheQueryValues {
+		if c.app.WebConfig.CacheQueryValues {
 			kvs := c.QueryValues()
 			for key := range kvs {
 				c.Pms.SetString(key, kvs[key])
@@ -106,7 +106,7 @@ func (c *Context) CollectPms() error {
 		}
 	}
 	// Url pattern matching params
-	if c.myApp.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
+	if c.app.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
 		kvs := *c.route.params
 		for i := range kvs {
 			c.Pms.SetString(kvs[i].Key, kvs[i].Value)

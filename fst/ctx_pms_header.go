@@ -19,7 +19,7 @@ func (c *Context) SetHeader(key, value string) {
 // X-Real-IP and X-Forwarded-For in order to work properly with reverse-proxies such us: nginx or haproxy.
 // Use X-Forwarded-For before X-Real-Ip as nginx uses X-Real-Ip with the proxy's IP.
 func (c *Context) ClientIP() string {
-	if c.myApp.WebConfig.ForwardedByClientIP {
+	if c.app.WebConfig.ForwardedByClientIP {
 		// clientIP := c.GetHeader("X-Forwarded-For")
 		// clientIP = strings.TrimSpace(strings.Split(clientIP, ",")[0])
 		ip := strings.TrimSpace(c.GetHeader("X-Forwarded-For"))

@@ -92,11 +92,11 @@ func (gft *GoFast) initHomeRouter() {
 	// 能匹配路由的分组
 	gft.hdsIdx = -1
 	gft.prefix = "/"
-	gft.myApp = gft
+	gft.app = gft
 	// 特殊的无法匹配路由的分组
 	gft.specialGroup = &RouteGroup{
 		prefix: "/special",
-		myApp:  gft,
+		app:    gft,
 		hdsIdx: -1,
 	}
 	gft.speRoutesLen = 3
@@ -105,7 +105,7 @@ func (gft *GoFast) initHomeRouter() {
 	gft.addSpecialRoute(1, "/404") // 404 Default Route
 	gft.addSpecialRoute(2, "/405") // 405 Default Route
 
-	gft.fstMem = &fstMemSpace{myApp: gft}
+	gft.fstMem = &fstMemSpace{app: gft}
 }
 
 func (gft *GoFast) addSpecialRoute(idx uint16, path string) {

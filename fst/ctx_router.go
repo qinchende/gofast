@@ -4,20 +4,20 @@ package fst
 
 func (c *Context) FullPath() string {
 	if c.route.ptrNode != nil {
-		return c.myApp.allPaths[c.route.ptrNode.routeIdx]
+		return c.app.allPaths[c.route.ptrNode.routeIdx]
 	} else {
 		return ""
 	}
 }
 
 func (c *Context) SetRouteToAny() {
-	c.route.ptrNode = c.myApp.miniNodeAny
+	c.route.ptrNode = c.app.miniNodeAny
 }
 
 func (c *Context) SetRouteTo404() {
-	c.route.ptrNode = c.myApp.miniNode404
+	c.route.ptrNode = c.app.miniNode404
 }
 
 func (c *Context) SetRouteTo405() {
-	c.route.ptrNode = c.myApp.miniNode405
+	c.route.ptrNode = c.app.miniNode405
 }
