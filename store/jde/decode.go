@@ -25,6 +25,7 @@ type (
 		gr     *gson.GsonRow  // GsonRow
 		dm     *decMeta       // Struct | Slice,Array
 		dstPtr unsafe.Pointer // 目标对象的内存地址
+		//bOpts  *dts.BindOptions // 绑定控制
 
 		// 当前解析JSON的状态信息 ++++++
 		str  string // 本段字符串

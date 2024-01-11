@@ -25,6 +25,7 @@ nextLoop:
 		keyName := fstMem.treeChars[n.matchStart+1 : n.matchStart+uint16(n.matchLen)]
 
 		switch n.nType {
+		default:
 		case catchAll:
 			goto mathRestPath
 		case param:

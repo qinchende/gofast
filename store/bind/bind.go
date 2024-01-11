@@ -30,8 +30,8 @@ func checkStructDest(dst any) (dstTyp reflect.Type, ptr unsafe.Pointer, err erro
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
 func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
-	if dst == nil || kvs == nil || kvs.Len() == 0 || opts == nil {
-		return nil
+	if dst == nil || opts == nil {
+		return errors.New("has nil param.")
 	}
 	if dstType, ptr, err := checkStructDest(dst); err != nil {
 		return err
@@ -57,6 +57,7 @@ func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, 
 		fName := fls[i]
 		fv, ok := kvs.Get(fName)
 
+		// 没有找到字段，或者值为nil
 		if ok == false || fv == nil {
 			if vOpt == nil {
 				continue
@@ -163,6 +164,7 @@ func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOp
 	case map[string]any:
 		return bindKVToStructIter(ptr, dstT, cst.KV(v), opts)
 	default:
+		// TODO: 其它数据源暂时忽略，不执行绑定，也不报错
 		return nil
 	}
 }
@@ -172,10 +174,10 @@ func bindMap(ptr unsafe.Pointer, val any) (err error) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 主要用于给dst加上默认值，然后执行下字段验证
+// 主要用于给dst加上默认值，然后执行每个字段规则验证
 func optimizeStruct(dst any, opts *dts.BindOptions) error {
 	if dst == nil || opts == nil {
-		return nil
+		return errors.New("has nil param.")
 	}
 	if dstType, ptr, err := checkStructDest(dst); err != nil {
 		return err

@@ -11,13 +11,6 @@ import (
 	"strings"
 )
 
-// add by sdx on 20210305
-// c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
-func (c *Context) Bind(dst any) error {
-	return bind.BindKV(dst, c.Pms, bind.AsReq)
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // UrlParam returns the value of the URL param.
 //
 //	app.Get("/user/:id", func(c *fst.Context) {
@@ -66,6 +59,13 @@ func (c *Context) ParseForm() error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// add by sdx on 20210305
+// c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
+func (c *Context) Bind(dst any) error {
+	return bind.BindKV(dst, c.Pms, bind.AsReq)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // ##这个方法很重要##
 // 框架每次都将请求所携带的相关数据解析之后加入统一的变量c.Pms中，这样对开发人员来说只需要关注c.Pms中有无自己想要的数据，
 // 至于数据是通过什么形式提交上来的并不那么重要。
@@ -75,13 +75,14 @@ func (c *Context) CollectPms() error {
 	if c.Pms != nil {
 		return nil
 	}
-	c.createPms() // 实现了 cst.SuperKV 的任何数据结构
+	c.newPms() // 实现了cst.SuperKV的类型都可以
 
 	urlParsed := false
 	// Body bytes data [JSON or Form]
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
 		// +++ JSON格式（可以解析GsonRows数据）
+		// 这里可以将复杂的JSON格式数据，直接解析成对象
 		if err := jde.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
 			return err
 		}
@@ -95,7 +96,7 @@ func (c *Context) CollectPms() error {
 	}
 
 	// Url query params
-	if !urlParsed {
+	if !urlParsed && len(c.Req.Raw.URL.RawQuery) > 0 {
 		if c.app.WebConfig.CacheQueryValues {
 			kvs := c.QueryValues()
 			for key := range kvs {
@@ -106,7 +107,7 @@ func (c *Context) CollectPms() error {
 		}
 	}
 	// Url pattern matching params
-	if c.app.WebConfig.ApplyUrlParamsToPms && c.route.params != nil {
+	if c.app.WebConfig.ApplyUrlParamsToPms && len(*c.route.params) > 0 {
 		kvs := *c.route.params
 		for i := range kvs {
 			c.Pms.SetString(kvs[i].Key, kvs[i].Value)

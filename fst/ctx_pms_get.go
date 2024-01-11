@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	errorKeyNotExist = errors.New("找不到参数值")
+	errorKeyNotExist = errors.New("缺少指定参数")
 )
 
 func (c *Context) Set(key string, val any) {
