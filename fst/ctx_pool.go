@@ -69,7 +69,7 @@ func (rp *reqPools) putContext(c *Context) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Pms Pool get
-func (c *Context) createPms() {
+func (c *Context) newPms() {
 	// 有自定义Pms解析对象
 	ra := rHandlers[c.RouteIdx]
 	if ra != nil && ra.pmsNew != nil {
@@ -80,8 +80,8 @@ func (c *Context) createPms() {
 	// 找 GsonRow 的缓存
 	pp := c.app.pools.pmsPools[c.RouteIdx]
 	if pp == nil {
-		newMP := make(cst.KV)
-		c.Pms = &newMP // 默认使用map类型保存KV值，c.Pms必须是指针类型
+		newMap := make(cst.KV)
+		c.Pms = &newMap // 使用map类型保存KV值，这里不能写make(cst.KV)，也不能写new(cst.KV)
 		return
 	}
 

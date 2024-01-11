@@ -11,7 +11,7 @@ const (
 )
 
 type BaseFields struct {
-	Tok string `v:"len=[0:128]"`
+	Tok string `v:"len=[64:128]"`
 }
 
 var _BasePms = []string{PmsToken}

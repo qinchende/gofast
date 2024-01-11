@@ -9,6 +9,7 @@ import (
 )
 
 const (
+	AsDef    = dts.AsDef
 	AsConfig = dts.AsConfig
 	AsReq    = dts.AsReq
 	AsLoadDB = dts.AsDB
