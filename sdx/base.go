@@ -2,27 +2,30 @@
 // Use of this source code is governed by a MIT license
 package sdx
 
-import (
-	"github.com/qinchende/gofast/store/dts"
-)
+import "github.com/qinchende/gofast/fst"
 
-const (
-	PmsToken = "tok"
-)
-
-type BaseFields struct {
-	Tok string `v:"len=[64:128]"`
+func PmsParser(c *fst.Context) {
+	c.PanicIfErr(c.CollectPms(), "解析请求数据出现错误")
 }
 
-var _BasePms = []string{PmsToken}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 构造给定对象的字段名数组，加上公共的字段
-func PmsKeys(obj any) []string {
-	ss := dts.SchemaAsReq(obj)
-	cls := ss.Columns
-	newCls := make([]string, len(cls)+len(_BasePms))
-	copy(newCls, cls)
-	copy(newCls[len(cls):], _BasePms)
-	return newCls // TODO: 可能需要考虑排重
+// 验证请求是否经过了合法认证
+func SessMustLogin(c *fst.Context) {
+	if _, ok := c.Sess.Get(MySessDB.UidField); !ok {
+		c.AbortFai(110, "User login auth error.", nil)
+	}
 }
+
+//func JwtAuthHandler(secret string) fst.CtxHandler {
+//	return mid.JwtAuthHandler(secret)
+//}
+//func BuildPmsOfJson(ctx *fst.Context) {
+//	ctx.GenPmsByJSONBody()
+//}
+//
+//func BuildPmsOfXml(ctx *fst.Context) {
+//	ctx.GenPmsByXMLBody()
+//}
+//
+//func BuildPmsOfForm(ctx *fst.Context) {
+//	ctx.GenPmsByFormBody()
+//}

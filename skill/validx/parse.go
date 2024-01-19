@@ -20,7 +20,7 @@ func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error
 		return nil, nil
 	}
 
-	var vOpts = ValidOptions{}
+	var vOpts = ValidOptions{Name: sField.Name}
 	var err error
 
 	items := strings.Split(str, ",")

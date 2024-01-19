@@ -3,6 +3,7 @@ package fst
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/bind"
 	"github.com/qinchende/gofast/store/dts"
 )
 
@@ -76,4 +77,9 @@ func NewSuperKV[T any]() cst.SuperKV {
 
 func PmsAs[T any](c *Context) *T {
 	return (*T)((c.Pms).(*dts.StructKV).Ptr)
+}
+
+func PmsAsAndValid[T any](c *Context) (*T, error) {
+	ret := (*T)((c.Pms).(*dts.StructKV).Ptr)
+	return ret, bind.ValidateStruct(ret, pBindAndValidOptions)
 }

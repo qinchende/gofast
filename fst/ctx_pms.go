@@ -62,7 +62,11 @@ func (c *Context) ParseForm() error {
 // add by sdx on 20210305
 // c.Pms 中有提交的所有数据，以KV形式存在。我们需要用这个数据源绑定任意的struct对象
 func (c *Context) Bind(dst any) error {
-	return bind.BindKV(dst, c.Pms, bind.AsReq)
+	return bind.BindKVX(dst, c.Pms, pBindOptions)
+}
+
+func (c *Context) BindAndValid(dst any) error {
+	return bind.BindKVX(dst, c.Pms, pBindAndValidOptions)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -78,6 +82,7 @@ func (c *Context) CollectPms() error {
 	c.newPms() // 实现了cst.SuperKV的类型都可以
 
 	urlParsed := false
+
 	// Body bytes data [JSON or Form]
 	ctType := c.Req.Raw.Header.Get(cst.HeaderContentType)
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
@@ -106,6 +111,7 @@ func (c *Context) CollectPms() error {
 			httpx.ParseQuery(c.Pms, c.Req.Raw.URL.RawQuery)
 		}
 	}
+
 	// Url pattern matching params
 	if c.app.WebConfig.ApplyUrlParamsToPms && len(*c.route.params) > 0 {
 		kvs := *c.route.params
@@ -115,7 +121,8 @@ func (c *Context) CollectPms() error {
 	}
 
 	// Note: 是否加入http协议中的 headers 参数？
-	// 个人不喜欢，也极不推荐用http header的方式，传递业务数据。有啥好处呢，欺骗防火墙？掩耳盗铃？
+	// 个人不喜欢，也不推荐用http header的方式，传递业务数据。有啥好处呢，欺骗防火墙？掩耳盗铃？
+	// 虽然 http2 & http3 能够实现header的动态表压缩，但对应用来说，从大量header找到自己想要的业务数据并不高效
 	// 头信息多了，会无形中增加net/http标准库的资源消耗
 	// **如果现实需要，可以自定义中间件加以整合处理**
 
