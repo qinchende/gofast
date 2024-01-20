@@ -17,8 +17,10 @@ import (
 // JSON是GoFast默认的返回格式，一等公民。所以默认函数命名没有给出JSON字样
 
 const (
-	statusSuc string = "suc"
-	statusFai string = "fai"
+	statusSuc  = "suc"
+	statusFai  = "fai"
+	dataField  = "data"
+	tokenField = "tok"
 )
 
 func (c *Context) FaiErr(err error) {
@@ -104,11 +106,11 @@ func (c *Context) kvSucFai(status string, code int, msg string, data any) {
 		"msg":    msg,
 	}
 	if data != nil {
-		jsonData["data"] = data
+		jsonData[dataField] = data
 	}
 
-	if c.Sess != nil && c.Sess.SidIsNew() {
-		jsonData["tok"] = c.Sess.Sid()
+	if c.Sess != nil && c.Sess.TokenIsNew() {
+		jsonData[tokenField] = c.Sess.Token()
 	}
 
 	c.Json(http.StatusOK, jsonData)
@@ -119,10 +121,14 @@ func (c *Context) SucJsonPart(key, val string) {
 	var buf strings.Builder
 	buf.Grow(128)
 
-	buf.WriteString(`{"status":"suc","code":1,`)
-	if c.Sess != nil && c.Sess.SidIsNew() {
-		buf.WriteString(`"tok":"`)
-		buf.WriteString(c.Sess.Sid())
+	buf.WriteString(`{"status":"`)
+	buf.WriteString(statusSuc)
+	buf.WriteString(`","code":1,`)
+	if c.Sess != nil && c.Sess.TokenIsNew() {
+		buf.WriteByte('"')
+		buf.WriteString(tokenField)
+		buf.WriteString(`":"`)
+		buf.WriteString(c.Sess.Token())
 		buf.WriteString(`",`)
 	}
 	buf.WriteString(`"`)
@@ -144,7 +150,7 @@ func (c *Context) AbortFai(code int, msg string, data any) {
 		"msg":    msg,
 	}
 	if data != nil {
-		jsonData["data"] = data
+		jsonData[dataField] = data
 	}
 	bytes, _ := jde.EncodeToBytes(jsonData)
 	c.AbortDirect(http.StatusOK, bytes)
@@ -195,10 +201,14 @@ func (c *Context) Render(resStatus int, r render.Render) {
 	if c.route.ptrNode.hasBeforeSend {
 		c.execBeforeSendHandlers() // 可以抛出异常，终止 Send data
 	}
+
+	// 一般来说，有session的请求，需要更新时间搓，保存session状态
 	if c.Sess != nil {
 		c.Sess.Save()
 	}
-	if _, err := c.Res.Send(); err != nil { // really send response data
+
+	// ** now really send response data **
+	if _, err := c.Res.Send(); err != nil {
 		panic(err)
 	}
 	if c.route.ptrNode.hasAfterSend {

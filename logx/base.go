@@ -30,12 +30,12 @@ const (
 )
 
 type LogConfig struct {
-	AppName   string `v:"def=AppName"`                                     // 应用名称
-	ServerNo  string `v:"def=ServerNo"`                                    // 运行终端编号
-	LogMedium string `v:"def=console,enum=console|file|volume"`            // 显示媒介
-	LogLevel  string `v:"def=info,enum=debug|info|warn|error|stack"`       // 记录日志的级别
-	LogStyle  string `v:"def=sdx,enum=custom|sdx|sdx-json|elk|prometheus"` // 日志样式
-	LogStats  bool   `v:"def=true"`                                        // 是否打印统计信息
+	AppName    string `v:"def=AppName"`                                     // 应用名称
+	ServerName string `v:"def=ServerName"`                                  // 运行终端编号
+	LogMedium  string `v:"def=console,enum=console|file|volume"`            // 显示媒介
+	LogLevel   string `v:"def=info,enum=debug|info|warn|error|stack"`       // 记录日志的级别
+	LogStyle   string `v:"def=sdx,enum=custom|sdx|sdx-json|elk|prometheus"` // 日志样式
+	LogStats   bool   `v:"def=true"`                                        // 是否打印统计信息
 
 	FileFolder string `v:""`                    // 日志文件夹路径
 	FilePrefix string `v:""`                    // 日志文件名统一前缀(默认是AppName)

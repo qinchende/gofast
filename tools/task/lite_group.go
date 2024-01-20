@@ -15,19 +15,19 @@ import (
 )
 
 const (
-	stateFieldServerNo  = "ServerNo"
-	stateFieldStatus    = "Status"
-	stateFieldTime      = "Time"
-	checkPowerIntervalS = 30 * time.Second
-	checkTimesBeforeRun = 4 // 夺取运行权之前的，循环检查的次数
+	stateFieldServerName = "ServerName"
+	stateFieldStatus     = "Status"
+	stateFieldTime       = "Time"
+	checkPowerIntervalS  = 30 * time.Second
+	checkTimesBeforeRun  = 4 // 夺取运行权之前的，循环检查的次数
 )
 
 // Note: LiteGroup中的任务是支持分布式部署的。在应用多机部署的时候能满足高可用(这一点需要Redis数据库的保证)
 type LiteGroup struct {
-	appName   string
-	serverNo  string
-	groupName string
-	tasks     []*LitePet
+	appName    string
+	serverName string
+	groupName  string
+	tasks      []*LitePet
 
 	rds *redis.GfRedis // Note：最好用一个实时持久化的Redis数据库
 	key string
@@ -43,10 +43,10 @@ type LiteGroup struct {
 	isStopping bool   // 是否正在停止任务
 }
 
-func NewLiteGroup(appName, serverNo, gpName string, rds *redis.GfRedis) *LiteGroup {
+func NewLiteGroup(appName, serverName, gpName string, rds *redis.GfRedis) *LiteGroup {
 	return &LiteGroup{
 		appName:     appName,
-		serverNo:    serverNo,
+		serverName:  serverName,
 		groupName:   gpName,
 		tasks:       make([]*LitePet, 0),
 		rds:         rds,
@@ -106,7 +106,7 @@ func (lite *LiteGroup) scanController() {
 		if kvs, err2 := jsonx.UnmarshalStringToKV(str); err2 == nil {
 			lite.lostTimes = 0
 
-			if kvs[stateFieldServerNo] == lite.serverNo {
+			if kvs[stateFieldServerName] == lite.serverName {
 				lite.waitTimes = 0
 
 				if kvs[stateFieldStatus] == "1" {
@@ -132,7 +132,7 @@ func (lite *LiteGroup) scanController() {
 				if lite.waitTimes < -checkTimesBeforeRun {
 					lite.flushStatus(kvs, "0")
 				} else {
-					logx.TimerF("Run by %s, wait %d", kvs[stateFieldServerNo], lite.waitTimes)
+					logx.TimerF("Run by %s, wait %d", kvs[stateFieldServerName], lite.waitTimes)
 				}
 			}
 		} else {
@@ -220,7 +220,7 @@ func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 	if kvs == nil {
 		kvs = cst.KV{}
 	}
-	kvs[stateFieldServerNo] = lite.serverNo
+	kvs[stateFieldServerName] = lite.serverName
 	kvs[stateFieldStatus] = status
 
 	lite.flushTime(kvs)

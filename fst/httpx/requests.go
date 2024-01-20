@@ -60,14 +60,14 @@ func checkRequestPet(pet *RequestPet) {
 	}
 }
 
-func fillQueryArgs(u *url.URL, args cst.KV) {
+func fillQueryArgs(u *url.URL, args cst.WebKV) {
 	if args == nil {
 		return
 	}
 
 	query := u.Query()
 	for k, v := range args {
-		if v == nil {
+		if v == "" {
 			continue
 		}
 		query.Add(k, lang.ToString(v))
@@ -110,7 +110,7 @@ func buildBody(pet *RequestPet) io.Reader {
 	case FormatUrlEncoding:
 		data := url.Values{}
 		for k, v := range pet.BodyArgs {
-			if v == nil {
+			if v == "" {
 				continue
 			}
 			data.Add(k, lang.ToString(v))

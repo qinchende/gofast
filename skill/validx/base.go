@@ -19,6 +19,7 @@ const (
 
 type (
 	ValidOptions struct {
+		Name     string    // 字段名称
 		Range    *numRange // 数值取值范围
 		Enum     []string  // 枚举值数组
 		Len      *numRange // 字符串长度范围

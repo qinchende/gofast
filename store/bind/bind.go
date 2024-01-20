@@ -52,28 +52,21 @@ func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, 
 
 	// 两种循环方式。1：目标结构的字段  2：源字段（一般情况下，这种更好）
 	for i := 0; i < len(fls); i++ {
-		fa := &sm.FieldsAttr[i] // 肯定不是nil
-		vOpt := fa.Valid        // 可能是nil
-		fName := fls[i]
-		fv, ok := kvs.Get(fName)
+		fa := &sm.FieldsAttr[i]   // 肯定不是nil
+		vOpt := fa.Valid          // 可能是nil
+		fv, ok := kvs.Get(fls[i]) // 查找字段值
+		fPtr := fa.MyPtr(ptr)
 
-		// 没有找到字段，或者值为nil
+		// 没有找到字段，或者值为nil，那么就看看是否有默认值
 		if ok == false || fv == nil {
-			if vOpt == nil {
-				continue
-			}
-			if vOpt.Required && opts.UseValid {
-				return errors.New("bind: must required field " + fName)
-			}
-			if opts.UseDefValue {
+			if opts.UseDefValue && vOpt != nil {
 				fv = vOpt.DefValue
 				if fv == "" {
-					continue
+					goto validField
 				}
 			}
 		}
 
-		fPtr := fa.MyPtr(ptr)
 		// TODO: 完善这里可能出现的情况, fPtr 可能为 nil
 		switch fa.Kind {
 		case reflect.Struct:
@@ -92,13 +85,12 @@ func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, 
 			}
 			continue
 		default:
-			if fa.KVBinder == nil {
-				continue
+			if fa.KVBinder != nil {
+				fa.KVBinder(fPtr, fv) // 绑定基础数据类型（number, string, bool）
 			}
-			// 绑定基础数据类型（number, string, bool）
-			fa.KVBinder(fPtr, fv)
 		}
 
+	validField:
 		// 是否需要验证字段数据的合法性
 		if opts.UseValid && vOpt != nil {
 			if err = validx.ValidateFieldPtr(fPtr, fa.Kind, vOpt); err != nil {
