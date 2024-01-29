@@ -15,6 +15,10 @@ func SessMustLogin(c *fst.Context) {
 	}
 }
 
+// 验证Session是一个合法的来源
+func SessIPValid(c *fst.Context) {
+}
+
 //func JwtAuthHandler(secret string) fst.CtxHandler {
 //	return mid.JwtAuthHandler(secret)
 //}

@@ -33,7 +33,7 @@ func NewSlideWindowLimit(size int, dur time.Duration) *SlideWindowLimit {
 		slideWindowBase: &slideWindowBase{
 			size:     size,
 			interval: dur,
-			baseTime: timex.Now(),
+			baseTime: timex.NowDur(),
 		},
 		buckets: make([]bucketLimit, size),
 	}

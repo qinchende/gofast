@@ -26,7 +26,7 @@ func Logger(c *fst.Context) {
 	p.CarryItems = c.CarryMsgItems()
 
 	// Stop timer
-	p.TimeStamp = timex.Now()
+	p.TimeStamp = timex.NowDur()
 	p.Latency = p.TimeStamp - c.EnterTime
 
 	// 打印请求日志
@@ -47,7 +47,7 @@ func LoggerMini(c *fst.Context) {
 	p.BodySize = len(p.ResData)
 
 	// Stop timer
-	p.TimeStamp = timex.Now()
+	p.TimeStamp = timex.NowDur()
 	p.Latency = p.TimeStamp - c.EnterTime
 
 	// 打印请求日志

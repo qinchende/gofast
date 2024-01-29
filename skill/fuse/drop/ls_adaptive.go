@@ -71,7 +71,7 @@ func NewAdaptiveShedder(opts ...ShedderOption) Shedder {
 // Allow implements Shedder.Allow.
 func (as *adaptiveShedder) Allow() (Promise, error) {
 	if as.shouldDrop() {
-		as.dropTime.Set(timex.Now())
+		as.dropTime.Set(timex.NowDur())
 		as.droppedRecently.Set(true)
 
 		return nil, ErrServiceOverloaded
@@ -80,7 +80,7 @@ func (as *adaptiveShedder) Allow() (Promise, error) {
 	as.addFlying(1)
 
 	return &promise{
-		start:   timex.Now(),
+		start:   timex.NowDur(),
 		shedder: as,
 	}, nil
 }
@@ -173,7 +173,7 @@ func (as *adaptiveShedder) stillHot() bool {
 		return false
 	}
 
-	hot := timex.NowDiff(dropTime) < coolOffDuration
+	hot := timex.NowDiffDur(dropTime) < coolOffDuration
 	if !hot {
 		as.droppedRecently.Set(false)
 	}
@@ -216,7 +216,7 @@ func (p *promise) Fail() {
 }
 
 func (p *promise) Pass() {
-	rt := float64(timex.NowDiff(p.start)) / float64(time.Millisecond)
+	rt := float64(timex.NowDiffDur(p.start)) / float64(time.Millisecond)
 	p.shedder.addFlying(-1)
 	p.shedder.rtCounter.Add(math.Ceil(rt))
 	p.shedder.passCounter.Add(1)

@@ -32,7 +32,7 @@ func NewSlideWindowBreak(size int, dur time.Duration) *SlideWindowBreak {
 		slideWindowBase: &slideWindowBase{
 			size:     size,
 			interval: dur,
-			baseTime: timex.Now(),
+			baseTime: timex.NowDur(),
 		},
 		buckets: make([]bucketBreak, size),
 	}

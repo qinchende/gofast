@@ -32,7 +32,7 @@ func (rd *Reduce) DoInterval(flush bool, task func(skipTimes int32)) bool {
 	rd.lock.Lock()
 	defer rd.lock.Unlock()
 
-	now := timex.Now()
+	now := timex.NowDur()
 	lastTime := rd.lastTime.Load()
 	// 首次需要执行
 	if flush || lastTime+rd.interval < now || lastTime == 0 {

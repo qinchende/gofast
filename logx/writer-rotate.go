@@ -300,12 +300,12 @@ func (rl *RotateLogger) writeExec(bytes []byte) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func compressLogFile(file string) {
-	start := timex.Now()
+	start := timex.NowDur()
 	InfoF("compressing log file: %s", file)
 	if err := gzipFile(file); err != nil {
 		ErrorF("compress error: %s", err)
 	} else {
-		InfoF("compressed log file: %s, took %s", file, timex.NowDiff(start))
+		InfoF("compressed log file: %s, took %s", file, timex.NowDiffDur(start))
 	}
 }
 

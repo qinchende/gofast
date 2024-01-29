@@ -130,7 +130,7 @@ func fieldSetNil(sd *subDecode) {
 // map +++++
 // 目前只支持 map[string]any，并不支持其它map
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanMapAnyValue(sd *subDecode, k string) {
+func scanCstKVValue(sd *subDecode, k string) {
 	switch c := sd.str[sd.scan]; {
 	case c == '{':
 		newMap := make(map[string]any)
@@ -168,6 +168,42 @@ func scanMapAnyValue(sd *subDecode, k string) {
 	default:
 		sd.skipNull()
 		sd.mp.Set(k, nil)
+	}
+}
+
+// map WebKV +++++
+// 只支持 map[string]string
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanWebKVValue(sd *subDecode, k string) {
+	switch c := sd.str[sd.scan]; {
+	case c == '{':
+		start := sd.scan
+		sd.skipObject()
+		sd.wk.SetString(k, sd.str[start:sd.scan])
+	case c == '[':
+		start := sd.scan
+		sd.skipList()
+		sd.wk.SetString(k, sd.str[start:sd.scan])
+	case c == '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		if slash {
+			sd.wk.SetString(k, sd.str[start:sd.unescapeEnd()])
+		} else {
+			sd.wk.SetString(k, sd.str[start:sd.scan-1])
+		}
+	case c >= '0' && c <= '9', c == '-':
+		if start, _ := sd.scanNumValue(); start > 0 {
+			sd.wk.SetString(k, sd.str[start:sd.scan])
+		}
+	case c == 't':
+		sd.skipTrue()
+		sd.wk.SetString(k, "true")
+	case c == 'f':
+		sd.skipFalse()
+		sd.wk.SetString(k, "false")
+	default:
+		sd.skipNull()
 	}
 }
 
