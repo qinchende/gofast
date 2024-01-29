@@ -23,10 +23,9 @@ type WebConfig struct {
 // 闪电侠实现的中间件控制参数
 type SdxConfig struct {
 	//SysStateMonitor    bool   `v:"def=true"`                  // 是否启动系统资源使用情况的定时检查工作
-	SysStatePrint    bool   `v:"def=true"`                  // 定时打印系统资源状态检查日志
-	JwtSecret        string `v:""`                          // JWT认证的秘钥
-	MaxContentLength int64  `v:"def=33554432"`              // 最大请求字节数，32MB（33554432），传0不限制
-	MaxConnections   int32  `v:"def=0,range=[0:100000000]"` // 最大同时请求数，0不限制
+	SysStatePrint    bool  `v:"def=true"`                  // 定时打印系统资源状态检查日志
+	MaxContentLength int64 `v:"def=33554432"`              // 最大请求字节数，32MB（33554432），传0不限制
+	MaxConnections   int32 `v:"def=0,range=[0:100000000]"` // 最大同时请求数，0不限制
 
 	EnableSpecialHandlers bool  `v:"def=true"`  // 是否启用默认的特殊路由中间件
 	EnableTrack           bool  `v:"def=false"` // 启动链路追踪

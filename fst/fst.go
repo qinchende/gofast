@@ -135,7 +135,7 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c := gft.pools.getContext()
-	c.EnterTime = timex.Now() // 请求开始进入上下文阶段，开始计时
+	c.EnterTime = timex.NowDur() // 请求开始进入上下文阶段，开始计时
 	c.Res.Reset(w)
 	c.Req.Reset(r)
 	c.reset()

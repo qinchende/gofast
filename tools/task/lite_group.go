@@ -51,7 +51,7 @@ func NewLiteGroup(appName, serverName, gpName string, rds *redis.GfRedis) *LiteG
 		tasks:       make([]*LitePet, 0),
 		rds:         rds,
 		key:         liteStoreKeyPrefix + "Group." + appName + "." + gpName,
-		createdTime: timex.Now(),
+		createdTime: timex.NowDur(),
 		stopRun:     make(chan lang.PlaceholderType, 1),
 	}
 }
@@ -177,7 +177,7 @@ func (lite *LiteGroup) keepRunning() {
 	}
 	lite.lock.RUnlock()
 
-	logx.Timer("Now start to run tasks.")
+	logx.Timer("NowDur start to run tasks.")
 	gmp.GoSafe(func() {
 		defer func() {
 			lite.lock.Lock()
@@ -204,7 +204,7 @@ func (lite *LiteGroup) keepRunning() {
 				}
 				return
 			case <-ticker.C:
-				now := timex.Now()
+				now := timex.NowDur()
 				for _, task := range lite.tasks {
 					task.runTask(gorCtx, now)
 				}

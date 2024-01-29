@@ -21,7 +21,8 @@ type (
 	subDecode struct {
 		share *subDecode // 共享的subDecode，用来解析子对象
 
-		mp     *cst.KV        // map
+		mp     *cst.KV        // KV
+		wk     *cst.WebKV     // WebKV
 		gr     *gson.GsonRow  // GsonRow
 		dm     *decMeta       // Struct | Slice,Array
 		dstPtr unsafe.Pointer // 目标对象的内存地址
@@ -61,6 +62,7 @@ type (
 		isSuperKV bool // {} SuperKV
 		isGson    bool // {} gson
 		isMap     bool // {} map
+		isWebKV   bool // {} WebKV
 		isStruct  bool // {} struct
 		isList    bool // [] array & slice
 		isArray   bool // [] array
@@ -170,6 +172,8 @@ func (sd *subDecode) initShareDecode(ptr unsafe.Pointer) {
 	if sd.share.dm.isSuperKV {
 		if sd.share.dm.isGson {
 			sd.share.gr = (*gson.GsonRow)(ptr)
+		} else if sd.dm.isWebKV {
+			sd.wk = (*cst.WebKV)(ptr)
 		} else {
 			sd.share.mp = (*cst.KV)(ptr)
 		}
@@ -222,6 +226,8 @@ func (sd *subDecode) getDecMeta(rfType reflect.Type, ptr unsafe.Pointer) {
 	if sd.dm.isSuperKV {
 		if sd.dm.isGson {
 			sd.gr = (*gson.GsonRow)(ptr)
+		} else if sd.dm.isWebKV {
+			sd.wk = (*cst.WebKV)(ptr)
 		} else {
 			sd.mp = (*cst.KV)(ptr)
 		}
@@ -256,7 +262,13 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 		if rfType == cst.TypeCstKV || rfType == cst.TypeStrAnyMap {
 			dm.isSuperKV = true
 			dm.isMap = true
-			dm.bindMapDec()
+			dm.bindCstKVDec()
+			return
+		}
+		if rfType == cst.TypeWebKV {
+			dm.isSuperKV = true
+			dm.isWebKV = true
+			dm.bindWebKVDec()
 			return
 		}
 		panic(errValueType)
@@ -337,8 +349,12 @@ func (dm *decMeta) initListMeta(rfType reflect.Type) {
 // map & gson & struct 都需要解析 {} 他们都是 kvPair 形式的数据
 // array & slice 需要解析 [] ，他们都是 List 形式的数据
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (dm *decMeta) bindMapDec() {
-	dm.kvPairDec = scanMapAnyValue
+func (dm *decMeta) bindCstKVDec() {
+	dm.kvPairDec = scanCstKVValue
+}
+
+func (dm *decMeta) bindWebKVDec() {
+	dm.kvPairDec = scanWebKVValue
 }
 
 func (dm *decMeta) bindGsonDec() {

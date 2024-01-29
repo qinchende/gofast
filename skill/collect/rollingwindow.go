@@ -34,7 +34,7 @@ func NewRollingWindow(size int, interval time.Duration, opts ...RollingWindowOpt
 		size:     size,
 		win:      newWindow(size),
 		interval: interval,
-		lastTime: timex.Now(),
+		lastTime: timex.NowDur(),
 	}
 	for _, opt := range opts {
 		opt(w)
@@ -79,7 +79,7 @@ func (rw *RollingWindow) Add(v float64) {
 }
 
 func (rw *RollingWindow) span() int {
-	offset := int(timex.NowDiff(rw.lastTime) / rw.interval)
+	offset := int(timex.NowDiffDur(rw.lastTime) / rw.interval)
 	if 0 <= offset && offset < rw.size {
 		return offset
 	}
@@ -101,7 +101,7 @@ func (rw *RollingWindow) updateOffset() {
 
 	// 滑动窗口中记录上次所处桶的偏移量
 	rw.offset = (offset + span) % rw.size
-	now := timex.Now()
+	now := timex.NowDur()
 
 	// align to interval time boundary
 	rw.lastTime = now - (now-rw.lastTime)%rw.interval

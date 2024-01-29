@@ -142,7 +142,7 @@ func (run *Interval) raiseLoop() {
 		defer ticker.Stop()                   // 退出定时器
 
 		var active bool // 外部命令立即输出
-		last := timex.Now()
+		last := timex.NowDur()
 		// 开启死循环循环检测。手动指令，或者定时任务 都可以输出统计结果
 		for {
 			select {
@@ -152,7 +152,7 @@ func (run *Interval) raiseLoop() {
 				run.enterExecution()
 				run.confirmChan <- lang.Placeholder
 				run.executeTasks(items)
-				last = timex.Now()
+				last = timex.NowDur()
 			case <-ticker.Chan(): // 定时执行
 				// 如果上面主动输出一次，那么本次自动输出将轮空
 				if active {
@@ -160,7 +160,7 @@ func (run *Interval) raiseLoop() {
 					continue
 				}
 				if run.Flush() {
-					last = timex.Now()
+					last = timex.NowDur()
 				} else if run.quitLoop(last) {
 					return
 				}
@@ -171,7 +171,7 @@ func (run *Interval) raiseLoop() {
 
 // 而这里也不会把 guarded 设置成false，程序永远也无法启动 backgroundFlush()函数了。
 func (run *Interval) quitLoop(last time.Duration) (stop bool) {
-	if timex.NowDiff(last) <= run.interval*idleRound {
+	if timex.NowDiffDur(last) <= run.interval*idleRound {
 		return
 	}
 

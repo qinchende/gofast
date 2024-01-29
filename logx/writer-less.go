@@ -48,7 +48,7 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		return
 	}
 
-	now := timex.Now()
+	now := timex.NowDur()
 	if now-le.lastTime.Load() <= le.threshold {
 		atomic.AddUint32(&le.discarded, 1)
 	} else {

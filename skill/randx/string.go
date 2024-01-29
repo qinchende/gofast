@@ -10,33 +10,33 @@ const (
 )
 
 // 数字验证码
-func RandomNumbers(length int) string {
-	return lang.BTS(randomBytes(sOnlyNumbers, length))
+func RandomNumbers(size int) string {
+	return lang.BTS(randomBytes(sOnlyNumbers, size))
 }
 
-func RandomString(length int) string {
-	return lang.BTS(randomBytes(sLetters, length))
+func RandomString(size int) string {
+	return lang.BTS(randomBytes(sLetters, size))
 }
 
-func RandomBytes(length int) []byte {
-	return randomBytes(sLetters, length)
+func RandomBytes(size int) []byte {
+	return randomBytes(sLetters, size)
 }
 
-func randomBytes(source string, length int) []byte {
-	ret := make([]byte, length, length)
-	for i := 0; i < length; i++ {
+func randomBytes(source string, size int) []byte {
+	ret := make([]byte, size, size)
+	for i := 0; i < size; i++ {
 		ret[i] = source[seed.Intn(len(source))]
 	}
 	return ret
 }
 
-//// GetRandomKey creates a random key with the given length in bytes.
+//// GetRandomKey creates a random key with the given size in bytes.
 //// On failure, returns nil.
 ////
 //// Callers should explicitly check for the possibility of a nil return, treat
 //// it as a failure of the system random number generator, and not continue.
-//func RandomKey(length int) []byte {
-//	k := make([]byte, length)
+//func RandomKey(size int) []byte {
+//	k := make([]byte, size)
 //	if _, err := io.ReadFull(cRand.Reader, k); err != nil {
 //		return nil
 //	}

@@ -4,10 +4,12 @@ package validx
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/cst"
 	"math"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 )
 
 var (
@@ -48,11 +50,15 @@ func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error
 				vOpts.DefValue = strings.TrimSpace(kv[1])
 				//vOpts.DefExist = true
 			case kv[0] == attrRange:
-				if vOpts.Range, err = parseNumberRange(kv[1]); err != nil {
+				isDur := false
+				if sField.Type == cst.TypeDuration {
+					isDur = true
+				}
+				if vOpts.Range, err = parseNumberRange(kv[1], isDur); err != nil {
 					return nil, fmt.Errorf(fieldOptionError, sField.Name)
 				}
 			case kv[0] == attrLength:
-				if vOpts.Len, err = parseNumberRange(kv[1]); err != nil {
+				if vOpts.Len, err = parseNumberRange(kv[1], false); err != nil {
 					return nil, fmt.Errorf(fieldOptionError, sField.Name)
 				}
 			case kv[0] == attrRegex:
@@ -72,7 +78,7 @@ func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error
 // [:5] (:5] [:5) (:5)
 // [1:] [1:) (1:] (1:)
 // [1:5] [1:5) (1:5] (1:5)
-func parseNumberRange(str string) (*numRange, error) {
+func parseNumberRange(str string, isDur bool) (ret *numRange, err error) {
 	if len(str) == 0 {
 		return nil, errNumberRange
 	}
@@ -108,28 +114,12 @@ func parseNumberRange(str string) (*numRange, error) {
 		return nil, errNumberRange
 	}
 
-	if len(fields[0]) == 0 && len(fields[1]) == 0 {
-		return nil, errNumberRange
+	var left, right float64
+	if left, err = parseNumber(fields[0], isDur, -1); err != nil {
+		return
 	}
-
-	var left float64
-	if len(fields[0]) > 0 {
-		var err error
-		if left, err = strconv.ParseFloat(fields[0], 64); err != nil {
-			return nil, err
-		}
-	} else {
-		left = -math.MaxFloat64
-	}
-
-	var right float64
-	if len(fields[1]) > 0 {
-		var err error
-		if right, err = strconv.ParseFloat(fields[1], 64); err != nil {
-			return nil, err
-		}
-	} else {
-		right = math.MaxFloat64
+	if right, err = parseNumber(fields[1], isDur, 1); err != nil {
+		return
 	}
 
 	return &numRange{
@@ -138,4 +128,21 @@ func parseNumberRange(str string) (*numRange, error) {
 		includeMin: leftInclude,
 		includeMax: rightInclude,
 	}, nil
+}
+
+func parseNumber(str string, isDur bool, abs float64) (val float64, err error) {
+	if len(str) > 0 {
+		if isDur {
+			if dur, errTmp := time.ParseDuration(str); errTmp != nil {
+				return 0, errTmp
+			} else {
+				val = float64(dur)
+			}
+		} else if val, err = strconv.ParseFloat(str, 64); err != nil {
+			return 0, err
+		}
+	} else {
+		val = abs * math.MaxFloat64
+	}
+	return
 }
