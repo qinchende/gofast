@@ -4,27 +4,30 @@ import (
 	"time"
 )
 
-// important: 这里的 time.Duration 全部是相对基准时间的偏移
+// important: 这里的 time.Duration 全部是相对基准时间的偏移（参考Unix的基准时间）
 
 // 相对时间（本系统时间原点）
 // 这样在很多地方就只需要存储一个 Duration 类型的值，占用8字节，避免了存储 time.Time 类型（占用24字节）。
 // 当前时间年月日分别减去1之后的时间作为参考时间点，其它时间都和这个比得到相对时间差值。
 // Use the long enough past time as start time, in case timex.NowDur() - lastTime equals 0.
-// Note：固定 1970-01-01 00:00:00 为基准时间，Duration都是相对这个时间的偏移
-var initTime = time.Date(1970, 1, 1, 0, 0, 0, 0, time.Local)
+// Note：固定 UTC 时间 1970-01-01 00:00:00 为基准时间，Duration都是相对这个时间的偏移
+var unixBaseTime = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC) // 等价于Unix的基准时间
 
 // 当前相对原点的时差，因为全系统都是相对时间，你可以认为这个时差就是当前时间
 func NowDur() time.Duration {
-	return time.Now().Sub(initTime)
+	//return time.Now().Sub(unixBaseTime)
+	return time.Duration(time.Now().Unix()) * time.Second
 }
 
 func ToDur(tm *time.Time) time.Duration {
-	return tm.Sub(initTime)
+	//return tm.Sub(unixBaseTime)
+	return time.Duration(tm.Unix()) * time.Second
 }
 
 // 将指定的相对时间转成 真实的 time.Time 类型
 func ToTime(d time.Duration) time.Time {
-	return initTime.Add(d)
+	//return unixBaseTime.Add(d)
+	return time.Unix(int64(d/time.Second), int64(d%time.Second))
 }
 
 func ToS(d time.Duration) int64 {
@@ -33,6 +36,10 @@ func ToS(d time.Duration) int64 {
 
 func ToMS(d time.Duration) int64 {
 	return int64(d / time.Millisecond)
+}
+
+func ToNS(d time.Duration) int64 {
+	return int64(d / time.Nanosecond)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -62,7 +69,10 @@ func NowDiffMS(d time.Duration) int64 {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 和当前时间差多少秒
+func NowAddDur(d time.Duration) time.Duration {
+	return NowDur() + d
+}
+
 func NowAddSDur(s int) time.Duration {
 	return NowDur() + time.Duration(s)*time.Second
 }

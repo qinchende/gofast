@@ -6,9 +6,9 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/randx"
 	"github.com/qinchende/gofast/skill/timex"
 	"github.com/qinchende/gofast/store/jde"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -51,23 +51,14 @@ func JwtSessBuilder(c *fst.Context) {
 		c.AbortFai(110, "Load jwt data error.", nil)
 	}
 
-	// 如果过期，利用当前sid重建Session记录。
+	// token过期就需要给出提示
 	if err := ss.checkExpire(); err != nil {
 		c.CarryMsg(err.Error())
-		c.AbortFai(110, "Load jwt data error.", nil)
+		c.AbortFai(110, "Jwt expiration time error.", nil)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-//	type Token struct {
-//		Raw       string                 // The raw token.  Populated when you Parse a token
-//		Method    SigningMethod          // The signing method used or to be used
-//		Header    map[string]interface{} // The first segment of the token
-//		Claims    Claims                 // The second segment of the token
-//		Signature string                 // The third segment of the token.  Populated when you Parse a token
-//		Valid     bool                   // Is the token valid?  Populated when you Parse/Verify a token
-//	}
 //
 //	type StandardClaims struct {
 //		Audience  string `json:"aud,omitempty"`
@@ -92,8 +83,8 @@ type JwtSession struct {
 	raw     string        // raw token string
 	payload string        // content values string
 	values  cst.WebKV     // map[string]string
-	guid    string        // unique key
-	expAt   time.Duration // 在什么时间点过期
+	guid    string        // unique session key
+	expAt   time.Duration // 在什么时间点过期（相对Unix基准时间）
 	changed bool          // 值是否改变
 }
 
@@ -172,7 +163,7 @@ func (ss *JwtSession) Recreate() {
 
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *JwtSession) createNewToken() {
-	ss.guid = genJwtGuid()
+	ss.guid = lang.BTS(genSessGuid(0))
 	ss.expAt = timex.NowDur() + MySessDB.TTL
 	ss.changed = true
 }
@@ -220,16 +211,15 @@ func (ss *JwtSession) parsePayloadValues() error {
 }
 
 func (ss *JwtSession) checkExpire() error {
-	now := timex.NowDur()
-	diffDur := ss.expAt - now
+	diffDur := -timex.NowDiffDur(ss.expAt)
 
-	// 令牌时间搓无效
+	// 令牌时间搓过期或者太长都无效
 	if diffDur <= 0 || diffDur > MySessDB.TTL {
-		return errors.New("token expiration")
+		return errors.New("Incorrect expiration time")
 	}
 	// 还剩余不到一半的有效期，需要自动延迟token有效期
 	if diffDur < MySessDB.TTL/2 {
-		ss.expAt = timex.NowDur() + MySessDB.TTL
+		ss.expAt = timex.NowAddDur(MySessDB.TTL)
 		ss.changed = true
 	}
 	return nil
@@ -237,26 +227,23 @@ func (ss *JwtSession) checkExpire() error {
 
 func (ss *JwtSession) buildToken() string {
 	ss.Set(jwtId, ss.guid)
-	ss.Set(jwtExpire, lang.ToString(timex.ToS(ss.expAt)))
-	jsonVal, _ := jde.EncodeToBytes(&ss.values)
+	ss.Set(jwtExpire, strconv.FormatInt(timex.ToS(ss.expAt), 10))
+	jsonBytes, _ := jde.EncodeToBytes(&ss.values)
 
-	buf := make([]byte, base64.RawURLEncoding.EncodedLen(len(jsonVal)))
-	base64.RawURLEncoding.Encode(buf, jsonVal)
+	// 申请足够的字节内存
+	payLen := base64.RawURLEncoding.EncodedLen(len(jsonBytes))
+	md5Len := base64.RawURLEncoding.EncodedLen(16) // md5值转base64编码需要的字节数
+	buf := make([]byte, payLen+1+md5Len)
 
-	//payload := base64.RawURLEncoding.EncodeToString(jsonVal)
-
-	md5Val := md5Base64(buf, lang.STB(MySessDB.Secret))
+	// 1. payload base64 bytes
+	base64.RawURLEncoding.Encode(buf[0:payLen], jsonBytes)
+	// 2. add split
+	buf[payLen] = '.'
+	// 3. md5 signature bytes
+	md5Bytes := md5Value(buf[0:payLen], lang.STB(MySessDB.Secret))
+	// md5 base64 bytes
+	base64.RawURLEncoding.Encode(buf[payLen+1:], md5Bytes)
 
 	ss.changed = false
-	return lang.BTS(buf) + "." + md5Val
-}
-
-// YXRJT0l5ckpYNldBTjYzNHZw
-// 闪电侠Guid
-func genJwtGuid() string {
-	size := int((MySessDB.SidSize*3 + 3) / 4)
-	// TODO：要想办法保证sid的唯一性
-	sid := randx.RandomBytes(size)
-	guid := base64.RawURLEncoding.EncodeToString(sid)
-	return guid[:MySessDB.SidSize] // 要确保guid的长度一致性
+	return lang.BTS(buf)
 }

@@ -7,7 +7,6 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/randx"
 	"github.com/qinchende/gofast/store/jde"
 	"time"
 )
@@ -61,7 +60,7 @@ func TokSessBuilder(c *fst.Context) {
 // TODO: 注意，这个实现是非线程安全的
 type TokSession struct {
 	raw        string    // raw token
-	guid       string    // unique key
+	guid       string    // unique session key
 	values     cst.WebKV // map[string]string
 	ttl        uint32    // 过期时间，秒
 	tokenIsNew bool      // just new token?
@@ -155,7 +154,22 @@ func (ss *TokSession) Recreate() {
 
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *TokSession) createNewToken() {
-	ss.guid, ss.raw = genToken(MySessDB.Secret)
+	guidBuf := genSessGuid(256)
+	//md5Val := md5Base64(guidBuf, lang.STB(MySessDB.Secret))
+
+	payLen := len(guidBuf)
+	//md5Len := base64.RawURLEncoding.EncodedLen(16) // md5值转base64编码需要的字节数
+	//buf := make([]byte, payLen+1+md5Len)
+
+	// 2. add split
+	guidBuf[payLen] = '.'
+
+	// 3. md5 signature bytes
+	md5Bytes := md5Value(guidBuf[0:payLen], lang.STB(MySessDB.Secret))
+	// md5 base64 bytes
+	base64.RawURLEncoding.Encode(guidBuf[payLen+1:], md5Bytes)
+
+	ss.guid, ss.raw = lang.BTS(guidBuf[:payLen]), lang.BTS(guidBuf)
 	ss.tokenIsNew = true
 	// 意味着没有设置值的时候不需要保存，新的token传给前端即可
 	// 可减轻大量首次请求，保存占用大量数据库资源
@@ -182,19 +196,6 @@ func parseToken(tok string) (string, string) {
 func checkToken(guid, secret, sHmac string) bool {
 	md5Val := md5Base64(lang.STB(guid), lang.STB(secret))
 	return sHmac == md5Val
-}
-
-// YXRJT0l5ckpYNldBTjYzNHZw.aSeGhf7Nhar08YcyuQmlgw
-// 闪电侠Guid
-func genToken(secret string) (string, string) {
-	size := int((MySessDB.SidSize*3 + 3) / 4)
-	// TODO：要想办法保证sid的唯一性
-	sid := randx.RandomBytes(size)
-	guid := base64.RawURLEncoding.EncodeToString(sid)
-	guid = guid[:MySessDB.SidSize] // 要确保guid的长度一致性
-
-	md5Val := md5Base64(lang.STB(guid), lang.STB(secret))
-	return guid, guid + "." + md5Val
 }
 
 // Redis
