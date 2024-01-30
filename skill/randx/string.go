@@ -22,6 +22,12 @@ func RandomBytes(size int) []byte {
 	return randomBytes(sLetters, size)
 }
 
+func RandomFill(ret []byte) {
+	for i := 0; i < len(ret); i++ {
+		ret[i] = sLetters[seed.Intn(len(sLetters))]
+	}
+}
+
 func randomBytes(source string, size int) []byte {
 	ret := make([]byte, size, size)
 	for i := 0; i < size; i++ {
