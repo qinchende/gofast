@@ -22,10 +22,12 @@ func RandomBytes(size int) []byte {
 	return randomBytes(sLetters, size)
 }
 
-func RandomFill(ret []byte) {
-	for i := 0; i < len(ret); i++ {
-		ret[i] = sLetters[seed.Intn(len(sLetters))]
+// 参数bs必须是一个带长度的切片内存空间
+func RandomFill(bs []byte) []byte {
+	for i := 0; i < len(bs); i++ {
+		bs[i] = sLetters[seed.Intn(len(sLetters))]
 	}
+	return bs
 }
 
 func randomBytes(source string, size int) []byte {

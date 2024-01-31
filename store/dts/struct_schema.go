@@ -260,15 +260,22 @@ func structFields(typ reflect.Type, parentIdx []int, opts *BindOptions) ([]strin
 		panic(fmt.Sprintf("%T is not like struct", typ))
 	}
 
-	fColumns := make([]string, 0)
-	fFields := make([]string, 0)
-	fIndexes := make([][]int, 0)
-	fOptions := make([]fieldOptions, 0)
+	// 需要解析 struct 的几种数据 ++++
+	fLen := typ.NumField()
+	fColumns := make([]string, 0, fLen)
+	fFields := make([]string, 0, fLen)
+	fIndexes := make([][]int, 0, fLen)
+	fOptions := make([]fieldOptions, 0, fLen)
 
-	for i := 0; i < typ.NumField(); i++ {
+	for i := 0; i < fLen; i++ {
 		fi := typ.Field(i)
 
-		// 结构体，需要递归提取其中的字段
+		// 排除掉非导出字段
+		if !fi.IsExported() {
+			continue
+		}
+
+		// TODO: 匿名的结构体（非time.Time），需要递归提取其中的字段
 		fiType := fi.Type
 		if fi.Anonymous && fiType.Kind() == reflect.Struct && fiType != cst.TypeTime {
 			newPIdx := make([]int, 0)

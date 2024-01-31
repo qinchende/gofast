@@ -3,7 +3,9 @@
 package sdx
 
 import (
+	"encoding/base64"
 	"github.com/qinchende/gofast/connx/redis"
+	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"time"
 )
@@ -40,6 +42,9 @@ type SessionCnf struct {
 	TTLNew        time.Duration `v:"def=180s,range=[0s:1h]"`     // 首次产生的session有效期 默认 60*3 秒
 	SidSize       uint8         `v:"def=24"`                     // session id (uuid)长度
 	MustKeepIP    bool          `v:"def=false"`                  // 看是否检查 token ip 地址
+
+	// 私有变量，辅助运算
+	secretBytes []byte
 }
 
 // 参数配置，Redis实例等
@@ -57,4 +62,17 @@ func SetSessionDB(ss *SessionDB) {
 	if ss.Redis == nil {
 		ss.Redis = redis.NewGoRedis(&ss.RedisConn)
 	}
+	MySessDB.secretBytes = lang.STB(MySessDB.Secret)
 }
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const (
+	md5Len    = 16 // 16字节 128bit
+	sha256Len = 32 // 32字节 256bit
+)
+
+var (
+	base64Enc    = base64.RawURLEncoding
+	md5B64Len    = base64Enc.EncodedLen(md5Len)
+	sha256B64Len = base64Enc.EncodedLen(sha256Len)
+)
