@@ -1,7 +1,6 @@
 package sdx
 
 import (
-	"encoding/base64"
 	"errors"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
@@ -39,7 +38,7 @@ func JwtSessBuilder(c *fst.Context) {
 
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确，需要分配新的Token。
-	isValid := checkJwt(reqPayload, MySessDB.Secret, reqHmac)
+	isValid := checkJwt(reqPayload, reqHmac)
 	if !isValid {
 		ss.createNewToken()
 		return
@@ -179,13 +178,13 @@ func parseJwt(tok string) (string, string) {
 	return tok[:dot], tok[(dot + 1):]
 }
 
-func checkJwt(data, secret, sHmac string) bool {
-	md5Val := md5Base64(lang.STB(data), lang.STB(secret))
+func checkJwt(data, sHmac string) bool {
+	md5Val := md5B64Str(lang.STB(data), MySessDB.secretBytes)
 	return sHmac == md5Val
 }
 
 func (ss *JwtSession) parsePayloadValues() error {
-	bs, err := base64.RawURLEncoding.DecodeString(ss.payload)
+	bs, err := base64Enc.DecodeString(ss.payload)
 	if err != nil {
 		return err
 	}
@@ -230,20 +229,23 @@ func (ss *JwtSession) buildToken() string {
 	ss.Set(jwtExpire, strconv.FormatInt(timex.ToS(ss.expAt), 10))
 	jsonBytes, _ := jde.EncodeToBytes(&ss.values)
 
-	// 申请足够的字节内存
-	payLen := base64.RawURLEncoding.EncodedLen(len(jsonBytes))
-	md5Len := base64.RawURLEncoding.EncodedLen(16) // md5值转base64编码需要的字节数
-	buf := make([]byte, payLen+1+md5Len)
+	// 一次性申请足够的内存，尽量避免整个运算过程中字节切片的消耗
+	payB64Len := base64Enc.EncodedLen(len(jsonBytes))
+	tokLen := payB64Len + 1 + md5B64Len
+	minSize := tokLen + md5Len
+	buf := make([]byte, minSize)
 
-	// 1. payload base64 bytes
-	base64.RawURLEncoding.Encode(buf[0:payLen], jsonBytes)
+	// 1. payload base64
+	base64Enc.Encode(buf[0:payB64Len], jsonBytes)
+
 	// 2. add split
-	buf[payLen] = '.'
-	// 3. md5 signature bytes
-	md5Bytes := md5Value(buf[0:payLen], lang.STB(MySessDB.Secret))
-	// md5 base64 bytes
-	base64.RawURLEncoding.Encode(buf[payLen+1:], md5Bytes)
+	buf[payB64Len] = '.'
+
+	// 3. md5 signature
+	md5Fill(buf[0:payB64Len], MySessDB.secretBytes, buf[tokLen:tokLen:minSize])
+	// md5 base64
+	base64Enc.Encode(buf[payB64Len+1:tokLen], buf[tokLen:minSize])
 
 	ss.changed = false
-	return lang.BTS(buf)
+	return lang.BTS(buf[:tokLen])
 }

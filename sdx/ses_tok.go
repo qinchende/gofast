@@ -3,7 +3,6 @@
 package sdx
 
 import (
-	"encoding/base64"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/skill/lang"
@@ -41,7 +40,7 @@ func TokSessBuilder(c *fst.Context) {
 	// 传了 token 就要检查当前 token 合法性：
 	// 1. 不正确，需要分配新的Token。
 	// 2. 正确或者过期，利用当前sid重建Session记录。
-	isValid := checkToken(reqGuid, MySessDB.Secret, reqHmac)
+	isValid := checkToken(reqGuid, reqHmac)
 	if !isValid {
 		ss.createNewToken()
 		return
@@ -154,23 +153,25 @@ func (ss *TokSession) Recreate() {
 
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *TokSession) createNewToken() {
-	guidBuf := genSessGuid(256)
-	//md5Val := md5Base64(guidBuf, lang.STB(MySessDB.Secret))
+	sidLen := int(MySessDB.SidSize)
+	tokLen := sidLen + 1 + md5B64Len
+	minSize := tokLen + md5Len
 
-	payLen := len(guidBuf)
-	//md5Len := base64.RawURLEncoding.EncodedLen(16) // md5值转base64编码需要的字节数
-	//buf := make([]byte, payLen+1+md5Len)
+	// 1. sid
+	buf := genSessGuid(minSize)
+	buf = buf[:minSize]
 
 	// 2. add split
-	guidBuf[payLen] = '.'
+	buf[sidLen] = '.'
 
-	// 3. md5 signature bytes
-	md5Bytes := md5Value(guidBuf[0:payLen], lang.STB(MySessDB.Secret))
-	// md5 base64 bytes
-	base64.RawURLEncoding.Encode(guidBuf[payLen+1:], md5Bytes)
+	// 3. md5 signature
+	md5Fill(buf[0:sidLen], MySessDB.secretBytes, buf[tokLen:tokLen:minSize])
+	// md5 base64
+	base64Enc.Encode(buf[sidLen+1:tokLen], buf[tokLen:minSize])
 
-	ss.guid, ss.raw = lang.BTS(guidBuf[:payLen]), lang.BTS(guidBuf)
+	ss.guid, ss.raw = lang.BTS(buf[:sidLen]), lang.BTS(buf[:tokLen])
 	ss.tokenIsNew = true
+
 	// 意味着没有设置值的时候不需要保存，新的token传给前端即可
 	// 可减轻大量首次请求，保存占用大量数据库资源
 	ss.saved = true
@@ -193,8 +194,8 @@ func parseToken(tok string) (string, string) {
 }
 
 // 利用当前 guid 和 c 中包含的 request_ip | 计算出hmac值，然后和token中携带的 hmac值比较，来得出合法性
-func checkToken(guid, secret, sHmac string) bool {
-	md5Val := md5Base64(lang.STB(guid), lang.STB(secret))
+func checkToken(guid, sHmac string) bool {
+	md5Val := md5B64Str(lang.STB(guid), MySessDB.secretBytes)
 	return sHmac == md5Val
 }
 
