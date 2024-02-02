@@ -5,7 +5,7 @@ package sdx
 import "github.com/qinchende/gofast/fst"
 
 func PmsParser(c *fst.Context) {
-	c.PanicIfErr(c.CollectPms(), "解析请求数据出现错误")
+	c.PanicIfErr(c.CollectPms(), "parse the request data error")
 }
 
 // 验证请求是否经过了合法认证

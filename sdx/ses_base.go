@@ -15,7 +15,7 @@ const (
 )
 
 type BaseFields struct {
-	Tok string `v:"len=[64:128]"`
+	Tok string `v:"len=[32:2048]"` // 即使是使用 JwtSession，也不建议太长的 token string
 }
 
 var _BasePms = []string{PmsToken}
@@ -36,7 +36,7 @@ type SessionCnf struct {
 	RedisConn     redis.ConnCnf `v:""`                           // 用 Redis 做持久化
 	PrefixSessKey string        `v:"def=ses:"`                   // session 的前缀
 	UidField      string        `v:"def=uid"`                    // 标记当前登录用户字段是? 比如：user_id
-	Secret        string        `v:"required,def=sdx"`           // 用于计算token的秘钥
+	Secret        string        `v:"must,def=sdx-secret"`        // 用于计算token的秘钥
 	SecretLast    string        `v:"def=sdx"`                    // 上一个密钥，可能在更换密钥时有用
 	TTL           time.Duration `v:"def=14400s,range=[0s:240h]"` // session有效期 默认 3600*4 秒
 	TTLNew        time.Duration `v:"def=180s,range=[0s:1h]"`     // 首次产生的session有效期 默认 60*3 秒
@@ -67,8 +67,10 @@ func SetSessionDB(ss *SessionDB) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 const (
-	md5Len    = 16 // 16字节 128bit
-	sha256Len = 32 // 32字节 256bit
+	md5Len    = 16 // 编码空间16字节 128bit
+	sha1Len   = 20 // The size of an SHA-1 checksum in bytes.
+	sha256Len = 32 // 编码空间32字节 256bit
+	sha512Len = 64 // 编码空间64字节
 )
 
 var (

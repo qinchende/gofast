@@ -5,6 +5,7 @@ package mid
 import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/fst"
+	"time"
 )
 
 type (
@@ -55,7 +56,7 @@ func (*listAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
 		if RoutesAttrs[i] == nil {
 			RoutesAttrs[i] = &RAttrs{
 				MaxLen:    0,
-				TimeoutMS: int32(cnf.DefTimeoutMS),
+				TimeoutMS: int32(cnf.DefaultTimeout / time.Millisecond),
 				//MaxReq:    1000000,
 				//BreakRate: 1.5,
 			}

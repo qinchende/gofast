@@ -15,14 +15,6 @@ func STB(s string) (b []byte) {
 	//bh := (*rt.SliceHeader)(unsafe.Pointer(&b))
 	//bh.DataPtr, bh.Len, bh.Cap = sh.DataPtr, sh.Len, sh.Len
 	//return b
-
-	// 还有下面这种写法
-	//l := len(s)
-	//return *(*[]byte)(unsafe.Pointer(&rt.SliceHeader{
-	//	Data: (*(*reflect.StringHeader)(unsafe.Pointer(&s))).Data,
-	//	Len:  l,
-	//	Cap:  l,
-	//}))
 }
 
 func BTS(b []byte) string {

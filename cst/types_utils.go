@@ -28,6 +28,6 @@ func init() {
 	TypeWebKV = reflect.TypeOf(WebKV{})
 	TypeStrAnyMap = reflect.TypeOf(map[string]any{})
 	TypeTime = reflect.TypeOf(time.Time{})
-	TypeDuration = reflect.TypeOf(*new(time.Duration))
+	TypeDuration = reflect.TypeOf(time.Duration(0))
 	TypeBytes = reflect.TypeOf(make([]byte, 0))
 }

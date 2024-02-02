@@ -9,8 +9,8 @@ import (
 )
 
 const (
-	ptrTypeByteSize = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
-	maxJsonStrLen   = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
+	ptrMemSize    = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
+	maxJsonStrLen = math.MaxInt32 - 1              // 最大解析2GB JSON字符串
 )
 
 var (

@@ -376,7 +376,7 @@ nextField:
 
 	// 字段不是指针类型
 	if dm.ss.FieldsAttr[i].PtrLevel == 0 {
-		switch dm.ss.FieldsAttr[i].Kind {
+		switch fa := dm.ss.FieldsAttr[i]; fa.Kind {
 		case reflect.Int:
 			dm.fieldsDec[i] = scanObjIntValue
 		case reflect.Int8:
@@ -417,7 +417,15 @@ nextField:
 			} else {
 				dm.fieldsDec[i] = scanObjMixValue
 			}
-		case reflect.Map, reflect.Array, reflect.Slice:
+		case reflect.Slice:
+			// 分情况，如果是字节切片，单独处理
+			if fa.Type == cst.TypeBytes {
+				// TODO: 字节切片的解析，把字符串当做base64编码看待
+				dm.fieldsDec[i] = scanObjBytesValue
+			} else {
+				dm.fieldsDec[i] = scanObjMixValue
+			}
+		case reflect.Map, reflect.Array:
 			dm.fieldsDec[i] = scanObjMixValue
 
 		default:
@@ -427,7 +435,7 @@ nextField:
 	}
 
 	// 字段是指针类型，我们需要判断的是真实的数据类型
-	switch dm.ss.FieldsAttr[i].Kind {
+	switch fa := dm.ss.FieldsAttr[i]; fa.Kind {
 	case reflect.Int:
 		dm.fieldsDec[i] = scanObjPtrIntValue
 	case reflect.Int8:
@@ -467,7 +475,15 @@ nextField:
 		} else {
 			dm.fieldsDec[i] = scanObjPtrMixValue
 		}
-	case reflect.Map, reflect.Array, reflect.Slice:
+	case reflect.Slice:
+		// 分情况，如果是字节切片，单独处理
+		if fa.Type == cst.TypeBytes {
+			// TODO: 字节切片的解析，把字符串当做base64编码看待
+			dm.fieldsDec[i] = scanObjPtrStrValue
+		} else {
+			dm.fieldsDec[i] = scanObjPtrMixValue
+		}
+	case reflect.Map, reflect.Array:
 		dm.fieldsDec[i] = scanObjPtrMixValue
 	default:
 		panic(errValueType)

@@ -32,7 +32,7 @@ func (rk *RequestKeeper) LimiterIncome(idx uint16) {
 }
 
 // 记录请求耗时
-func (rk *RequestKeeper) LimiterFinished(idx uint16, ms int32, defMS int32) {
+func (rk *RequestKeeper) LimiterFinished(idx uint16, ms, defMS int32) {
 	fixMS := int32(float64(defMS) * limit_timeout_rate)
 	if ms > fixMS {
 		ms = fixMS

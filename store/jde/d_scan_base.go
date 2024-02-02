@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"encoding/base64"
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/skill/lang"
 	"math"
@@ -367,6 +368,11 @@ func bindFloat32(p unsafe.Pointer, v float64) {
 
 func bindFloat64(p unsafe.Pointer, v float64) {
 	*(*float64)(p) = v
+}
+
+// []byte
+func bindBytes(p unsafe.Pointer, v []byte) {
+	*(*[]byte)(p) = v
 }
 
 // string & bool & any
@@ -889,6 +895,32 @@ func scanListStrValue(sd *subDecode) {
 		sd.pl.nulPos = append(sd.pl.nulPos, len(sd.pl.bufStr))
 	}
 	sd.pl.bufStr = append(sd.pl.bufStr, v)
+}
+
+// []byte +++++
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanObjBytesValue(sd *subDecode) {
+	switch sd.str[sd.scan] {
+	case '"':
+		start := sd.scan + 1
+		slash := sd.scanQuoteStr()
+		bytes := ""
+		if slash {
+			bytes = sd.str[start:sd.unescapeEnd()]
+		} else {
+			bytes = sd.str[start : sd.scan-1]
+		}
+		// stand base64 string decode
+		decodedLen := base64.StdEncoding.DecodedLen(len(bytes))
+		buf := make([]byte, decodedLen)
+		n, err := base64.StdEncoding.Decode(buf, lang.STB(bytes))
+		if err != nil {
+			panic(err)
+		}
+		bindBytes(fieldPtr(sd), buf[:n])
+	default:
+		sd.skipNull()
+	}
 }
 
 // time.Time +++++

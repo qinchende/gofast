@@ -1,5 +1,7 @@
 package cst
 
+import "time"
+
 // 配置http相关设置，比如路由相关控制参数
 type WebConfig struct {
 	SecureJsonPrefix      string `v:"def=while(1);"` // JsonP安全前缀
@@ -27,10 +29,10 @@ type SdxConfig struct {
 	MaxContentLength int64 `v:"def=33554432"`              // 最大请求字节数，32MB（33554432），传0不限制
 	MaxConnections   int32 `v:"def=0,range=[0:100000000]"` // 最大同时请求数，0不限制
 
-	EnableSpecialHandlers bool  `v:"def=true"`  // 是否启用默认的特殊路由中间件
-	EnableTrack           bool  `v:"def=false"` // 启动链路追踪
-	EnableGunzip          bool  `v:"def=false"` // 启动gunzip
-	EnableShedding        bool  `v:"def=true"`  // 启动降载限制访问
-	EnableTimeout         bool  `v:"def=true"`  // 启动超时拦截
-	DefTimeoutMS          int64 `v:"def=3000"`  // 默认请求超时时间（单位：毫秒）
+	EnableSpecialHandlers bool          `v:"def=true"`   // 是否启用默认的特殊路由中间件
+	EnableTrack           bool          `v:"def=false"`  // 启动链路追踪
+	EnableGunzip          bool          `v:"def=false"`  // 启动gunzip
+	EnableShedding        bool          `v:"def=true"`   // 启动降载限制访问
+	EnableTimeout         bool          `v:"def=true"`   // 启动超时拦截
+	DefaultTimeout        time.Duration `v:"def=3000ms"` // 默认请求超时时间（单位：毫秒）
 }

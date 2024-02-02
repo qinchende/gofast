@@ -20,7 +20,7 @@ type (
 		SlaveOnly     bool     `v:""`
 
 		// common
-		Pass     string `v:"required"`
+		Pass     string `v:"must"`
 		DB       int    `v:""`
 		PoolSize int    `v:""`
 		MinIdle  int    `v:""`

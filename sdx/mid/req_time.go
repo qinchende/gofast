@@ -16,7 +16,7 @@ func TimeMetric(kp *gate.RequestKeeper) fst.CtxHandler {
 			rt := RoutesAttrs[c.RouteIdx]
 
 			// 无论是否panic，在统计访问量的模块，本次都算一次正常触达请求，并统计耗时
-			tm := int32(timex.NowDiffMS(c.EnterTime))
+			tm := int32(timex.SdxNowDiffDur(c.EnterTime))
 			kp.LimiterFinished(c.RouteIdx, tm, rt.TimeoutMS)
 			kp.CountRoutePass2(c.RouteIdx, tm)
 		}()
