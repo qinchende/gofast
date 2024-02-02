@@ -64,7 +64,7 @@ func ValidateFieldPtr(ptr unsafe.Pointer, kd reflect.Kind, vOpts *ValidOptions) 
 		// Required 字段如果值为空字符串就报错，否则直接跳过
 		if len(str) == 0 {
 			if vOpts.Required {
-				return fmt.Errorf(`field "%s" is required`, vOpts.Name)
+				return fmt.Errorf(`field "%s" is required, can not be blank`, vOpts.Name)
 			} else {
 				return nil // 非必须字段为空字符串，直接跳过
 			}

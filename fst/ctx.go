@@ -37,7 +37,7 @@ type Context struct {
 /************************************/
 
 func (c *Context) reset() {
-	// c.EnterTime = timex.Now()
+	//c.EnterTime = timex.SdxNowDur()
 	// c.Res = nil
 	// c.Req = nil
 

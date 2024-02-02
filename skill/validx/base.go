@@ -3,7 +3,7 @@
 package validx
 
 const (
-	attrRequired = "required" // 必填项
+	attrRequired = "must" // 必填项
 	attrDefault  = "def"
 	attrEnum     = "enum"
 	attrRange    = "range"

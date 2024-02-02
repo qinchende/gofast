@@ -135,7 +135,7 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // 全局拦截器过了之后，接下来就是查找路由进入下一阶段生命周期。
 func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c := gft.pools.getContext()
-	c.EnterTime = timex.NowDur() // 请求开始进入上下文阶段，开始计时
+	c.EnterTime = timex.SdxNowDur() // 请求开始进入上下文阶段，开始计时
 	c.Res.Reset(w)
 	c.Req.Reset(r)
 	c.reset()
@@ -279,7 +279,7 @@ func (gft *GoFast) GracefulShutdown() {
 	gft.execAppHandlers(gft.eCloseHds)
 
 	// 关闭Server
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.BeforeShutdownMS)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.BeforeShutdown)*time.Millisecond)
 	defer cancel()
 	// 系统信号触发，就要主动关闭http server
 	if sign != syscall.SIGABRT {

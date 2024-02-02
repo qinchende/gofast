@@ -15,9 +15,11 @@ func (sd *subDecode) scanStart() (err errType) {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
 				err = code
+			} else if stdErr, yes := pic.(error); yes {
+				fmt.Println(stdErr)
+				err = errJson
 			} else {
-				// 调试的时候打印错误信息
-				fmt.Printf("%s\n%s", pic, debug.Stack())
+				fmt.Printf("%s\n%s", pic, debug.Stack()) // 调试的时候打印错误信息
 				err = errJson
 			}
 		}

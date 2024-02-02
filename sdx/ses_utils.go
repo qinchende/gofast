@@ -6,6 +6,7 @@ import (
 	"crypto/hmac"
 	"crypto/md5"
 	"crypto/sha256"
+	"crypto/sha512"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/randx"
 )
@@ -45,6 +46,7 @@ func md5B64Str(data, secret []byte) string {
 
 // 返回的md5值，存放在底层自己生成的字节切片对象
 func md5Value(data, secret []byte) []byte {
+	sha512.New()
 	mac := hmac.New(md5.New, secret)
 	mac.Write(data)
 	return mac.Sum(nil)
