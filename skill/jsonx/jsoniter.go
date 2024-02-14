@@ -37,12 +37,3 @@ func UnmarshalFromReader(v any, reader io.Reader) error {
 	decoder := NewDecoder(reader)
 	return decoder.Decode(v)
 }
-
-func UnmarshalStringToKV(str string) (map[string]any, error) {
-	res := make(map[string]any)
-	if str == "" {
-		return res, nil
-	}
-	err := UnmarshalFromString(&res, str)
-	return res, err
-}

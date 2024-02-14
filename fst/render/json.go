@@ -187,7 +187,7 @@ func (r AsciiJSON) WriteContentType(w http.ResponseWriter) {
 //// Render (PureJSON) writes custom ContentType and encodes the given interface object.
 //func (r PureJSON) Write(w http.ResponseWriter) error {
 //	r.WriteContentType(w)
-//	encoder := jsonx.NewEncoder(w)
+//	encoder := jde.NewEncoder(w)
 //	encoder.SetEscapeHTML(false)
 //	return encoder.Encode(r.Data)
 //}

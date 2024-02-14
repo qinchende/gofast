@@ -3,16 +3,16 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/store/jde"
 	"time"
 )
 
 // 待实现
 type logElkEntry struct {
-	Timestamp string `json:"@timestamp"`
-	Level     string `json:"lv"`
-	Duration  string `json:"duration,omitempty"`
-	Content   any    `json:"ct"`
+	Timestamp string `pms:"@timestamp"`
+	Level     string `pms:"lv"`
+	Duration  string `pms:"duration"`
+	Content   any    `pms:"ct"`
 }
 
 func outputElkStyle(w WriterCloser, logLevel string, data any) {
@@ -21,7 +21,7 @@ func outputElkStyle(w WriterCloser, logLevel string, data any) {
 		Level:     logLevel,
 		Content:   data,
 	}
-	if content, err := jsonx.Marshal(logWrap); err != nil {
+	if content, err := jde.EncodeToBytes(logWrap); err != nil {
 		outputDirectString(w, err.Error())
 	} else {
 		outputDirectBytes(w, content)
