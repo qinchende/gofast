@@ -3,15 +3,15 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/skill/jsonx"
+	"github.com/qinchende/gofast/store/jde"
 	"time"
 )
 
-//type logSdxJsonEntry struct {
-//	T string
-//	L string
-//	D any
-//}
+//	type logSdxJsonEntry struct {
+//		T string
+//		L string
+//		D any
+//	}
 type logSdxJsonEntry [3]any
 
 func outputSdxJsonStyle(w WriterCloser, logLevel string, data any) {
@@ -20,7 +20,7 @@ func outputSdxJsonStyle(w WriterCloser, logLevel string, data any) {
 		logLevel,
 		data,
 	}
-	if content, err := jsonx.Marshal(logWrap); err != nil {
+	if content, err := jde.EncodeToBytes(logWrap); err != nil {
 		outputDirectString(w, err.Error())
 	} else {
 		outputDirectBytes(w, content)

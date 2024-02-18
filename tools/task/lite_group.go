@@ -6,10 +6,10 @@ import (
 	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/logx"
 	"github.com/qinchende/gofast/skill/gmp"
-	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/skill/timex"
 	"github.com/qinchende/gofast/store/bind"
+	"github.com/qinchende/gofast/store/jde"
 	"sync"
 	"time"
 )
@@ -103,7 +103,8 @@ func (lite *LiteGroup) StartRun() {
 func (lite *LiteGroup) scanController() {
 	// 检查争夺运行权
 	if str, err := lite.rds.Get(lite.key); err == nil && str != "" {
-		if kvs, err2 := jsonx.UnmarshalStringToKV(str); err2 == nil {
+		kvs := make(cst.KV)
+		if err2 := jde.DecodeString(&kvs, str); err2 == nil {
 			lite.lostTimes = 0
 
 			if kvs[stateFieldServerName] == lite.serverName {
@@ -229,6 +230,6 @@ func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 func (lite *LiteGroup) flushTime(kvs cst.KV) {
 	kvs[stateFieldTime] = time.Now().Format(cst.TimeFmtRFC3339)
 
-	jsonStr, _ := jsonx.Marshal(kvs)
+	jsonStr, _ := jde.EncodeToString(kvs)
 	_, _ = lite.rds.Set(lite.key, jsonStr, liteStoreRunFlagExpireTTL)
 }

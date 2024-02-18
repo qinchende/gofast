@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"context"
 	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/jsonx"
 	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/store/jde"
 	"io"
 	"net/http"
 	"net/url"
@@ -106,7 +106,9 @@ func buildBody(pet *RequestPet) io.Reader {
 	var buf bytes.Buffer
 	switch pet.BodyFormat {
 	case FormatJson:
-		_ = jsonx.NewEncoder(&buf).Encode(pet.BodyArgs)
+		//_ = jde.NewEncoder(&buf).Encode(pet.BodyArgs)
+		bs, _ := jde.EncodeToBytes(pet.BodyArgs)
+		return bytes.NewBuffer(bs)
 	case FormatUrlEncoding:
 		data := url.Values{}
 		for k, v := range pet.BodyArgs {
