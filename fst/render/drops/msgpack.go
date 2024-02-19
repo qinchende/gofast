@@ -27,7 +27,7 @@ var msgpackContentType = []string{"application/msgpack; charset=utf-8"}
 
 // WriteContentType (MsgPack) writes MsgPack ContentType.
 func (r MsgPack) WriteContentType(w http.ResponseWriter) {
-	render.writeContentType(w, msgpackContentType)
+	//render.writeContentType(w, msgpackContentType)
 }
 
 // Render (MsgPack) encodes the given interface object and writes data with custom ContentType.
@@ -37,7 +37,7 @@ func (r MsgPack) Write(w http.ResponseWriter) error {
 
 // WriteMsgPack writes MsgPack ContentType and encodes the given interface object.
 func WriteMsgPack(w http.ResponseWriter, obj any) error {
-	render.writeContentType(w, msgpackContentType)
+	//render.writeContentType(w, msgpackContentType)
 	var mh codec.MsgpackHandle
 	return codec.NewEncoder(w, &mh).Encode(obj)
 }

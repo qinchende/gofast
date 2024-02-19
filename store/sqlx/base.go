@@ -1,11 +1,13 @@
+// Copyright 2023 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package sqlx
 
 import (
 	"context"
 	"database/sql"
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"sync"
 	"time"
@@ -29,9 +31,25 @@ func init() {
 	TypeSqlRawBytes = reflect.TypeOf(sql.RawBytes{})
 }
 
+// 不同数据库，定义不同的SQL语句执行器
+type SqlBuilder interface {
+	InsertSql(*orm.TableSchema) string
+	DeleteSql(*orm.TableSchema) string
+	UpdateSql(*orm.TableSchema) string
+	UpdateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any)
+	SelectSqlOfPrimary(ts *orm.TableSchema) string
+	SelectSqlOfOne(ts *orm.TableSchema, fields string, where string) string
+	SelectSqlOfSome(ts *orm.TableSchema, fields string, where string) string
+	ReadyForSql(ts *orm.TableSchema, pet *SelectPet)
+	SelectSqlByPet(*SelectPet) string
+	SelectCountSqlByPet(*SelectPet) string
+	SelectPagingSqlByPet(*SelectPet) string
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type OrmDB struct {
+	SqlBuilder
 	Attrs    *DBAttrs
 	Ctx      context.Context
 	Reader   *sql.DB          // 只读连接（从库）

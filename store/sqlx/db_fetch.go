@@ -1,3 +1,5 @@
+// Copyright 2023 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package sqlx
 
 import (
@@ -80,7 +82,7 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 
 // 通过主键查询表记录，同时绑定到对象
 func queryByPrimary(conn *OrmDB, obj any, id any, ts *orm.TableSchema) int64 {
-	sqlRows := conn.QuerySql(selectSqlOfPrimary(ts), id)
+	sqlRows := conn.QuerySql(conn.SelectSqlOfPrimary(ts), id)
 	defer CloseSqlRows(sqlRows)
 	return scanSqlRowsOne(obj, sqlRows, ts)
 }

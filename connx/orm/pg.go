@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	MysqlConnCnf struct {
+	PgConnCnf struct {
 		ConnStr    string   `v:"must"`
 		ConnStrR   string   `v:"must=false"`
 		MaxOpen    int      `v:"def=100,range=[1:1000]"`
@@ -21,9 +21,8 @@ type (
 	}
 )
 
-func OpenMysql(cf *MysqlConnCnf) *sqlx.OrmDB {
+func OpenPg(cf *MysqlConnCnf) *sqlx.OrmDB {
 	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
-	ormDB.SqlBuilder = &sqlx.MysqlBuilder{}
 
 	// DBName ->
 	dbConfig, _ := mysql.ParseDSN(cf.ConnStr)
