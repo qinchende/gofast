@@ -1,3 +1,5 @@
+// Copyright 2023 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package sqlx
 
 import (
@@ -15,7 +17,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 		values[autoIdx] = values[0]
 	}
 
-	ret := conn.ExecSql(insertSql(ts), values[1:]...)
+	ret := conn.ExecSql(conn.InsertSql(ts), values[1:]...)
 	obj.AfterInsert(ret) // 反写值，比如主键ID
 	ct, err := ret.RowsAffected()
 	panicIfSqlErr(err)
@@ -25,7 +27,7 @@ func (conn *OrmDB) Insert(obj orm.OrmStruct) int64 {
 func (conn *OrmDB) Delete(obj any) int64 {
 	ts := orm.Schema(obj)
 	val := ts.PrimaryValue(obj)
-	ret := conn.ExecSql(deleteSql(ts), val)
+	ret := conn.ExecSql(conn.DeleteSql(ts), val)
 	return parseSqlResult(conn, ret, val, ts)
 }
 
@@ -39,7 +41,7 @@ func (conn *OrmDB) Update(obj orm.OrmStruct) int64 {
 	values[priIdx] = values[fLen-1]
 	values[fLen-1] = tVal
 
-	ret := conn.ExecSql(updateSql(ts), values...)
+	ret := conn.ExecSql(conn.UpdateSql(ts), values...)
 	return parseSqlResult(conn, ret, tVal, ts)
 }
 
@@ -49,7 +51,7 @@ func (conn *OrmDB) UpdateFields(obj orm.OrmStruct, fNames ...string) int64 {
 	ts := orm.Schema(obj)
 
 	obj.BeforeSave()
-	upSQL, tValues := updateSqlByFields(ts, &dstVal, fNames...)
+	upSQL, tValues := conn.UpdateSqlByFields(ts, &dstVal, fNames...)
 	ret := conn.ExecSql(upSQL, tValues...)
 	return parseSqlResult(conn, ret, tValues[len(tValues)-1], ts)
 }
@@ -73,7 +75,7 @@ func (conn *OrmDB) QueryRow(obj any, where string, args ...any) int64 {
 
 func (conn *OrmDB) QueryRow2(obj any, fields string, where string, args ...any) int64 {
 	ts := orm.Schema(obj)
-	sqlRows := conn.QuerySql(selectSqlOfOne(ts, fields, where), args...)
+	sqlRows := conn.QuerySql(conn.SelectSqlOfOne(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 	return scanSqlRowsOne(obj, sqlRows, ts)
 }
@@ -101,7 +103,7 @@ func (conn *OrmDB) QueryRows(objs any, where string, args ...any) int64 {
 
 func (conn *OrmDB) QueryRows2(objs any, fields string, where string, args ...any) int64 {
 	ts := orm.Schema(objs)
-	sqlRows := conn.QuerySql(selectSqlOfSome(ts, fields, where), args...)
+	sqlRows := conn.QuerySql(conn.SelectSqlOfSome(ts, fields, where), args...)
 	defer CloseSqlRows(sqlRows)
 
 	return scanSqlRowsList(objs, sqlRows)
@@ -113,8 +115,8 @@ func (conn *OrmDB) QueryPet(pet *SelectPet) int64 {
 	ts := orm.SchemaNil(pet.List)
 	sql := pet.Sql
 	if sql == "" {
-		pet.readyForSql(ts)
-		sql = selectSqlByPet(pet)
+		conn.ReadyForSql(ts, pet)
+		sql = conn.SelectSqlByPet(pet)
 	}
 
 	ct, _ := queryByPet(conn, sql, "", pet, ts)
@@ -126,14 +128,14 @@ func (conn *OrmDB) QueryPetPaging(pet *SelectPet) (int64, int64) {
 	ts := orm.Schema(pet.List)
 	sql := pet.Sql
 	if sql == "" {
-		pet.readyForSql(ts)
-		sql = selectPagingSqlByPet(pet)
+		conn.ReadyForSql(ts, pet)
+		sql = conn.SelectPagingSqlByPet(pet)
 	}
 
 	sqlCt := pet.SqlCount
 	if sqlCt == "" {
-		pet.readyForSql(ts)
-		sqlCt = selectCountSqlByPet(pet)
+		conn.ReadyForSql(ts, pet)
+		sqlCt = conn.SelectCountSqlByPet(pet)
 	} else if strings.ToLower(sqlCt) == "false" { // 不查total，用于无级分页
 		sqlCt = ""
 	}
@@ -147,8 +149,8 @@ func (conn *OrmDB) DeletePetCache(pet *SelectPet) (err error) {
 	// 生成Sql语句
 	sql := pet.Sql
 	if sql == "" {
-		pet.readyForSql(ts)
-		sql = selectSqlByPet(pet)
+		conn.ReadyForSql(ts, pet)
+		sql = conn.SelectSqlByPet(pet)
 	}
 
 	pet.Args = formatArgs(pet.Args)

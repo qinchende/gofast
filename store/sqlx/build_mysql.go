@@ -1,3 +1,5 @@
+// Copyright 2023 GoFast Author(http://chende.ren). All rights reserved.
+// Use of this source code is governed by a MIT license
 package sqlx
 
 import (
@@ -9,7 +11,10 @@ import (
 	"strings"
 )
 
-func insertSql(ts *orm.TableSchema) string {
+type MysqlBuilder struct {
+}
+
+func (*MysqlBuilder) InsertSql(ts *orm.TableSchema) string {
 	return ts.InsertSQL(func(ts *orm.TableSchema) string {
 		cls := ts.Columns()
 		clsLen := len(cls)
@@ -41,13 +46,13 @@ func insertSql(ts *orm.TableSchema) string {
 	})
 }
 
-func deleteSql(ts *orm.TableSchema) string {
+func (*MysqlBuilder) DeleteSql(ts *orm.TableSchema) string {
 	return ts.DeleteSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func updateSql(ts *orm.TableSchema) string {
+func (*MysqlBuilder) UpdateSql(ts *orm.TableSchema) string {
 	return ts.UpdateSQL(func(ts *orm.TableSchema) string {
 		cls := ts.Columns()
 		clsLen := len(cls) - 1
@@ -72,7 +77,7 @@ func updateSql(ts *orm.TableSchema) string {
 }
 
 // 更新特定字段
-func updateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
+func (*MysqlBuilder) UpdateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
 	if len(fNames) == 1 {
 		fNames = strings.Split(fNames[0], ",")
 	}
@@ -122,13 +127,13 @@ func updateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...strin
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
-func selectSqlOfPrimary(ts *orm.TableSchema) string {
+func (*MysqlBuilder) SelectSqlOfPrimary(ts *orm.TableSchema) string {
 	return ts.SelectSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func selectSqlOfOne(ts *orm.TableSchema, fields string, where string) string {
+func (*MysqlBuilder) SelectSqlOfOne(ts *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -138,7 +143,7 @@ func selectSqlOfOne(ts *orm.TableSchema, fields string, where string) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, ts.TableName(), where)
 }
 
-func selectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
+func (*MysqlBuilder) SelectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
 	if fields == "" {
 		fields = "*"
 	}
@@ -152,7 +157,7 @@ func selectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (pet *SelectPet) readyForSql(ts *orm.TableSchema) {
+func (*MysqlBuilder) ReadyForSql(ts *orm.TableSchema, pet *SelectPet) {
 	if pet.isReady {
 		return
 	}
@@ -190,19 +195,19 @@ func (pet *SelectPet) readyForSql(ts *orm.TableSchema) {
 	pet.isReady = true
 }
 
-func selectSqlByPet(pet *SelectPet) string {
+func (*MysqlBuilder) SelectSqlByPet(pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
 		pet.orderByT, pet.Limit, pet.Offset)
 }
 
-func selectCountSqlByPet(pet *SelectPet) string {
+func (*MysqlBuilder) SelectCountSqlByPet(pet *SelectPet) string {
 	if pet.GroupBy == "" {
 		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
 	}
 	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
-func selectPagingSqlByPet(pet *SelectPet) string {
+func (*MysqlBuilder) SelectPagingSqlByPet(pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
 		pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }
