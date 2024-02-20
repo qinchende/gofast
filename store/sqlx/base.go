@@ -32,26 +32,31 @@ func init() {
 }
 
 // 不同数据库，定义不同的SQL语句执行器
-type SqlBuilder interface {
-	InsertSql(*orm.TableSchema) string
-	DeleteSql(*orm.TableSchema) string
-	UpdateSql(*orm.TableSchema) string
-	UpdateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any)
-	SelectSqlOfPrimary(ts *orm.TableSchema) string
-	SelectSqlOfOne(ts *orm.TableSchema, fields string, where string) string
-	SelectSqlOfSome(ts *orm.TableSchema, fields string, where string) string
-	ReadyForSql(ts *orm.TableSchema, pet *SelectPet)
-	SelectSqlByPet(*SelectPet) string
-	SelectCountSqlByPet(*SelectPet) string
-	SelectPagingSqlByPet(*SelectPet) string
+type CmdBuilder interface {
+	// 增删改
+	Insert(*orm.TableSchema) string
+	Delete(*orm.TableSchema) string
+	Update(*orm.TableSchema) string
+	UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, columns ...string) (string, []any)
+
+	// 查询
+	SelectPrimary(ts *orm.TableSchema) string
+	SelectRow(ts *orm.TableSchema, columns string, where string) string
+	SelectRows(ts *orm.TableSchema, columns string, where string) string
+	SelectByPet(*SelectPet) string
+	SelectCountByPet(*SelectPet) string
+	SelectPagingByPet(*SelectPet) string
+
+	// 初始化Pet
+	InitPet(*SelectPet, *orm.TableSchema)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type OrmDB struct {
-	SqlBuilder
-	Attrs    *DBAttrs
-	Ctx      context.Context
+	Cmd      CmdBuilder       // SQL语句生成函数
+	Attrs    *DBAttrs         // 数据库属性
+	Ctx      context.Context  // 上下文，方便取消执行
 	Reader   *sql.DB          // 只读连接（从库）
 	Writer   *sql.DB          // 只写连接（主库）
 	tx       *sql.Tx          // 读写皆可（主库）单独用于处理事务的连接

@@ -49,6 +49,13 @@ func parseSqlResult(conn *OrmDB, ret sql.Result, keyVal any, ts *orm.TableSchema
 	return ct
 }
 
+// 通过主键查询表记录，同时绑定到对象
+func queryByPrimary(conn *OrmDB, obj any, id any, ts *orm.TableSchema) int64 {
+	sqlRows := conn.QuerySql(conn.Cmd.SelectPrimary(ts), id)
+	defer CloseSqlRows(sqlRows)
+	return scanSqlRowsOne(obj, sqlRows, ts)
+}
+
 // 通过表的主键查询到一条记录。并对单条记录缓存。
 // 缓存的数据仅仅为 GsonRow 的 values，而不需要记录 fields ，因为默认都是 按model的字段顺序来记录。
 func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
@@ -78,13 +85,6 @@ func queryByPrimaryWithCache(conn *OrmDB, obj any, id any) int64 {
 		}
 	}
 	return ct
-}
-
-// 通过主键查询表记录，同时绑定到对象
-func queryByPrimary(conn *OrmDB, obj any, id any, ts *orm.TableSchema) int64 {
-	sqlRows := conn.QuerySql(conn.SelectSqlOfPrimary(ts), id)
-	defer CloseSqlRows(sqlRows)
-	return scanSqlRowsOne(obj, sqlRows, ts)
 }
 
 // 返回 count , total

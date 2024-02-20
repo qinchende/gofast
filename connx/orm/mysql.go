@@ -23,7 +23,7 @@ type (
 
 func OpenMysql(cf *MysqlConnCnf) *sqlx.OrmDB {
 	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
-	ormDB.SqlBuilder = &sqlx.MysqlBuilder{}
+	ormDB.Cmd = &sqlx.MysqlBuilder{}
 
 	// DBName ->
 	dbConfig, _ := mysql.ParseDSN(cf.ConnStr)

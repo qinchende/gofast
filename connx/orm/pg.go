@@ -23,6 +23,7 @@ type (
 
 func OpenPg(cf *MysqlConnCnf) *sqlx.OrmDB {
 	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
+	ormDB.Cmd = &sqlx.PgBuilder{}
 
 	// DBName ->
 	dbConfig, _ := mysql.ParseDSN(cf.ConnStr)

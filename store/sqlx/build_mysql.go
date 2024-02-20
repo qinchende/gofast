@@ -14,7 +14,7 @@ import (
 type MysqlBuilder struct {
 }
 
-func (*MysqlBuilder) InsertSql(ts *orm.TableSchema) string {
+func (*MysqlBuilder) Insert(ts *orm.TableSchema) string {
 	return ts.InsertSQL(func(ts *orm.TableSchema) string {
 		cls := ts.Columns()
 		clsLen := len(cls)
@@ -46,13 +46,13 @@ func (*MysqlBuilder) InsertSql(ts *orm.TableSchema) string {
 	})
 }
 
-func (*MysqlBuilder) DeleteSql(ts *orm.TableSchema) string {
+func (*MysqlBuilder) Delete(ts *orm.TableSchema) string {
 	return ts.DeleteSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("DELETE FROM %s WHERE %s=?;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func (*MysqlBuilder) UpdateSql(ts *orm.TableSchema) string {
+func (*MysqlBuilder) Update(ts *orm.TableSchema) string {
 	return ts.UpdateSQL(func(ts *orm.TableSchema) string {
 		cls := ts.Columns()
 		clsLen := len(cls) - 1
@@ -77,14 +77,14 @@ func (*MysqlBuilder) UpdateSql(ts *orm.TableSchema) string {
 }
 
 // 更新特定字段
-func (*MysqlBuilder) UpdateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value, fNames ...string) (string, []any) {
-	if len(fNames) == 1 {
-		fNames = strings.Split(fNames[0], ",")
+func (*MysqlBuilder) UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, cNames ...string) (string, []any) {
+	if len(cNames) == 1 {
+		cNames = strings.Split(cNames[0], ",")
 	}
 
-	tgLen := len(fNames)
+	tgLen := len(cNames)
 	if tgLen <= 0 {
-		cst.PanicString("sqlx: UpdateFields args [fNames] is empty")
+		cst.PanicString("sqlx: UpdateColumns args [columns] is empty")
 	}
 
 	cls := ts.Columns()
@@ -92,9 +92,9 @@ func (*MysqlBuilder) UpdateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value,
 	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx := ts.FieldIndex(fNames[i])
+		idx := ts.ColumnIndex(cNames[i])
 		if idx < 0 {
-			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", fNames[i]))
+			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", cNames[i]))
 		}
 
 		// 更新字符串
@@ -127,25 +127,25 @@ func (*MysqlBuilder) UpdateSqlByFields(ts *orm.TableSchema, rVal *reflect.Value,
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 查询 select * from
-func (*MysqlBuilder) SelectSqlOfPrimary(ts *orm.TableSchema) string {
+func (*MysqlBuilder) SelectPrimary(ts *orm.TableSchema) string {
 	return ts.SelectSQL(func(ts *orm.TableSchema) string {
 		return fmt.Sprintf("SELECT * FROM %s WHERE %s=? LIMIT 1;", ts.TableName(), ts.Columns()[ts.PrimaryIndex()])
 	})
 }
 
-func (*MysqlBuilder) SelectSqlOfOne(ts *orm.TableSchema, fields string, where string) string {
-	if fields == "" {
-		fields = "*"
+func (*MysqlBuilder) SelectRow(ts *orm.TableSchema, columns string, where string) string {
+	if columns == "" {
+		columns = "*"
 	}
 	if where == "" {
 		where = "1=1"
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", fields, ts.TableName(), where)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s LIMIT 1;", columns, ts.TableName(), where)
 }
 
-func (*MysqlBuilder) SelectSqlOfSome(ts *orm.TableSchema, fields string, where string) string {
-	if fields == "" {
-		fields = "*"
+func (*MysqlBuilder) SelectRows(ts *orm.TableSchema, columns string, where string) string {
+	if columns == "" {
+		columns = "*"
 	}
 	if where == "" {
 		where = "1=1"
@@ -153,11 +153,11 @@ func (*MysqlBuilder) SelectSqlOfSome(ts *orm.TableSchema, fields string, where s
 	if strings.Index(where, "limit") < 0 {
 		where += " LIMIT 10000" // 最多1万条记录
 	}
-	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", fields, ts.TableName(), where)
+	return fmt.Sprintf("SELECT %s FROM %s WHERE %s;", columns, ts.TableName(), where)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (*MysqlBuilder) ReadyForSql(ts *orm.TableSchema, pet *SelectPet) {
+func (*MysqlBuilder) InitPet(pet *SelectPet, ts *orm.TableSchema) {
 	if pet.isReady {
 		return
 	}
@@ -195,19 +195,19 @@ func (*MysqlBuilder) ReadyForSql(ts *orm.TableSchema, pet *SelectPet) {
 	pet.isReady = true
 }
 
-func (*MysqlBuilder) SelectSqlByPet(pet *SelectPet) string {
+func (*MysqlBuilder) SelectByPet(pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
 		pet.orderByT, pet.Limit, pet.Offset)
 }
 
-func (*MysqlBuilder) SelectCountSqlByPet(pet *SelectPet) string {
+func (*MysqlBuilder) SelectCountByPet(pet *SelectPet) string {
 	if pet.GroupBy == "" {
 		return fmt.Sprintf("SELECT COUNT(*) AS COUNT FROM %s WHERE %s;", pet.Table, pet.Where)
 	}
 	return fmt.Sprintf("SELECT COUNT(DISTINCT(%s)) AS COUNT FROM %s WHERE %s;", pet.GroupBy, pet.Table, pet.Where)
 }
 
-func (*MysqlBuilder) SelectPagingSqlByPet(pet *SelectPet) string {
+func (*MysqlBuilder) SelectPagingByPet(pet *SelectPet) string {
 	return fmt.Sprintf("SELECT %s FROM %s WHERE %s%s%s LIMIT %d OFFSET %d;", pet.Columns, pet.Table, pet.Where, pet.groupByT,
 		pet.orderByT, pet.PageSize, (pet.Page-1)*pet.PageSize)
 }
