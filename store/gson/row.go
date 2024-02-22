@@ -1,7 +1,7 @@
 package gson
 
 import (
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/lang"
 	"unsafe"
 )
 

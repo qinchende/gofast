@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "github.com/qinchende/gofast/cst"
+import "github.com/qinchende/gofast/core/cst"
 
 // 用新的数据结构重建整棵路由树，用数组实现的树结构
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

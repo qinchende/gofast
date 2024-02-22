@@ -24,7 +24,7 @@ func (*PgBuilder) Update(ts *orm.TableSchema) string {
 }
 
 // 更新特定字段
-func (*PgBuilder) UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, cNames ...string) (string, []any) {
+func (*PgBuilder) UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, columns ...string) (string, []any) {
 	return "", nil
 }
 

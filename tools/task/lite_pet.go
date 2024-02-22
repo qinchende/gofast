@@ -2,8 +2,8 @@ package task
 
 import (
 	"context"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/timex"
+	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/cst"
 	"time"
 )
 

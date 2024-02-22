@@ -3,8 +3,8 @@
 package mid
 
 import (
+	"github.com/qinchende/gofast/aid/metric"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/metric"
 )
 
 const serverNamespace = "http_server"

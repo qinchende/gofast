@@ -3,10 +3,10 @@
 package sdx
 
 import (
+	"github.com/qinchende/gofast/aid/sysx"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/sdx/gate"
 	"github.com/qinchende/gofast/sdx/mid"
-	"github.com/qinchende/gofast/skill/sysx"
 )
 
 // GoFast default handlers chain

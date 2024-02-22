@@ -4,8 +4,8 @@ package sdx
 
 import (
 	"encoding/base64"
+	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/connx/redis"
-	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"time"
 )

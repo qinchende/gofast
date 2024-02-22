@@ -4,7 +4,7 @@ package mid
 
 import (
 	"compress/gzip"
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst"
 	"net/http"
 	"strings"

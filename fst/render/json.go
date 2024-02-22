@@ -7,7 +7,7 @@ package render
 import (
 	"bytes"
 	"fmt"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/store/jde"
 	"html/template"
 	"net/http"

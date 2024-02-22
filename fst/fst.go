@@ -4,9 +4,9 @@ package fst
 
 import (
 	"context"
+	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/logx"
 	"github.com/qinchende/gofast/fst/httpx"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/timex"
 	"net/http"
 	"os"
 	"os/signal"

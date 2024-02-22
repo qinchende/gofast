@@ -3,9 +3,9 @@
 package mid
 
 import (
+	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/logx"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/timex"
 )
 
 func Logger(c *fst.Context) {

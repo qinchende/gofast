@@ -3,7 +3,7 @@
 package mid
 
 import (
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst"
 	"time"
 )

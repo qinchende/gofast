@@ -3,7 +3,7 @@
 package httpx
 
 import (
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/core/cst"
 	"net/http"
 )
 

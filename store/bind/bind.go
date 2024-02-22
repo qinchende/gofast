@@ -4,9 +4,9 @@ package bind
 
 import (
 	"errors"
+	"github.com/qinchende/gofast/aid/validx"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/validx"
 	"github.com/qinchende/gofast/store/dts"
 	"reflect"
 	"unsafe"

@@ -3,8 +3,8 @@
 package mid
 
 import (
+	"github.com/qinchende/gofast/aid/trace"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/trace"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/propagation"
 	semconv "go.opentelemetry.io/otel/semconv/v1.4.0"

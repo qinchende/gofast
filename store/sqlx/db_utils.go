@@ -4,9 +4,9 @@ package sqlx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/hashx"
+	"github.com/qinchende/gofast/aid/hashx"
+	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/logx"
 	"strings"
 	"time"
 )

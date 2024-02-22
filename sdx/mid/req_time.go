@@ -3,9 +3,9 @@
 package mid
 
 import (
+	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/sdx/gate"
-	"github.com/qinchende/gofast/skill/timex"
 )
 
 // ++++++++++++++++++++++ add by cd.net 2021.10.14

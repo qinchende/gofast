@@ -1,11 +1,11 @@
 package gate
 
 import (
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/fuse"
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/proc"
+	"github.com/qinchende/gofast/aid/fuse"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/proc"
+	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/logx"
 	"time"
 )
 

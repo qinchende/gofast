@@ -4,8 +4,8 @@ package fst
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/logx"
 	"strings"
 )
 

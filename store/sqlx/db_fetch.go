@@ -5,8 +5,8 @@ package sqlx
 import (
 	"database/sql"
 	"fmt"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/cst"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"github.com/qinchende/gofast/store/jde"

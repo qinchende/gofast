@@ -2,7 +2,7 @@ package orm
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/skill/hashx"
+	"github.com/qinchende/gofast/aid/hashx"
 	"reflect"
 	"time"
 )

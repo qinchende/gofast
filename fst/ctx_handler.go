@@ -1,8 +1,8 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/bind"
 	"github.com/qinchende/gofast/store/dts"
 )

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"github.com/go-redis/redis/v8"
-	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/core/logx"
 )
 
 // go-redis

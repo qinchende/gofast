@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "github.com/qinchende/gofast/cst"
+import "github.com/qinchende/gofast/core/cst"
 
 type (
 	// 可以为路由自定义配置属性

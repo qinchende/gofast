@@ -3,8 +3,8 @@ package httpx
 import (
 	"bytes"
 	"context"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/jde"
 	"io"
 	"net/http"
