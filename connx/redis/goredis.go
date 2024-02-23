@@ -14,10 +14,10 @@ type (
 		Addr string `v:"match=ipv4:port"`
 
 		// sentinel
-		SentinelAddrs []string `v:"match=ipv4:port"`
-		MasterName    string   `v:""`
-		SentinelPass  string   `v:""`
-		SlaveOnly     bool     `v:""`
+		SentinelAddresses []string `v:"match=ipv4:port"`
+		SentinelPass      string   `v:""`
+		MasterName        string   `v:""`
+		SlaveOnly         bool     `v:""`
 
 		// common
 		Pass     string `v:"must"`
@@ -64,12 +64,12 @@ func NewGoRedis(cf *ConnCnf) *GfRedis {
 		if err != nil {
 			logx.Error(fmt.Sprintf("Redis alone %s connection error: %s", cf.Addr, err))
 		}
-	} else if cf.SentinelAddrs != nil {
+	} else if cf.SentinelAddresses != nil {
 		// 通过sentinel连接 redis
 		rds.Cli = redis.NewFailoverClient(&redis.FailoverOptions{
-			SentinelAddrs:    cf.SentinelAddrs,
-			MasterName:       cf.MasterName,
+			SentinelAddrs:    cf.SentinelAddresses,
 			SentinelPassword: cf.SentinelPass,
+			MasterName:       cf.MasterName,
 			SlaveOnly:        cf.SlaveOnly,
 
 			Password:     cf.Pass,
@@ -87,7 +87,7 @@ func NewGoRedis(cf *ConnCnf) *GfRedis {
 		if cf.SlaveOnly == true {
 			roleName = "slave"
 		}
-		logx.Info(fmt.Sprintf("Redis sentinels %s for %s(%s) created.", cf.SentinelAddrs, cf.MasterName, roleName))
+		logx.Info(fmt.Sprintf("Redis sentinels %s for %s(%s) created.", cf.SentinelAddresses, cf.MasterName, roleName))
 		_, err := rds.Ping()
 		if err != nil {
 			logx.Error(fmt.Sprintf("Redis %s(%s) connection error: %s", cf.MasterName, roleName, err))
