@@ -4,8 +4,8 @@ package sqlx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"strings"
@@ -77,12 +77,13 @@ func (*MysqlBuilder) Update(ts *orm.TableSchema) string {
 }
 
 // 更新特定字段
-func (*MysqlBuilder) UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, cNames ...string) (string, []any) {
-	if len(cNames) == 1 {
-		cNames = strings.Split(cNames[0], ",")
+func (*MysqlBuilder) UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, columns ...string) (string, []any) {
+	// 有可能要更新的字段是用逗号隔开的字符串
+	if len(columns) == 1 {
+		columns = strings.Split(columns[0], ",")
 	}
 
-	tgLen := len(cNames)
+	tgLen := len(columns)
 	if tgLen <= 0 {
 		cst.PanicString("sqlx: UpdateColumns args [columns] is empty")
 	}
@@ -92,9 +93,9 @@ func (*MysqlBuilder) UpdateColumns(ts *orm.TableSchema, rVal *reflect.Value, cNa
 	tValues := make([]any, tgLen+2)
 
 	for i := 0; i < tgLen; i++ {
-		idx := ts.ColumnIndex(cNames[i])
+		idx := ts.ColumnIndex(columns[i])
 		if idx < 0 {
-			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", cNames[i]))
+			cst.PanicString(fmt.Sprintf("sqlx: Field %s not exist.", columns[i]))
 		}
 
 		// 更新字符串

@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 package dts
 
-import "github.com/qinchende/gofast/cst"
+import "github.com/qinchende/gofast/core/cst"
 
 type BindOptions struct {
 	FieldTag     string // 解析字段名对应的Tag标签

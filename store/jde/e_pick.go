@@ -1,8 +1,8 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/cst"
 	"golang.org/x/exp/constraints"
 	"reflect"
 	"strconv"

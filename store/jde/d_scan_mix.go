@@ -1,8 +1,8 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/skill/lang"
 	"reflect"
 	"unsafe"
 )

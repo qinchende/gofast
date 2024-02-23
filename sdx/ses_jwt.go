@@ -2,10 +2,10 @@ package sdx
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/timex"
 	"github.com/qinchende/gofast/store/jde"
 	"strconv"
 	"strings"

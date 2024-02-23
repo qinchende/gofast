@@ -13,10 +13,10 @@ package httpx
 //	"strings"
 //	"time"
 //
-//	"github.com/qinchende/gofast/logx"
-//	"github.com/qinchende/gofast/skill/codec"
-//	"github.com/qinchende/gofast/skill/httpx"
-//	"github.com/qinchende/gofast/skill/iox"
+//	"github.com/qinchende/gofast/core/logx"
+//	"github.com/qinchende/gofast/aid/codec"
+//	"github.com/qinchende/gofast/aid/httpx"
+//	"github.com/qinchende/gofast/aid/iox"
 //)
 //
 //const (

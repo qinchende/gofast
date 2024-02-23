@@ -7,8 +7,8 @@ import (
 	"crypto/md5"
 	"crypto/sha256"
 	"crypto/sha512"
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/randx"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/randx"
 )
 
 // 生成新的 Guid

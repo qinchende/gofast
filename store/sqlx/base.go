@@ -54,7 +54,7 @@ type CmdBuilder interface {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 天然支持读写分离，只需要数据库连接配置文件，分别传入读写库的连接地址
 type OrmDB struct {
-	Cmd      CmdBuilder       // SQL语句生成函数
+	Cmd      CmdBuilder       // 数据库执行语句生成
 	Attrs    *DBAttrs         // 数据库属性
 	Ctx      context.Context  // 上下文，方便取消执行
 	Reader   *sql.DB          // 只读连接（从库）

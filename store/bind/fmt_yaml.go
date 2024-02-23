@@ -5,9 +5,9 @@ package bind
 import (
 	"encoding/json"
 	"errors"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/iox"
-	"github.com/qinchende/gofast/skill/lang"
+	"github.com/qinchende/gofast/aid/iox"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/dts"
 	"gopkg.in/yaml.v2"
 	"io"

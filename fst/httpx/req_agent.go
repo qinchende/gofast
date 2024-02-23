@@ -1,7 +1,7 @@
 package httpx
 
 import (
-	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/core/logx"
 	"net/http"
 	"net/url"
 )

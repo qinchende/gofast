@@ -3,7 +3,7 @@
 package gate
 
 import (
-	"github.com/qinchende/gofast/skill/collect"
+	"github.com/qinchende/gofast/aid/collect"
 	"time"
 )
 

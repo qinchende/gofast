@@ -2,7 +2,7 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-import "github.com/qinchende/gofast/cst"
+import "github.com/qinchende/gofast/core/cst"
 
 // 实现Session存储时，处理失败就抛出异常
 type SessionKeeper interface {

@@ -2,7 +2,7 @@ package jde
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/core/cst"
 	"math"
 	"reflect"
 	"unsafe"

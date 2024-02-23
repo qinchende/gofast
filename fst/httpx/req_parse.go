@@ -1,7 +1,7 @@
 package httpx
 
 import (
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 	"strings"

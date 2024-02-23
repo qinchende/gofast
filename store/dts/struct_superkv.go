@@ -25,7 +25,7 @@ func AsSuperKV(v any) (ret *StructKV) {
 	return
 }
 
-// 为 StructKV 实现 gofast/cst/SuperKV 接口
+// 为 StructKV 实现 gofast/core/cst/SuperKV 接口
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Note: 这里的v只支持string类型。因为此结构只是为了实现接口SuperKV，使其能加载Web请求中URL、Header等包含的参数
 func (skv *StructKV) Get(k string) (v any, tf bool) {

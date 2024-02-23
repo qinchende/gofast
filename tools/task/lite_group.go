@@ -2,12 +2,12 @@ package task
 
 import (
 	"context"
+	"github.com/qinchende/gofast/aid/gmp"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/connx/redis"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/logx"
-	"github.com/qinchende/gofast/skill/gmp"
-	"github.com/qinchende/gofast/skill/lang"
-	"github.com/qinchende/gofast/skill/timex"
+	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/logx"
 	"github.com/qinchende/gofast/store/bind"
 	"github.com/qinchende/gofast/store/jde"
 	"sync"

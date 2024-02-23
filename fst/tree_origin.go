@@ -4,7 +4,7 @@ package fst
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/cst"
+	"github.com/qinchende/gofast/core/cst"
 )
 
 // 目前一共 73 字节

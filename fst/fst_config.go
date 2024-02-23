@@ -3,8 +3,8 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/logx"
+	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/logx"
 	"time"
 )
 

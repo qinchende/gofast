@@ -1,8 +1,8 @@
 package gate
 
 import (
-	"github.com/qinchende/gofast/skill/exec"
-	"github.com/qinchende/gofast/skill/fuse"
+	"github.com/qinchende/gofast/aid/exec"
+	"github.com/qinchende/gofast/aid/fuse"
 	"time"
 )
 

@@ -6,6 +6,7 @@ import (
 	"time"
 )
 
+// 全局变量，存放当前程序中所有表的属性配置
 var tableAttrsList map[string]*TableAttrs
 
 func ShareTableAttrs(list map[string]*TableAttrs) {

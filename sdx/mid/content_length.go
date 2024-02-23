@@ -2,8 +2,8 @@ package mid
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/core/logx"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/logx"
 	"net/http"
 )
 

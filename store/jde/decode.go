@@ -3,10 +3,10 @@ package jde
 import (
 	"errors"
 	"fmt"
+	"github.com/qinchende/gofast/aid/iox"
+	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/cst"
-	"github.com/qinchende/gofast/skill/iox"
-	"github.com/qinchende/gofast/skill/lang"
 	"github.com/qinchende/gofast/store/dts"
 	"github.com/qinchende/gofast/store/gson"
 	"io"
