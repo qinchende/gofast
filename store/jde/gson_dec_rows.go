@@ -195,7 +195,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 			}
 
 			sd.scan = pos
-			sd.dstPtr = unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(tmpCT*dm.itemMemSize))
+			sd.dstPtr = unsafe.Add(sh.DataPtr, tmpCT*dm.itemMemSize)
 			//// 如果是指针，需要分配空间
 			//if sd.dm.isPtr {
 			//	sd.dstPtr = getPtrValueAddr(sd.dstPtr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
@@ -227,7 +227,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 			}
 
 			sd.scan = pos
-			sd.dstPtr = unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(tmpCT*ptrMemSize))
+			sd.dstPtr = unsafe.Add(sh.DataPtr, tmpCT*ptrMemSize)
 
 			// 给 cst.KV类型指针 初始化变量
 			theMap := make(cst.KV, grs.clsCt)

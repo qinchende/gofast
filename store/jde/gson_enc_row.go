@@ -71,7 +71,7 @@ func (se *subEncode) encGsonRowJustValues() {
 
 	// 循环字段
 	for fIndex := 0; fIndex < flsSize; fIndex++ {
-		ptr := unsafe.Pointer(uintptr(se.srcPtr) + fls[fIndex].Offset)
+		ptr := unsafe.Add(se.srcPtr, fls[fIndex].Offset)
 		ptrCt := fls[fIndex].PtrLevel
 		if ptrCt == 0 {
 			goto encObjValue

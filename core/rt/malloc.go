@@ -29,7 +29,7 @@ func SliceAutoGrow(sh *SliceHeader, itemSize int) {
 // 返回下一个值内存空间的地址
 func SliceNextItem(sh *SliceHeader, itemSize int) (ptr unsafe.Pointer) {
 	SliceAutoGrow(sh, itemSize)
-	ptr = unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(sh.Len*itemSize))
+	ptr = unsafe.Add(sh.DataPtr, sh.Len*itemSize) // unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(sh.Len*itemSize))
 	sh.Len++
 	return
 }

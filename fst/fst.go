@@ -12,7 +12,6 @@ import (
 	"os/signal"
 	"sync"
 	"syscall"
-	"time"
 )
 
 // GoFast is the framework's instance.
@@ -26,7 +25,7 @@ type GoFast struct {
 
 	// 第一级 handlers
 	httpHandlers []HttpHandler    // 全局中间件处理函数，incoming request handlers
-	httpEnter    http.HandlerFunc // fit系列中间件函数的入口，请求进入之后第一个接收函数
+	httpEnter    http.HandlerFunc // http系列中间件函数的入口，请求进入之后第一个接收函数
 	// 第二级 handlers (根路由组相关属性)
 	*HomeRouter // 根路由组（Root Group）
 }
@@ -136,9 +135,13 @@ func (gft *GoFast) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (gft *GoFast) serveHTTPWithCtx(w http.ResponseWriter, r *http.Request) {
 	c := gft.pools.getContext()
 	c.EnterTime = timex.SdxNowDur() // 请求开始进入上下文阶段，开始计时
+
+	// Must reset +++++++
 	c.Res.Reset(w)
 	c.Req.Reset(r)
 	c.reset()
+	// ++++++++++++++++++
+
 	gft.handleHTTPRequest(c)
 	// 超时引发的对象不能放回缓存池
 	if !c.Res.IsTimeout() {
@@ -279,7 +282,7 @@ func (gft *GoFast) GracefulShutdown() {
 	gft.execAppHandlers(gft.eCloseHds)
 
 	// 关闭Server
-	ctx, cancel := context.WithTimeout(context.Background(), time.Duration(gft.BeforeShutdown)*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), gft.BeforeShutdown)
 	defer cancel()
 	// 系统信号触发，就要主动关闭http server
 	if sign != syscall.SIGABRT {

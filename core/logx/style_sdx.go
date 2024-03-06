@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst/tips"
 	"github.com/qinchende/gofast/store/jde"
 	"strconv"
@@ -46,20 +47,24 @@ func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
 	}
 
 	// 这个时候可以随意改变 p.Pms ，这是请求最后一个执行的地方了
-	var basePms = make(map[string]any)
-	if tok, ok := p.Pms.Get("tok"); ok {
-		basePms["tok"] = tok
-		p.Pms.Del("tok")
-	}
-	// 请求参数
-	var reqParams []byte
+	reqParams := []byte("{}")
+	reqBaseParams := []byte("{}")
+
+	// 当熔断降载的时候，还没有进入c.Pms的处理逻辑，c.Pms为nil
 	if p.Pms != nil {
+		// 1. 请求核心参数
+		var basePms = make(cst.KV)
+		if tok, ok := p.Pms.Get("tok"); ok {
+			basePms["tok"] = tok
+			p.Pms.Del("tok")
+		}
+		reqBaseParams, _ = jde.EncodeToBytes(basePms)
+
+		// 2. 请求的其它参数
 		reqParams, _ = jde.EncodeToBytes(p.Pms)
 	} else if p.RawReq.Form != nil {
 		reqParams, _ = jde.EncodeToBytes(p.RawReq.Form)
 	}
-	// 请求 核心参数
-	reqBaseParams, _ := jde.EncodeToBytes(basePms)
 
 	return fmt.Sprintf(formatStr,
 		p.RawReq.Method,

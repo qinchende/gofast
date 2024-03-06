@@ -3,7 +3,9 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast"
 	"github.com/qinchende/gofast/store/dts"
+	"log"
 	"math"
 	"net/http"
 )
@@ -31,6 +33,8 @@ var (
 )
 
 func init() {
+	log.Println("Current GoFast version: " + gofast.Version)
+
 	// 检查Go版本是否符合要求
 	checkRuntimeVer()
 

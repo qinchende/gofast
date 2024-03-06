@@ -96,14 +96,14 @@ func (se *subEncode) encStructListByPet(pet gson.RowsEncPet) {
 	fls := se.em.ss.FieldsAttr
 	// 循环记录
 	for i := 0; i < sh.Len; i++ {
-		se.srcPtr = unsafe.Pointer(uintptr(sh.DataPtr) + uintptr(i*se.em.itemMemSize))
+		se.srcPtr = unsafe.Add(sh.DataPtr, i*se.em.itemMemSize)
 
 		tp = append(tp, '[')
 		// 循环字段
 		for j := 0; j < flsSize; j++ {
 			idx := pet.ClsIdx[j]
 
-			ptr := unsafe.Pointer(uintptr(se.srcPtr) + fls[idx].Offset)
+			ptr := unsafe.Add(se.srcPtr, fls[idx].Offset)
 			ptrCt := fls[idx].PtrLevel
 			if ptrCt == 0 {
 				goto encObjValue

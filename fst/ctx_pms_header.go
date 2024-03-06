@@ -12,7 +12,7 @@ func (c *Context) GetHeader(key string) string {
 }
 
 func (c *Context) SetHeader(key, value string) {
-	c.Req.Raw.Header.Set(key, value)
+	c.Res.Header().Set(key, value)
 }
 
 // ClientIP implements a best effort algorithm to return the real client IP, it parses
