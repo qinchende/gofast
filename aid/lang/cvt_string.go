@@ -10,7 +10,6 @@ import (
 // go 1.20后期版本中会提供标准库，实现类似的功能
 func STB(s string) (b []byte) {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
-
 	//sh := *(*rt.StringHeader)(unsafe.Pointer(&s))
 	//bh := (*rt.SliceHeader)(unsafe.Pointer(&b))
 	//bh.DataPtr, bh.Len, bh.Cap = sh.DataPtr, sh.Len, sh.Len
@@ -18,7 +17,7 @@ func STB(s string) (b []byte) {
 }
 
 func BTS(b []byte) string {
-	// unsafe.String(unsafe.SliceData(b), len(b))
+	//return unsafe.String(unsafe.SliceData(b), len(b))
 	return *(*string)(unsafe.Pointer(&b))
 }
 

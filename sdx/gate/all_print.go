@@ -34,16 +34,16 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 		}
 
 		qps := float32(rt.accepts) / float32(CountInterval/time.Second)
-		var aveTimeMS float32
+		var aveTimeMS int64
 		if rt.accepts > 0 {
-			aveTimeMS = float32(rt.totalTimeMS) / float32(rt.accepts)
+			aveTimeMS = rt.totalTimeMS / int64(rt.accepts)
 		}
 
 		logx.StatKV(cst.KV{
 			"typ": logx.LogStatRouteReq.Type,
 			"pth": rb.paths[idx],
 			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
-			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang.Round32(qps, 2), lang.Round32(aveTimeMS, 2), rt.maxTimeMS},
+			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang.Round32(qps, 2), aveTimeMS, rt.maxTimeMS},
 		})
 	}
 }

@@ -16,7 +16,7 @@ func parseJsonResponse(resp *http.Response, err error) (cst.KV, error) {
 		return nil, err
 	}
 	kv := cst.KV{}
-	if err = jde.DecodeRequest(&kv, resp.Request); err != nil {
+	if err = jde.DecodeReader(&kv, resp.Body, resp.ContentLength); err != nil {
 		return nil, err
 	}
 	return kv, err

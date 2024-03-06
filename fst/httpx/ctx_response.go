@@ -22,6 +22,7 @@ const (
 // 思想：通过加锁的方式，控制不同Goroutine对内存的竞争
 type ResponseWrap struct {
 	http.ResponseWriter               // Raw http.ResponseWriter
+	header              http.Header   // Response Header
 	respLock            sync.Mutex    // render locker
 	dataBuf             *bytes.Buffer // render data（指针，每次申请新的data buffer。因为fst.Context用sync.Pool）
 	status              int16         // HttpStatus
@@ -30,8 +31,11 @@ type ResponseWrap struct {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (w *ResponseWrap) HeaderValues() http.Header {
-	return w.ResponseWriter.Header()
+func (w *ResponseWrap) Header() http.Header {
+	if w.header == nil {
+		w.header = w.ResponseWriter.Header()
+	}
+	return w.header
 }
 
 func (w *ResponseWrap) Status() int {
@@ -54,6 +58,7 @@ func (w *ResponseWrap) WrittenData() []byte {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (w *ResponseWrap) Reset(res http.ResponseWriter) {
+	w.header = nil
 	w.committed = false
 	w.isTimeout = false
 	w.ResponseWriter = res
@@ -136,7 +141,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 	if w.status == defaultStatus {
 		w.status = http.StatusOK
 	}
-	n, err = w.realFinalSend()
+	n, err = w.realResp()
 	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
@@ -152,7 +157,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 		return
 	}
 	w.resetResponse(resStatus, data)
-	n, err := w.realFinalSend()
+	n, err := w.realResp()
 	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
@@ -178,7 +183,7 @@ func (w *ResponseWrap) SendByTimeoutGoroutine(resStatus int, data []byte) bool {
 		return false
 	}
 	w.resetResponse(resStatus, data)
-	_, err := w.realFinalSend()
+	_, err := w.realResp()
 	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
@@ -194,12 +199,6 @@ func (w *ResponseWrap) resetResponse(resStatus int, data []byte) {
 	_, _ = w.dataBuf.Write(data)
 }
 
-func (w *ResponseWrap) realFinalSend() (n int, err error) {
-	w.ResponseWriter.WriteHeader(int(w.status))
-	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
-	return
-}
-
 // NOTE: 要避免 double render。只执行第一次Render的结果，后面的Render直接丢弃
 func (w *ResponseWrap) tryToCommit(tip string) bool {
 	w.respLock.Lock()
@@ -212,4 +211,11 @@ func (w *ResponseWrap) tryToCommit(tip string) bool {
 	}
 	w.committed = true
 	return true // Note: Important! 此时没有解锁，需要在调用外部解锁
+}
+
+// NOTE：调用此方法才是真正意义上的 对请求Response，之后再无法更改Response的结果
+func (w *ResponseWrap) realResp() (n int, err error) {
+	w.ResponseWriter.WriteHeader(int(w.status))
+	n, err = w.ResponseWriter.Write(w.dataBuf.Bytes())
+	return
 }

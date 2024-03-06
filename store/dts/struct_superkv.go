@@ -33,7 +33,7 @@ func (skv *StructKV) Get(k string) (v any, tf bool) {
 
 	switch skv.SS.FieldsAttr[idx].Kind {
 	case reflect.String:
-		p := unsafe.Pointer(uintptr(skv.Ptr) + skv.SS.FieldsAttr[idx].Offset)
+		p := unsafe.Add(skv.Ptr, skv.SS.FieldsAttr[idx].Offset)
 		v = *(*string)(p)
 		tf = true
 	default:
@@ -55,7 +55,7 @@ func (skv *StructKV) Set(k string, v any) {
 	// NOTE：目前只支持API请求提交的字节数据，KV都是string类型
 	switch skv.SS.FieldsAttr[idx].Kind {
 	case reflect.String:
-		p := unsafe.Pointer(uintptr(skv.Ptr) + skv.SS.FieldsAttr[idx].Offset)
+		p := unsafe.Add(skv.Ptr, skv.SS.FieldsAttr[idx].Offset)
 		// BindString(p, v.(string))
 		*(*string)(p) = v.(string)
 	default:

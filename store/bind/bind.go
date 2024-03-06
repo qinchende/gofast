@@ -117,23 +117,23 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOpti
 	}
 
 	itemType := dstT.Elem()
-	itemBytes := itemType.Size()
+	itemBytes := int(itemType.Size())
 
 	if dstKind == reflect.Slice {
-		ptr = rt.SliceToArray(ptr, int(itemBytes), srcLen)
+		ptr = rt.SliceToArray(ptr, itemBytes, srcLen)
 	}
 
 	switch itemKind := itemType.Kind(); itemKind {
 	case reflect.Struct:
 		for i := 0; i < srcLen; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itemBytes)
+			itPtr := unsafe.Add(ptr, i*itemBytes)
 			if err = bindStruct(itPtr, itemType, list[i], opts); err != nil {
 				return
 			}
 		}
 	case reflect.Array, reflect.Slice:
 		for i := 0; i < srcLen; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itemBytes)
+			itPtr := unsafe.Add(ptr, i*itemBytes)
 			if err = bindList(itPtr, itemType, list[i], opts); err != nil {
 				return
 			}
@@ -144,7 +144,7 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOpti
 		// TODO: bindPointer
 	default:
 		for i := 0; i < srcLen; i++ {
-			itPtr := unsafe.Pointer(uintptr(ptr) + uintptr(i)*itemBytes)
+			itPtr := unsafe.Add(ptr, i*itemBytes)
 			dts.BindBaseValueAsConfig(itemKind, itPtr, list[i])
 		}
 	}
