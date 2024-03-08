@@ -9,41 +9,53 @@ import (
 )
 
 // 固定分钟作为统计周期
-const CountInterval = time.Minute
+const countInterval = 1 * time.Minute
+
+type KeeperCnf struct {
+	ProjName   string
+	PrintRoute bool
+}
 
 // 请求统计管理员，负责分析每个路由的请求压力和处理延时情况
 type RequestKeeper struct {
-	counter *reqCounter          // 请求统计器
-	execute *exec.IntervalUnsafe // 定时打印统计数据
-
-	Breakers []*Breaker // 不同路径的熔断统计器
-	Limiters []*Limiter // 限制器
+	KeeperCnf
+	// 目前支持以下几种功能
+	*reqCounter            // 分路由访问计数器
+	Breakers    []*Breaker // 分路由熔断器
+	Limiters    []*Limiter // 分路由限流器
 }
 
-func NewReqKeeper(name string) *RequestKeeper {
-	ct := &reqCounter{pid: os.Getpid(), name: name}
-	return &RequestKeeper{
-		execute: exec.NewIntervalUnsafe(CountInterval, ct),
-		counter: ct,
+func NewReqKeeper(cnf KeeperCnf) *RequestKeeper {
+	kp := &RequestKeeper{
+		KeeperCnf: cnf,
+		reqCounter: &reqCounter{
+			pid:       os.Getpid(),
+			needPrint: cnf.PrintRoute,
+		},
 	}
+	kp.reqCounter.counter = exec.NewIntervalUnsafe(countInterval, kp.reqCounter)
+	return kp
 }
 
 // 开启监控统计
 func (rk *RequestKeeper) InitAndRun(routePaths, extraPaths []string) {
-	rk.counter.paths = routePaths                             // 初始化整个路由统计结构
-	rk.counter.routes = make([]routeCounter, len(routePaths)) // 初始化整个路由统计结构
-	rk.counter.extraPaths = extraPaths                        // 其它统计
-	rk.counter.extras = make([]extraCounter, len(extraPaths)) // 其它统计
+	rLen := len(routePaths)
 
-	routesLen := len(routePaths)
-	// 初始化所有Breaker，每个路由都有自己单独的熔断计数器
-	rk.Breakers = make([]*Breaker, routesLen)
-	for i := 0; i < routesLen; i++ {
-		rk.Breakers[i] = NewBreaker(rk.counter.name + "#" + routePaths[i])
+	// 1. 初始化 reqCounter
+	rk.reqCounter.paths = routePaths                          // 初始化整个路由统计结构
+	rk.reqCounter.routes = make([]routeData, rLen)            // 初始化整个路由统计结构
+	rk.reqCounter.extraPaths = extraPaths                     // 其它统计
+	rk.reqCounter.extras = make([]extraData, len(extraPaths)) // 其它统计
+
+	// 2. 初始化所有Breaker，每个路由都有自己单独的熔断计数器
+	rk.Breakers = make([]*Breaker, rLen)
+	for i := 0; i < rLen; i++ {
+		rk.Breakers[i] = NewBreaker(rk.ProjName + "#" + routePaths[i])
 	}
-	// 初始化降载信息收集器
-	rk.Limiters = make([]*Limiter, routesLen)
-	for i := 0; i < routesLen; i++ {
+
+	// 3. 初始化降载信息收集器
+	rk.Limiters = make([]*Limiter, rLen)
+	for i := 0; i < rLen; i++ {
 		rk.Limiters[i] = NewLimiter()
 	}
 }

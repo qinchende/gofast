@@ -26,7 +26,7 @@ func (rdx *GfRedis) Del(key string) (int64, error) {
 }
 
 func (rdx *GfRedis) SetEX(key string, value any, seconds time.Duration) (string, error) {
-	return rdx.Cli.SetEX(rdx.Ctx, key, value, seconds).Result()
+	return rdx.Cli.SetEx(rdx.Ctx, key, value, seconds).Result()
 }
 
 func (rdx *GfRedis) SetNX(key string, value any, seconds time.Duration) (bool, error) {

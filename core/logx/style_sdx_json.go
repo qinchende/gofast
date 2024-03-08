@@ -3,7 +3,7 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/store/jde"
+	"github.com/qinchende/gofast/aid/jsonx"
 	"time"
 )
 
@@ -20,7 +20,7 @@ func outputSdxJsonStyle(w WriterCloser, logLevel string, data any) {
 		logLevel,
 		data,
 	}
-	if content, err := jde.EncodeToBytes(logWrap); err != nil {
+	if content, err := jsonx.Marshal(logWrap); err != nil {
 		outputDirectString(w, err.Error())
 	} else {
 		outputDirectBytes(w, content)
