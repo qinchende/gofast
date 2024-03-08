@@ -3,12 +3,28 @@
 package gate
 
 import (
+	"github.com/qinchende/gofast/aid/exec"
 	"sync"
 )
 
 type (
+	// 处理请求的数据收集器
+	reqCounter struct {
+		counter   *exec.IntervalUnsafe // 定时打印执行器
+		needPrint bool
+		pid       int
+		rmLock    sync.Mutex
+
+		// API访问统计
+		paths  []string
+		routes []routeData
+		// 其它计数器
+		extraPaths []string
+		extras     []extraData
+	}
+
 	// 每个route消耗 28 字节（4字长）
-	routeCounter struct {
+	routeData struct {
 		rtLock      sync.Mutex
 		totalTimeMS int64  // 处理完成总共耗时
 		maxTimeMS   int32  // 处理完成最长耗时
@@ -18,28 +34,14 @@ type (
 	}
 
 	// 额外的计数，需要2个字长
-	extraCounter struct {
+	extraData struct {
 		extLock sync.Mutex
 		total   uint64 // 只记调用次数
 	}
 
-	reqCounter struct {
-		pid  int
-		name string
-
-		rmLock sync.Mutex
-
-		// API访问统计
-		paths  []string
-		routes []routeCounter
-		// 其它计数器
-		extraPaths []string
-		extras     []extraCounter
-	}
-
 	printData struct {
-		extras []extraCounter
-		routes []routeCounter
+		extras []extraData
+		routes []routeData
 	}
 )
 
@@ -52,8 +54,8 @@ func (rb *reqCounter) AddItem(v any) bool {
 // 返回当前容器中的所有数据，同时重置容器
 func (rb *reqCounter) RemoveAll() any {
 	times := uint64(0)
-	tpExtras := make([]extraCounter, len(rb.extras))
-	tpRoutes := make([]routeCounter, len(rb.routes))
+	tpExtras := make([]extraData, len(rb.extras))
+	tpRoutes := make([]routeData, len(rb.routes))
 
 	rb.rmLock.Lock()
 	defer rb.rmLock.Unlock()
@@ -103,15 +105,16 @@ func (rb *reqCounter) RemoveAll() any {
 
 // 执行统计输出。这里的输入参数来自于上面 RemoveAll 的返回值
 func (rb *reqCounter) Execute(items any) {
-	data := items.(*printData)
-	rb.logPrintReqCounter(data)
+	if rb.needPrint {
+		rb.logPrintReqCounter(items.(*printData))
+	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 统计一个通过的请求
+// 统计一个通过的请求，并且统计处理时间
 func (rk *RequestKeeper) CountRoutePass2(idx uint16, ms int32) {
-	rk.execute.AddByFunc(func(any) (any, bool) {
-		ct := &rk.counter.routes[idx]
+	rk.counter.AddByFunc(func(any) (any, bool) {
+		ct := &rk.reqCounter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.accepts++
@@ -125,9 +128,10 @@ func (rk *RequestKeeper) CountRoutePass2(idx uint16, ms int32) {
 	}, nil)
 }
 
+// 统计一个通过的请求，但是只统计请求数量，不统计处理时间
 func (rk *RequestKeeper) CountRoutePass(idx uint16) {
-	rk.execute.AddByFunc(func(any) (any, bool) {
-		ct := &rk.counter.routes[idx]
+	rk.counter.AddByFunc(func(any) (any, bool) {
+		ct := &rk.reqCounter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.accepts++
@@ -139,8 +143,8 @@ func (rk *RequestKeeper) CountRoutePass(idx uint16) {
 
 // 统计一个处理超时的请求
 func (rk *RequestKeeper) CountRouteTimeout(idx uint16) {
-	rk.execute.AddByFunc(func(any) (any, bool) {
-		ct := &rk.counter.routes[idx]
+	rk.counter.AddByFunc(func(any) (any, bool) {
+		ct := &rk.reqCounter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.timeouts++
@@ -152,8 +156,8 @@ func (rk *RequestKeeper) CountRouteTimeout(idx uint16) {
 
 // 统计一个被丢弃的请求
 func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
-	rk.execute.AddByFunc(func(any) (any, bool) {
-		ct := &rk.counter.routes[idx]
+	rk.counter.AddByFunc(func(any) (any, bool) {
+		ct := &rk.reqCounter.routes[idx]
 
 		ct.rtLock.Lock()
 		ct.drops++
@@ -165,8 +169,8 @@ func (rk *RequestKeeper) CountRouteDrop(idx uint16) {
 
 // 添加其它统计项
 func (rk *RequestKeeper) CountExtras(pos uint16) {
-	rk.execute.AddByFunc(func(any) (any, bool) {
-		ct := &rk.counter.extras[pos]
+	rk.counter.AddByFunc(func(any) (any, bool) {
+		ct := &rk.reqCounter.extras[pos]
 
 		ct.extLock.Lock()
 		ct.total++

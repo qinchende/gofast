@@ -3,8 +3,8 @@ package redis
 import (
 	"context"
 	"fmt"
-	"github.com/go-redis/redis/v8"
 	"github.com/qinchende/gofast/core/logx"
+	"github.com/redis/go-redis/v9"
 )
 
 // go-redis
@@ -17,7 +17,7 @@ type (
 		SentinelNodes []string `v:"match=ipv4:port"`
 		SentinelPass  string   `v:""`
 		MasterName    string   `v:""`
-		SlaveOnly     bool     `v:""`
+		ReplicaOnly   bool     `v:""` // true: 连接到副本。Note: old params is SlaveOnly
 
 		// common
 		Pass     string `v:"must"`
@@ -70,7 +70,7 @@ func NewGoRedis(cf *ConnCnf) *GfRedis {
 			SentinelAddrs:    cf.SentinelNodes,
 			SentinelPassword: cf.SentinelPass,
 			MasterName:       cf.MasterName,
-			SlaveOnly:        cf.SlaveOnly,
+			ReplicaOnly:      cf.ReplicaOnly,
 
 			Password:     cf.Pass,
 			DB:           cf.DB,
@@ -84,8 +84,9 @@ func NewGoRedis(cf *ConnCnf) *GfRedis {
 		})
 
 		roleName := "master"
-		if cf.SlaveOnly == true {
-			roleName = "slave"
+		// 副本节点
+		if cf.ReplicaOnly == true {
+			roleName = "replica"
 		}
 		logx.Info(fmt.Sprintf("Redis sentinels %s for %s(%s) created.", cf.SentinelNodes, cf.MasterName, roleName))
 		_, err := rds.Ping()

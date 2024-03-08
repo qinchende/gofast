@@ -14,11 +14,14 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	cnf := app.SdxConfig
 
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流降载熔断，定时日志）
-	keeper := gate.NewReqKeeper(app.ProjectName())
+	keeper := gate.NewReqKeeper(gate.KeeperCnf{
+		ProjName:   app.ProjectName(),
+		PrintRoute: cnf.PrintRouteState,
+	})
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {
 		// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
 		mid.RoutesAttrs.Rebuild(app.RoutesLen(), &cnf) // 所有路由配置
-		sysx.OpenSysMonitor(cnf.SysStatePrint)         // 系统资源监控
+		sysx.OpenSysMonitor(cnf.PrintSysState)         // 系统资源监控
 
 		routePaths := app.RoutePathsWithMethod()
 		extraPaths := []string{"AllRequest", "RouteMatched", "LoadShedding"}
@@ -36,7 +39,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 
 	// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 	// 第二级：ContextHandlers 带上下文 fst.Context 的执行链
-	app.Before(mid.ReqCountPos(keeper, 1))                      // 正确匹+配路由的请求数
+	app.Before(mid.ReqCountPos(keeper, 1))                      // 正确匹配路由的请求数
 	app.Before(mid.Tracing(app.AppName, cnf.EnableTrack))       // 链路追踪
 	app.Before(mid.Logger)                                      // 请求日志
 	app.Before(mid.Breaker(keeper))                             // 自适应熔断

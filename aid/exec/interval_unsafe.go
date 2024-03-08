@@ -9,6 +9,7 @@ import (
 )
 
 type (
+	// 不加锁，非线程安全的定时器，提高性能
 	IntervalUnsafe struct {
 		*Interval
 	}

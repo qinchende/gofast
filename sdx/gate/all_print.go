@@ -33,7 +33,7 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 			continue
 		}
 
-		qps := float32(rt.accepts) / float32(CountInterval/time.Second)
+		qps := float32(rt.accepts) / float32(countInterval/time.Second)
 		var aveTimeMS int64
 		if rt.accepts > 0 {
 			aveTimeMS = rt.totalTimeMS / int64(rt.accepts)
