@@ -1,6 +1,7 @@
 package jde
 
 import (
+	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
@@ -179,7 +180,8 @@ func encMixItem(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encInt[T constraints.Signed](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
-	*bf = append(*bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
+	*bf = lang.AppendInt(*bf, ptr, uint8(unsafe.Sizeof(T(0))*8))
+	//*bf = append(*bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
 	*bf = append(*bf, ',')
 }
 
@@ -188,7 +190,8 @@ func encIntOnly[T constraints.Signed](bf *[]byte, ptr unsafe.Pointer) {
 }
 
 func encUint[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
-	*bf = append(*bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
+	*bf = lang.AppendUint(*bf, ptr, uint8(unsafe.Sizeof(T(0))*8))
+	//*bf = append(*bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
 	*bf = append(*bf, ',')
 }
 
