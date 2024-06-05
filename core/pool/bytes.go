@@ -7,7 +7,7 @@ import (
 
 const (
 	bytesSizeMini  = 128         // 128B
-	bytesSizeDef   = 1024        // 1KB
+	bytesSizeDef   = 1024        // 1KB 默认 1KB -> 8KB 随机大小的内存
 	bytesSizeLarge = 1024 * 8    // 8KB
 	bytesSizeMax   = 1024 * 1024 // 1MB 超过这个就直接丢
 )

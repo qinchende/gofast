@@ -44,11 +44,11 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType
 // array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func arrItemPtr(sd *subDecode) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
+	return unsafe.Add(sd.dstPtr, sd.arrIdx*sd.dm.itemMemSize)
 }
 
 func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
+	ptr := unsafe.Add(sd.dstPtr, sd.arrIdx*sd.dm.itemMemSize)
 
 	// 只有field字段为map或者slice的时候，值才可能是nil
 	if sd.dm.itemKind == reflect.Map {
@@ -60,7 +60,7 @@ func arrMixItemPtr(sd *subDecode) unsafe.Pointer {
 }
 
 func arrMixItemPtrDeep(sd *subDecode) unsafe.Pointer {
-	ptr := unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(sd.arrIdx*sd.dm.itemMemSize))
+	ptr := unsafe.Add(sd.dstPtr, sd.arrIdx*sd.dm.itemMemSize)
 	return getPtrValueAddr(ptr, sd.dm.ptrLevel, sd.dm.itemKind, sd.dm.itemType)
 }
 
@@ -75,14 +75,14 @@ func (sd *subDecode) resetArrLeftItems() {
 		dfValue = zeroValues[sd.dm.itemKind]
 	}
 	for i := sd.arrIdx; i < sd.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Pointer(uintptr(sd.dstPtr) + uintptr(i*sd.dm.itemMemSize))) = dfValue
+		*(*unsafe.Pointer)(unsafe.Add(sd.dstPtr, i*sd.dm.itemMemSize)) = dfValue
 	}
 }
 
 // struct & map & gson
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func fieldPtr(sd *subDecode) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(sd.dstPtr) + sd.dm.ss.FieldsAttr[sd.keyIdx].Offset)
+	return unsafe.Add(sd.dstPtr, sd.dm.ss.FieldsAttr[sd.keyIdx].Offset)
 }
 
 func fieldMixPtr(sd *subDecode) unsafe.Pointer {
