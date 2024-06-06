@@ -11,12 +11,11 @@ import (
 // int
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
-//go:inline
+
 func bindInt(p unsafe.Pointer, v int64) {
 	*(*int)(p) = int(v)
 }
 
-//go:inline
 func bindInt8(p unsafe.Pointer, v int64) {
 	if v < math.MinInt8 || v > math.MaxInt8 {
 		panic(errInfinity)

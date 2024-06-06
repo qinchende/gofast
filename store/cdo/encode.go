@@ -39,6 +39,7 @@ type (
 		listEnc     encListFunc // List整体编码
 
 		// map
+		keyType reflect.Type
 		keyKind reflect.Kind
 		keyEnc  encValFunc
 		keySize uint32
@@ -73,7 +74,7 @@ func cdoEncode(v any) (bs []byte, err error) {
 
 	se := subEncode{}
 	se.getEncMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
-	se.bf = pool.GetBytes()
+	se.bf = pool.GetBytesLarge()
 
 	se.startEncode()
 	bs = make([]byte, len(*se.bf))
@@ -92,6 +93,9 @@ func encMixedItem(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 }
 
 func (se *subEncode) startEncode() {
+	// Note: add by sdx on 2024-06-06
+	// 这里将数组和切片的情况合并考虑，简化了代码；
+	// 但通常我们遇到的都是切片类型，如果分开处理，将能进一步提高约 10% 的性能。
 	if se.em.isList {
 		listSize := 0
 		if !se.em.isArray {
@@ -231,7 +235,8 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 	}
 
 	// Note: map 中的 key 只支持几种特定类型
-	em.keyKind = rfType.Key().Kind()
+	em.keyType = rfType.Key()
+	em.keyKind = em.keyType.Kind()
 	em.keySize = uint32(rfType.Key().Size())
 	em.bindMapKeyEnc()
 
@@ -242,95 +247,17 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (em *encMeta) bindValueEnc() {
-	switch em.itemKind {
-	default:
-		panic(errValueType)
-
-	case reflect.Int:
-		em.itemEnc = encInt[int]
-	case reflect.Int8:
-		em.itemEnc = encInt[int8]
-	case reflect.Int16:
-		em.itemEnc = encInt[int16]
-	case reflect.Int32:
-		em.itemEnc = encInt[int32]
-	case reflect.Int64:
-		em.itemEnc = encInt[int64]
-	case reflect.Uint:
-		em.itemEnc = encUint[uint]
-	case reflect.Uint8:
-		em.itemEnc = encUint[uint8]
-	case reflect.Uint16:
-		em.itemEnc = encUint[uint16]
-	case reflect.Uint32:
-		em.itemEnc = encUint[uint32]
-	case reflect.Uint64:
-		em.itemEnc = encUint[uint64]
-	case reflect.Float32:
-		em.itemEnc = encFloat32
-	case reflect.Float64:
-		em.itemEnc = encFloat64
-
-	case reflect.String:
-		em.itemEnc = encString
-	case reflect.Bool:
-		em.itemEnc = encBool
-	case reflect.Interface:
-		em.itemEnc = encAny
-
-	case reflect.Pointer:
-		em.itemEnc = encMixedItem
-	case reflect.Map, reflect.Array:
-		em.itemEnc = encMixedItem
-	case reflect.Slice:
-		if em.itemType == cst.TypeBytes {
-			em.itemEnc = encBytes
-		} else {
-			em.itemEnc = encMixedItem
-		}
-	case reflect.Struct:
-		if em.itemType == cst.TypeTime {
-			em.itemEnc = encTime
-		} else {
-			em.itemEnc = encMixedItem
-		}
-	}
-	return
+	innerBindValueEnc(em.itemType, &em.itemEnc)
 }
 
 // 编码 map 的 Key 值，当前只支持如下的 Key 值类型。
 // TODO: 这里只支持常见的 map 类型，暂时不支持复杂map
 func (em *encMeta) bindMapKeyEnc() {
-	switch em.keyKind {
+	switch {
 	default:
 		panic(errValueType)
-
-	case reflect.Int:
-		em.keyEnc = encInt[int]
-	case reflect.Int8:
-		em.keyEnc = encInt[int8]
-	case reflect.Int16:
-		em.keyEnc = encInt[int16]
-	case reflect.Int32:
-		em.keyEnc = encInt[int32]
-	case reflect.Int64:
-		em.keyEnc = encInt[int64]
-
-	case reflect.Uint:
-		em.keyEnc = encUint[uint]
-	case reflect.Uint8:
-		em.keyEnc = encUint[uint8]
-	case reflect.Uint16:
-		em.keyEnc = encUint[uint16]
-	case reflect.Uint32:
-		em.keyEnc = encUint[uint32]
-	case reflect.Uint64:
-		em.keyEnc = encUint[uint64]
-	case reflect.Uintptr:
-		em.keyEnc = encUint[uint64]
-
-	case reflect.String:
-		em.keyEnc = encString
+	case em.keyKind <= reflect.Float64, em.keyKind == reflect.String:
+		innerBindValueEnc(em.keyType, &em.keyEnc)
 	}
 	return
 }
@@ -346,62 +273,66 @@ nextField:
 	if i >= fLen {
 		return
 	}
+	innerBindValueEnc(em.ss.FieldsAttr[i].Type, &em.fieldsEnc[i])
+	goto nextField
+}
 
-	switch em.ss.FieldsAttr[i].Kind {
+func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
+	switch typ.Kind() {
 	default:
 		panic(errValueType)
 
 	case reflect.Int:
-		em.fieldsEnc[i] = encInt[int]
+		*encFunc = encInt[int]
 	case reflect.Int8:
-		em.fieldsEnc[i] = encInt[int8]
+		*encFunc = encInt[int8]
 	case reflect.Int16:
-		em.fieldsEnc[i] = encInt[int16]
+		*encFunc = encInt[int16]
 	case reflect.Int32:
-		em.fieldsEnc[i] = encInt[int32]
+		*encFunc = encInt[int32]
 	case reflect.Int64:
-		em.fieldsEnc[i] = encInt[int64]
+		*encFunc = encInt[int64]
+
 	case reflect.Uint:
-		em.fieldsEnc[i] = encUint[uint]
+		*encFunc = encUint[uint]
 	case reflect.Uint8:
-		em.fieldsEnc[i] = encUint[uint8]
+		*encFunc = encUint[uint8]
 	case reflect.Uint16:
-		em.fieldsEnc[i] = encUint[uint16]
+		*encFunc = encUint[uint16]
 	case reflect.Uint32:
-		em.fieldsEnc[i] = encUint[uint32]
+		*encFunc = encUint[uint32]
 	case reflect.Uint64:
-		em.fieldsEnc[i] = encUint[uint64]
+		*encFunc = encUint[uint64]
+	case reflect.Uintptr:
+		*encFunc = encUint[uintptr]
+
 	case reflect.Float32:
-		em.fieldsEnc[i] = encFloat32
+		*encFunc = encFloat32
 	case reflect.Float64:
-		em.fieldsEnc[i] = encFloat64
+		*encFunc = encFloat64
 
 	case reflect.String:
-		em.fieldsEnc[i] = encString
+		*encFunc = encString
 	case reflect.Bool:
-		em.fieldsEnc[i] = encBool
+		*encFunc = encBool
 	case reflect.Interface:
-		em.fieldsEnc[i] = encAny
+		*encFunc = encAny
 
-	case reflect.Pointer:
-		em.fieldsEnc[i] = encMixedItem
-	case reflect.Map, reflect.Array:
-		em.fieldsEnc[i] = encMixedItem
+	case reflect.Pointer, reflect.Map, reflect.Array:
+		*encFunc = encMixedItem
 	case reflect.Slice:
-		if em.ss.FieldsAttr[i].Type == cst.TypeBytes {
-			em.fieldsEnc[i] = encBytes
+		if typ == cst.TypeBytes {
+			*encFunc = encBytes
 		} else {
-			em.fieldsEnc[i] = encMixedItem
+			*encFunc = encMixedItem
 		}
 	case reflect.Struct:
-		if em.ss.FieldsAttr[i].Type == cst.TypeTime {
-			em.fieldsEnc[i] = encTime
+		if typ == cst.TypeTime {
+			*encFunc = encTime
 		} else {
-			em.fieldsEnc[i] = encMixedItem
+			*encFunc = encMixedItem
 		}
 	}
-
-	goto nextField
 }
 
 func (em *encMeta) bindListEnc() {
@@ -411,49 +342,48 @@ func (em *encMeta) bindListEnc() {
 			panic(errValueType)
 
 		case reflect.Int:
-			em.listEnc = encIntList[int]
+			em.listEnc = encListInt[int]
 		case reflect.Int8:
-			em.listEnc = encIntList[int8]
+			em.listEnc = encListInt[int8]
 		case reflect.Int16:
-			em.listEnc = encIntList[int16]
+			em.listEnc = encListInt[int16]
 		case reflect.Int32:
-			em.listEnc = encIntList[int32]
+			em.listEnc = encListInt[int32]
 		case reflect.Int64:
-			em.listEnc = encIntList[int64]
+			em.listEnc = encListInt[int64]
 		case reflect.Uint:
-			em.listEnc = encUintList[uint]
+			em.listEnc = encListUint[uint]
 		case reflect.Uint8:
-			em.listEnc = encUintList[uint8]
+			em.listEnc = encListUint[uint8]
 		case reflect.Uint16:
-			em.listEnc = encUintList[uint16]
+			em.listEnc = encListUint[uint16]
 		case reflect.Uint32:
-			em.listEnc = encUintList[uint32]
+			em.listEnc = encListUint[uint32]
 		case reflect.Uint64:
-			em.listEnc = encUintList[uint64]
+			em.listEnc = encListUint[uint64]
 		case reflect.Float32:
-			em.listEnc = encAllList
+			em.listEnc = encListFloat32
 		case reflect.Float64:
-			em.listEnc = encAllList
+			em.listEnc = encListFloat64
 
 		case reflect.String:
-			em.listEnc = encStringList
+			em.listEnc = encListString
 		case reflect.Bool:
-			em.listEnc = encAllList
+			em.listEnc = encListBool
 		case reflect.Interface:
-			em.listEnc = encAllList
+			em.listEnc = encListAll
 
 		//case reflect.Pointer:
 		//	em.listEnc = encPointer // 这个分支不可能
 		case reflect.Map, reflect.Array:
-			em.listEnc = encAllList
+			em.listEnc = encListAll
 		case reflect.Slice:
-			em.listEnc = encAllList
+			em.listEnc = encListAll
 		case reflect.Struct:
-			// 分情况，如果是时间类型，单独处理
 			if em.itemType == cst.TypeTime {
-				em.listEnc = encAllList
+				em.listEnc = encListAll
 			} else {
-				em.listEnc = encStructList
+				em.listEnc = encListStruct
 			}
 		}
 		return
@@ -465,49 +395,48 @@ func (em *encMeta) bindListEnc() {
 		panic(errValueType)
 
 	case reflect.Int:
-		em.listEnc = encIntListPtr[int]
+		em.listEnc = encListIntPtr[int]
 	case reflect.Int8:
-		em.listEnc = encIntListPtr[int8]
+		em.listEnc = encListIntPtr[int8]
 	case reflect.Int16:
-		em.listEnc = encIntListPtr[int16]
+		em.listEnc = encListIntPtr[int16]
 	case reflect.Int32:
-		em.listEnc = encIntListPtr[int32]
+		em.listEnc = encListIntPtr[int32]
 	case reflect.Int64:
-		em.listEnc = encIntListPtr[int64]
+		em.listEnc = encListIntPtr[int64]
 	case reflect.Uint:
-		em.listEnc = encIntListPtr[uint]
+		em.listEnc = encListIntPtr[uint]
 	case reflect.Uint8:
-		em.listEnc = encIntListPtr[uint8]
+		em.listEnc = encListIntPtr[uint8]
 	case reflect.Uint16:
-		em.listEnc = encIntListPtr[uint16]
+		em.listEnc = encListIntPtr[uint16]
 	case reflect.Uint32:
-		em.listEnc = encIntListPtr[uint32]
+		em.listEnc = encListIntPtr[uint32]
 	case reflect.Uint64:
-		em.listEnc = encIntListPtr[uint64]
+		em.listEnc = encListIntPtr[uint64]
 	case reflect.Float32:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 	case reflect.Float64:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 
 	case reflect.String:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 	case reflect.Bool:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 	case reflect.Interface:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 
 	case reflect.Pointer:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 	case reflect.Map, reflect.Array:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 	case reflect.Slice:
-		em.listEnc = encAllListPtr
+		em.listEnc = encListAllPtr
 	case reflect.Struct:
-		// 分情况，如果是时间类型，单独处理
 		if em.itemType == cst.TypeTime {
-			em.listEnc = encAllListPtr
+			em.listEnc = encListAllPtr
 		} else {
-			em.listEnc = encStructList
+			em.listEnc = encListStruct
 		}
 	}
 	return

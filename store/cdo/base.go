@@ -78,10 +78,14 @@ const (
 )
 
 const (
+	Max1BytesUint uint64 = 0x00000000000000FF
+	Max2BytesUint uint64 = 0x000000000000FFFF
 	Max3BytesUint uint64 = 0x0000000000FFFFFF
+	Max4BytesUint uint64 = 0x00000000FFFFFFFF
 	Max5BytesUint uint64 = 0x000000FFFFFFFFFF
 	Max6BytesUint uint64 = 0x0000FFFFFFFFFFFF
 	Max7BytesUint uint64 = 0x00FFFFFFFFFFFFFF
+	Max8BytesUint uint64 = 0xFFFFFFFFFFFFFFFF
 )
 
 func typeValue(b byte) (uint8, uint8) {

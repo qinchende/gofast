@@ -10,89 +10,129 @@ import (
 	"unsafe"
 )
 
-func encNumMax2BWith6(bf *[]byte, typ uint8, v uint64) {
-	if v <= math.MaxUint8 {
-		if v <= 61 {
-			*bf = append(*bf, typ|uint8(v))
-		} else {
-			*bf = append(*bf, typ|62, uint8(v))
-		}
-	} else if v <= math.MaxUint16 {
-		*bf = append(*bf, typ|63, byte(v>>8), byte(v))
-	} else {
+// 最长 MaxUint16 的整数编码
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func encUint16L2(bf *[]byte, typ uint8, v uint64) {
+	*bf = encUint16L2Ret(*bf, typ, v)
+}
+func encUint16L2Ret(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	default:
 		panic(errOutOfRange)
+	case v <= 61:
+		bs = append(bs, typ|(uint8(v)))
+	case v <= math.MaxUint8:
+		bs = append(bs, typ|62, uint8(v))
+	case v <= math.MaxUint16:
+		bs = append(bs, typ|63, byte(v>>8), byte(v))
 	}
+	return bs
 }
 
-//go:inline
 func encUint16(bf *[]byte, typ uint8, v uint64) {
-	if v <= math.MaxUint8 {
-		if v <= 29 {
-			*bf = append(*bf, typ|(uint8(v)))
-		} else {
-			*bf = append(*bf, typ|30, uint8(v))
-		}
-	} else if v <= math.MaxUint16 {
-		*bf = append(*bf, typ|31, byte(v>>8), byte(v))
-	} else {
+	*bf = encUint16Ret(*bf, typ, v)
+}
+func encUint16Ret(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	default:
 		panic(errOutOfRange)
+	case v <= 29:
+		bs = append(bs, typ|(uint8(v)))
+	case v <= math.MaxUint8:
+		bs = append(bs, typ|30, uint8(v))
+	case v <= math.MaxUint16:
+		bs = append(bs, typ|31, byte(v>>8), byte(v))
 	}
+	return bs
 }
 
-//go:inline
+// 最长 MaxUint32 的整数编码
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encUint32(bf *[]byte, typ uint8, v uint64) {
 	*bf = encUint32Ret(*bf, typ, v)
 }
 
 func encUint32Ret(bs []byte, typ uint8, v uint64) []byte {
-	if v <= math.MaxUint8 {
-		if v <= 27 {
-			bs = append(bs, typ|(uint8(v)))
-		} else {
-			bs = append(bs, typ|28, uint8(v))
-		}
-	} else if v <= math.MaxUint16 {
+	if v <= Max3BytesUint {
+		return encUint32RetPart1(bs, typ, v)
+	}
+	return encUint32RetPart2(bs, typ, v)
+}
+
+func encUint32RetPart1(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	case v <= 27:
+		bs = append(bs, typ|(uint8(v)))
+	case v <= math.MaxUint8:
+		bs = append(bs, typ|28, uint8(v))
+	case v <= math.MaxUint16:
 		bs = append(bs, typ|29, byte(v>>8), byte(v))
-	} else if v <= Max3BytesUint {
-		bs = append(bs, typ|30, byte(v>>16), byte(v>>8), byte(v))
-	} else if v <= math.MaxUint32 {
-		bs = append(bs, typ|31, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
-	} else {
-		panic(errOutOfRange)
+	case v <= Max3BytesUint:
+		bs = append(bs, typ|30, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
 	}
 	return bs
 }
 
-//go:inline
+// Note: This func must mark as go:noinline
+//
+//go:noinline
+func encUint32RetPart2(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	default:
+		panic(errOutOfRange)
+	case v <= math.MaxUint32:
+		return append(bs, typ|31, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	}
+}
+
+// 最长 MaxUint64 的整数编码
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encUint64(bf *[]byte, typ uint8, v uint64) {
-	if v <= math.MaxUint8 {
-		if v <= 23 {
-			*bf = append(*bf, typ|uint8(v))
-		} else {
-			*bf = append(*bf, typ|24, uint8(v))
-		}
-	} else if v <= math.MaxUint16 {
-		*bf = append(*bf, typ|25, byte(v>>8), byte(v))
-	} else if v <= Max3BytesUint {
-		*bf = append(*bf, typ|26, byte(v>>16), byte(v>>8), byte(v))
-	} else if v <= math.MaxUint32 {
-		*bf = append(*bf, typ|27, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
-	} else if v <= Max5BytesUint {
-		*bf = append(*bf, typ|28, byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
-	} else if v <= Max6BytesUint {
-		*bf = append(*bf, typ|29, byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
-	} else if v <= Max7BytesUint {
-		*bf = append(*bf, typ|30, byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
-	} else {
-		*bf = append(*bf, typ|31, byte(v>>56), byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	*bf = encUint64Ret(*bf, typ, v)
+}
+
+func encUint64Ret(bs []byte, typ uint8, v uint64) []byte {
+	if v <= Max3BytesUint {
+		return encUint64RetPart1(bs, typ, v)
+	}
+	return encUint64RetPart2(bs, typ, v)
+}
+
+func encUint64RetPart1(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	case v <= 23:
+		bs = append(bs, typ|(uint8(v)))
+	case v <= math.MaxUint8:
+		bs = append(bs, typ|24, uint8(v))
+	case v <= math.MaxUint16:
+		bs = append(bs, typ|25, byte(v>>8), byte(v))
+	case v <= Max3BytesUint:
+		bs = append(bs, typ|26, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	}
+	return bs
+}
+
+//go:noinline
+func encUint64RetPart2(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	default:
+		panic(errOutOfRange)
+	case v <= math.MaxUint32:
+		return append(bs, typ|27, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	case v <= Max5BytesUint:
+		return append(bs, typ|28, byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	case v <= Max6BytesUint:
+		return append(bs, typ|29, byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	case v <= Max7BytesUint:
+		return append(bs, typ|30, byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+	case v <= math.MaxUint64:
+		return append(bs, typ|31, byte(v>>56), byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-//go:inline
 func encInt[T constraints.Integer](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
-	v := int64(*((*T)(ptr)))
+	v := *((*T)(ptr))
 	if v >= 0 {
 		encUint64(bf, TypePosInt, uint64(v))
 	} else {
@@ -100,24 +140,31 @@ func encInt[T constraints.Integer](bf *[]byte, ptr unsafe.Pointer, typ reflect.T
 	}
 }
 
-//go:inline
 func encUint[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	encUint64(bf, TypePosInt, uint64(*((*T)(ptr))))
 }
 
-//go:inline
 func encFloat32(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	v := *(*uint32)(ptr)
 	*bf = append(*bf, FixFloat32, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
 }
 
-//go:inline
+func encFloat32Ret(bs []byte, ptr unsafe.Pointer) []byte {
+	v := *(*uint32)(ptr)
+	return append(bs, FixFloat32, byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+}
+
 func encFloat64(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	v := *(*uint64)(ptr)
 	*bf = append(*bf, FixFloat64, byte(v>>56), byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
 }
 
-//go:inline
+func encFloat64Ret(bs []byte, ptr unsafe.Pointer) []byte {
+	v := *(*uint64)(ptr)
+	return append(bs, FixFloat64, byte(v>>56), byte(v>>48), byte(v>>40), byte(v>>32), byte(v>>24), byte(v>>16), byte(v>>8), byte(v))
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encBool(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	if *((*bool)(ptr)) {
 		*bf = append(*bf, FixTrue)
@@ -126,14 +173,19 @@ func encBool(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	}
 }
 
-//go:inline
+func encBoolRet(bs []byte, ptr unsafe.Pointer) []byte {
+	if *((*bool)(ptr)) {
+		return append(bs, FixTrue)
+	} else {
+		return append(bs, FixFalse)
+	}
+}
+
 func encNil(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	*bf = append(*bf, FixNil)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-//go:inline
 func encString(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	str := *((*string)(ptr))
 	encUint32(bf, TypeBytes, uint64(len(str)))
@@ -149,13 +201,11 @@ func encStringsDirect(bf *[]byte, strItems []string) {
 	*bf = tp
 }
 
-//go:inline
 func encStringDirect(bf *[]byte, str string) {
 	encUint32(bf, TypeBytes, uint64(len(str)))
 	*bf = append(*bf, str...)
 }
 
-//go:inline
 func encBytes(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	bs := *((*[]byte)(ptr))
 	encUint32(bf, TypeBytes, uint64(len(bs)))
@@ -164,8 +214,6 @@ func encBytes(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 时间默认都是按 RFC3339 格式存储并解析
-//
-//go:inline
 func encTime(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	tp := *bf
 	tp = append(tp, FixDateTime)
