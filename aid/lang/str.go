@@ -21,7 +21,7 @@ func SortByLen(keys []string) {
 // list必须是按字符串长度从小到大排序好的数组，而且不能有空字符串，数据量不可太大
 // 匹配到就返回索引，没找到就返回-1
 //
-//go:inline
+
 func SearchSorted(items []string, str string) int {
 	for i := 0; i < len(items); i++ {
 		item := items[i]
@@ -47,7 +47,7 @@ func SearchSorted(items []string, str string) int {
 
 // 直接跳过前面不可能匹配的项目，加快检索速度
 //
-//go:inline
+
 func SearchSortedSkip(items []string, step int, str string) int {
 	for ; step < len(items); step++ {
 		item := items[step]

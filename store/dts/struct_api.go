@@ -141,12 +141,11 @@ func (ss *StructSchema) FIndexes(fls []string) (ret []uint8) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
-//go:inline
+
 func (fa *fieldAttr) MyPtr(structPtr unsafe.Pointer) unsafe.Pointer {
 	return unsafe.Add(structPtr, fa.Offset)
 }
 
-//go:inline
 func PeelPtr(ptr unsafe.Pointer, level uint8) unsafe.Pointer {
 	if level == 0 || ptr == nil {
 		return ptr

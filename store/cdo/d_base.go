@@ -26,7 +26,6 @@ func scanTypeLen2With6(s string) (int, uint8, uint16) {
 	}
 }
 
-//go:inline
 func scanTypeLen2(s string) (int, uint8, uint16) {
 	c := s[0]
 	typ := c & TypeMask
@@ -42,7 +41,6 @@ func scanTypeLen2(s string) (int, uint8, uint16) {
 	}
 }
 
-//go:inline
 func scanTypeLen4(s string) (int, uint8, uint32) {
 	c := s[0]
 	typ := c & TypeMask
@@ -64,7 +62,6 @@ func scanTypeLen4(s string) (int, uint8, uint32) {
 	panic(errChar)
 }
 
-//go:inline
 func scanTypeLen8(s string) (int, uint8, uint64) {
 	c := s[0]
 	typ := c & TypeMask
@@ -228,7 +225,7 @@ func (d *subDecode) resetArrLeftItems() {
 // struct & map & gson
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
-//go:inline
+
 func fieldPtr(d *subDecode) unsafe.Pointer {
 	return d.dm.ss.FieldsAttr[d.keyIdx].MyPtr(d.dstPtr)
 }

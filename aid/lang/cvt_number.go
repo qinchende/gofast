@@ -247,7 +247,7 @@ func ToUint8(v any) (ui8 uint8, err error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
-//go:inline
+
 func ParseInt(s string) int64 {
 	if i64, err := strconv.ParseInt(s, 10, 64); err != nil {
 		panic(errNumberFmt)
@@ -264,7 +264,6 @@ func ParseUint(s string) uint64 {
 	}
 }
 
-//go:inline
 func ParseFloat(s string) float64 {
 	if f64, err := strconv.ParseFloat(s, 64); err != nil {
 		panic(errNumberFmt)
@@ -273,7 +272,6 @@ func ParseFloat(s string) float64 {
 	}
 }
 
-//go:inline
 func ParseBool(s string) bool {
 	switch s {
 	case "1", "t", "T", "True", "true", "TRUE":
