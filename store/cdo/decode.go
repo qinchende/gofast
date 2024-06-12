@@ -30,14 +30,13 @@ type (
 		dstPtr unsafe.Pointer // 目标对象的内存地址
 		//bOpts  *dts.BindOptions // 绑定控制
 
-		// 当前解析JSON的状态信息 ++++++
-		str  string // 本段字符串
-		scan int    // 自己的扫描进度，当解析错误时，这个就是定位
+		str  string // 数据源
+		scan int    // 当前扫描定位
 
 		// 辅助变量
-		pl     *listPool // 当解析数组时候用到的一系列临时队列
-		keyIdx int       // key index
-		arrIdx int       // list解析的数量
+		//pl     *listPool // 当解析数组时候用到的一系列临时队列
+		keyIdx int // key index
+		arrIdx int // list解析的数量
 
 		// list is struct
 		//clsCt   int       // 字段数量
@@ -71,6 +70,7 @@ type (
 		isStruct  bool // {} struct
 		isList    bool // [] array & slice
 		isArray   bool // [] array
+		isSlice   bool // [] slice
 		isArrBind bool // [] is array and item not pointer type
 
 		isAny    bool  // [] is list and item is interface type in the final
@@ -133,7 +133,7 @@ func startDecodeInner(typ reflect.Type, ptr unsafe.Pointer, source string) (err 
 	d.scan = 0
 	d.getDecMeta(typ, ptr)
 
-	innErr := d.scanStart()
+	innErr := d.startDecode()
 	err = d.warpErrorCode(innErr)
 
 	if d.share != nil {
@@ -147,9 +147,25 @@ func startDecodeInner(typ reflect.Type, ptr unsafe.Pointer, source string) (err 
 	return
 }
 
+func (d *subDecode) warpErrorCode(errCode errType) error {
+	if errCode >= 0 {
+		return nil
+	}
+
+	sta := d.scan
+	end := sta + 20 // 输出标记后面 n 个字符
+	if end > len(d.str) {
+		end = len(d.str)
+	}
+
+	errMsg := fmt.Sprintf("jde: %s, pos %d, character %q near ( %s )", errDescription[-errCode], sta, d.str[sta], d.str[sta:end])
+	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(d.str[sta]), " of (", d.str[sta:end], ")"}, "")
+	return errors.New(errMsg)
+}
+
 // 采用尽最大努力解析出正确结果的策略
 // 可能解析过程中出现错误，所有最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
-func (d *subDecode) scanStart() (err errType) {
+func (d *subDecode) startDecode() (err errType) {
 	// 解析过程中异常，这里统一截获处理，返回解析错误编号
 	defer func() {
 		if pic := recover(); pic != nil {
@@ -165,17 +181,19 @@ func (d *subDecode) scanStart() (err errType) {
 		}
 	}()
 
-	if d.dm.isList {
-		d.scanList()
-	} else if d.dm.isSuperKV || d.dm.isStruct {
-		d.scanKVS()
-	} else {
+	switch {
+	default:
 		d.dm.itemDec(d)
+	case d.dm.isSlice:
+		d.scanSlice()
+	case d.dm.isArray:
+		d.scanArray()
+	case d.dm.isStruct, d.dm.isSuperKV:
+		d.scanKVS()
 	}
 
-	// 不能再有未解析内容了
 	if d.scan != len(d.str) {
-		err = errCdo
+		err = errCdo // 不能再有未解析内容了
 	}
 	return
 }
@@ -203,25 +221,30 @@ func (d *subDecode) initShareDecode(ptr unsafe.Pointer) {
 }
 
 // 包含有子subDecode时，就递归调用
-func (d *subDecode) scanSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
-	if d.share == nil {
-		d.share = jdeDecPool.Get().(*subDecode)
-	} else {
-		d.share.reset()
-	}
-	d.share.str = d.str
-	d.share.scan = d.scan
-	d.share.getDecMeta(rfType, ptr)
+func (d *subDecode) startSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
+	dSub := d.share
 
-	if d.share.dm.isList {
-		d.share.scanList()
-	} else if d.share.dm.isSuperKV || d.share.dm.isStruct {
-		d.share.scanKVS()
+	if dSub == nil {
+		dSub = jdeDecPool.Get().(*subDecode)
 	} else {
-		d.share.dm.itemDec(d.share)
+		dSub.reset()
+	}
+	dSub.str = d.str
+	dSub.scan = d.scan
+	dSub.getDecMeta(rfType, ptr)
+
+	switch {
+	default:
+		dSub.dm.itemDec(dSub)
+	case dSub.dm.isSlice:
+		dSub.scanSlice()
+	case dSub.dm.isArray:
+		dSub.scanArray()
+	case dSub.dm.isStruct, dSub.dm.isSuperKV:
+		dSub.scanKVS()
 	}
 
-	d.scan = d.share.scan
+	d.scan = dSub.scan
 	d.resetShareDecode()
 }
 
@@ -350,6 +373,8 @@ func (dm *decMeta) initListMeta(rfType reflect.Type) {
 		}
 		dm.itemMemSize = int(dm.itemType.Size())
 		dm.isArrBind = true
+	} else {
+		dm.isSlice = true
 	}
 
 	// List 项如果是 struct ，是本编解码方案重点处理的情况
@@ -414,7 +439,7 @@ nextField:
 		case reflect.Uint64:
 			dm.fieldsDec[i] = scanObjUint64Value
 		case reflect.Float32:
-			dm.fieldsDec[i] = scanObjFloat32Value
+			dm.fieldsDec[i] = scanObjF32Value
 		case reflect.Float64:
 			dm.fieldsDec[i] = scanObjFloat64Value
 		case reflect.String:
@@ -470,7 +495,7 @@ nextField:
 	case reflect.Uint64:
 		dm.fieldsDec[i] = scanObjPtrUint64Value
 	case reflect.Float32:
-		dm.fieldsDec[i] = scanObjPtrFloat32Value
+		dm.fieldsDec[i] = scanObjPtrF32Value
 	case reflect.Float64:
 		dm.fieldsDec[i] = scanObjPtrFloat64Value
 	case reflect.String:
@@ -526,7 +551,7 @@ func (dm *decMeta) bindListItemDec() {
 		case reflect.Uint64:
 			dm.itemDec = scanArrUint64Value
 		case reflect.Float32:
-			dm.itemDec = scanArrFloat32Value
+			dm.itemDec = scanArrF32Value
 		case reflect.Float64:
 			dm.itemDec = scanArrFloat64Value
 		case reflect.String:
@@ -551,34 +576,34 @@ func (dm *decMeta) bindListItemDec() {
 	}
 
 	switch dm.itemKind {
-	case reflect.Int:
-		dm.itemDec = scanListIntValue
-	case reflect.Int8:
-		dm.itemDec = scanListInt8Value
-	case reflect.Int16:
-		dm.itemDec = scanListInt16Value
-	case reflect.Int32:
-		dm.itemDec = scanListInt32Value
-	case reflect.Int64:
-		dm.itemDec = scanListInt64Value
-	case reflect.Uint:
-		dm.itemDec = scanListUintValue
-	case reflect.Uint8:
-		dm.itemDec = scanListUint8Value
-	case reflect.Uint16:
-		dm.itemDec = scanListUint16Value
-	case reflect.Uint32:
-		dm.itemDec = scanListUint32Value
-	case reflect.Uint64:
-		dm.itemDec = scanListUint64Value
-	case reflect.Float32:
-		dm.itemDec = scanListFloat32Value
-	case reflect.Float64:
-		dm.itemDec = scanListFloat64Value
-	case reflect.String:
-		dm.itemDec = scanListStrValue
-	case reflect.Bool:
-		dm.itemDec = scanListBoolValue
+	//case reflect.Int:
+	//	dm.itemDec = scanListIntValue
+	//case reflect.Int8:
+	//	dm.itemDec = scanListInt8Value
+	//case reflect.Int16:
+	//	dm.itemDec = scanListInt16Value
+	//case reflect.Int32:
+	//	dm.itemDec = scanListInt32Value
+	//case reflect.Int64:
+	//	dm.itemDec = scanListInt64Value
+	//case reflect.Uint:
+	//	dm.itemDec = scanListUintValue
+	//case reflect.Uint8:
+	//	dm.itemDec = scanListUint8Value
+	//case reflect.Uint16:
+	//	dm.itemDec = scanListUint16Value
+	//case reflect.Uint32:
+	//	dm.itemDec = scanListUint32Value
+	//case reflect.Uint64:
+	//	dm.itemDec = scanListUint64Value
+	//case reflect.Float32:
+	//	dm.itemDec = scanListF32Value
+	//case reflect.Float64:
+	//	dm.itemDec = scanListFloat64Value
+	//case reflect.String:
+	//	dm.itemDec = scanListStrValue
+	//case reflect.Bool:
+	//	dm.itemDec = scanListBoolValue
 	case reflect.Interface:
 		dm.itemDec = scanListAnyValue
 	case reflect.Struct:
@@ -595,8 +620,8 @@ func (dm *decMeta) bindListItemDec() {
 			dm.itemDec = scanListMixValue // 这里只能是Slice
 		}
 		dm.isArrBind = true // Note：这些情况，无需用到缓冲池
-	default:
-		panic(errValueType)
+		//default:
+		//	panic(errValueType)
 	}
 }
 
@@ -605,35 +630,38 @@ func (dm *decMeta) bindListDec() {
 
 	switch dm.itemKind {
 	case reflect.Int:
-		dm.listDec = decIntList[int]
+		dm.listDec = decIntList
 	case reflect.Int8:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Int16:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Int32:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Int64:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Uint:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Uint8:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Uint16:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Uint32:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
 	case reflect.Uint64:
-		dm.listDec = scanListBaseType
+		dm.listDec = decIntList
+
 	case reflect.Float32:
-		dm.listDec = scanListBaseType
+		dm.listDec = decF32List
 	case reflect.Float64:
-		dm.listDec = scanListBaseType
+		dm.listDec = decF64List
+
 	case reflect.String:
 		dm.listDec = decStringList
 	case reflect.Bool:
-		dm.listDec = scanListBaseType
+		dm.listDec = decBoolList
 	case reflect.Interface:
 		dm.listDec = scanListBaseType
+
 	case reflect.Struct:
 		if dm.itemType == cst.TypeTime {
 			dm.listDec = scanListBaseType
@@ -646,22 +674,4 @@ func (dm *decMeta) bindListDec() {
 		panic(errValueType)
 	}
 	return
-
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (d *subDecode) warpErrorCode(errCode errType) error {
-	if errCode >= 0 {
-		return nil
-	}
-
-	sta := d.scan
-	end := sta + 20 // 输出标记后面 n 个字符
-	if end > len(d.str) {
-		end = len(d.str)
-	}
-
-	errMsg := fmt.Sprintf("jde: %s, pos %d, character %q near ( %s )", errDescription[-errCode], sta, d.str[sta], d.str[sta:end])
-	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(d.str[sta]), " of (", d.str[sta:end], ")"}, "")
-	return errors.New(errMsg)
 }

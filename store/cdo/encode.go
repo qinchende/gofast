@@ -49,6 +49,7 @@ type (
 		isMap     bool // {} map
 		isStruct  bool // {} struct
 		isList    bool // [] array & slice
+		isSlice   bool // [] slice
 		isArray   bool // [] array
 
 		isPtr    bool  // [] is list and item is pointer type
@@ -203,6 +204,8 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 	if rfType.Kind() == reflect.Array {
 		em.isArray = true
 		em.arrLen = rfType.Len() // 数组长度
+	} else {
+		em.isSlice = true
 	}
 
 	// List 项如果是 struct ，是本编解码方案重点处理的情况
@@ -307,9 +310,9 @@ func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
 		*encFunc = encUint[uintptr]
 
 	case reflect.Float32:
-		*encFunc = encFloat32
+		*encFunc = encF32
 	case reflect.Float64:
-		*encFunc = encFloat64
+		*encFunc = encF64
 
 	case reflect.String:
 		*encFunc = encString
@@ -362,9 +365,9 @@ func (em *encMeta) bindListEnc() {
 		case reflect.Uint64:
 			em.listEnc = encListUint[uint64]
 		case reflect.Float32:
-			em.listEnc = encListFloat32
+			em.listEnc = encListF32
 		case reflect.Float64:
-			em.listEnc = encListFloat64
+			em.listEnc = encListF64
 
 		case reflect.String:
 			em.listEnc = encListString

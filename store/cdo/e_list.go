@@ -10,7 +10,9 @@ import (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // List type value
 func encListAll(se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
+	*se.bf = append(*se.bf, ListAny)
+
 	for i := 0; i < listSize; i++ {
 		itemPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 
@@ -25,9 +27,10 @@ func encListAll(se *subEncode, listSize int) {
 
 // List item is ptr
 func encListAllPtr(se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
-	ptrLevel := se.em.ptrLevel
+	encU24By5(se.bf, TypeList, uint64(listSize))
+	*se.bf = append(*se.bf, ListAny)
 
+	ptrLevel := se.em.ptrLevel
 	for i := 0; i < listSize; i++ {
 		itemPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 
@@ -43,8 +46,6 @@ func encListAllPtr(se *subEncode, listSize int) {
 			goto peelPtr
 		}
 
-		// add by cd.net on 2023-12-01
-		// []*map 类似这种数据源，不要再剥离一次指针，指向map值的内存
 		if se.em.itemKind == reflect.Map {
 			itemPtr = *(*unsafe.Pointer)(itemPtr)
 		}
@@ -55,39 +56,41 @@ func encListAllPtr(se *subEncode, listSize int) {
 // int
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListUint[T constraints.Unsigned](se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
+	bs = append(bs, ListVarInt)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 		v := uint64(*(*T)(iPtr))
-		if v <= Max3BytesUint {
-			bs = encUint64RetPart1(bs, TypePosInt, v)
+		if v <= Max3BUint {
+			bs = encU64By6RetPart1(bs, TypePosInt, v)
 		} else {
-			bs = encUint64RetPart2(bs, TypePosInt, v)
+			bs = encU64By6RetPart2(bs, TypePosInt, v)
 		}
 	}
 	*se.bf = bs
 }
 
 func encListInt[T constraints.Integer](se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
+	bs = append(bs, ListVarInt)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 		v := *((*T)(iPtr))
 		if v >= 0 {
-			if uint64(v) <= Max3BytesUint {
-				bs = encUint64RetPart1(bs, TypePosInt, uint64(v))
+			if uint64(v) <= Max3BUint {
+				bs = encU64By6RetPart1(bs, TypePosInt, uint64(v))
 			} else {
-				bs = encUint64RetPart2(bs, TypePosInt, uint64(v))
+				bs = encU64By6RetPart2(bs, TypePosInt, uint64(v))
 			}
 		} else {
-			if uint64(-v) <= Max3BytesUint {
-				bs = encUint64RetPart1(bs, TypeNegInt, uint64(-v))
+			if uint64(-v) <= Max3BUint {
+				bs = encU64By6RetPart1(bs, TypeNegInt, uint64(-v))
 			} else {
-				bs = encUint64RetPart2(bs, TypeNegInt, uint64(-v))
+				bs = encU64By6RetPart2(bs, TypeNegInt, uint64(-v))
 			}
 		}
 	}
@@ -95,10 +98,11 @@ func encListInt[T constraints.Integer](se *subEncode, listSize int) {
 }
 
 func encListIntPtr[T constraints.Integer](se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
 	ptrLevel := se.em.ptrLevel
 
 	bs := *se.bf
+	bs = append(bs, ListVarInt)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 
@@ -118,16 +122,16 @@ func encListIntPtr[T constraints.Integer](se *subEncode, listSize int) {
 
 		v := *((*T)(iPtr))
 		if v >= 0 {
-			if uint64(v) <= Max3BytesUint {
-				bs = encUint64RetPart1(bs, TypePosInt, uint64(v))
+			if uint64(v) <= Max3BUint {
+				bs = encU64By6RetPart1(bs, TypePosInt, uint64(v))
 			} else {
-				bs = encUint64RetPart2(bs, TypePosInt, uint64(v))
+				bs = encU64By6RetPart2(bs, TypePosInt, uint64(v))
 			}
 		} else {
-			if uint64(-v) <= Max3BytesUint {
-				bs = encUint64RetPart1(bs, TypeNegInt, uint64(-v))
+			if uint64(-v) <= Max3BUint {
+				bs = encU64By6RetPart1(bs, TypeNegInt, uint64(-v))
 			} else {
-				bs = encUint64RetPart2(bs, TypeNegInt, uint64(-v))
+				bs = encU64By6RetPart2(bs, TypeNegInt, uint64(-v))
 			}
 		}
 	}
@@ -136,24 +140,26 @@ func encListIntPtr[T constraints.Integer](se *subEncode, listSize int) {
 
 // float
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encListFloat32(se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+func encListF32(se *subEncode, listSize int) {
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
+	bs = append(bs, ListF32)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
-		bs = encFloat32Ret(bs, iPtr)
+		bs = encF32ValRet(bs, iPtr)
 	}
 	*se.bf = bs
 }
 
-func encListFloat64(se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+func encListF64(se *subEncode, listSize int) {
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
+	bs = append(bs, ListF64)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
-		bs = encFloat64Ret(bs, iPtr)
+		bs = encF64ValRet(bs, iPtr)
 	}
 	*se.bf = bs
 }
@@ -161,9 +167,10 @@ func encListFloat64(se *subEncode, listSize int) {
 // bool
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListBool(se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
+	bs = append(bs, ListBool)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 		bs = encBoolRet(bs, iPtr)
@@ -174,9 +181,10 @@ func encListBool(se *subEncode, listSize int) {
 // string
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListString(se *subEncode, listSize int) {
-	encUint32(se.bf, TypeArray, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
+	bs = append(bs, ListStr)
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 		str := *((*string)(iPtr))
@@ -184,10 +192,10 @@ func encListString(se *subEncode, listSize int) {
 		// Note: 不要改变这里的任何逻辑
 		// 这已经是测试过性能最好的写法，因为太长的函数将不会被内联优化
 		v := uint64(len(str))
-		if v <= Max3BytesUint {
-			bs = encUint32RetPart1(bs, TypeBytes, v)
+		if v <= Max3BUint {
+			bs = encU32By6RetPart1(bs, TypeStr, v)
 		} else {
-			bs = encUint32RetPart2(bs, TypeBytes, v)
+			bs = encU32By6RetPart2(bs, TypeStr, v)
 		}
 		bs = append(bs, str...)
 	}
@@ -198,11 +206,11 @@ func encListString(se *subEncode, listSize int) {
 // list item is type of struct
 func encListStruct(se *subEncode, listSize int) {
 	// list size
-	encUint32(se.bf, TypeArrSame, uint64(listSize))
+	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	// 字段
 	fls := se.em.ss.FieldsAttr
-	encUint16L2(se.bf, ArrSameObjFields, uint64(len(fls)))
+	encU16By6(se.bf, ListObjFields, uint64(len(fls)))
 	encStringsDirect(se.bf, se.em.ss.Columns)
 
 	// 循环记录

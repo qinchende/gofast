@@ -132,7 +132,7 @@ func (se *subEncode) encMapKV() {
 	var theMap map[string]any
 	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = se.srcPtr
 
-	encUint16(se.bf, TypeMap, uint64(len(theMap)))
+	encU24By5(se.bf, TypeList, uint64(len(theMap)))
 	for k, v := range theMap {
 		encStringDirect(se.bf, k)
 		encAny(se.bf, unsafe.Pointer(&v), nil)
@@ -143,7 +143,7 @@ func encMapStrAny[TV any](bf *[]byte, ptr unsafe.Pointer, valTyp reflect.Type, v
 	var theMap map[string]TV
 	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = ptr
 
-	encUint16(bf, TypeMap, uint64(len(theMap)))
+	encU24By5(bf, TypeList, uint64(len(theMap)))
 	for k, v := range theMap {
 		encStringDirect(bf, k)
 		valEnc(bf, unsafe.Pointer(&v), valTyp)
@@ -155,7 +155,7 @@ func encMapAnyAny[TK string | constraints.Integer, TV any](bf *[]byte, ptr unsaf
 	var theMap map[TK]TV
 	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = ptr
 
-	encUint16(bf, TypeMap, uint64(len(theMap)))
+	encU24By5(bf, TypeList, uint64(len(theMap)))
 	for k, v := range theMap {
 		// key
 		keyEnc(bf, unsafe.Pointer(&k), nil)

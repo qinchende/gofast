@@ -18,7 +18,7 @@ import (
 
 func (d *subDecode) scanListItems() {
 	off1, typ, size := scanTypeLen4(d.str[d.scan:])
-	if typ != TypeArray && typ != TypeArrSame {
+	if typ != TypeList {
 		panic(errChar)
 	}
 
@@ -48,7 +48,7 @@ func (d *subDecode) scanListItems() {
 
 func (d *subDecode) skipList() {
 	off1, typ, size := scanTypeLen4(d.str[d.scan:])
-	if typ != TypeArray && typ != TypeArrSame {
+	if typ != TypeList {
 		panic(errChar)
 	}
 
@@ -61,12 +61,12 @@ func (d *subDecode) skipList() {
 // struct & map
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (d *subDecode) scanKVS() {
-	off, typ, size := scanTypeLen2(d.str[d.scan:])
+	off, _, size := scanTypeLen2(d.str[d.scan:])
 	d.scan += off
 
-	if typ != TypeMap {
-		panic(errKV)
-	}
+	//if typ != TypeMap {
+	//	panic(errKV)
+	//}
 
 	for i := 0; i < int(size); i++ {
 		off, key := scanString(d.str[d.scan:])
@@ -76,10 +76,10 @@ func (d *subDecode) scanKVS() {
 }
 
 func (d *subDecode) skipKVS() {
-	off1, typ, size := scanTypeLen2(d.str[d.scan:])
-	if typ != TypeMap {
-		panic(errKV)
-	}
+	off1, _, size := scanTypeLen2(d.str[d.scan:])
+	//if typ != TypeMap {
+	//	panic(errKV)
+	//}
 
 	for i := 0; i < int(size); i++ {
 		off2 := skipString(d.str[off1:])
@@ -93,19 +93,23 @@ func (d *subDecode) skipKVS() {
 func (d *subDecode) skipOneValue() {
 	c := d.str[0]
 	typ := c & TypeMask
-	val := c & TypeValueMask
+	val := c & TypeValMask
 	off := 0
 
 	switch typ {
 	case TypeFixed:
+		if val <= TypeList {
+			d.skipList()
+			break
+		}
 		switch val {
 		default:
 			panic(errChar)
 		case FixNil, FixMixedNil, FixTrue, FixFalse:
 			off = 1
-		case FixFloat32:
+		case FixF32:
 			off = 5
-		case FixFloat64:
+		case FixF64:
 			off = 9
 		case FixTime:
 			off = 5
@@ -116,18 +120,12 @@ func (d *subDecode) skipOneValue() {
 		} else {
 			off = int(1 + val - 23)
 		}
-	case TypeBytes:
+	case TypeStr:
 		if val <= 27 {
 			off = 1
 		} else {
 			off = int(1 + val - 27)
 		}
-	case TypeArray:
-		d.skipList()
-	case TypeArrSame:
-		d.skipList()
-	case TypeMap:
-		d.skipKVS()
 	}
 
 	// 解析标记往前走
@@ -169,7 +167,7 @@ func scanStructValue(d *subDecode, key string) {
 // sash as map | struct
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjMixValue(d *subDecode) {
-	d.scanSubDecode(d.dm.ss.FieldsAttr[d.keyIdx].Type, fieldMixPtr(d))
+	d.startSubDecode(d.dm.ss.FieldsAttr[d.keyIdx].Type, fieldMixPtr(d))
 }
 
 func scanObjPtrMixValue(d *subDecode) {
@@ -177,7 +175,7 @@ func scanObjPtrMixValue(d *subDecode) {
 		fieldSetNil(d)
 		d.scan++
 	} else {
-		d.scanSubDecode(d.dm.ss.FieldsAttr[d.keyIdx].Type, fieldPtrDeep(d))
+		d.startSubDecode(d.dm.ss.FieldsAttr[d.keyIdx].Type, fieldPtrDeep(d))
 	}
 }
 
@@ -185,16 +183,16 @@ func scanObjPtrMixValue(d *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // array and item not ptr
 func scanArrMixValue(d *subDecode) {
-	typ := checkType(d.str[d.scan:])
+	typ := itemType(d.str[d.scan:])
 
 	switch typ {
 	default:
 		panic(errValueType)
-	case TypeMap:
-		d.initShareDecode(arrMixItemPtr(d))
-		d.share.scanKVS()
-		d.scan = d.share.scan
-	case TypeArray:
+	//case TypeMap:
+	//	d.initShareDecode(arrMixItemPtr(d))
+	//	d.share.scanKVS()
+	//	d.scan = d.share.scan
+	case TypeList:
 		d.initShareDecode(arrMixItemPtr(d))
 		scanListBaseType(d.share, 0)
 		d.scan = d.share.scan
@@ -235,5 +233,5 @@ func scanListMixValue(d *subDecode) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanPointerValue(d *subDecode) {
 	ptr := getPtrValueAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemKind, d.dm.itemType)
-	d.scanSubDecode(d.dm.itemType, ptr)
+	d.startSubDecode(d.dm.itemType, ptr)
 }

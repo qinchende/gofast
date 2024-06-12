@@ -10,29 +10,29 @@ import (
 
 func scanListStruct(d *subDecode, listSize int) {
 	//d.resetForListStruct()
-	tpInt := d.scan
+	offS := d.scan
 
 	//// 1. List length ++++++++++++++++++++++++++++++++++++++++++
-	//off1, typ, size1 := scanTypeLen4(d.str[tpInt:])
+	//off1, typ, size1 := scanTypeLen4(d.str[offS:])
 	//if typ != TypeArrSame {
 	//	panic(errChar)
 	//}
-	//tpInt += off1
+	//offS += off1
 
 	// 2. Struct fields ++++++++++++++++++++++++++++++++++++++++
-	off2, typ2, fSize := scanTypeLen2With6(d.str[tpInt:])
-	if typ2 != ArrSameObjFields {
+	off2, typ2, fSize := scanTypeLen2L2(d.str[offS:])
+	if typ2 != ListObjFields {
 		panic(errChar)
 	}
-	tpInt += off2
+	offS += off2
 
 	for i := 0; i < int(fSize); i++ {
-		off, fName := scanString(d.str[tpInt:])
-		tpInt += off
+		off, fName := scanString(d.str[offS:])
+		offS += off
 		d.clsIdx[i] = int8(d.dm.ss.ColumnIndex(fName))
 	}
 	//d.clsCt = int(fSize) // 多少个有效字段
-	d.scan = tpInt
+	d.scan = offS
 
 	// 3. Records value ++++++++++++++++++++++++++++++++++++++++
 	//listSize := int(size1)
