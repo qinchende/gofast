@@ -28,14 +28,17 @@ peelPtr:
 	encMixedItem(se.bf, ptr, se.em.itemType)
 }
 
-// A struct object likes mapKV
+// A struct object encode same as map[string]any
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (se *subEncode) encStruct() {
 	fls := se.em.ss.FieldsAttr
 	size := len(fls)
 
-	encUint16(se.bf, TypeMap, uint64(size))
+	encU24By5(se.bf, TypeList, uint64(size))
+	*se.bf = append(*se.bf, ListKV)
+
 	for i := 0; i < size; i++ {
+		// key
 		encStringDirect(se.bf, se.em.ss.ColumnName(i))
 
 		fPtr := fls[i].MyPtr(se.srcPtr)
@@ -56,6 +59,7 @@ func (se *subEncode) encStruct() {
 		}
 
 	encObjValue:
+		// value
 		se.em.fieldsEnc[i](se.bf, fPtr, fls[i].Type)
 	}
 }

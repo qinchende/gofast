@@ -13,96 +13,135 @@ import (
 // cdo (Compact data of object)
 // All type encoded format
 const (
-	// Type: 0, Format: 000|XXXXXX
-	// some fixed type
-	TypeFixed byte = 0b00000000 // 0
-	// Type0 subtypes
-	FixNil      byte = 0b00000000 // 0
-	FixMixedNil byte = 0b00000001 // 1
-	FixTrue     byte = 0b00000010 // 2
-	FixFalse    byte = 0b00000011 // 3
-	FixFloat32  byte = 0b00001000 // 8
-	FixFloat64  byte = 0b00001001 // 9
-	FixDateTime byte = 0b00001010 // 10
-	FixDate     byte = 0b00001011 // 11
-	FixDuration byte = 0b00001100 // 12
-	FixTime     byte = 0b00001101 // 13
-	FixMax      byte = 0b00011111 // 31
+	TypeMask        byte = 0b11000000
+	TypeValMask     byte = 0b00111111
+	TypeListMask    byte = 0b11100000
+	TypeListValMask byte = 0b00011111
 
-	// Type: 1, Format: 001|XXXXXX
-	// all int numbers  which >= 0
-	TypePosInt byte = 0b00100000
+	TypePosInt byte = 0b00000000 // 00
+	TypeNegInt byte = 0b01000000 // 01
+	TypeStr    byte = 0b10000000 // 10
+	TypeMixed  byte = 0b11000000 // 11
+	TypeList   byte = 0b11000000 // 110
+	TypeFixed  byte = 0b11100000 // 111
 
-	// Type: 2, Format: 010|XXXXXX
-	// all int numbers  which < 0
-	TypeNegInt byte = 0b01000000
+	// TypeFixed subtypes +++++++++++++++++++++++
+	FixNil      byte = 0xE0 // 0
+	FixMixedNil byte = 0xE1 // 1
+	FixTrue     byte = 0xE2 // 2
+	FixFalse    byte = 0xE3 // 3
+	FixF32      byte = 0xE4 // 8
+	FixF64      byte = 0xE5 // 9
+	FixDateTime byte = 0xE6 // 10
+	FixDate     byte = 0xE7 // 11
+	FixDuration byte = 0xE8 // 12
+	FixTime     byte = 0xE9 // 13
+	FixMax      byte = 0xFF // 31
 
-	// Type: 3, Format: 011|XXXXXX
-	// all bytes array such as string/bytes
-	TypeBytes byte = 0b01100000
+	// TypeList subtypes ++++++++++++++++++++++++
+	ListMask    byte = 0b11000000
+	ListValMask byte = 0b00111111
 
-	// Type: 4, Format: 100|XXXXXX
-	// array data
-	TypeArray byte = 0b10000000
-
-	// Type: 5, Format: 101|XXXXXX
-	// just kvs
-	TypeArrSame byte = 0b10100000
-
-	// Type: 6, Format: 110|XXXXXX
-	//
-	TypeMap byte = 0b11000000
-
-	// Type: 7, Format: 111|XXXXXX
-	//
-	TypeExt byte = 0b11100000
-
-	// ++++++++++++++++++++++++++++++++++++++
-	TypeSizeOffset2 uint8 = 2
-	TypeSizeOffset4 uint8 = 4
-	TypeSizeOffset8 uint8 = 8
-
-	TypeMask      byte = 0b11100000
-	TypeValueMask byte = 0b00011111
-)
-
-// ArraySameType
-const (
-	ArrSameBase      byte = 0b00000000 // 固定长度的基础类型
-	ArrSameObjFields byte = 0b01000000 // 都是object，提供所有的Fields
-	ArrSameObjIndex  byte = 0b10000000 // 都是object，提供前面出现的索引号
-	ArrSameExt       byte = 0b11000000 // 预留
-
-	ArrSameMask      byte = 0b11000000
-	ArrSameValueMask byte = 0b00111111
+	ListVarInt    byte = 0x00
+	ListFixInt8   byte = 0x01
+	ListFixInt16  byte = 0x02
+	ListFixInt32  byte = 0x03
+	ListFixInt64  byte = 0x04
+	ListFixUint8  byte = 0x05
+	ListFixUint16 byte = 0x06
+	ListFixUint32 byte = 0x07
+	ListFixUint64 byte = 0x08
+	ListF32       byte = 0x09
+	ListF64       byte = 0x0A
+	ListStr       byte = 0x0B
+	ListBool      byte = 0x0C
+	ListKV        byte = 0x0D
+	ListAny       byte = 0x0E
+	ListObjFields byte = 0b01000000 // 都是object，提供所有的Fields
+	ListObjIndex  byte = 0b10000000 // 都是object，提供前面出现的索引号
+	ListExt       byte = 0b11000000 // 预留
 )
 
 const (
-	Max1BytesUint uint64 = 0x00000000000000FF
-	Max2BytesUint uint64 = 0x000000000000FFFF
-	Max3BytesUint uint64 = 0x0000000000FFFFFF
-	Max4BytesUint uint64 = 0x00000000FFFFFFFF
-	Max5BytesUint uint64 = 0x000000FFFFFFFFFF
-	Max6BytesUint uint64 = 0x0000FFFFFFFFFFFF
-	Max7BytesUint uint64 = 0x00FFFFFFFFFFFFFF
-	Max8BytesUint uint64 = 0xFFFFFFFFFFFFFFFF
+	Max1BUint uint64 = 0x00000000000000FF
+	Max2BUint uint64 = 0x000000000000FFFF
+	Max3BUint uint64 = 0x0000000000FFFFFF
+	Max4BUint uint64 = 0x00000000FFFFFFFF
+	Max5BUint uint64 = 0x000000FFFFFFFFFF
+	Max6BUint uint64 = 0x0000FFFFFFFFFFFF
+	Max7BUint uint64 = 0x00FFFFFFFFFFFFFF
+	Max8BUint uint64 = 0xFFFFFFFFFFFFFFFF
 )
 
-func typeValue(b byte) (uint8, uint8) {
-	return b | TypeMask, b | TypeValueMask
-}
+//func typeValue(b byte) (uint8, uint8) {
+//	return b | TypeMask, b | TypeValMask
+//}
+//
+//func extBytes2(v uint8) uint8 {
+//	return v - 2
+//}
+//
+//func extBytes4(v uint8) uint8 {
+//	return v - 4
+//}
+//
+//func extBytes8(v uint8) uint8 {
+//	return v - 8
+//}
 
-func extBytes2(v uint8) uint8 {
-	return v - 2
-}
-
-func extBytes4(v uint8) uint8 {
-	return v - 4
-}
-
-func extBytes8(v uint8) uint8 {
-	return v - 8
-}
+//const (
+//	// Type: 0, Format: 000|XXXXXX
+//	// some fixed type
+//	TypeFixed byte = 0b00000000 // 0
+//	// Type0 subtypes
+//	FixNil      byte = 0b00000000 // 0
+//	FixMixedNil byte = 0b00000001 // 1
+//	FixTrue     byte = 0b00000010 // 2
+//	FixFalse    byte = 0b00000011 // 3
+//	FixFloat32  byte = 0b00001000 // 8
+//	FixFloat64  byte = 0b00001001 // 9
+//	FixDateTime byte = 0b00001010 // 10
+//	FixDate     byte = 0b00001011 // 11
+//	FixDuration byte = 0b00001100 // 12
+//	FixTime     byte = 0b00001101 // 13
+//	FixMax      byte = 0b00011111 // 31
+//
+//	// Type: 1, Format: 001|XXXXXX
+//	// all int numbers  which >= 0
+//	TypePosInt byte = 0b00100000
+//
+//	// Type: 2, Format: 010|XXXXXX
+//	// all int numbers  which < 0
+//	TypeNegInt byte = 0b01000000
+//
+//	// Type: 3, Format: 011|XXXXXX
+//	// all bytes array such as string/bytes
+//	TypeBytes byte = 0b01100000
+//
+//	// Type: 4, Format: 100|XXXXXX
+//	// array data
+//	TypeList byte = 0b10000000
+//
+//	//// Type: 5, Format: 101|XXXXXX
+//	//// just kvs
+//	//TypeArrSame byte = 0b10100000
+//	//
+//	//// Type: 6, Format: 110|XXXXXX
+//	////
+//	//TypeMap byte = 0b11000000
+//	//
+//	//// Type: 7, Format: 111|XXXXXX
+//	////
+//	//TypeExt byte = 0b11100000
+//
+//	// ++++++++++++++++++++++++++++++++++++++
+//	TypeSizeOffset2 uint8 = 2
+//	TypeSizeOffset4 uint8 = 4
+//	TypeSizeOffset8 uint8 = 8
+//
+//	TypeMask      byte = 0b11100000
+//	TypeValueMask byte = 0b00011111
+//)
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
