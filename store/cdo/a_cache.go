@@ -1,9 +1,7 @@
 package cdo
 
 import (
-	"encoding/binary"
 	"github.com/qinchende/gofast/core/rt"
-	"math"
 	"sync"
 )
 
@@ -65,13 +63,13 @@ func cacheGetEncMetaFast(typAddr *rt.TypeAgent) *encMeta {
 	return nil
 }
 
-func toBytes(f float64) []byte {
-	bytes := make([]byte, 8)
-	binary.LittleEndian.PutUint64(bytes, math.Float64bits(f))
-	return bytes
-}
-
-// 将字节切片转换回浮点数
-func fromBytes(bytes []byte) float64 {
-	return math.Float64frombits(binary.LittleEndian.Uint64(bytes))
-}
+//func toBytes(f float64) []byte {
+//	bytes := make([]byte, 8)
+//	binary.LittleEndian.PutUint64(bytes, math.Float64bits(f))
+//	return bytes
+//}
+//
+//// 将字节切片转换回浮点数
+//func fromBytes(bytes []byte) float64 {
+//	return math.Float64frombits(binary.LittleEndian.Uint64(bytes))
+//}

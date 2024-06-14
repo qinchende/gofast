@@ -54,8 +54,9 @@ func encListAllPtr(se *subEncode, listSize int) {
 }
 
 // int
+// Note：整形数组，用第一个字符的第一个bit位来代表正负符号
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encListUint[T constraints.Unsigned](se *subEncode, listSize int) {
+func encListVarUint[T constraints.Unsigned](se *subEncode, listSize int) {
 	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
@@ -63,16 +64,16 @@ func encListUint[T constraints.Unsigned](se *subEncode, listSize int) {
 	for i := 0; i < listSize; i++ {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 		v := uint64(*(*T)(iPtr))
-		if v <= Max3BUint {
-			bs = encU64By6RetPart1(bs, TypePosInt, v)
+		if v <= MaxUint24 {
+			bs = encU64By7RetPart1(bs, ListVarIntPos, v)
 		} else {
-			bs = encU64By6RetPart2(bs, TypePosInt, v)
+			bs = encU64By7RetPart2(bs, ListVarIntPos, v)
 		}
 	}
 	*se.bf = bs
 }
 
-func encListInt[T constraints.Integer](se *subEncode, listSize int) {
+func encListVarInt[T constraints.Integer](se *subEncode, listSize int) {
 	encU24By5(se.bf, TypeList, uint64(listSize))
 
 	bs := *se.bf
@@ -81,23 +82,23 @@ func encListInt[T constraints.Integer](se *subEncode, listSize int) {
 		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 		v := *((*T)(iPtr))
 		if v >= 0 {
-			if uint64(v) <= Max3BUint {
-				bs = encU64By6RetPart1(bs, TypePosInt, uint64(v))
+			if uint64(v) <= MaxUint24 {
+				bs = encU64By7RetPart1(bs, ListVarIntPos, uint64(v))
 			} else {
-				bs = encU64By6RetPart2(bs, TypePosInt, uint64(v))
+				bs = encU64By7RetPart2(bs, ListVarIntPos, uint64(v))
 			}
 		} else {
-			if uint64(-v) <= Max3BUint {
-				bs = encU64By6RetPart1(bs, TypeNegInt, uint64(-v))
+			if uint64(-v) <= MaxUint24 {
+				bs = encU64By7RetPart1(bs, ListVarIntNeg, uint64(-v))
 			} else {
-				bs = encU64By6RetPart2(bs, TypeNegInt, uint64(-v))
+				bs = encU64By7RetPart2(bs, ListVarIntNeg, uint64(-v))
 			}
 		}
 	}
 	*se.bf = bs
 }
 
-func encListIntPtr[T constraints.Integer](se *subEncode, listSize int) {
+func encListVarIntPtr[T constraints.Integer](se *subEncode, listSize int) {
 	encU24By5(se.bf, TypeList, uint64(listSize))
 	ptrLevel := se.em.ptrLevel
 
@@ -122,16 +123,16 @@ func encListIntPtr[T constraints.Integer](se *subEncode, listSize int) {
 
 		v := *((*T)(iPtr))
 		if v >= 0 {
-			if uint64(v) <= Max3BUint {
-				bs = encU64By6RetPart1(bs, TypePosInt, uint64(v))
+			if uint64(v) <= MaxUint24 {
+				bs = encU64By7RetPart1(bs, ListVarIntPos, uint64(v))
 			} else {
-				bs = encU64By6RetPart2(bs, TypePosInt, uint64(v))
+				bs = encU64By7RetPart2(bs, ListVarIntPos, uint64(v))
 			}
 		} else {
-			if uint64(-v) <= Max3BUint {
-				bs = encU64By6RetPart1(bs, TypeNegInt, uint64(-v))
+			if uint64(-v) <= MaxUint24 {
+				bs = encU64By7RetPart1(bs, ListVarIntNeg, uint64(-v))
 			} else {
-				bs = encU64By6RetPart2(bs, TypeNegInt, uint64(-v))
+				bs = encU64By7RetPart2(bs, ListVarIntNeg, uint64(-v))
 			}
 		}
 	}
@@ -192,7 +193,7 @@ func encListString(se *subEncode, listSize int) {
 		// Note: 不要改变这里的任何逻辑
 		// 这已经是测试过性能最好的写法，因为太长的函数将不会被内联优化
 		v := uint64(len(str))
-		if v <= Max3BUint {
+		if v <= MaxUint24 {
 			bs = encU32By6RetPart1(bs, TypeStr, v)
 		} else {
 			bs = encU32By6RetPart2(bs, TypeStr, v)

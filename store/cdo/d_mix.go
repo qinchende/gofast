@@ -194,7 +194,7 @@ func scanArrMixValue(d *subDecode) {
 	//	d.scan = d.share.scan
 	case TypeList:
 		d.initShareDecode(arrMixItemPtr(d))
-		scanListBaseType(d.share, 0)
+		decListBaseType(d.share, 0)
 		d.scan = d.share.scan
 	}
 }
@@ -219,7 +219,7 @@ func scanListMixValue(d *subDecode) {
 	}
 	d.initShareDecode(ptr)
 	if d.share.dm.isList {
-		scanListBaseType(d.share, 0)
+		decListBaseType(d.share, 0)
 	} else {
 		d.share.scanKVS()
 	}

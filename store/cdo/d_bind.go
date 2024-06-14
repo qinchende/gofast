@@ -3,7 +3,6 @@ package cdo
 import (
 	"github.com/qinchende/gofast/core/cst"
 	"math"
-	"reflect"
 	"time"
 	"unsafe"
 )
@@ -47,21 +46,21 @@ func bindUint(p unsafe.Pointer, v uint64) {
 }
 
 func bindUint8(p unsafe.Pointer, v uint64) {
-	if v > math.MaxUint8 {
+	if v > MaxUint08 {
 		panic(errInfinity)
 	}
 	*(*uint8)(p) = uint8(v)
 }
 
 func bindUint16(p unsafe.Pointer, v uint64) {
-	if v > math.MaxUint16 {
+	if v > MaxUint16 {
 		panic(errInfinity)
 	}
 	*(*uint16)(p) = uint16(v)
 }
 
 func bindUint32(p unsafe.Pointer, v uint64) {
-	if v > math.MaxUint32 {
+	if v > MaxUint32 {
 		panic(errInfinity)
 	}
 	*(*uint32)(p) = uint32(v)
@@ -128,18 +127,6 @@ func scanObjIntValue(d *subDecode) {
 	bindInt(fieldPtr(d), v)
 }
 
-func scanArrIntValue(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt(arrItemPtr(d), v)
-}
-
-//func scanListIntValue(d *subDecode) {
-//	off, v := scanInt64(d.str[d.scan:])
-//	d.scan += off
-//	//d.pl.bufInt = append(d.pl.bufInt, int(v))
-//}
-
 // int8 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjPtrInt8Value(d *subDecode) {
@@ -158,22 +145,6 @@ func scanObjInt8Value(d *subDecode) {
 	d.scan += off
 	bindInt8(fieldPtr(d), v)
 }
-
-func scanArrInt8Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt8(arrItemPtr(d), v)
-}
-
-//func scanListInt8Value(d *subDecode) {
-//	off, v := scanInt64(d.str[d.scan:])
-//	d.scan += off
-//
-//	if v < math.MinInt8 || v > math.MaxInt8 {
-//		panic(errInfinity)
-//	}
-//	//d.pl.bufI8 = append(d.pl.bufI8, int8(v))
-//}
 
 // int16 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -194,22 +165,6 @@ func scanObjInt16Value(d *subDecode) {
 	bindInt16(fieldPtr(d), v)
 }
 
-func scanArrInt16Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt16(arrItemPtr(d), v)
-}
-
-//func scanListInt16Value(d *subDecode) {
-//	off, v := scanInt64(d.str[d.scan:])
-//	d.scan += off
-//
-//	if v < math.MinInt16 || v > math.MaxInt16 {
-//		panic(errInfinity)
-//	}
-//	//d.pl.bufI16 = append(d.pl.bufI16, int16(v))
-//}
-
 // int32 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjPtrInt32Value(d *subDecode) {
@@ -228,22 +183,6 @@ func scanObjInt32Value(d *subDecode) {
 	d.scan += off
 	bindInt32(fieldPtr(d), v)
 }
-
-func scanArrInt32Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt32(arrItemPtr(d), v)
-}
-
-//func scanListInt32Value(d *subDecode) {
-//	off, v := scanInt64(d.str[d.scan:])
-//	d.scan += off
-//
-//	if v < math.MinInt32 || v > math.MaxInt32 {
-//		panic(errInfinity)
-//	}
-//	//d.pl.bufI32 = append(d.pl.bufI32, int32(v))
-//}
 
 // int64 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -264,18 +203,6 @@ func scanObjInt64Value(d *subDecode) {
 	bindInt64(fieldPtr(d), v)
 }
 
-func scanArrInt64Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt64(arrItemPtr(d), v)
-}
-
-//func scanListInt64Value(d *subDecode) {
-//	off, v := scanInt64(d.str[d.scan:])
-//	d.scan += off
-//	//d.pl.bufI64 = append(d.pl.bufI64, v)
-//}
-
 // uint +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjPtrUintValue(d *subDecode) {
@@ -294,18 +221,6 @@ func scanObjUintValue(d *subDecode) {
 	d.scan += off
 	bindUint(fieldPtr(d), v)
 }
-
-func scanArrUintValue(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint(arrItemPtr(d), v)
-}
-
-//func scanListUintValue(d *subDecode) {
-//	off, v := scanUint64(d.str[d.scan:])
-//	d.scan += off
-//	d.pl.bufUint = append(d.pl.bufUint, uint(v))
-//}
 
 // uint8 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -326,21 +241,6 @@ func scanObjUint8Value(d *subDecode) {
 	bindUint8(fieldPtr(d), v)
 }
 
-func scanArrUint8Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint8(arrItemPtr(d), v)
-}
-
-//func scanListUint8Value(d *subDecode) {
-//	off, v := scanUint64(d.str[d.scan:])
-//	d.scan += off
-//	if v > math.MaxUint8 {
-//		panic(errInfinity)
-//	}
-//	d.pl.bufU8 = append(d.pl.bufU8, uint8(v))
-//}
-
 // uint16 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjPtrUint16Value(d *subDecode) {
@@ -359,21 +259,6 @@ func scanObjUint16Value(d *subDecode) {
 	d.scan += off
 	bindUint16(fieldPtr(d), v)
 }
-
-func scanArrUint16Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint16(arrItemPtr(d), v)
-}
-
-//func scanListUint16Value(d *subDecode) {
-//	off, v := scanUint64(d.str[d.scan:])
-//	d.scan += off
-//	if v > math.MaxUint16 {
-//		panic(errInfinity)
-//	}
-//	d.pl.bufU16 = append(d.pl.bufU16, uint16(v))
-//}
 
 // uint32 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -394,22 +279,6 @@ func scanObjUint32Value(d *subDecode) {
 	bindUint32(fieldPtr(d), v)
 }
 
-func scanArrUint32Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint32(arrItemPtr(d), v)
-}
-
-//
-//func scanListUint32Value(d *subDecode) {
-//	off, v := scanUint64(d.str[d.scan:])
-//	d.scan += off
-//	if v > math.MaxUint32 {
-//		panic(errInfinity)
-//	}
-//	d.pl.bufU32 = append(d.pl.bufU32, uint32(v))
-//}
-
 // uint64 +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjPtrUint64Value(d *subDecode) {
@@ -429,18 +298,6 @@ func scanObjUint64Value(d *subDecode) {
 	bindUint64(fieldPtr(d), v)
 }
 
-func scanArrUint64Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint64(arrItemPtr(d), v)
-}
-
-//func scanListUint64Value(d *subDecode) {
-//	off, v := scanUint64(d.str[d.scan:])
-//	d.scan += off
-//	d.pl.bufU64 = append(d.pl.bufU64, v)
-//}
-
 // float32
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjPtrF32Value(d *subDecode) {
@@ -448,54 +305,20 @@ func scanObjPtrF32Value(d *subDecode) {
 		fieldSetNil(d)
 		d.scan++
 	} else {
-		off, v := scanF32Val(d.str[d.scan:])
-		d.scan += off
+		v := scanF32Val(d.str[d.scan:])
+		d.scan += 4
 		bindF32(fieldPtrDeep(d), v)
 	}
 }
 
 func scanObjF32Value(d *subDecode) {
-	off, v := scanF32Val(d.str[d.scan:])
-	d.scan += off
+	v := scanF32Val(d.str[d.scan:])
+	d.scan += 4
 	bindF32(fieldPtr(d), v)
 }
 
-func scanArrF32Value(d *subDecode) {
-	off, v := scanF32Val(d.str[d.scan:])
-	d.scan += off
-	bindF32(arrItemPtr(d), v)
-}
-
-//func scanListF32Value(d *subDecode) {
-//	off, v := scanF32Val(d.str[d.scan:])
-//	d.scan += off
-//	d.pl.bufF32 = append(d.pl.bufF32, v)
-//}
-
 // float64
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrFloat64Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanF64Val(d.str[d.scan:])
-		d.scan += off
-		bindF64(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjFloat64Value(d *subDecode) {
-	off, v := scanF64Val(d.str[d.scan:])
-	d.scan += off
-	bindF64(fieldPtr(d), v)
-}
-
-func scanArrFloat64Value(d *subDecode) {
-	off, v := scanF64Val(d.str[d.scan:])
-	d.scan += off
-	bindF64(arrItemPtr(d), v)
-}
 
 //func scanListFloat64Value(d *subDecode) {
 //	off, v := scanF64Val(d.str[d.scan:])
@@ -521,18 +344,6 @@ func scanObjStrValue(d *subDecode) {
 	d.scan += off
 	bindString(fieldPtr(d), str)
 }
-
-func scanArrStrValue(d *subDecode) {
-	off, str := scanString(d.str[d.scan:])
-	d.scan += off
-	bindString(arrItemPtr(d), str)
-}
-
-//func scanListStrValue(d *subDecode) {
-//	off, str := scanString(d.str[d.scan:])
-//	d.scan += off
-//	d.pl.bufStr = append(d.pl.bufStr, str)
-//}
 
 // []byte +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -594,31 +405,9 @@ func scanArrTimeValue(d *subDecode) {
 
 // bool +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrBoolValue(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanBool(d.str[d.scan:])
-		d.scan += off
-		bindBool(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjBoolValue(d *subDecode) {
-	off, v := scanBool(d.str[d.scan:])
-	d.scan += off
-	bindBool(fieldPtr(d), v)
-}
-
-func scanArrBoolValue(d *subDecode) {
-	off, v := scanBool(d.str[d.scan:])
-	d.scan += off
-	bindBool(arrItemPtr(d), v)
-}
 
 //func scanListBoolValue(d *subDecode) {
-//	off, v := scanBool(d.str[d.scan:])
+//	off, v := scanBoolVal(d.str[d.scan:])
 //	d.scan += off
 //	d.pl.bufBol = append(d.pl.bufBol, v)
 //}
@@ -635,62 +424,4 @@ func scanArrAnyValue(d *subDecode) {
 }
 
 func scanListAnyValue(d *subDecode) {
-}
-
-// Dest is just a base type value
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanJustBaseValue(d *subDecode) {
-	// NOTE：只能是数值类型
-	switch d.dm.itemKind {
-	case reflect.Int:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt(d.dstPtr, v)
-	case reflect.Int8:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt8(d.dstPtr, v)
-	case reflect.Int16:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt16(d.dstPtr, v)
-	case reflect.Int32:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt32(d.dstPtr, v)
-	case reflect.Int64:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt64(d.dstPtr, v)
-	case reflect.Uint:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint(d.dstPtr, v)
-	case reflect.Uint8:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint8(d.dstPtr, v)
-	case reflect.Uint16:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint16(d.dstPtr, v)
-	case reflect.Uint32:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint32(d.dstPtr, v)
-	case reflect.Uint64:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint64(d.dstPtr, v)
-	case reflect.Float32:
-		off, v := scanF32Val(d.str[d.scan:])
-		d.scan += off
-		bindF32(d.dstPtr, v)
-	case reflect.Float64:
-		off, v := scanF64Val(d.str[d.scan:])
-		d.scan += off
-		bindF64(d.dstPtr, v)
-	default:
-		panic(errValueType)
-	}
 }

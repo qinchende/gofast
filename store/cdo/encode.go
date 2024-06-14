@@ -339,31 +339,32 @@ func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
 }
 
 func (em *encMeta) bindListEnc() {
+	// 数据项是非指针类型
 	if !em.isPtr {
 		switch em.itemKind {
 		default:
 			panic(errValueType)
 
 		case reflect.Int:
-			em.listEnc = encListInt[int]
+			em.listEnc = encListVarInt[int]
 		case reflect.Int8:
-			em.listEnc = encListInt[int8]
+			em.listEnc = encListVarInt[int8]
 		case reflect.Int16:
-			em.listEnc = encListInt[int16]
+			em.listEnc = encListVarInt[int16]
 		case reflect.Int32:
-			em.listEnc = encListInt[int32]
+			em.listEnc = encListVarInt[int32]
 		case reflect.Int64:
-			em.listEnc = encListInt[int64]
+			em.listEnc = encListVarInt[int64]
 		case reflect.Uint:
-			em.listEnc = encListUint[uint]
+			em.listEnc = encListVarUint[uint]
 		case reflect.Uint8:
-			em.listEnc = encListUint[uint8]
+			em.listEnc = encListVarUint[uint8]
 		case reflect.Uint16:
-			em.listEnc = encListUint[uint16]
+			em.listEnc = encListVarUint[uint16]
 		case reflect.Uint32:
-			em.listEnc = encListUint[uint32]
+			em.listEnc = encListVarUint[uint32]
 		case reflect.Uint64:
-			em.listEnc = encListUint[uint64]
+			em.listEnc = encListVarUint[uint64]
 		case reflect.Float32:
 			em.listEnc = encListF32
 		case reflect.Float64:
@@ -376,8 +377,8 @@ func (em *encMeta) bindListEnc() {
 		case reflect.Interface:
 			em.listEnc = encListAll
 
-		//case reflect.Pointer:
-		//	em.listEnc = encPointer // 这个分支不可能
+		//case reflect.Pointer: // 此时分支不可能
+		//	em.listEnc = encPointer
 		case reflect.Map, reflect.Array:
 			em.listEnc = encListAll
 		case reflect.Slice:
@@ -392,31 +393,32 @@ func (em *encMeta) bindListEnc() {
 		return
 	}
 
+	// 数据项是指针类型
 	// []*item 形式
 	switch em.itemKind {
 	default:
 		panic(errValueType)
 
 	case reflect.Int:
-		em.listEnc = encListIntPtr[int]
+		em.listEnc = encListVarIntPtr[int]
 	case reflect.Int8:
-		em.listEnc = encListIntPtr[int8]
+		em.listEnc = encListVarIntPtr[int8]
 	case reflect.Int16:
-		em.listEnc = encListIntPtr[int16]
+		em.listEnc = encListVarIntPtr[int16]
 	case reflect.Int32:
-		em.listEnc = encListIntPtr[int32]
+		em.listEnc = encListVarIntPtr[int32]
 	case reflect.Int64:
-		em.listEnc = encListIntPtr[int64]
+		em.listEnc = encListVarIntPtr[int64]
 	case reflect.Uint:
-		em.listEnc = encListIntPtr[uint]
+		em.listEnc = encListVarIntPtr[uint]
 	case reflect.Uint8:
-		em.listEnc = encListIntPtr[uint8]
+		em.listEnc = encListVarIntPtr[uint8]
 	case reflect.Uint16:
-		em.listEnc = encListIntPtr[uint16]
+		em.listEnc = encListVarIntPtr[uint16]
 	case reflect.Uint32:
-		em.listEnc = encListIntPtr[uint32]
+		em.listEnc = encListVarIntPtr[uint32]
 	case reflect.Uint64:
-		em.listEnc = encListIntPtr[uint64]
+		em.listEnc = encListVarIntPtr[uint64]
 	case reflect.Float32:
 		em.listEnc = encListAllPtr
 	case reflect.Float64:
