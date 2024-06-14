@@ -5,29 +5,27 @@ import (
 	"unsafe"
 )
 
-func (d *subDecode) scanSlice() {
+func (d *subDecode) scanList() {
 	// 1. source item length
 	off1, itemLen := scanListTypeU24(d.str[d.scan:])
 	d.scan += off1
 
-	// 2. mem ready
-	d.dstPtr = rt.SliceToArray(d.dstPtr, d.dm.itemMemSize, int(itemLen))
-
-	d.dm.listDec(d, int(itemLen))
+	if d.dm.isList {
+		d.scanSlice(int(itemLen))
+	} else {
+		d.scanArray(int(itemLen))
+	}
 }
 
-func (d *subDecode) scanArray() {
-	// 1. source item length
-	off1, typ, itemLen := scanTypeLen4(d.str[d.scan:])
-	if typ != TypeList {
-		panic(errChar)
-	}
-	d.scan += off1
+func (d *subDecode) scanSlice(size int) {
+	d.dstPtr = rt.SliceToArray(d.dstPtr, d.dm.itemMemSize, size)
+	d.slice = rt.SliceHeader{DataPtr: d.dstPtr, Len: size, Cap: size}
+	d.dm.listDec(d, size)
+}
 
-	// 2. mem ready
-	d.dstPtr = rt.SliceToArray(d.dstPtr, d.dm.itemMemSize, int(itemLen))
-
-	d.dm.listDec(d, int(itemLen))
+func (d *subDecode) scanArray(size int) {
+	d.slice = rt.SliceHeader{DataPtr: d.dstPtr, Len: size, Cap: size}
+	d.dm.listDec(d, size)
 
 	//// 数组多余的部分需要重置成类型零值
 	//if d.arrIdx < d.dm.arrLen {
@@ -39,7 +37,17 @@ func (d *subDecode) scanArray() {
 	//}
 }
 
-func scanListBaseType(d *subDecode, listSize int) {
+// 检查 List item type 是否符合预期
+func checkListItemType(d *subDecode, typ byte) int {
+	offS := d.scan
+	if d.str[offS] != typ {
+		panic(errListType)
+	}
+	offS++
+	return offS
+}
+
+func decListBaseType(d *subDecode, listSize int) {
 	skipValue := false
 
 	// 循环记录
@@ -69,125 +77,119 @@ func scanListBaseType(d *subDecode, listSize int) {
 	}
 }
 
+func decListItemPtr(d *subDecode, listSize int, typ byte, fn func(iPtr unsafe.Pointer, s string) int) {
+	offS := checkListItemType(d, typ)
+	ptrS := d.dm.itemMemSize
+	for i := 0; i < listSize; i++ {
+		iPtr := unsafe.Add(d.dstPtr, i*ptrS)
+		if d.str[offS] == FixNil {
+			*(*unsafe.Pointer)(iPtr) = nil
+			offS += 1
+			continue
+		}
+		iPtr = getPtrValueAddr(iPtr, d.dm.ptrLevel, d.dm.itemKind, d.dm.itemType)
+		offS += fn(iPtr, d.str[offS:])
+	}
+	d.scan = offS
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++ int +++
 func decIntList(d *subDecode, listSize int) {
-	offS := d.scan
-	if d.str[offS] != ListVarInt {
-		panic(errChar)
-	}
-	offS++
-	for i := 0; i < listSize; i++ {
-		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
+	list := *(*[]int)(unsafe.Pointer(&d.slice))
+	offS := checkListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		c := d.str[offS]
+		typ := c & 0x80
+		v := uint64(c & 0x7F)
 
-		// Part1
-		typ, v := typeValue(d.str[offS])
 		var off int
-		if v <= 59 {
-			off, v = scanU64Par1(d.str[offS:], v)
+		if v <= 122 {
+			off, v = scanU64ValBy7Part1(d.str[offS:], v)
 		} else {
-			off, v = scanU64Par2(d.str[offS:], v)
+			off, v = scanU64ValBy7Part2(d.str[offS:], v)
 		}
-
-		// Part2
-		//typ, v := typeValue(d.str[offS])
-		//var off int
-		//
-		//s := d.str[offS:]
-		//switch v {
-		//default:
-		//	off = 1
-		//case 56:
-		//	off, v = 2, uint64(s[1])
-		//case 57:
-		//	off, v = 3, uint64(s[1])|uint64(s[2])<<8
-		//case 58:
-		//	off, v = 4, uint64(s[1])|uint64(s[2])<<8|uint64(s[3])<<16
-		//case 59:
-		//	off, v = 5, uint64(s[1])|uint64(s[2])<<8|uint64(s[3])<<16|uint64(s[4])<<24
-		//case 60:
-		//	off, v = 6, uint64(s[1])|uint64(s[2])<<8|uint64(s[3])<<16|uint64(s[4])<<24|uint64(s[5])<<32
-		//case 61:
-		//	off, v = 7, uint64(s[1])|uint64(s[2])<<8|uint64(s[3])<<16|uint64(s[4])<<24|uint64(s[5])<<32|uint64(s[6])<<40
-		//case 62:
-		//	off, v = 8, uint64(s[1])|uint64(s[2])<<8|uint64(s[3])<<16|uint64(s[4])<<24|uint64(s[5])<<32|uint64(s[6])<<40|uint64(s[7])<<48
-		//case 63:
-		//	off, v = 9, uint64(s[1])|uint64(s[2])<<8|uint64(s[3])<<16|uint64(s[4])<<24|uint64(s[5])<<32|uint64(s[6])<<40|uint64(s[7])<<48|uint64(s[8])<<56
-		//}
-
-		// Part3
-		//off, typ, v := scanTypeLen8(d.str[offS:])
-
+		if typ == ListVarIntPos {
+			list[i] = int(v)
+		} else {
+			list[i] = int(-v)
+		}
 		offS += off
-
-		if typ == TypePosInt {
-			bindInt(iPtr, int64(v))
-		} else if typ == TypeNegInt {
-			bindInt(iPtr, int64(-v))
-		} else {
-			panic(errChar)
-		}
 	}
 	d.scan = offS
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++ F32 +++
 func decF32List(d *subDecode, listSize int) {
-	offS := d.scan
-	if d.str[offS] != ListF32 {
-		panic(errChar)
-	}
-	offS++
-	for i := 0; i < listSize; i++ {
-		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
-		off, f32 := scanF32Val(d.str[offS:])
-		offS += off
-		bindF32(iPtr, f32)
+	list := *(*[]float32)(unsafe.Pointer(&d.slice))
+	offS := checkListItemType(d, ListF32)
+	for i := 0; i < len(list); i++ {
+		list[i] = scanF32Val(d.str[offS:])
+		offS += 4
 	}
 	d.scan = offS
 }
 
+func decF32ListPtr(d *subDecode, listSize int) {
+	decListItemPtr(d, listSize, ListF32, func(iPtr unsafe.Pointer, s string) int {
+		bindF32(iPtr, scanF32Val(s))
+		return 4
+	})
+}
+
+// +++ F64 +++
 func decF64List(d *subDecode, listSize int) {
-	offS := d.scan
-	if d.str[offS] != ListF64 {
-		panic(errChar)
-	}
-	offS++
-	for i := 0; i < listSize; i++ {
-		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
-		off, f64 := scanF64Val(d.str[offS:])
-		offS += off
-		bindF64(iPtr, f64)
+	list := *(*[]float64)(unsafe.Pointer(&d.slice))
+	offS := checkListItemType(d, ListF64)
+	for i := 0; i < len(list); i++ {
+		list[i] = scanF64Val(d.str[offS:])
+		offS += 8
 	}
 	d.scan = offS
 }
 
+func decF64ListPtr(d *subDecode, listSize int) {
+	decListItemPtr(d, listSize, ListF64, func(iPtr unsafe.Pointer, s string) int {
+		bindF64(iPtr, scanF64Val(s))
+		return 8
+	})
+}
+
+// +++ Bool +++
 func decBoolList(d *subDecode, listSize int) {
-	offS := d.scan
-	if d.str[offS] != ListBool {
-		panic(errChar)
-	}
-	offS++
-	for i := 0; i < listSize; i++ {
-		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
-		off, b := scanBool(d.str[offS:])
-		offS += off
-		bindBool(iPtr, b)
+	list := *(*[]bool)(unsafe.Pointer(&d.slice))
+	offS := checkListItemType(d, ListBool)
+	for i := 0; i < len(list); i++ {
+		list[i] = scanBoolVal(d.str[offS:])
+		offS += 1
 	}
 	d.scan = offS
 }
 
-func decStringList(d *subDecode, listSize int) {
-	offS := d.scan
-	if d.str[offS] != ListStr {
-		panic(errChar)
-	}
-	offS++
-	for i := 0; i < listSize; i++ {
-		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
+func decBoolListPtr(d *subDecode, listSize int) {
+	decListItemPtr(d, listSize, ListBool, func(iPtr unsafe.Pointer, s string) int {
+		bindBool(iPtr, scanBoolVal(s))
+		return 1
+	})
+}
 
+// +++ String +++
+func decStrList(d *subDecode, listSize int) {
+	list := *(*[]string)(unsafe.Pointer(&d.slice))
+	offS := checkListItemType(d, ListStr)
+	for i := 0; i < len(list); i++ {
 		off, str := scanString(d.str[offS:])
+		list[i] = str
 		offS += off
-		bindString(iPtr, str)
 	}
 	d.scan = offS
+}
+
+func decStrListPtr(d *subDecode, listSize int) {
+	decListItemPtr(d, listSize, ListStr, func(iPtr unsafe.Pointer, s string) int {
+		off, str := scanString(s)
+		bindString(iPtr, str)
+		return off
+	})
 }

@@ -4,7 +4,6 @@ import (
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
-	"math"
 	"reflect"
 	"time"
 	"unsafe"
@@ -29,9 +28,9 @@ import (
 //		panic(errOutOfRange)
 //	case v <= 29:
 //		bs = append(bs, typ|(uint8(v)))
-//	case v <= math.MaxUint8:
+//	case v <= MaxUint08:
 //		bs = append(bs, typ|30, uint8(v))
-//	case v <= math.MaxUint16:
+//	case v <= MaxUint16:
 //		bs = append(bs, typ|31, byte(v), byte(v>>8))
 //	}
 //	return bs
@@ -46,9 +45,9 @@ func encU16By6Ret(bs []byte, typ uint8, v uint64) []byte {
 		panic(errOutOfRange)
 	case v <= 61:
 		bs = append(bs, typ|(uint8(v)))
-	case v <= math.MaxUint8:
+	case v <= MaxUint08:
 		bs = append(bs, typ|62, uint8(v))
-	case v <= math.MaxUint16:
+	case v <= MaxUint16:
 		bs = append(bs, typ|63, byte(v), byte(v>>8))
 	}
 	return bs
@@ -65,11 +64,11 @@ func encU24By5Ret(bs []byte, typ uint8, v uint64) []byte {
 		panic(errOutOfRange)
 	case v <= 28:
 		bs = append(bs, typ|(uint8(v)))
-	case v <= math.MaxUint8:
+	case v <= MaxUint08:
 		bs = append(bs, typ|29, uint8(v))
-	case v <= math.MaxUint16:
+	case v <= MaxUint16:
 		bs = append(bs, typ|30, byte(v), byte(v>>8))
-	case v <= Max3BUint:
+	case v <= MaxUint24:
 		bs = append(bs, typ|31, byte(v), byte(v>>8), byte(v>>16))
 	}
 	return bs
@@ -82,7 +81,7 @@ func encU32By6(bf *[]byte, typ uint8, v uint64) {
 }
 
 func encU32By6Ret(bs []byte, typ uint8, v uint64) []byte {
-	if v <= Max3BUint {
+	if v <= MaxUint24 {
 		return encU32By6RetPart1(bs, typ, v)
 	}
 	return encU32By6RetPart2(bs, typ, v)
@@ -92,11 +91,11 @@ func encU32By6RetPart1(bs []byte, typ uint8, v uint64) []byte {
 	switch {
 	case v <= 59:
 		bs = append(bs, typ|(uint8(v)))
-	case v <= math.MaxUint8:
+	case v <= MaxUint08:
 		bs = append(bs, typ|60, uint8(v))
-	case v <= math.MaxUint16:
+	case v <= MaxUint16:
 		bs = append(bs, typ|61, byte(v), byte(v>>8))
-	case v <= Max3BUint:
+	case v <= MaxUint24:
 		bs = append(bs, typ|62, byte(v), byte(v>>8), byte(v>>16))
 	}
 	return bs
@@ -109,7 +108,7 @@ func encU32By6RetPart2(bs []byte, typ uint8, v uint64) []byte {
 	switch {
 	default:
 		panic(errOutOfRange)
-	case v <= math.MaxUint32:
+	case v <= MaxUint32:
 		return append(bs, typ|63, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
 	}
 }
@@ -121,7 +120,7 @@ func encU64By6(bf *[]byte, typ uint8, v uint64) {
 }
 
 func encU64By6Ret(bs []byte, typ uint8, v uint64) []byte {
-	if v <= Max3BUint {
+	if v <= MaxUint24 {
 		return encU64By6RetPart1(bs, typ, v)
 	}
 	return encU64By6RetPart2(bs, typ, v)
@@ -131,11 +130,11 @@ func encU64By6RetPart1(bs []byte, typ uint8, v uint64) []byte {
 	switch {
 	case v <= 55:
 		bs = append(bs, typ|(uint8(v)))
-	case v <= math.MaxUint8:
+	case v <= MaxUint08:
 		bs = append(bs, typ|56, uint8(v))
-	case v <= math.MaxUint16:
+	case v <= MaxUint16:
 		bs = append(bs, typ|57, byte(v), byte(v>>8))
-	case v <= Max3BUint:
+	case v <= MaxUint24:
 		bs = append(bs, typ|58, byte(v), byte(v>>8), byte(v>>16))
 	}
 	return bs
@@ -144,19 +143,49 @@ func encU64By6RetPart1(bs []byte, typ uint8, v uint64) []byte {
 //go:noinline
 func encU64By6RetPart2(bs []byte, typ uint8, v uint64) []byte {
 	switch {
-	default:
-		panic(errOutOfRange)
-	case v <= math.MaxUint32:
-		return append(bs, typ|59, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
-	case v <= Max5BUint:
-		return append(bs, typ|60, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32))
-	case v <= Max6BUint:
-		return append(bs, typ|61, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40))
-	case v <= Max7BUint:
-		return append(bs, typ|62, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48))
-	case v <= math.MaxUint64:
-		return append(bs, typ|63, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+	case v <= MaxUint32:
+		bs = append(bs, typ|59, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
+	case v <= MaxUint40:
+		bs = append(bs, typ|60, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32))
+	case v <= MaxUint48:
+		bs = append(bs, typ|61, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40))
+	case v <= MaxUint56:
+		bs = append(bs, typ|62, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48))
+	case v <= MaxUint64:
+		bs = append(bs, typ|63, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
 	}
+	return bs
+}
+
+func encU64By7RetPart1(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	case v <= 119:
+		bs = append(bs, typ|(uint8(v)))
+	case v <= MaxUint08:
+		bs = append(bs, typ|120, uint8(v))
+	case v <= MaxUint16:
+		bs = append(bs, typ|121, byte(v), byte(v>>8))
+	case v <= MaxUint24:
+		bs = append(bs, typ|122, byte(v), byte(v>>8), byte(v>>16))
+	}
+	return bs
+}
+
+//go:noinline
+func encU64By7RetPart2(bs []byte, typ uint8, v uint64) []byte {
+	switch {
+	case v <= MaxUint32:
+		bs = append(bs, typ|123, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
+	case v <= MaxUint40:
+		bs = append(bs, typ|124, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32))
+	case v <= MaxUint48:
+		bs = append(bs, typ|125, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40))
+	case v <= MaxUint56:
+		bs = append(bs, typ|126, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48))
+	case v <= MaxUint64:
+		bs = append(bs, typ|127, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+	}
+	return bs
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

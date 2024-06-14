@@ -3,6 +3,7 @@ package cdo
 import (
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/rt"
+	"math"
 	"reflect"
 	"unsafe"
 )
@@ -24,12 +25,12 @@ func scanTypeLen2L2(s string) (int, uint8, uint16) {
 	typ := c & ListMask
 	size := uint16(c & ListValMask)
 
-	if size <= 61 {
-		return 1, typ, size
-	}
-	if size == 62 {
+	switch size {
+	default:
+		return 1, typ, size // size <= 61
+	case 62:
 		return 2, typ, uint16(s[1])
-	} else {
+	case 63:
 		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
 	}
 }
@@ -39,13 +40,14 @@ func scanTypeLen2(s string) (int, uint8, uint16) {
 	typ := c & TypeMask
 	size := uint16(c & TypeValMask)
 
-	if size <= 29 {
-		return 1, typ, size
-	}
-	if size == 30 {
+	switch size {
+	default:
+		return 1, typ, size // size <= 29
+	case 30:
 		return 2, typ, uint16(s[1])
-	} else {
+	case 31:
 		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
+
 	}
 }
 
@@ -56,10 +58,9 @@ func scanListTypeU24(s string) (int, uint32) {
 	}
 	size := uint32(c & TypeListValMask)
 
-	if size <= 28 {
-		return 1, size
-	}
 	switch size {
+	default:
+		return 1, size // size <= 28
 	case 29:
 		return 2, uint32(s[1])
 	case 30:
@@ -67,7 +68,6 @@ func scanListTypeU24(s string) (int, uint32) {
 	case 31:
 		return 4, uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16
 	}
-	panic(errChar)
 }
 
 func scanTypeLen4(s string) (int, uint8, uint32) {
@@ -75,10 +75,9 @@ func scanTypeLen4(s string) (int, uint8, uint32) {
 	typ := c & TypeMask
 	size := uint32(c & TypeValMask)
 
-	if size <= 59 {
-		return 1, typ, size
-	}
 	switch size {
+	default:
+		return 1, typ, size // size <= 59
 	case 60:
 		return 2, typ, uint32(s[1])
 	case 61:
@@ -88,7 +87,6 @@ func scanTypeLen4(s string) (int, uint8, uint32) {
 	case 63:
 		return 5, typ, uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16 | uint32(s[4])<<24
 	}
-	panic(errChar)
 }
 
 func scanTypeLen8(s string) (int, uint8, uint64) {
@@ -96,10 +94,9 @@ func scanTypeLen8(s string) (int, uint8, uint64) {
 	typ := c & TypeMask
 	size := uint64(c & TypeValMask)
 
-	if size <= 55 {
-		return 1, typ, size
-	}
 	switch size {
+	default:
+		return 1, typ, size // size <= 55
 	case 56:
 		return 2, typ, uint64(s[1])
 	case 57:
@@ -117,34 +114,35 @@ func scanTypeLen8(s string) (int, uint8, uint64) {
 	case 63:
 		return 9, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56
 	}
+}
+
+func scanU64ValBy7Part1(s string, size uint64) (int, uint64) {
+	if size <= 119 {
+		return 1, size
+	}
+	switch size {
+	case 120:
+		return 2, uint64(s[1])
+	case 121:
+		return 3, uint64(s[1]) | uint64(s[2])<<8
+	case 122:
+		return 4, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16
+	}
 	panic(errChar)
 }
 
-func scanU64Par1(s string, size uint64) (int, uint64) {
-	switch size {
-	default:
-		return 1, size
-	case 56:
-		return 2, uint64(s[1])
-	case 57:
-		return 3, uint64(s[1]) | uint64(s[2])<<8
-	case 58:
-		return 4, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16
-	case 59:
-		return 5, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24
-	}
-}
-
 //go:noinline
-func scanU64Par2(s string, size uint64) (int, uint64) {
+func scanU64ValBy7Part2(s string, size uint64) (int, uint64) {
 	switch size {
-	case 60:
+	case 123:
+		return 5, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24
+	case 124:
 		return 6, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32
-	case 61:
+	case 125:
 		return 7, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40
-	case 62:
+	case 126:
 		return 8, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48
-	case 63:
+	case 127:
 		return 9, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56
 	}
 	panic(errChar)
@@ -169,23 +167,21 @@ func scanInt64(str string) (int, int64) {
 	panic(errChar)
 }
 
-func scanF32Val(s string) (int, float32) {
-	return 4, float32(uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16 | uint32(s[4])<<24)
+func scanF32Val(s string) float32 {
+	return math.Float32frombits(uint32(s[0]) | uint32(s[1])<<8 | uint32(s[2])<<16 | uint32(s[3])<<24)
 }
 
-func scanF64Val(s string) (int, float64) {
-	return 8, float64(uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 |
+func scanF64Val(s string) float64 {
+	return math.Float64frombits(uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 |
 		uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56)
 }
 
-func scanBool(str string) (int, bool) {
-	c := str[0]
-	if c == FixTrue {
-		return 1, true
-	} else if c == FixFalse {
-		return 1, false
+func scanBoolVal(s string) bool {
+	if s[0] == FixTrue {
+		return true
+	} else {
+		return false
 	}
-	panic(errChar)
 }
 
 func scanString(str string) (int, string) {

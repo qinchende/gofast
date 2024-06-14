@@ -28,6 +28,7 @@ type (
 		wk     *cst.WebKV     // WebKV
 		dm     *decMeta       // Struct | Slice,Array
 		dstPtr unsafe.Pointer // 目标对象的内存地址
+		slice  rt.SliceHeader // 指向一个切片类型
 		//bOpts  *dts.BindOptions // 绑定控制
 
 		str  string // 数据源
@@ -158,8 +159,7 @@ func (d *subDecode) warpErrorCode(errCode errType) error {
 		end = len(d.str)
 	}
 
-	errMsg := fmt.Sprintf("jde: %s, pos %d, character %q near ( %s )", errDescription[-errCode], sta, d.str[sta], d.str[sta:end])
-	//errMsg := strings.Join([]string{"jsonx: error pos: ", strconv.Itoa(sta), ", near ", string(d.str[sta]), " of (", d.str[sta:end], ")"}, "")
+	errMsg := fmt.Sprintf("Cdo: %s, pos %d, character %q near ( %s )", errDescription[-errCode], sta, d.str[sta], d.str[sta:end])
 	return errors.New(errMsg)
 }
 
@@ -184,10 +184,8 @@ func (d *subDecode) startDecode() (err errType) {
 	switch {
 	default:
 		d.dm.itemDec(d)
-	case d.dm.isSlice:
-		d.scanSlice()
-	case d.dm.isArray:
-		d.scanArray()
+	case d.dm.isList:
+		d.scanList()
 	case d.dm.isStruct, d.dm.isSuperKV:
 		d.scanKVS()
 	}
@@ -236,10 +234,8 @@ func (d *subDecode) startSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	switch {
 	default:
 		dSub.dm.itemDec(dSub)
-	case dSub.dm.isSlice:
-		dSub.scanSlice()
-	case dSub.dm.isArray:
-		dSub.scanArray()
+	case dSub.dm.isList:
+		dSub.scanList()
 	case dSub.dm.isStruct, dSub.dm.isSuperKV:
 		dSub.scanKVS()
 	}
@@ -402,6 +398,64 @@ func (dm *decMeta) bindWebKVDec() {
 	dm.kvPairDec = scanWebKVValue
 }
 
+// Dest is just a base type value
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanJustBaseValue(d *subDecode) {
+	// NOTE：只能是数值类型
+	switch d.dm.itemKind {
+	case reflect.Int:
+		off, v := scanInt64(d.str[d.scan:])
+		d.scan += off
+		bindInt(d.dstPtr, v)
+	case reflect.Int8:
+		off, v := scanInt64(d.str[d.scan:])
+		d.scan += off
+		bindInt8(d.dstPtr, v)
+	case reflect.Int16:
+		off, v := scanInt64(d.str[d.scan:])
+		d.scan += off
+		bindInt16(d.dstPtr, v)
+	case reflect.Int32:
+		off, v := scanInt64(d.str[d.scan:])
+		d.scan += off
+		bindInt32(d.dstPtr, v)
+	case reflect.Int64:
+		off, v := scanInt64(d.str[d.scan:])
+		d.scan += off
+		bindInt64(d.dstPtr, v)
+	case reflect.Uint:
+		off, v := scanUint64(d.str[d.scan:])
+		d.scan += off
+		bindUint(d.dstPtr, v)
+	case reflect.Uint8:
+		off, v := scanUint64(d.str[d.scan:])
+		d.scan += off
+		bindUint8(d.dstPtr, v)
+	case reflect.Uint16:
+		off, v := scanUint64(d.str[d.scan:])
+		d.scan += off
+		bindUint16(d.dstPtr, v)
+	case reflect.Uint32:
+		off, v := scanUint64(d.str[d.scan:])
+		d.scan += off
+		bindUint32(d.dstPtr, v)
+	case reflect.Uint64:
+		off, v := scanUint64(d.str[d.scan:])
+		d.scan += off
+		bindUint64(d.dstPtr, v)
+	case reflect.Float32:
+		v := scanF32Val(d.str[d.scan:])
+		d.scan += 4
+		bindF32(d.dstPtr, v)
+	case reflect.Float64:
+		v := scanF64Val(d.str[d.scan:])
+		d.scan += 8
+		bindF64(d.dstPtr, v)
+	default:
+		panic(errValueType)
+	}
+}
+
 func (dm *decMeta) bindStructDec() {
 	dm.kvPairDec = scanStructValue
 
@@ -441,11 +495,11 @@ nextField:
 		case reflect.Float32:
 			dm.fieldsDec[i] = scanObjF32Value
 		case reflect.Float64:
-			dm.fieldsDec[i] = scanObjFloat64Value
+			//dm.fieldsDec[i] = scanObjFloat64Value
 		case reflect.String:
 			dm.fieldsDec[i] = scanObjStrValue
 		case reflect.Bool:
-			dm.fieldsDec[i] = scanObjBoolValue
+			//dm.fieldsDec[i] = scanObjBoolValue
 		case reflect.Interface:
 			dm.fieldsDec[i] = scanObjAnyValue
 
@@ -497,11 +551,11 @@ nextField:
 	case reflect.Float32:
 		dm.fieldsDec[i] = scanObjPtrF32Value
 	case reflect.Float64:
-		dm.fieldsDec[i] = scanObjPtrFloat64Value
+		//dm.fieldsDec[i] = scanObjPtrFloat64Value
 	case reflect.String:
 		dm.fieldsDec[i] = scanObjPtrStrValue
 	case reflect.Bool:
-		dm.fieldsDec[i] = scanObjPtrBoolValue
+		//dm.fieldsDec[i] = scanObjPtrBoolValue
 	case reflect.Interface:
 		dm.fieldsDec[i] = scanObjPtrAnyValue
 	case reflect.Struct:
@@ -526,38 +580,13 @@ nextField:
 	goto nextField
 }
 
+// List
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (dm *decMeta) bindListItemDec() {
-	// 如果是数组，而且数组项类型不是指针类型
 	if dm.isArrBind {
 		switch dm.itemKind {
-		case reflect.Int:
-			dm.itemDec = scanArrIntValue
-		case reflect.Int8:
-			dm.itemDec = scanArrInt8Value
-		case reflect.Int16:
-			dm.itemDec = scanArrInt16Value
-		case reflect.Int32:
-			dm.itemDec = scanArrInt32Value
-		case reflect.Int64:
-			dm.itemDec = scanArrInt64Value
-		case reflect.Uint:
-			dm.itemDec = scanArrUintValue
-		case reflect.Uint8:
-			dm.itemDec = scanArrUint8Value
-		case reflect.Uint16:
-			dm.itemDec = scanArrUint16Value
-		case reflect.Uint32:
-			dm.itemDec = scanArrUint32Value
-		case reflect.Uint64:
-			dm.itemDec = scanArrUint64Value
-		case reflect.Float32:
-			dm.itemDec = scanArrF32Value
-		case reflect.Float64:
-			dm.itemDec = scanArrFloat64Value
-		case reflect.String:
-			dm.itemDec = scanArrStrValue
-		case reflect.Bool:
-			dm.itemDec = scanArrBoolValue
+		default:
+			return
 		case reflect.Interface:
 			dm.itemDec = scanArrAnyValue
 		case reflect.Struct:
@@ -569,41 +598,12 @@ func (dm *decMeta) bindListItemDec() {
 			}
 		case reflect.Map, reflect.Array, reflect.Slice:
 			dm.itemDec = scanArrMixValue
-		default:
-			panic(errValueType)
 		}
-		return
 	}
 
 	switch dm.itemKind {
-	//case reflect.Int:
-	//	dm.itemDec = scanListIntValue
-	//case reflect.Int8:
-	//	dm.itemDec = scanListInt8Value
-	//case reflect.Int16:
-	//	dm.itemDec = scanListInt16Value
-	//case reflect.Int32:
-	//	dm.itemDec = scanListInt32Value
-	//case reflect.Int64:
-	//	dm.itemDec = scanListInt64Value
-	//case reflect.Uint:
-	//	dm.itemDec = scanListUintValue
-	//case reflect.Uint8:
-	//	dm.itemDec = scanListUint8Value
-	//case reflect.Uint16:
-	//	dm.itemDec = scanListUint16Value
-	//case reflect.Uint32:
-	//	dm.itemDec = scanListUint32Value
-	//case reflect.Uint64:
-	//	dm.itemDec = scanListUint64Value
-	//case reflect.Float32:
-	//	dm.itemDec = scanListF32Value
-	//case reflect.Float64:
-	//	dm.itemDec = scanListFloat64Value
-	//case reflect.String:
-	//	dm.itemDec = scanListStrValue
-	//case reflect.Bool:
-	//	dm.itemDec = scanListBoolValue
+	default:
+		return
 	case reflect.Interface:
 		dm.itemDec = scanListAnyValue
 	case reflect.Struct:
@@ -620,58 +620,105 @@ func (dm *decMeta) bindListItemDec() {
 			dm.itemDec = scanListMixValue // 这里只能是Slice
 		}
 		dm.isArrBind = true // Note：这些情况，无需用到缓冲池
-		//default:
-		//	panic(errValueType)
 	}
 }
 
 func (dm *decMeta) bindListDec() {
-	// 如果是数组，而且数组项类型不是指针类型
+	if !dm.isPtr {
+		switch dm.itemKind {
+		default:
+			panic(errValueType)
 
-	switch dm.itemKind {
-	case reflect.Int:
-		dm.listDec = decIntList
-	case reflect.Int8:
-		dm.listDec = decIntList
-	case reflect.Int16:
-		dm.listDec = decIntList
-	case reflect.Int32:
-		dm.listDec = decIntList
-	case reflect.Int64:
-		dm.listDec = decIntList
-	case reflect.Uint:
-		dm.listDec = decIntList
-	case reflect.Uint8:
-		dm.listDec = decIntList
-	case reflect.Uint16:
-		dm.listDec = decIntList
-	case reflect.Uint32:
-		dm.listDec = decIntList
-	case reflect.Uint64:
-		dm.listDec = decIntList
+		case reflect.Int:
+			dm.listDec = decIntList
+		case reflect.Int8:
+			dm.listDec = decIntList
+		case reflect.Int16:
+			dm.listDec = decIntList
+		case reflect.Int32:
+			dm.listDec = decIntList
+		case reflect.Int64:
+			dm.listDec = decIntList
+		case reflect.Uint:
+			dm.listDec = decIntList
+		case reflect.Uint8:
+			dm.listDec = decIntList
+		case reflect.Uint16:
+			dm.listDec = decIntList
+		case reflect.Uint32:
+			dm.listDec = decIntList
+		case reflect.Uint64:
+			dm.listDec = decIntList
 
-	case reflect.Float32:
-		dm.listDec = decF32List
-	case reflect.Float64:
-		dm.listDec = decF64List
+		case reflect.Float32:
+			dm.listDec = decF32List
+		case reflect.Float64:
+			dm.listDec = decF64List
 
-	case reflect.String:
-		dm.listDec = decStringList
-	case reflect.Bool:
-		dm.listDec = decBoolList
-	case reflect.Interface:
-		dm.listDec = scanListBaseType
+		case reflect.String:
+			dm.listDec = decStrList
+		case reflect.Bool:
+			dm.listDec = decBoolList
 
-	case reflect.Struct:
-		if dm.itemType == cst.TypeTime {
-			dm.listDec = scanListBaseType
-		} else {
-			dm.listDec = scanListStruct
+		case reflect.Interface:
+			dm.listDec = decListBaseType
+		case reflect.Struct:
+			if dm.itemType == cst.TypeTime {
+				dm.listDec = decListBaseType
+			} else {
+				dm.listDec = decListStruct
+			}
+		case reflect.Map, reflect.Array, reflect.Slice:
+			dm.listDec = decListBaseType
 		}
-	case reflect.Map, reflect.Array, reflect.Slice:
-		dm.listDec = scanListBaseType
+		return
+	}
+
+	// 数据项 为 指针类型
+	switch dm.itemKind {
 	default:
 		panic(errValueType)
+
+	//case reflect.Int:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Int8:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Int16:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Int32:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Int64:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Uint:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Uint8:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Uint16:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Uint32:
+	//	dm.listDec = decIntListPtr
+	//case reflect.Uint64:
+	//	dm.listDec = decIntListPtr
+
+	case reflect.Float32:
+		dm.listDec = decF32ListPtr
+	case reflect.Float64:
+		dm.listDec = decF64ListPtr
+
+	case reflect.String:
+		dm.listDec = decStrListPtr
+	case reflect.Bool:
+		dm.listDec = decBoolListPtr
+
+	case reflect.Interface:
+		dm.listDec = decListBaseType
+	case reflect.Struct:
+		if dm.itemType == cst.TypeTime {
+			dm.listDec = decListBaseType
+		} else {
+			dm.listDec = decListStruct
+		}
+	case reflect.Map, reflect.Array, reflect.Slice:
+		dm.listDec = decListBaseType
 	}
-	return
 }

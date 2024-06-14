@@ -39,8 +39,10 @@ const (
 	FixMax      byte = 0xFF // 31
 
 	// TypeList subtypes ++++++++++++++++++++++++
-	ListMask    byte = 0b11000000
-	ListValMask byte = 0b00111111
+	ListMask      byte = 0b11000000
+	ListValMask   byte = 0b00111111
+	ListVarIntPos byte = 0b00000000
+	ListVarIntNeg byte = 0b10000000
 
 	ListVarInt    byte = 0x00
 	ListFixInt8   byte = 0x01
@@ -63,14 +65,17 @@ const (
 )
 
 const (
-	Max1BUint uint64 = 0x00000000000000FF
-	Max2BUint uint64 = 0x000000000000FFFF
-	Max3BUint uint64 = 0x0000000000FFFFFF
-	Max4BUint uint64 = 0x00000000FFFFFFFF
-	Max5BUint uint64 = 0x000000FFFFFFFFFF
-	Max6BUint uint64 = 0x0000FFFFFFFFFFFF
-	Max7BUint uint64 = 0x00FFFFFFFFFFFFFF
-	Max8BUint uint64 = 0xFFFFFFFFFFFFFFFF
+	MaxUint05 uint64 = 0x000000000000001F // 5
+	MaxUint08 uint64 = 0x00000000000000FF // 8
+	MaxUint13 uint64 = 0x0000000000001FFF // 5 + 8
+	MaxUint16 uint64 = 0x000000000000FFFF // 8 + 8
+	MaxUint21 uint64 = 0x00000000001FFFFF // 5 + 8 + 8
+	MaxUint24 uint64 = 0x0000000000FFFFFF
+	MaxUint32 uint64 = 0x00000000FFFFFFFF
+	MaxUint40 uint64 = 0x000000FFFFFFFFFF
+	MaxUint48 uint64 = 0x0000FFFFFFFFFFFF
+	MaxUint56 uint64 = 0x00FFFFFFFFFFFFFF
+	MaxUint64 uint64 = 0xFFFFFFFFFFFFFFFF
 )
 
 //func typeValue(b byte) (uint8, uint8) {
@@ -174,6 +179,7 @@ const (
 	errNull      errType = -16
 	errObject    errType = -17
 	errList      errType = -18
+	errListType  errType = -18
 	errBool      errType = -19
 	errSupport   errType = -20
 )

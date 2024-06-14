@@ -8,7 +8,7 @@ import (
 //	//d.columns = d.columns[0:0]
 //}
 
-func scanListStruct(d *subDecode, listSize int) {
+func decListStruct(d *subDecode, listSize int) {
 	//d.resetForListStruct()
 	offS := d.scan
 
