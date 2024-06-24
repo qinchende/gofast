@@ -16,10 +16,11 @@ import (
 type (
 	//encKeyFunc func(bf *[]byte, ptr unsafe.Pointer)
 	encValFunc  func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
-	encListFunc func(e *subEncode, listSize int)
+	encListFunc func(e *subEncode)
 
 	subEncode struct {
 		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
+		slice  rt.SliceHeader // 用于将数组模拟成切片
 		em     *encMeta       // Struct | Slice,Array
 		bf     *[]byte        // 当解析数组时候用到的一系列临时队列
 		//objIdx uint16         // TODO：涉及多少种不同的Struct
@@ -94,25 +95,11 @@ func encMixedItem(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 }
 
 func (se *subEncode) startEncode() {
-	// Note: add by sdx on 2024-06-06
-	// 这里将数组和切片的情况合并考虑，简化了代码；
-	// 但通常我们遇到的都是切片类型，如果分开处理，将能进一步提高约 10% 的性能。
-	if se.em.isList {
-		listSize := 0
-		if !se.em.isArray {
-			sh := (*rt.SliceHeader)(se.srcPtr)
-			se.srcPtr = sh.DataPtr
-			listSize = sh.Len
-		} else {
-			listSize = se.em.arrLen
-		}
-		se.em.listEnc(se, listSize)
-		return
-	}
-
 	switch {
 	default:
 		se.encBasic()
+	case se.em.isList:
+		se.encList()
 	case se.em.isStruct:
 		se.encStruct()
 	case se.em.isMap:

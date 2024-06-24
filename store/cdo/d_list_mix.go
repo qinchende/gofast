@@ -8,12 +8,12 @@ import (
 //	//d.columns = d.columns[0:0]
 //}
 
-func decListStruct(d *subDecode, listSize int) {
+func decListStruct(d *subDecode, tLen int) {
 	//d.resetForListStruct()
 	offS := d.scan
 
 	//// 1. List length ++++++++++++++++++++++++++++++++++++++++++
-	//off1, typ, size1 := scanTypeLen4(d.str[offS:])
+	//off1, typ, size1 := scanTypeU32By6(d.str[offS:])
 	//if typ != TypeArrSame {
 	//	panic(errChar)
 	//}
@@ -35,18 +35,18 @@ func decListStruct(d *subDecode, listSize int) {
 	d.scan = offS
 
 	// 3. Records value ++++++++++++++++++++++++++++++++++++++++
-	//listSize := int(size1)
-	//ptr := rt.SliceToArray(d.dstPtr, d.dm.itemMemSize, listSize) // 当切片类型时 []struct
+	//tLen := int(size1)
+	//ptr := rt.SliceToArray(d.dstPtr, d.dm.itemMemSize, tLen) // 当切片类型时 []struct
 
 	// 循环记录
-	for i := 0; i < listSize; i++ {
+	for i := 0; i < tLen; i++ {
 		d.dstPtr = unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
 		//itemPtr := d.dstPtr
 
 		// 如果是指针比如：[]*struct，需要分配空间
 		if d.dm.isPtr {
 			// 本项值为nil，直接跳过本条记录解析
-			if d.str[d.scan] == FixMixedNil {
+			if d.str[d.scan] == FixNilMixed {
 				d.scan++
 				continue
 			}

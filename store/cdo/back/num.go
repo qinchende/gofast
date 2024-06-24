@@ -5,64 +5,142 @@ package back
 //	"golang.org/x/exp/constraints"
 //	"unsafe"
 //)
+
+//	func encU16By5(bf *[]byte, sym uint8, v uint64) {
+//		*bf = encU16By5Ret(*bf, sym, v)
+//	}
 //
-//// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-//func encU64VarUint(bs []byte, v uint64) []byte {
+//	func encU16By5Ret(bs []byte, sym uint8, v uint64) []byte {
+//		switch {
+//		default:
+//			panic(errOutRange)
+//		case v <= 29:
+//			bs = append(bs, sym|(uint8(v)))
+//		case v <= MaxUint08:
+//			bs = append(bs, sym|30, uint8(v))
+//		case v <= MaxUint16:
+//			bs = append(bs, sym|31, byte(v), byte(v>>8))
+//		}
+//		return bs
+//	}
+
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func encU64By7RetPart1(bs []byte, sym byte, v uint64) []byte {
 //	switch {
-//	case v <= MaxUint05:
-//		bs = append(bs, 0x00|(uint8(v)))
-//	case v <= MaxUint13:
-//		bs = append(bs, 0x20|byte(v>>8), uint8(v))
-//	case v <= MaxUint21:
-//		bs = append(bs, 0x40|byte(v>>16), byte(v>>8), byte(v))
+//	case v <= 119:
+//		bs = append(bs, sym|(byte(v)))
+//	case v <= MaxUint08:
+//		bs = append(bs, sym|120, byte(v))
+//	case v <= MaxUint16:
+//		bs = append(bs, sym|121, byte(v), byte(v>>8))
+//	case v <= MaxUint24:
+//		bs = append(bs, sym|122, byte(v), byte(v>>8), byte(v>>16))
 //	}
 //	return bs
 //}
 //
 ////go:noinline
-//func encU64VarUint2(bs []byte, v uint64) []byte {
+//func encU64By7RetPart2(bs []byte, sym byte, v uint64) []byte {
 //	switch {
-//	case v <= MaxUint24:
-//		bs = append(bs, 0x63, byte(v), byte(v>>8), byte(v>>16))
 //	case v <= MaxUint32:
-//		bs = append(bs, 0x64, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
+//		bs = append(bs, sym|123, byte(v), byte(v>>8), byte(v>>16), byte(v>>24))
 //	case v <= MaxUint40:
-//		bs = append(bs, 0x65, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32))
+//		bs = append(bs, sym|124, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32))
 //	case v <= MaxUint48:
-//		bs = append(bs, 0x66, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40))
+//		bs = append(bs, sym|125, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40))
 //	case v <= MaxUint56:
-//		bs = append(bs, 0x67, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48))
+//		bs = append(bs, sym|126, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48))
 //	case v <= MaxUint64:
-//		bs = append(bs, 0x68, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+//		bs = append(bs, sym|127, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
 //	}
 //	return bs
 //}
 //
-//func encListInt[T constraints.Integer](se *subEncode, listSize int) {
-//	encU24By5(se.bf, TypeList, uint64(listSize))
-//
+
+//func encListVarInt[T constraints.Integer](se *subEncode, tLen int) {
 //	bs := *se.bf
-//	bs = append(bs, ListVarInt)
-//	for i := 0; i < listSize; i++ {
+//	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListVarInt)
+//	for i := 0; i < tLen; i++ {
 //		iPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 //		v := *((*T)(iPtr))
 //		if v >= 0 {
-//			if uint64(v) <= MaxUint21 {
-//				bs = encU64VarUint(bs, uint64(v))
+//			if uint64(v) <= MaxUint24 {
+//				bs = encU64By7RetPart1(bs, ListVarIntPos, uint64(v))
 //			} else {
-//				bs = encU64VarUint2(bs, uint64(v))
+//				bs = encU64By7RetPart2(bs, ListVarIntPos, uint64(v))
 //			}
 //		} else {
-//			if uint64(-v) <= MaxUint21 {
-//				bs = encU64VarUint(bs, uint64(-v))
+//			if uint64(-v) <= MaxUint24 {
+//				bs = encU64By7RetPart1(bs, ListVarIntNeg, uint64(-v))
 //			} else {
-//				bs = encU64VarUint2(bs, uint64(-v))
+//				bs = encU64By7RetPart2(bs, ListVarIntNeg, uint64(-v))
 //			}
 //		}
 //	}
 //	*se.bf = bs
 //}
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+//func scanU64ValBy7(s string) (byte, int, uint64) {
+//	typ, v := listVarIntHead(s[0])
+//	var off int
+//	if v <= 122 {
+//		off, v = scanU64ValBy7Part1(s, v)
+//	} else {
+//		off, v = scanU64ValBy7Part2(s, v)
+//	}
+//	return typ, off, v
+//}
 //
+//func scanU64ValBy7Part1(s string, v uint64) (int, uint64) {
+//	if v <= 119 {
+//		return 1, v
+//	}
+//	switch v {
+//	case 120:
+//		return 2, uint64(s[1])
+//	case 121:
+//		return 3, uint64(s[1]) | uint64(s[2])<<8
+//	case 122:
+//		return 4, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16
+//	}
+//	panic(errChar)
+//}
+//
+////go:noinline
+//func scanU64ValBy7Part2(s string, v uint64) (int, uint64) {
+//	switch v {
+//	case 123:
+//		return 5, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24
+//	case 124:
+//		return 6, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32
+//	case 125:
+//		return 7, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40
+//	case 126:
+//		return 8, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48
+//	case 127:
+//		return 9, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56
+//	}
+//	panic(errChar)
+//}
+
+//func decInt64List(d *subDecode, tLen int) {
+//	list := *(*[]int64)(unsafe.Pointer(&d.slice))
+//	offS := validListItemType(d, ListVarInt)
+//	for i := 0; i < len(list); i++ {
+//		sym, v := listVarIntHead(d.str[offS])
+//		var off int
+//		if v <= 122 {
+//			off, v = scanU64ValBy7Part1(d.str[offS:], v)
+//		} else {
+//			off, v = scanU64ValBy7Part2(d.str[offS:], v)
+//		}
+//		list[i] = toInt64(sym, v)
+//		offS += off
+//	}
+//	d.scan = offS
+//}
+
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //// @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
 //func scanVarInt(s string, size uint64) (int, uint64) {
@@ -95,13 +173,13 @@ package back
 //	}
 //}
 //
-//func decIntList(d *subDecode, listSize int) {
+//func decIntList(d *subDecode, tLen int) {
 //	offS := d.scan
 //	if d.str[offS] != ListVarInt {
 //		panic(errChar)
 //	}
 //	offS++
-//	for i := 0; i < listSize; i++ {
+//	for i := 0; i < tLen; i++ {
 //		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
 //
 //		//Part0

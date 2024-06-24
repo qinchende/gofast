@@ -6,14 +6,13 @@ import (
 )
 
 func (d *subDecode) scanList() {
-	// 1. source item length
-	off1, itemLen := scanListTypeU24(d.str[d.scan:])
+	off1, tLen := scanListTypeU24(d.str[d.scan:])
 	d.scan += off1
 
-	if d.dm.isList {
-		d.scanSlice(int(itemLen))
+	if d.dm.isSlice {
+		d.scanSlice(int(tLen))
 	} else {
-		d.scanArray(int(itemLen))
+		d.scanArray(int(tLen))
 	}
 }
 
@@ -24,13 +23,13 @@ func (d *subDecode) scanSlice(size int) {
 }
 
 func (d *subDecode) scanArray(size int) {
+	// 数据源中的数据量和数组大小不匹配的时候直接异常
+	if d.dm.arrLen != size {
+		panic(errListSize)
+	}
 	d.slice = rt.SliceHeader{DataPtr: d.dstPtr, Len: size, Cap: size}
 	d.dm.listDec(d, size)
 
-	//// 数组多余的部分需要重置成类型零值
-	//if d.arrIdx < d.dm.arrLen {
-	//	d.resetArrLeftItems()
-	//}
 	//// 清理变量
 	//if d.share != nil {
 	//	d.resetShareDecode()
@@ -38,7 +37,7 @@ func (d *subDecode) scanArray(size int) {
 }
 
 // 检查 List item type 是否符合预期
-func checkListItemType(d *subDecode, typ byte) int {
+func validListItemType(d *subDecode, typ byte) int {
 	offS := d.scan
 	if d.str[offS] != typ {
 		panic(errListType)
@@ -47,11 +46,11 @@ func checkListItemType(d *subDecode, typ byte) int {
 	return offS
 }
 
-func decListBaseType(d *subDecode, listSize int) {
+func decListBaseType(d *subDecode, tLen int) {
 	skipValue := false
 
 	// 循环记录
-	for i := 0; i < listSize; i++ {
+	for i := 0; i < tLen; i++ {
 		d.dstPtr = unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
 
 		if d.dm.isPtr {
@@ -77,10 +76,10 @@ func decListBaseType(d *subDecode, listSize int) {
 	}
 }
 
-func decListItemPtr(d *subDecode, listSize int, typ byte, fn func(iPtr unsafe.Pointer, s string) int) {
-	offS := checkListItemType(d, typ)
+func decListItemPtr(d *subDecode, tLen int, typ byte, fn func(iPtr unsafe.Pointer, s string) int) {
+	offS := validListItemType(d, typ)
 	ptrS := d.dm.itemMemSize
-	for i := 0; i < listSize; i++ {
+	for i := 0; i < tLen; i++ {
 		iPtr := unsafe.Add(d.dstPtr, i*ptrS)
 		if d.str[offS] == FixNil {
 			*(*unsafe.Pointer)(iPtr) = nil
@@ -95,35 +94,270 @@ func decListItemPtr(d *subDecode, listSize int, typ byte, fn func(iPtr unsafe.Po
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++ int +++
-func decIntList(d *subDecode, listSize int) {
+func decIntList(d *subDecode, tLen int) {
 	list := *(*[]int)(unsafe.Pointer(&d.slice))
-	offS := checkListItemType(d, ListVarInt)
+	offS := validListItemType(d, ListVarInt)
 	for i := 0; i < len(list); i++ {
-		c := d.str[offS]
-		typ := c & 0x80
-		v := uint64(c & 0x7F)
-
+		sym, v := listVarIntHead(d.str[offS])
 		var off int
-		if v <= 122 {
-			off, v = scanU64ValBy7Part1(d.str[offS:], v)
+		if v <= 0x63 {
+			off, v = scanListVarIntPart1(d.str[offS:], v)
 		} else {
-			off, v = scanU64ValBy7Part2(d.str[offS:], v)
+			off, v = scanListVarIntPart2(d.str[offS:], v)
 		}
-		if typ == ListVarIntPos {
-			list[i] = int(v)
-		} else {
-			list[i] = int(-v)
-		}
+		list[i] = toInt(sym, v)
 		offS += off
 	}
 	d.scan = offS
 }
 
+func decIntListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindInt(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ int8 +++
+func decInt8List(d *subDecode, tLen int) {
+	list := *(*[]int8)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x3F {
+			off, v = scanListVarInt8(d.str[offS:], v)
+		} else {
+			panic(errInfinity)
+		}
+		list[i] = toInt8(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decInt8ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindInt8(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ int16 +++
+func decInt16List(d *subDecode, tLen int) {
+	list := *(*[]int16)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x40 {
+			off, v = scanListVarInt16(d.str[offS:], v)
+		} else {
+			panic(errInfinity)
+		}
+		list[i] = toInt16(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decInt16ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindInt16(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ int32 +++
+func decInt32List(d *subDecode, tLen int) {
+	list := *(*[]int32)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x63 {
+			off, v = scanListVarIntPart1(d.str[offS:], v)
+		} else {
+			off, v = scanListVarIntPart2(d.str[offS:], v)
+		}
+		list[i] = toInt32(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decInt32ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindInt32(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ int64 +++
+func decInt64List(d *subDecode, tLen int) {
+	list := *(*[]int64)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x63 {
+			off, v = scanListVarIntPart1(d.str[offS:], v)
+		} else {
+			off, v = scanListVarIntPart2(d.str[offS:], v)
+		}
+		list[i] = toInt64(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decInt64ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindInt64(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ uint +++
+func decUintList(d *subDecode, tLen int) {
+	list := *(*[]uint)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x63 {
+			off, v = scanListVarIntPart1(d.str[offS:], v)
+		} else {
+			off, v = scanListVarIntPart2(d.str[offS:], v)
+		}
+		list[i] = toUint(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decUintListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindUint(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ uint8 +++
+func decUint8List(d *subDecode, tLen int) {
+	list := *(*[]uint8)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x3F {
+			off, v = scanListVarInt8(d.str[offS:], v)
+		} else {
+			panic(errInfinity)
+		}
+		list[i] = toUint8(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decUint8ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindUint8(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ uint16 +++
+func decUint16List(d *subDecode, tLen int) {
+	list := *(*[]uint16)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x40 {
+			off, v = scanListVarInt16(d.str[offS:], v)
+		} else {
+			panic(errInfinity)
+		}
+		list[i] = toUint16(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decUint16ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindUint16(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ uint32 +++
+func decUint32List(d *subDecode, tLen int) {
+	list := *(*[]uint32)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x63 {
+			off, v = scanListVarIntPart1(d.str[offS:], v)
+		} else {
+			off, v = scanListVarIntPart2(d.str[offS:], v)
+		}
+		list[i] = toUint32(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decUint32ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindUint32(iPtr, sym, v)
+		return off
+	})
+}
+
+// +++ uint64 +++
+func decUint64List(d *subDecode, tLen int) {
+	list := *(*[]uint64)(unsafe.Pointer(&d.slice))
+	offS := validListItemType(d, ListVarInt)
+	for i := 0; i < len(list); i++ {
+		sym, v := listVarIntHead(d.str[offS])
+		var off int
+		if v <= 0x63 {
+			off, v = scanListVarIntPart1(d.str[offS:], v)
+		} else {
+			off, v = scanListVarIntPart2(d.str[offS:], v)
+		}
+		list[i] = toUint64(sym, v)
+		offS += off
+	}
+	d.scan = offS
+}
+
+func decUint64ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListVarInt, func(iPtr unsafe.Pointer, s string) int {
+		sym, off, v := scanListVarInt(s)
+		bindUint64(iPtr, sym, v)
+		return off
+	})
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++ F32 +++
-func decF32List(d *subDecode, listSize int) {
+func decF32List(d *subDecode, tLen int) {
 	list := *(*[]float32)(unsafe.Pointer(&d.slice))
-	offS := checkListItemType(d, ListF32)
+	offS := validListItemType(d, ListF32)
 	for i := 0; i < len(list); i++ {
 		list[i] = scanF32Val(d.str[offS:])
 		offS += 4
@@ -131,17 +365,17 @@ func decF32List(d *subDecode, listSize int) {
 	d.scan = offS
 }
 
-func decF32ListPtr(d *subDecode, listSize int) {
-	decListItemPtr(d, listSize, ListF32, func(iPtr unsafe.Pointer, s string) int {
+func decF32ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListF32, func(iPtr unsafe.Pointer, s string) int {
 		bindF32(iPtr, scanF32Val(s))
 		return 4
 	})
 }
 
 // +++ F64 +++
-func decF64List(d *subDecode, listSize int) {
+func decF64List(d *subDecode, tLen int) {
 	list := *(*[]float64)(unsafe.Pointer(&d.slice))
-	offS := checkListItemType(d, ListF64)
+	offS := validListItemType(d, ListF64)
 	for i := 0; i < len(list); i++ {
 		list[i] = scanF64Val(d.str[offS:])
 		offS += 8
@@ -149,17 +383,17 @@ func decF64List(d *subDecode, listSize int) {
 	d.scan = offS
 }
 
-func decF64ListPtr(d *subDecode, listSize int) {
-	decListItemPtr(d, listSize, ListF64, func(iPtr unsafe.Pointer, s string) int {
+func decF64ListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListF64, func(iPtr unsafe.Pointer, s string) int {
 		bindF64(iPtr, scanF64Val(s))
 		return 8
 	})
 }
 
 // +++ Bool +++
-func decBoolList(d *subDecode, listSize int) {
+func decBoolList(d *subDecode, tLen int) {
 	list := *(*[]bool)(unsafe.Pointer(&d.slice))
-	offS := checkListItemType(d, ListBool)
+	offS := validListItemType(d, ListBool)
 	for i := 0; i < len(list); i++ {
 		list[i] = scanBoolVal(d.str[offS:])
 		offS += 1
@@ -167,17 +401,17 @@ func decBoolList(d *subDecode, listSize int) {
 	d.scan = offS
 }
 
-func decBoolListPtr(d *subDecode, listSize int) {
-	decListItemPtr(d, listSize, ListBool, func(iPtr unsafe.Pointer, s string) int {
+func decBoolListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListBool, func(iPtr unsafe.Pointer, s string) int {
 		bindBool(iPtr, scanBoolVal(s))
 		return 1
 	})
 }
 
 // +++ String +++
-func decStrList(d *subDecode, listSize int) {
+func decStrList(d *subDecode, tLen int) {
 	list := *(*[]string)(unsafe.Pointer(&d.slice))
-	offS := checkListItemType(d, ListStr)
+	offS := validListItemType(d, ListStr)
 	for i := 0; i < len(list); i++ {
 		off, str := scanString(d.str[offS:])
 		list[i] = str
@@ -186,8 +420,8 @@ func decStrList(d *subDecode, listSize int) {
 	d.scan = offS
 }
 
-func decStrListPtr(d *subDecode, listSize int) {
-	decListItemPtr(d, listSize, ListStr, func(iPtr unsafe.Pointer, s string) int {
+func decStrListPtr(d *subDecode, tLen int) {
+	decListItemPtr(d, tLen, ListStr, func(iPtr unsafe.Pointer, s string) int {
 		off, str := scanString(s)
 		bindString(iPtr, str)
 		return off

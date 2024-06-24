@@ -19,7 +19,7 @@ import (
 type (
 	decValFunc    func(d *subDecode)
 	decKVPairFunc func(d *subDecode, key string)
-	decListFunc   func(d *subDecode, listSize int)
+	decListFunc   func(d *subDecode, tLen int)
 
 	subDecode struct {
 		share *subDecode // 共享的subDecode，用来解析子对象
@@ -404,45 +404,25 @@ func scanJustBaseValue(d *subDecode) {
 	// NOTE：只能是数值类型
 	switch d.dm.itemKind {
 	case reflect.Int:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt(d.dstPtr, v)
+
 	case reflect.Int8:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt8(d.dstPtr, v)
+
 	case reflect.Int16:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt16(d.dstPtr, v)
+
 	case reflect.Int32:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt32(d.dstPtr, v)
+
 	case reflect.Int64:
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt64(d.dstPtr, v)
+
 	case reflect.Uint:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint(d.dstPtr, v)
+
 	case reflect.Uint8:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint8(d.dstPtr, v)
+
 	case reflect.Uint16:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint16(d.dstPtr, v)
+
 	case reflect.Uint32:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint32(d.dstPtr, v)
+
 	case reflect.Uint64:
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint64(d.dstPtr, v)
+
 	case reflect.Float32:
 		v := scanF32Val(d.str[d.scan:])
 		d.scan += 4
@@ -495,11 +475,11 @@ nextField:
 		case reflect.Float32:
 			dm.fieldsDec[i] = scanObjF32Value
 		case reflect.Float64:
-			//dm.fieldsDec[i] = scanObjFloat64Value
+			dm.fieldsDec[i] = scanObjF64Value
 		case reflect.String:
 			dm.fieldsDec[i] = scanObjStrValue
 		case reflect.Bool:
-			//dm.fieldsDec[i] = scanObjBoolValue
+			dm.fieldsDec[i] = scanObjBoolValue
 		case reflect.Interface:
 			dm.fieldsDec[i] = scanObjAnyValue
 
@@ -551,11 +531,11 @@ nextField:
 	case reflect.Float32:
 		dm.fieldsDec[i] = scanObjPtrF32Value
 	case reflect.Float64:
-		//dm.fieldsDec[i] = scanObjPtrFloat64Value
+		dm.fieldsDec[i] = scanObjPtrF64Value
 	case reflect.String:
 		dm.fieldsDec[i] = scanObjPtrStrValue
 	case reflect.Bool:
-		//dm.fieldsDec[i] = scanObjPtrBoolValue
+		dm.fieldsDec[i] = scanObjPtrBoolValue
 	case reflect.Interface:
 		dm.fieldsDec[i] = scanObjPtrAnyValue
 	case reflect.Struct:
@@ -632,23 +612,23 @@ func (dm *decMeta) bindListDec() {
 		case reflect.Int:
 			dm.listDec = decIntList
 		case reflect.Int8:
-			dm.listDec = decIntList
+			dm.listDec = decInt8List
 		case reflect.Int16:
-			dm.listDec = decIntList
+			dm.listDec = decInt16List
 		case reflect.Int32:
-			dm.listDec = decIntList
+			dm.listDec = decInt32List
 		case reflect.Int64:
-			dm.listDec = decIntList
+			dm.listDec = decInt64List
 		case reflect.Uint:
-			dm.listDec = decIntList
+			dm.listDec = decUintList
 		case reflect.Uint8:
-			dm.listDec = decIntList
+			dm.listDec = decUint8List
 		case reflect.Uint16:
-			dm.listDec = decIntList
+			dm.listDec = decUint16List
 		case reflect.Uint32:
-			dm.listDec = decIntList
+			dm.listDec = decUint32List
 		case reflect.Uint64:
-			dm.listDec = decIntList
+			dm.listDec = decUint64List
 
 		case reflect.Float32:
 			dm.listDec = decF32List
@@ -679,26 +659,26 @@ func (dm *decMeta) bindListDec() {
 	default:
 		panic(errValueType)
 
-	//case reflect.Int:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Int8:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Int16:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Int32:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Int64:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Uint:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Uint8:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Uint16:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Uint32:
-	//	dm.listDec = decIntListPtr
-	//case reflect.Uint64:
-	//	dm.listDec = decIntListPtr
+	case reflect.Int:
+		dm.listDec = decIntListPtr
+	case reflect.Int8:
+		dm.listDec = decInt8ListPtr
+	case reflect.Int16:
+		dm.listDec = decInt16ListPtr
+	case reflect.Int32:
+		dm.listDec = decInt32ListPtr
+	case reflect.Int64:
+		dm.listDec = decInt64ListPtr
+	case reflect.Uint:
+		dm.listDec = decUintListPtr
+	case reflect.Uint8:
+		dm.listDec = decUint8ListPtr
+	case reflect.Uint16:
+		dm.listDec = decUint16ListPtr
+	case reflect.Uint32:
+		dm.listDec = decUint32ListPtr
+	case reflect.Uint64:
+		dm.listDec = decUint64ListPtr
 
 	case reflect.Float32:
 		dm.listDec = decF32ListPtr
