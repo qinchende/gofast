@@ -2,75 +2,168 @@ package cdo
 
 import (
 	"github.com/qinchende/gofast/core/cst"
-	"math"
 	"time"
 	"unsafe"
 )
 
-// int
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-
-func bindInt(p unsafe.Pointer, v int64) {
-	*(*int)(p) = int(v)
+// ++ int ++
+func bindInt(p unsafe.Pointer, sym byte, v uint64) {
+	*(*int)(p) = toInt(sym, v)
 }
 
-func bindInt8(p unsafe.Pointer, v int64) {
-	if v < math.MinInt8 || v > math.MaxInt8 {
+func toInt(sym byte, v uint64) int {
+	if sym>>7 == 0 {
+		if v >= OverInt {
+			panic(errInfinity)
+		}
+		return int(v)
+	} else {
+		if v > OverInt {
+			panic(errInfinity)
+		}
+		return int(-v)
+	}
+}
+
+// ++ uint ++
+func bindUint(p unsafe.Pointer, sym byte, v uint64) {
+	*(*uint)(p) = toUint(sym, v)
+}
+
+func toUint(sym byte, v uint64) uint {
+	if sym>>7 == 1 || v > MaxUint {
 		panic(errInfinity)
 	}
-	*(*int8)(p) = int8(v)
+	return uint(v)
 }
 
-func bindInt16(p unsafe.Pointer, v int64) {
-	if v < math.MinInt16 || v > math.MaxInt16 {
+// ++ int8 ++
+func bindInt8(p unsafe.Pointer, sym byte, v uint64) {
+	*(*int8)(p) = toInt8(sym, v)
+}
+
+func toInt8(sym byte, v uint64) int8 {
+	if sym>>7 == 0 {
+		if v >= OverInt08 {
+			panic(errInfinity)
+		}
+		return int8(v)
+	} else {
+		if v > OverInt08 {
+			panic(errInfinity)
+		}
+		return int8(-v)
+	}
+}
+
+// ++ uint8 ++
+func bindUint8(p unsafe.Pointer, sym byte, v uint64) {
+	*(*uint8)(p) = toUint8(sym, v)
+}
+
+func toUint8(sym byte, v uint64) uint8 {
+	if sym>>7 == 1 || v > MaxUint08 {
 		panic(errInfinity)
 	}
-	*(*int16)(p) = int16(v)
+	return uint8(v)
 }
 
-func bindInt32(p unsafe.Pointer, v int64) {
-	if v < math.MinInt32 || v > math.MaxInt32 {
+// ++ int16 ++
+func bindInt16(p unsafe.Pointer, sym byte, v uint64) {
+	*(*int16)(p) = toInt16(sym, v)
+}
+
+func toInt16(sym byte, v uint64) int16 {
+	if sym>>7 == 0 {
+		if v >= OverInt16 {
+			panic(errInfinity)
+		}
+		return int16(v)
+	} else {
+		if v > OverInt16 {
+			panic(errInfinity)
+		}
+		return int16(-v)
+	}
+}
+
+// ++ uint16 ++
+func bindUint16(p unsafe.Pointer, sym byte, v uint64) {
+	*(*uint16)(p) = toUint16(sym, v)
+}
+
+func toUint16(sym byte, v uint64) uint16 {
+	if sym>>7 == 1 || v > MaxUint16 {
 		panic(errInfinity)
 	}
-	*(*int32)(p) = int32(v)
+	return uint16(v)
 }
 
-func bindInt64(p unsafe.Pointer, v int64) {
-	*(*int64)(p) = v
+// ++ int32 ++
+func bindInt32(p unsafe.Pointer, sym byte, v uint64) {
+	*(*int32)(p) = toInt32(sym, v)
 }
 
-// uint
-func bindUint(p unsafe.Pointer, v uint64) {
-	*(*uint)(p) = uint(v)
+func toInt32(sym byte, v uint64) int32 {
+	if sym>>7 == 0 {
+		if v >= OverInt32 {
+			panic(errInfinity)
+		}
+		return int32(v)
+	} else {
+		if v > OverInt32 {
+			panic(errInfinity)
+		}
+		return int32(-v)
+	}
 }
 
-func bindUint8(p unsafe.Pointer, v uint64) {
-	if v > MaxUint08 {
+// ++ uint32 ++
+func bindUint32(p unsafe.Pointer, sym byte, v uint64) {
+	*(*uint32)(p) = toUint32(sym, v)
+}
+
+func toUint32(sym byte, v uint64) uint32 {
+	if sym>>7 == 1 || v > MaxUint32 {
 		panic(errInfinity)
 	}
-	*(*uint8)(p) = uint8(v)
+	return uint32(v)
 }
 
-func bindUint16(p unsafe.Pointer, v uint64) {
-	if v > MaxUint16 {
+// ++ int64 ++
+func bindInt64(p unsafe.Pointer, sym byte, v uint64) {
+	*(*int64)(p) = toInt64(sym, v)
+}
+
+func toInt64(sym byte, v uint64) int64 {
+	if sym>>7 == 0 {
+		if v >= OverInt64 {
+			panic(errInfinity)
+		}
+		return int64(v)
+	} else {
+		if v > OverInt64 {
+			panic(errInfinity)
+		}
+		return int64(-v)
+	}
+}
+
+// ++ uint64 ++
+func bindUint64(p unsafe.Pointer, sym byte, v uint64) {
+	*(*uint64)(p) = toUint64(sym, v)
+}
+
+func toUint64(sym byte, v uint64) uint64 {
+	if sym>>7 == 1 {
 		panic(errInfinity)
 	}
-	*(*uint16)(p) = uint16(v)
+	return v
 }
 
-func bindUint32(p unsafe.Pointer, v uint64) {
-	if v > MaxUint32 {
-		panic(errInfinity)
-	}
-	*(*uint32)(p) = uint32(v)
-}
-
-func bindUint64(p unsafe.Pointer, v uint64) {
-	*(*uint64)(p) = v
-}
-
-// float
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// float ++++++++++++++++++++++++++++++++++++++++++++
 func bindF32(p unsafe.Pointer, v float32) {
 	*(*float32)(p) = v
 }
@@ -79,12 +172,12 @@ func bindF64(p unsafe.Pointer, v float64) {
 	*(*float64)(p) = v
 }
 
-// []byte
+// []byte ++++++++++++++++++++++++++++++++++++++++++++
 func bindBytes(p unsafe.Pointer, v []byte) {
 	*(*[]byte)(p) = v
 }
 
-// string & bool & any
+// string & bool & any +++++++++++++++++++++++++++++++
 func bindString(p unsafe.Pointer, v string) {
 	*(*string)(p) = v
 }
@@ -97,6 +190,7 @@ func bindAny(p unsafe.Pointer, v any) {
 	*(*any)(p) = v
 }
 
+// time ++++++++++++++++++++++++++++++++++++++++++++
 // 时间默认都是按 RFC3339 格式存储并解析
 func bindTime(p unsafe.Pointer, v string) {
 	if tm, err := time.Parse(cst.TimeFmtRFC3339, v); err != nil {
@@ -104,324 +198,4 @@ func bindTime(p unsafe.Pointer, v string) {
 	} else {
 		*(*time.Time)(p) = tm
 	}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-// int +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrIntValue(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjIntValue(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt(fieldPtr(d), v)
-}
-
-// int8 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrInt8Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt8(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjInt8Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt8(fieldPtr(d), v)
-}
-
-// int16 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrInt16Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt16(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjInt16Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt16(fieldPtr(d), v)
-}
-
-// int32 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrInt32Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt32(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjInt32Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt32(fieldPtr(d), v)
-}
-
-// int64 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrInt64Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanInt64(d.str[d.scan:])
-		d.scan += off
-		bindInt64(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjInt64Value(d *subDecode) {
-	off, v := scanInt64(d.str[d.scan:])
-	d.scan += off
-	bindInt64(fieldPtr(d), v)
-}
-
-// uint +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrUintValue(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjUintValue(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint(fieldPtr(d), v)
-}
-
-// uint8 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrUint8Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint8(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjUint8Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint8(fieldPtr(d), v)
-}
-
-// uint16 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrUint16Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint16(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjUint16Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint16(fieldPtr(d), v)
-}
-
-// uint32 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrUint32Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint32(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjUint32Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint32(fieldPtr(d), v)
-}
-
-// uint64 +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrUint64Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, v := scanUint64(d.str[d.scan:])
-		d.scan += off
-		bindUint64(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjUint64Value(d *subDecode) {
-	off, v := scanUint64(d.str[d.scan:])
-	d.scan += off
-	bindUint64(fieldPtr(d), v)
-}
-
-// float32
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrF32Value(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		v := scanF32Val(d.str[d.scan:])
-		d.scan += 4
-		bindF32(fieldPtrDeep(d), v)
-	}
-}
-
-func scanObjF32Value(d *subDecode) {
-	v := scanF32Val(d.str[d.scan:])
-	d.scan += 4
-	bindF32(fieldPtr(d), v)
-}
-
-// float64
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//func scanListFloat64Value(d *subDecode) {
-//	off, v := scanF64Val(d.str[d.scan:])
-//	d.scan += off
-//	d.pl.bufF64 = append(d.pl.bufF64, v)
-//}
-
-// string +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjPtrStrValue(d *subDecode) {
-	if d.str[d.scan] == FixNil {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		off, str := scanString(d.str[d.scan:])
-		d.scan += off
-		bindString(fieldPtrDeep(d), str)
-	}
-}
-
-func scanObjStrValue(d *subDecode) {
-	off, str := scanString(d.str[d.scan:])
-	d.scan += off
-	bindString(fieldPtr(d), str)
-}
-
-// []byte +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjBytesValue(d *subDecode) {
-	off, bs := scanBytes(d.str[d.scan:])
-	d.scan += off
-	bindBytes(fieldPtr(d), bs)
-}
-
-// time.Time +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjTimeValue(d *subDecode) {
-	switch d.str[d.scan] {
-	case '"':
-		start := d.scan + 1
-		//d.scanQuoteStr()
-		bindTime(fieldPtr(d), d.str[start:d.scan-1])
-	default:
-	}
-}
-
-func scanObjPtrTimeValue(d *subDecode) {
-	switch d.str[d.scan] {
-	case '"':
-		start := d.scan + 1
-		//d.scanQuoteStr()
-		bindTime(fieldPtrDeep(d), d.str[start:d.scan-1])
-	default:
-		fieldSetNil(d)
-	}
-}
-
-func scanArrTimeValue(d *subDecode) {
-	v := ""
-	switch d.str[d.scan] {
-	case '"':
-		start := d.scan + 1
-		//d.scanQuoteStr()
-		v = d.str[start : d.scan-1]
-	default:
-	}
-	bindTime(arrItemPtr(d), v)
-}
-
-//func scanListTimeValue(d *subDecode) {
-//	v := false
-//	switch d.str[d.scan] {
-//	case 't':
-//		//d.skipTrue()
-//		v = true
-//	case 'f':
-//		//d.skipFalse()
-//	default:
-//		//d.skipNull()
-//		d.pl.nulPos = append(d.pl.nulPos, len(d.pl.bufBol))
-//	}
-//	d.pl.bufBol = append(d.pl.bufBol, v)
-//}
-
-// bool +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//func scanListBoolValue(d *subDecode) {
-//	off, v := scanBoolVal(d.str[d.scan:])
-//	d.scan += off
-//	d.pl.bufBol = append(d.pl.bufBol, v)
-//}
-
-// any +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjAnyValue(d *subDecode) {
-}
-
-func scanObjPtrAnyValue(d *subDecode) {
-}
-
-func scanArrAnyValue(d *subDecode) {
-}
-
-func scanListAnyValue(d *subDecode) {
 }

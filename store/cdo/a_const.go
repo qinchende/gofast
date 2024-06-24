@@ -4,7 +4,6 @@ package cdo
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/core/cst"
 	"math"
 	"reflect"
 	"unsafe"
@@ -12,56 +11,60 @@ import (
 
 // cdo (Compact data of object)
 // All type encoded format
+// 无特殊说明，本编码方案都遵从小端序原则
 const (
 	TypeMask        byte = 0b11000000
 	TypeValMask     byte = 0b00111111
 	TypeListMask    byte = 0b11100000
 	TypeListValMask byte = 0b00011111
 
-	TypePosInt byte = 0b00000000 // 00
-	TypeNegInt byte = 0b01000000 // 01
-	TypeStr    byte = 0b10000000 // 10
-	TypeMixed  byte = 0b11000000 // 11
-	TypeList   byte = 0b11000000 // 110
-	TypeFixed  byte = 0b11100000 // 111
+	// TypeFixed & TypeList are TypeMixed, both start with 00
+	TypeFixed     byte = 0b00000000 // 000
+	TypeList      byte = 0b00100000 // 001
+	TypeVarIntPos byte = 0b01000000 // 01 >=0
+	TypeVarIntNeg byte = 0b10000000 // 10 < 0
+	TypeStr       byte = 0b11000000 // 11
 
 	// TypeFixed subtypes +++++++++++++++++++++++
-	FixNil      byte = 0xE0 // 0
-	FixMixedNil byte = 0xE1 // 1
-	FixTrue     byte = 0xE2 // 2
-	FixFalse    byte = 0xE3 // 3
-	FixF32      byte = 0xE4 // 8
-	FixF64      byte = 0xE5 // 9
-	FixDateTime byte = 0xE6 // 10
-	FixDate     byte = 0xE7 // 11
-	FixDuration byte = 0xE8 // 12
-	FixTime     byte = 0xE9 // 13
-	FixMax      byte = 0xFF // 31
+	FixFalse    byte = 0x00 // 0
+	FixTrue     byte = 0x01 // 1
+	FixF32      byte = 0x02 // 2
+	FixF64      byte = 0x03 // 3
+	FixTime     byte = 0x04 // 4 从2000-01-01到现在的毫秒数，UTC时间
+	FixNil      byte = 0x0E // 14
+	FixNilMixed byte = 0x0F // 15
+	FixMax      byte = 0x1F // 31
 
 	// TypeList subtypes ++++++++++++++++++++++++
+	// 00 | 000000
 	ListMask      byte = 0b11000000
 	ListValMask   byte = 0b00111111
 	ListVarIntPos byte = 0b00000000
 	ListVarIntNeg byte = 0b10000000
 
 	ListVarInt    byte = 0x00
-	ListFixInt8   byte = 0x01
-	ListFixInt16  byte = 0x02
-	ListFixInt32  byte = 0x03
-	ListFixInt64  byte = 0x04
-	ListFixUint8  byte = 0x05
-	ListFixUint16 byte = 0x06
-	ListFixUint32 byte = 0x07
-	ListFixUint64 byte = 0x08
-	ListF32       byte = 0x09
-	ListF64       byte = 0x0A
-	ListStr       byte = 0x0B
-	ListBool      byte = 0x0C
-	ListKV        byte = 0x0D
-	ListAny       byte = 0x0E
+	ListF32       byte = 0x01
+	ListF64       byte = 0x02
+	ListBool      byte = 0x03
+	ListStr       byte = 0x04
+	ListKV        byte = 0x05
+	ListAny       byte = 0x06
+	ListTime      byte = 0x07
+	ListFixInt08  byte = 0x10 // 固定长度的数值类型
+	ListFixInt16  byte = 0x11
+	ListFixInt32  byte = 0x12
+	ListFixInt64  byte = 0x13
+	ListFixUint08 byte = 0x14
+	ListFixUint16 byte = 0x15
+	ListFixUint32 byte = 0x16
+	ListFixUint64 byte = 0x17
+
+	// 01
 	ListObjFields byte = 0b01000000 // 都是object，提供所有的Fields
-	ListObjIndex  byte = 0b10000000 // 都是object，提供前面出现的索引号
-	ListExt       byte = 0b11000000 // 预留
+	// 10
+	ListObjIndex byte = 0b10000000 // 都是object，提供前面出现的索引号
+	// 11
+	ListExt byte = 0b11000000 // 预留
 )
 
 const (
@@ -76,6 +79,13 @@ const (
 	MaxUint48 uint64 = 0x0000FFFFFFFFFFFF
 	MaxUint56 uint64 = 0x00FFFFFFFFFFFFFF
 	MaxUint64 uint64 = 0xFFFFFFFFFFFFFFFF
+
+	MaxUint   uint64 = math.MaxUint
+	OverInt   uint64 = -math.MinInt // 此程序只支持64位机器
+	OverInt08 uint64 = -math.MinInt8
+	OverInt16 uint64 = -math.MinInt16
+	OverInt32 uint64 = -math.MinInt32
+	OverInt64 uint64 = -math.MinInt64
 )
 
 //func typeValue(b byte) (uint8, uint8) {
@@ -170,7 +180,7 @@ const (
 	errOverflow  errType = -7
 	errNumberFmt errType = -8
 	errExceedMax errType = -9
-	errInfinity  errType = -10 // 超出限制
+	errInfinity  errType = -10 // 数值超出类型值范围
 	errMismatch  errType = -11
 	errUTF8      errType = -12
 	errKey       errType = -13
@@ -182,6 +192,8 @@ const (
 	errListType  errType = -18
 	errBool      errType = -19
 	errSupport   errType = -20
+	errOutRange  errType = -21
+	errListSize  errType = -22
 )
 
 var errDescription = []string{
@@ -206,6 +218,8 @@ var errDescription = []string{
 	-(errList):      "Error list",
 	-(errBool):      "Error bool",
 	-(errSupport):   "Error support",
+	-(errOutRange):  "Error out of range",
+	-(errListSize):  "Error wrong size of list",
 }
 
 var (
@@ -225,64 +239,6 @@ var (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 var (
-	isBlankChar = [256]bool{
-		' ':  true,
-		'\n': true,
-		'\r': true,
-		'\t': true,
-	}
-
-	// ++++++++++++++++++++++++++++++++++++++需要转义的字符
-	// \\ 反斜杠
-	// \" 双引号
-	// \' 单引号 （没有这个）
-	// \/ 正斜杠
-	// \b 退格符
-	// \f 换页符
-	// \t 制表符
-	// \n 换行符
-	// \r 回车符
-	// \u 后面跟十六进制字符 （比如笑脸表情 \u263A）
-	// +++++++++++++++++++++++++++++++++++++++++++++++++++
-	unescapeChar = [256]byte{
-		'u':  'u',
-		'"':  '"',
-		'\\': '\\',
-		'/':  '/',
-
-		'b': '\b',
-		'f': '\f',
-		'n': '\n',
-		'r': '\r',
-		't': '\t',
-	}
-
-	// escape unicode
-	hexToInt = [256]int{
-		'0': 0,
-		'1': 1,
-		'2': 2,
-		'3': 3,
-		'4': 4,
-		'5': 5,
-		'6': 6,
-		'7': 7,
-		'8': 8,
-		'9': 9,
-		'A': 10,
-		'B': 11,
-		'C': 12,
-		'D': 13,
-		'E': 14,
-		'F': 15,
-		'a': 10,
-		'b': 11,
-		'c': 12,
-		'd': 13,
-		'e': 14,
-		'f': 15,
-	}
-
 	zeroNumValue = 0
 	numUPtrVal   = *(*unsafe.Pointer)(reflect.ValueOf(&zeroNumValue).UnsafePointer())
 
@@ -307,8 +263,4 @@ var (
 		reflect.Bool:    bolUPtrVal,
 		reflect.String:  strUPtrVal,
 	}
-
-	rfTypeOfKV   = reflect.TypeOf(new(cst.KV)).Elem()
-	rfTypeOfList = reflect.TypeOf(new([]any)).Elem()
-	//rfTypeOfBytes = reflect.TypeOf(new([]byte)).Elem()
 )

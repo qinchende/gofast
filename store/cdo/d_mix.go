@@ -17,7 +17,7 @@ import (
 //}
 
 func (d *subDecode) scanListItems() {
-	off1, typ, size := scanTypeLen4(d.str[d.scan:])
+	off1, typ, size := scanTypeU32By6(d.str[d.scan:])
 	if typ != TypeList {
 		panic(errChar)
 	}
@@ -47,7 +47,7 @@ func (d *subDecode) scanListItems() {
 }
 
 func (d *subDecode) skipList() {
-	off1, typ, size := scanTypeLen4(d.str[d.scan:])
+	off1, typ, size := scanTypeU32By6(d.str[d.scan:])
 	if typ != TypeList {
 		panic(errChar)
 	}
@@ -61,14 +61,15 @@ func (d *subDecode) skipList() {
 // struct & map
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (d *subDecode) scanKVS() {
-	off, _, size := scanTypeLen2(d.str[d.scan:])
-	d.scan += off
+	off1, tLen := scanListTypeU24(d.str[d.scan:])
+	d.scan += off1
 
-	//if typ != TypeMap {
-	//	panic(errKV)
-	//}
+	if d.str[d.scan] != ListKV {
+		panic(errListType)
+	}
+	d.scan++
 
-	for i := 0; i < int(size); i++ {
+	for i := 0; i < int(tLen); i++ {
 		off, key := scanString(d.str[d.scan:])
 		d.scan += off
 		d.dm.kvPairDec(d, key)
@@ -76,16 +77,16 @@ func (d *subDecode) scanKVS() {
 }
 
 func (d *subDecode) skipKVS() {
-	off1, _, size := scanTypeLen2(d.str[d.scan:])
+	//off1, _, size := scanTypeU16(d.str[d.scan:])
 	//if typ != TypeMap {
 	//	panic(errKV)
 	//}
 
-	for i := 0; i < int(size); i++ {
-		off2 := skipString(d.str[off1:])
-		d.scan += off2 + off1
-		d.skipOneValue()
-	}
+	//for i := 0; i < int(size); i++ {
+	//	off2 := skipString(d.str[off1:])
+	//	d.scan += off2 + off1
+	//	d.skipOneValue()
+	//}
 }
 
 // skip items
@@ -105,7 +106,7 @@ func (d *subDecode) skipOneValue() {
 		switch val {
 		default:
 			panic(errChar)
-		case FixNil, FixMixedNil, FixTrue, FixFalse:
+		case FixNil, FixNilMixed, FixTrue, FixFalse:
 			off = 1
 		case FixF32:
 			off = 5
@@ -114,7 +115,7 @@ func (d *subDecode) skipOneValue() {
 		case FixTime:
 			off = 5
 		}
-	case TypePosInt, TypeNegInt:
+	case TypeVarIntPos, TypeVarIntNeg:
 		if val <= 23 {
 			off = 1
 		} else {
@@ -171,7 +172,7 @@ func scanObjMixValue(d *subDecode) {
 }
 
 func scanObjPtrMixValue(d *subDecode) {
-	if d.str[d.scan] == FixMixedNil {
+	if d.str[d.scan] == FixNilMixed {
 		fieldSetNil(d)
 		d.scan++
 	} else {
@@ -201,7 +202,7 @@ func scanArrMixValue(d *subDecode) {
 
 // array and item is ptr
 func scanArrPtrMixValue(d *subDecode) {
-	if d.str[d.scan] == FixMixedNil {
+	if d.str[d.scan] == FixNilMixed {
 		fieldSetNil(d)
 		d.scan++
 	} else {

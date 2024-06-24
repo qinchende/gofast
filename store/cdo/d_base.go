@@ -35,21 +35,21 @@ func scanTypeLen2L2(s string) (int, uint8, uint16) {
 	}
 }
 
-func scanTypeLen2(s string) (int, uint8, uint16) {
-	c := s[0]
-	typ := c & TypeMask
-	size := uint16(c & TypeValMask)
-
-	switch size {
-	default:
-		return 1, typ, size // size <= 29
-	case 30:
-		return 2, typ, uint16(s[1])
-	case 31:
-		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
-
-	}
-}
+//func scanTypeU16(s string) (int, uint8, uint16) {
+//	c := s[0]
+//	typ := c & TypeMask
+//	size := uint16(c & TypeValMask)
+//
+//	switch size {
+//	default:
+//		return 1, typ, size // size <= 29
+//	case 30:
+//		return 2, typ, uint16(s[1])
+//	case 31:
+//		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
+//
+//	}
+//}
 
 func scanListTypeU24(s string) (int, uint32) {
 	c := s[0]
@@ -64,13 +64,15 @@ func scanListTypeU24(s string) (int, uint32) {
 	case 29:
 		return 2, uint32(s[1])
 	case 30:
+		_ = s[2]
 		return 3, uint32(s[1]) | uint32(s[2])<<8
 	case 31:
+		_ = s[3]
 		return 4, uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16
 	}
 }
 
-func scanTypeLen4(s string) (int, uint8, uint32) {
+func scanTypeU32By6(s string) (int, uint8, uint32) {
 	c := s[0]
 	typ := c & TypeMask
 	size := uint32(c & TypeValMask)
@@ -81,15 +83,18 @@ func scanTypeLen4(s string) (int, uint8, uint32) {
 	case 60:
 		return 2, typ, uint32(s[1])
 	case 61:
+		_ = s[2]
 		return 3, typ, uint32(s[1]) | uint32(s[2])<<8
 	case 62:
+		_ = s[3]
 		return 4, typ, uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16
 	case 63:
+		_ = s[4]
 		return 5, typ, uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16 | uint32(s[4])<<24
 	}
 }
 
-func scanTypeLen8(s string) (int, uint8, uint64) {
+func scanTypeU64By6(s string) (int, uint8, uint64) {
 	c := s[0]
 	typ := c & TypeMask
 	size := uint64(c & TypeValMask)
@@ -100,80 +105,127 @@ func scanTypeLen8(s string) (int, uint8, uint64) {
 	case 56:
 		return 2, typ, uint64(s[1])
 	case 57:
+		_ = s[2]
 		return 3, typ, uint64(s[1]) | uint64(s[2])<<8
 	case 58:
+		_ = s[3]
 		return 4, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16
 	case 59:
+		_ = s[4]
 		return 5, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24
 	case 60:
+		_ = s[5]
 		return 6, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32
 	case 61:
+		_ = s[6]
 		return 7, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40
 	case 62:
+		_ = s[7]
 		return 8, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48
 	case 63:
+		_ = s[8]
 		return 9, typ, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56
 	}
 }
 
-func scanU64ValBy7Part1(s string, size uint64) (int, uint64) {
-	if size <= 119 {
-		return 1, size
-	}
-	switch size {
-	case 120:
-		return 2, uint64(s[1])
-	case 121:
-		return 3, uint64(s[1]) | uint64(s[2])<<8
-	case 122:
-		return 4, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16
-	}
-	panic(errChar)
+// 用第一位标记符号的 VarInt
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// ListVarInt
+// 每一项第一个字节，第1位为符号位，后面7位是值
+func listVarIntHead(c byte) (byte, uint64) {
+	return c, uint64(c & 0x7F)
 }
 
-//go:noinline
-func scanU64ValBy7Part2(s string, size uint64) (int, uint64) {
-	switch size {
-	case 123:
+func scanListVarInt8(s string, v uint64) (int, uint64) {
+	switch byte(v) >> 5 {
+	case 0:
+		return 1, uint64(s[0] & 0x1F)
+	default:
+		return 2, uint64(s[0]&0x1F)<<8 | uint64(s[1])
+	}
+}
+
+func scanListVarInt16(s string, v uint64) (int, uint64) {
+	switch byte(v) >> 5 {
+	case 0:
+		return 1, uint64(s[0] & 0x1F)
+	case 1:
+		_ = s[1]
+		return 2, uint64(s[0]&0x1F)<<8 | uint64(s[1])
+	default:
+		_ = s[2]
+		return 3, uint64(s[0]&0x1F)<<16 | uint64(s[1])<<8 | uint64(s[2])
+	}
+}
+
+func scanListVarInt(s string) (byte, int, uint64) {
+	typ, v := listVarIntHead(s[0])
+	var off int
+	if v <= 0x63 {
+		off, v = scanListVarIntPart1(s, v)
+	} else {
+		off, v = scanListVarIntPart2(s, v)
+	}
+	return typ, off, v
+}
+
+func scanListVarIntPart1(s string, v uint64) (int, uint64) {
+	switch byte(v) >> 5 {
+	case 0:
+		return 1, uint64(s[0] & 0x1F)
+	case 1:
+		return 2, uint64(s[0]&0x1F)<<8 | uint64(s[1])
+	case 2:
+		return 3, uint64(s[0]&0x1F)<<16 | uint64(s[1])<<8 | uint64(s[2])
+	default:
+		return 4, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16
+	}
+}
+
+func scanListVarIntPart2(s string, v uint64) (int, uint64) {
+	switch byte(v) & 0x0F {
+	default:
+		panic(errChar)
+	case 4:
+		_ = s[4]
 		return 5, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24
-	case 124:
+	case 5:
+		_ = s[5]
 		return 6, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32
-	case 125:
+	case 6:
+		_ = s[6]
 		return 7, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40
-	case 126:
+	case 7:
+		_ = s[7]
 		return 8, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48
-	case 127:
+	case 8:
+		_ = s[8]
 		return 9, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 | uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56
 	}
-	panic(errChar)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanUint64(str string) (int, uint64) {
-	off, typ, val := scanTypeLen8(str)
-	if typ != TypePosInt {
-		panic(errChar)
-	}
-	return off, val
-}
+//func scanUint64(str string) (int, uint64) {
+//	off, typ, val := scanTypeU64By6(str)
+//	if typ != TypeVarIntPos {
+//		panic(errChar)
+//	}
+//	return off, val
+//}
 
-func scanInt64(str string) (int, int64) {
-	off, typ, val := scanTypeLen8(str)
-	if typ == TypePosInt {
-		return off, int64(val)
-	} else if typ == TypeNegInt {
-		return off, int64(-val)
-	}
-	panic(errChar)
+func scanVarInt(str string) (int, byte, uint64) {
+	return scanTypeU64By6(str)
 }
 
 func scanF32Val(s string) float32 {
+	_ = s[3]
 	return math.Float32frombits(uint32(s[0]) | uint32(s[1])<<8 | uint32(s[2])<<16 | uint32(s[3])<<24)
 }
 
 func scanF64Val(s string) float64 {
-	return math.Float64frombits(uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24 |
-		uint64(s[5])<<32 | uint64(s[6])<<40 | uint64(s[7])<<48 | uint64(s[8])<<56)
+	_ = s[7]
+	return math.Float64frombits(uint64(s[0]) | uint64(s[1])<<8 | uint64(s[2])<<16 | uint64(s[3])<<24 |
+		uint64(s[4])<<32 | uint64(s[5])<<40 | uint64(s[6])<<48 | uint64(s[7])<<56)
 }
 
 func scanBoolVal(s string) bool {
@@ -184,8 +236,19 @@ func scanBoolVal(s string) bool {
 	}
 }
 
+func scanBool(s string) bool {
+	switch s[0] {
+	default:
+		panic(errChar)
+	case FixTrue:
+		return true
+	case FixFalse:
+		return false
+	}
+}
+
 func scanString(str string) (int, string) {
-	off, typ, size := scanTypeLen4(str)
+	off, typ, size := scanTypeU32By6(str)
 	if typ != TypeStr {
 		panic(errChar)
 	}
@@ -194,7 +257,7 @@ func scanString(str string) (int, string) {
 }
 
 func skipString(str string) int {
-	off, typ, size := scanTypeLen4(str)
+	off, typ, size := scanTypeU32By6(str)
 	if typ != TypeStr {
 		panic(errChar)
 	}
