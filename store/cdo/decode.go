@@ -21,33 +21,6 @@ type (
 	decKVPairFunc func(d *subDecode, key string)
 	decListFunc   func(d *subDecode, tLen int)
 
-	subDecode struct {
-		share *subDecode // 共享的subDecode，用来解析子对象
-
-		mp     *cst.KV        // KV
-		wk     *cst.WebKV     // WebKV
-		dm     *decMeta       // Struct | Slice,Array
-		dstPtr unsafe.Pointer // 目标对象的内存地址
-		slice  rt.SliceHeader // 指向一个切片类型
-		//bOpts  *dts.BindOptions // 绑定控制
-
-		str  string // 数据源
-		scan int    // 当前扫描定位
-
-		// 辅助变量
-		//pl     *listPool // 当解析数组时候用到的一系列临时队列
-		keyIdx int // key index
-		arrIdx int // list解析的数量
-
-		// list is struct
-		//clsCt   int       // 字段数量
-		clsIdx [128]int8 // 结构体不能超过128个字段（当然这里可以改大，不过建议不要定义那么多字段的结构体）
-		//columns []string  // 字段名称
-
-		skipValue   bool // 跳过当前要解析的值
-		isNeedValid bool // 在绑定到对象时，是否需要验证字段
-	}
-
 	decMeta struct {
 		// map & struct
 		kvPairDec decKVPairFunc
@@ -77,6 +50,28 @@ type (
 		isAny    bool  // [] is list and item is interface type in the final
 		isPtr    bool  // [] is list and item is pointer type
 		ptrLevel uint8 // [] is list and item pointer level
+	}
+
+	subDecode struct {
+		share *subDecode // 共享的subDecode，用来解析子对象
+
+		mp     *cst.KV        // KV
+		wk     *cst.WebKV     // WebKV
+		dm     *decMeta       // Struct | Slice,Array
+		dstPtr unsafe.Pointer // 目标对象的内存地址
+		slice  rt.SliceHeader // 指向一个切片类型
+		//bOpts  *dts.BindOptions // 绑定控制
+
+		str  string // 数据源
+		scan int    // 当前扫描定位
+
+		// 辅助变量
+		arrIdx int        // list解析的数量
+		fIdx   int        // key index
+		fIdxes [256]int16 // 不多于 256 个字段，暂不支持更多字段
+
+		skipValue   bool // 跳过当前要解析的值
+		isNeedValid bool // 在绑定到对象时，是否需要验证字段
 	}
 )
 
@@ -129,7 +124,7 @@ func startDecode(dst any, source string) (err error) {
 }
 
 func startDecodeInner(typ reflect.Type, ptr unsafe.Pointer, source string) (err error) {
-	d := jdeDecPool.Get().(*subDecode)
+	d := cdoDecPool.Get().(*subDecode)
 	d.str = source
 	d.scan = 0
 	d.getDecMeta(typ, ptr)
@@ -139,12 +134,12 @@ func startDecodeInner(typ reflect.Type, ptr unsafe.Pointer, source string) (err 
 
 	if d.share != nil {
 		d.share.reset()
-		jdeDecPool.Put(d.share)
+		cdoDecPool.Put(d.share)
 		d.share = nil
 	}
-	// TODO：此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
+	// 此时 sd 中指针指向的对象没有被释放，存在一定风险，所以要先释放再回收
 	d.reset()
-	jdeDecPool.Put(d)
+	cdoDecPool.Put(d)
 	return
 }
 
@@ -199,7 +194,7 @@ func (d *subDecode) startDecode() (err errType) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (d *subDecode) initShareDecode(ptr unsafe.Pointer) {
 	if d.share == nil {
-		d.share = jdeDecPool.Get().(*subDecode)
+		d.share = cdoDecPool.Get().(*subDecode)
 		d.share.str = d.str
 		d.share.scan = d.scan
 		d.share.getDecMeta(d.dm.itemType, ptr)
@@ -223,7 +218,7 @@ func (d *subDecode) startSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 	dSub := d.share
 
 	if dSub == nil {
-		dSub = jdeDecPool.Get().(*subDecode)
+		dSub = cdoDecPool.Get().(*subDecode)
 	} else {
 		dSub.reset()
 	}
@@ -247,7 +242,7 @@ func (d *subDecode) startSubDecode(rfType reflect.Type, ptr unsafe.Pointer) {
 func (d *subDecode) resetShareDecode() {
 	if d.share.share != nil {
 		d.share.share.reset()
-		jdeDecPool.Put(d.share.share)
+		cdoDecPool.Put(d.share.share)
 		d.share.share = nil
 	}
 }
@@ -646,7 +641,7 @@ func (dm *decMeta) bindListDec() {
 			if dm.itemType == cst.TypeTime {
 				dm.listDec = decListBaseType
 			} else {
-				dm.listDec = decListStruct
+				dm.listDec = decStructList
 			}
 		case reflect.Map, reflect.Array, reflect.Slice:
 			dm.listDec = decListBaseType
@@ -696,7 +691,7 @@ func (dm *decMeta) bindListDec() {
 		if dm.itemType == cst.TypeTime {
 			dm.listDec = decListBaseType
 		} else {
-			dm.listDec = decListStruct
+			dm.listDec = decStructList
 		}
 	case reflect.Map, reflect.Array, reflect.Slice:
 		dm.listDec = decListBaseType

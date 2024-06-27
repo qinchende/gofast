@@ -6,18 +6,21 @@ import (
 
 // Basic type value
 func (se *subEncode) encBasic() {
-	se.em.itemEnc(se.bf, se.srcPtr, se.em.itemType)
+	bs := *se.bf
+	bs = se.em.itemEnc(bs, se.srcPtr, se.em.itemType)
+	*se.bf = bs
 }
 
 // Pointer type value
 func (se *subEncode) encPointer() {
 	ptr := se.srcPtr
+	bs := *se.bf
 
 	ptrCt := se.em.ptrLevel
 peelPtr:
 	ptr = *(*unsafe.Pointer)(ptr)
 	if ptr == nil {
-		*se.bf = append(*se.bf, FixNil)
+		bs = append(bs, FixNil)
 		return
 	}
 	ptrCt--
@@ -25,41 +28,48 @@ peelPtr:
 		goto peelPtr
 	}
 
-	encMixedItem(se.bf, ptr, se.em.itemType)
+	bs = encMixedItemRet(bs, ptr, se.em.itemType)
+	*se.bf = bs
 }
 
 // A struct object encode same as map[string]any
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (se *subEncode) encStruct() {
 	fls := se.em.ss.FieldsAttr
-	size := len(fls)
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(len(fls))), ListKV)
 
-	encU24By5(se.bf, TypeList, uint64(size))
-	*se.bf = append(*se.bf, ListKV)
+	for i := 0; i < len(fls); i++ {
+		str := se.em.ss.ColumnName(i)
+		v := uint64(len(str))
+		if v <= MaxUint24 {
+			bs = encU32By6RetPart1(bs, TypeStr, v)
+		} else {
+			bs = encU32By6RetPart2(bs, TypeStr, v)
+		}
+		bs = append(bs, str...)
 
-	for i := 0; i < size; i++ {
-		// key
-		encStringDirect(se.bf, se.em.ss.ColumnName(i))
-
+		// --- ptr ---
 		fPtr := fls[i].MyPtr(se.srcPtr)
 		ptrCt := fls[i].PtrLevel
 		if ptrCt == 0 {
-			goto encObjValue
+			goto encFieldVal
 		}
 
 	peelPtr:
 		fPtr = *(*unsafe.Pointer)(fPtr)
 		if fPtr == nil {
-			*se.bf = append(*se.bf, FixNil)
+			bs = append(bs, FixNil)
 			continue
 		}
 		ptrCt--
 		if ptrCt > 0 {
 			goto peelPtr
 		}
+		// -----------
 
-	encObjValue:
-		// value
-		se.em.fieldsEnc[i](se.bf, fPtr, fls[i].Type)
+	encFieldVal:
+		bs = se.em.fieldsEnc[i](bs, fPtr, fls[i].Type)
 	}
+	*se.bf = bs
 }

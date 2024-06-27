@@ -132,22 +132,26 @@ func (se *subEncode) encMapKV() {
 	var theMap map[string]any
 	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = se.srcPtr
 
-	encU24By5(se.bf, TypeList, uint64(len(theMap)))
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(len(theMap))), ListKV)
 	for k, v := range theMap {
-		encStringDirect(se.bf, k)
-		encAny(se.bf, unsafe.Pointer(&v), nil)
+		bs = encStringDirectRet(bs, k)
+		bs = encAnyRet(bs, unsafe.Pointer(&v), nil)
 	}
+	*se.bf = bs
 }
 
 func encMapStrAny[TV any](bf *[]byte, ptr unsafe.Pointer, valTyp reflect.Type, valEnc encValFunc) {
 	var theMap map[string]TV
 	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = ptr
 
-	encU24By5(bf, TypeList, uint64(len(theMap)))
+	bs := *bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(len(theMap))), ListKV)
 	for k, v := range theMap {
-		encStringDirect(bf, k)
-		valEnc(bf, unsafe.Pointer(&v), valTyp)
+		bs = encStringDirectRet(bs, k)
+		bs = valEnc(bs, unsafe.Pointer(&v), valTyp)
 	}
+	*bf = bs
 }
 
 func encMapAnyAny[TK string | constraints.Integer, TV any](bf *[]byte, ptr unsafe.Pointer, ptrCt uint8,
@@ -155,12 +159,14 @@ func encMapAnyAny[TK string | constraints.Integer, TV any](bf *[]byte, ptr unsaf
 	var theMap map[TK]TV
 	*(*unsafe.Pointer)(unsafe.Pointer(&theMap)) = ptr
 
-	encU24By5(bf, TypeList, uint64(len(theMap)))
+	bs := *bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(len(theMap))), ListKV)
 	for k, v := range theMap {
 		// key
-		keyEnc(bf, unsafe.Pointer(&k), nil)
+		bs = keyEnc(bs, unsafe.Pointer(&k), nil)
 
 		// value
+		// --- ptr ---
 		ptrLevel := ptrCt
 		ptr = unsafe.Pointer(&v)
 		if ptrLevel == 0 {
@@ -170,15 +176,16 @@ func encMapAnyAny[TK string | constraints.Integer, TV any](bf *[]byte, ptr unsaf
 	peelPtr:
 		ptr = *(*unsafe.Pointer)(ptr)
 		if ptr == nil {
-			*bf = append(*bf, FixNil)
+			bs = append(bs, FixNil)
 			continue
 		}
 		ptrLevel--
 		if ptrLevel > 0 {
 			goto peelPtr
 		}
+		// -----------
 
 	encMapValue:
-		valEnc(bf, ptr, valTyp)
+		bs = valEnc(bs, ptr, valTyp)
 	}
 }

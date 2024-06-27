@@ -25,7 +25,8 @@ func (se *subEncode) encList() {
 // List type value
 func encListAll(se *subEncode) {
 	tLen := se.slice.Len
-	*se.bf = append(encU24By5Ret(*se.bf, TypeList, uint64(tLen)), ListAny)
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListAny)
 	for i := 0; i < tLen; i++ {
 		itemPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 
@@ -34,14 +35,17 @@ func encListAll(se *subEncode) {
 		if se.em.itemKind == reflect.Map {
 			itemPtr = *(*unsafe.Pointer)(itemPtr)
 		}
-		se.em.itemEnc(se.bf, itemPtr, se.em.itemType)
+		bs = se.em.itemEnc(bs, itemPtr, se.em.itemType)
 	}
+	*se.bf = bs
 }
 
 // List item is ptr
 func encListAllPtr(se *subEncode) {
 	tLen := se.slice.Len
-	*se.bf = append(encU24By5Ret(*se.bf, TypeList, uint64(tLen)), ListAny)
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListAny)
+
 	ptrLevel := se.em.ptrLevel
 	for i := 0; i < tLen; i++ {
 		itemPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
@@ -50,7 +54,7 @@ func encListAllPtr(se *subEncode) {
 	peelPtr:
 		itemPtr = *(*unsafe.Pointer)(itemPtr)
 		if itemPtr == nil {
-			*se.bf = append(*se.bf, FixNilMixed)
+			bs = append(bs, FixNilMixed)
 			continue
 		}
 		ptrCt--
@@ -61,11 +65,12 @@ func encListAllPtr(se *subEncode) {
 		if se.em.itemKind == reflect.Map {
 			itemPtr = *(*unsafe.Pointer)(itemPtr)
 		}
-		se.em.itemEnc(se.bf, itemPtr, se.em.itemType)
+		bs = se.em.itemEnc(bs, itemPtr, se.em.itemType)
 	}
+	*se.bf = bs
 }
 
-// int
+// int numbers
 // Note：整形数组，用第一个字符的第一个bit位来代表正负符号
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListVarUint[T constraints.Unsigned](se *subEncode) {
@@ -175,7 +180,11 @@ func encListBool(se *subEncode) {
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListBool)
 	for i := 0; i < len(list); i++ {
-		bs = encBoolRet(bs, list[i])
+		if list[i] {
+			bs = append(bs, FixTrue)
+		} else {
+			bs = append(bs, FixFalse)
+		}
 	}
 	*se.bf = bs
 }
@@ -200,28 +209,52 @@ func encListString(se *subEncode) {
 	*se.bf = bs
 }
 
+// []struct & []*struct
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // list item is type of struct
 func encListStruct(se *subEncode) {
 	// list size
 	tLen := se.slice.Len
-	encU24By5(se.bf, TypeList, uint64(tLen))
+	bs := *se.bf
+	bs = encU24By5Ret(bs, TypeList, uint64(tLen))
 
-	// 字段
+	// 字段名称
 	fls := se.em.ss.FieldsAttr
-	encU16By6(se.bf, ListObjFields, uint64(len(fls)))
-	encStringsDirect(se.bf, se.em.ss.Columns)
+	bs = encU16By6Ret(bs, ListObjFields, uint64(len(fls)))
+	bs = encStringsDirectRet(bs, se.em.ss.Columns)
+
+	// 循环记录 + 循环字段
+	for i := 0; i < tLen; i++ {
+		rPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
+		for j := 0; j < len(fls); j++ {
+			bs = se.em.fieldsEnc[j](bs, fls[j].MyPtr(rPtr), fls[j].Type)
+		}
+	}
+	*se.bf = bs
+}
+
+func encListStructPtr(se *subEncode) {
+	// list size
+	tLen := se.slice.Len
+	bs := *se.bf
+	bs = encU24By5Ret(bs, TypeList, uint64(tLen))
+
+	// 字段名称
+	fls := se.em.ss.FieldsAttr
+	bs = encU16By6Ret(bs, ListObjFields, uint64(len(fls)))
+	bs = encStringsDirectRet(bs, se.em.ss.Columns)
 
 	// 循环记录
 	for i := 0; i < tLen; i++ {
 		rPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
 
+		// []*Struct的时候，需要判断值是否为 nil
 		if se.em.isPtr {
 			ptrCt := se.em.ptrLevel
 		peelItemPtr:
 			rPtr = *(*unsafe.Pointer)(rPtr)
 			if rPtr == nil {
-				*se.bf = append(*se.bf, FixNilMixed)
+				bs = append(bs, FixNilMixed)
 				continue
 			}
 			ptrCt--
@@ -234,6 +267,7 @@ func encListStruct(se *subEncode) {
 		for j := 0; j < len(fls); j++ {
 			fPtr := fls[j].MyPtr(rPtr)
 
+			// --- struct field is ptr ---
 			ptrCt := fls[j].PtrLevel
 			if ptrCt == 0 {
 				goto encObjValue
@@ -242,16 +276,18 @@ func encListStruct(se *subEncode) {
 		peelFieldPtr:
 			fPtr = *(*unsafe.Pointer)(fPtr)
 			if fPtr == nil {
-				*se.bf = append(*se.bf, FixNil)
+				bs = append(bs, FixNil)
 				continue
 			}
 			ptrCt--
 			if ptrCt > 0 {
 				goto peelFieldPtr
 			}
+			// ----------------------------
 
 		encObjValue:
-			se.em.fieldsEnc[j](se.bf, fPtr, fls[j].Type)
+			bs = se.em.fieldsEnc[j](bs, fPtr, fls[j].Type)
 		}
 	}
+	*se.bf = bs
 }

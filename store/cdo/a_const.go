@@ -9,7 +9,7 @@ import (
 	"unsafe"
 )
 
-// cdo (Compact data of object)
+// cdo (Compact data of objects)
 // All type encoded format
 // 无特殊说明，本编码方案都遵从小端序原则
 const (
@@ -194,6 +194,7 @@ const (
 	errSupport   errType = -20
 	errOutRange  errType = -21
 	errListSize  errType = -22
+	errValType   errType = -23
 )
 
 var errDescription = []string{
@@ -220,16 +221,17 @@ var errDescription = []string{
 	-(errSupport):   "Error support",
 	-(errOutRange):  "Error out of range",
 	-(errListSize):  "Error wrong size of list",
+	-(errValType):   "Error value type",
 }
 
 var (
+	errValueIsNil      = errors.New("cdo: target value is nil")
 	errCdoTooLarge     = errors.New("cdo: string too large")
 	errOutOfRange      = errors.New("cdo: out of range")
 	errValueType       = errors.New("cdo: target value type error")
 	errValueMustPtr    = errors.New("cdo: target value must pointer type")
 	errValueMustSlice  = errors.New("cdo: target value must slice type")
 	errValueMustStruct = errors.New("cdo: target value must struct type")
-	errValueIsNil      = errors.New("cdo: target value is nil")
 	errEmptyCdoStr     = errors.New("cdo: empty of cdo string")
 	errCdoRowStr       = errors.New("cdo: wrong of GsonRow string")
 	errCdoRowsStr      = errors.New("cdo: wrong of GsonRows string")

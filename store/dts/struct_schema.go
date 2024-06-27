@@ -31,9 +31,9 @@ type (
 
 	// 基本信息
 	structAttrs struct {
-		Type       reflect.Type
-		MemSize    int
-		IsPtrField bool // 是否保护有指针类型的字段
+		Type        reflect.Type
+		MemSize     int
+		HasPtrField bool // 是否保护有指针类型的字段
 	}
 
 	// 所有字段按照长度从小到大排序，用于快速索引
@@ -118,7 +118,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 		for fa.Type.Kind() == reflect.Pointer {
 			fa.PtrLevel++
 			fa.Type = fa.Type.Elem()
-			ss.Attrs.IsPtrField = true // 结构体保护指针字段
+			ss.Attrs.HasPtrField = true // 结构体保护指针字段
 		}
 		fa.Kind = fa.Type.Kind()
 		switch fa.Kind {
