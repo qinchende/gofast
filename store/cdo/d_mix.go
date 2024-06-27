@@ -154,11 +154,11 @@ func scanWebKVValue(d *subDecode, k string) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanStructValue(d *subDecode, key string) {
 	// TODO: 此处 d.keyIdx 可以继续被优化
-	if d.keyIdx = d.dm.ss.ColumnIndex(key); d.keyIdx < 0 {
+	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx < 0 {
 		d.skipValue = true
 		d.skipOneValue()
 	} else {
-		d.dm.fieldsDec[d.keyIdx](d) // 根据目标值类型来解析
+		d.dm.fieldsDec[d.fIdx](d) // 根据目标值类型来解析
 	}
 }
 
@@ -168,7 +168,7 @@ func scanStructValue(d *subDecode, key string) {
 // sash as map | struct
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanObjMixValue(d *subDecode) {
-	d.startSubDecode(d.dm.ss.FieldsAttr[d.keyIdx].Type, fieldMixPtr(d))
+	d.startSubDecode(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldMixPtr(d))
 }
 
 func scanObjPtrMixValue(d *subDecode) {
@@ -176,7 +176,7 @@ func scanObjPtrMixValue(d *subDecode) {
 		fieldSetNil(d)
 		d.scan++
 	} else {
-		d.startSubDecode(d.dm.ss.FieldsAttr[d.keyIdx].Type, fieldPtrDeep(d))
+		d.startSubDecode(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldPtrDeep(d))
 	}
 }
 

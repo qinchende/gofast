@@ -20,21 +20,6 @@ func typeValue(c byte) (uint8, uint64) {
 	return c & TypeMask, uint64(c & TypeValMask)
 }
 
-func scanTypeLen2L2(s string) (int, uint8, uint16) {
-	c := s[0]
-	typ := c & ListMask
-	size := uint16(c & ListValMask)
-
-	switch size {
-	default:
-		return 1, typ, size // size <= 61
-	case 62:
-		return 2, typ, uint16(s[1])
-	case 63:
-		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
-	}
-}
-
 //func scanTypeU16(s string) (int, uint8, uint16) {
 //	c := s[0]
 //	typ := c & TypeMask
@@ -69,6 +54,21 @@ func scanListTypeU24(s string) (int, uint32) {
 	case 31:
 		_ = s[3]
 		return 4, uint32(s[1]) | uint32(s[2])<<8 | uint32(s[3])<<16
+	}
+}
+
+func scanListSubtypeU16(s string) (int, uint8, uint16) {
+	c := s[0]
+	typ := c & ListMask
+	size := uint16(c & ListValMask)
+
+	switch size {
+	default:
+		return 1, typ, size // size <= 61
+	case 62:
+		return 2, typ, uint16(s[1])
+	case 63:
+		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
 	}
 }
 
@@ -248,20 +248,20 @@ func scanBool(s string) bool {
 }
 
 func scanString(str string) (int, string) {
-	off, typ, size := scanTypeU32By6(str)
+	off1, typ, size := scanTypeU32By6(str)
 	if typ != TypeStr {
-		panic(errChar)
+		panic(errValType)
 	}
-	size += uint32(off)
-	return int(size), str[off:size]
+	size += uint32(off1)
+	return int(size), str[off1:size]
 }
 
 func skipString(str string) int {
-	off, typ, size := scanTypeU32By6(str)
+	off1, typ, size := scanTypeU32By6(str)
 	if typ != TypeStr {
 		panic(errChar)
 	}
-	return off + int(size)
+	return off1 + int(size)
 }
 
 func scanBytes(str string) (int, []byte) {
@@ -347,11 +347,11 @@ func (d *subDecode) resetArrLeftItems() {
 //
 
 func fieldPtr(d *subDecode) unsafe.Pointer {
-	return d.dm.ss.FieldsAttr[d.keyIdx].MyPtr(d.dstPtr)
+	return d.dm.ss.FieldsAttr[d.fIdx].MyPtr(d.dstPtr)
 }
 
 func fieldMixPtr(d *subDecode) unsafe.Pointer {
-	fa := &d.dm.ss.FieldsAttr[d.keyIdx]
+	fa := &d.dm.ss.FieldsAttr[d.fIdx]
 	ptr := fa.MyPtr(d.dstPtr)
 
 	if fa.Kind == reflect.Map {
@@ -380,7 +380,7 @@ func fieldMixPtr(d *subDecode) unsafe.Pointer {
 }
 
 func fieldPtrDeep(d *subDecode) unsafe.Pointer {
-	fa := &d.dm.ss.FieldsAttr[d.keyIdx]
+	fa := &d.dm.ss.FieldsAttr[d.fIdx]
 	ptr := fa.MyPtr(d.dstPtr)
 	return getPtrValueAddr(ptr, fa.PtrLevel, fa.Kind, fa.Type)
 }

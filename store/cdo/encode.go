@@ -15,16 +15,9 @@ import (
 
 type (
 	//encKeyFunc func(bf *[]byte, ptr unsafe.Pointer)
-	encValFunc  func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
+	//encValFunc  func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
+	encValFunc  func(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte
 	encListFunc func(e *subEncode)
-
-	subEncode struct {
-		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
-		slice  rt.SliceHeader // 用于将数组模拟成切片
-		em     *encMeta       // Struct | Slice,Array
-		bf     *[]byte        // 当解析数组时候用到的一系列临时队列
-		//objIdx uint16         // TODO：涉及多少种不同的Struct
-	}
 
 	encMeta struct {
 		// Struct
@@ -56,14 +49,29 @@ type (
 		isPtr    bool  // [] is list and item is pointer type
 		ptrLevel uint8 // [] is list and item pointer level(max 256 deeps)
 	}
+
+	subEncode struct {
+		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
+		slice  rt.SliceHeader // 用于将数组模拟成切片
+		em     *encMeta       // Struct | Slice,Array
+		bf     *[]byte        // 当解析数组时候用到的一系列临时队列
+		bs     []byte         // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
+		//objIdx uint16         // TODO：涉及多少种不同的Struct
+	}
 )
+
+// 默认值，用于缓存对象的重置
+var _subEncodeDefValues subEncode
+
+func (se *subEncode) reset() {
+	*se = _subEncodeDefValues
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func cdoEncode(v any) (bs []byte, err error) {
 	if v == nil {
-		return nil, nil
+		return nil, errValueIsNil
 	}
-
 	defer func() {
 		if pic := recover(); pic != nil {
 			if err1, ok := pic.(error); ok {
@@ -74,24 +82,61 @@ func cdoEncode(v any) (bs []byte, err error) {
 		}
 	}()
 
-	se := subEncode{}
-	se.getEncMeta(reflect.TypeOf(v), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr)
-	se.bf = pool.GetBytesLarge()
+	//se := subEncode{}
+	se := cdoEncPool.Get().(*subEncode)
+	se.fetchEncMeta(v)
 
+	se.bf = pool.GetBytes()
 	se.startEncode()
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
-
 	pool.FreeBytes(se.bf)
+
+	se.reset()
+	cdoEncPool.Put(se)
 	return
 }
 
-// Use SubEncode to encode Mix Item Value
-func encMixedItem(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
-	se := subEncode{}
-	se.getEncMeta(typ, ptr)
-	se.bf = bf
+func encMixedItemRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+	se := cdoEncPool.Get().(*subEncode)
+	se.applyEncMeta(typ, ptr)
+
+	se.bs = bf
+	se.bf = &se.bs
 	se.startEncode()
+
+	se.reset()
+	cdoEncPool.Put(se)
+	return se.bs
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (se *subEncode) fetchEncMeta(v any) {
+	vType := reflect.TypeOf(v)
+	ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
+
+	// v可能是一个值的地址，最多只能剥掉一层指针
+	if vType.Kind() == reflect.Pointer {
+		vType = vType.Elem()
+		// Note：有些类型本质其实是指针，但是reflect.Kind() != reflect.Pointer
+		// 比如：map | channel | func
+		// 此时需要统一变量值 ptr 指向的内存
+		if vType.Kind() == reflect.Map {
+			ptr = *(*unsafe.Pointer)(ptr)
+		}
+	}
+
+	se.applyEncMeta(vType, ptr)
+}
+
+func (se *subEncode) applyEncMeta(vType reflect.Type, ptr unsafe.Pointer) {
+	if meta := cacheGetEncMeta(vType); meta != nil {
+		se.em = meta
+	} else {
+		se.em = newEncMeta(vType)
+		cacheSetEncMeta(vType, se.em)
+	}
+	se.srcPtr = ptr
 }
 
 func (se *subEncode) startEncode() {
@@ -107,27 +152,6 @@ func (se *subEncode) startEncode() {
 	case se.em.isPtr:
 		se.encPointer()
 	}
-}
-
-func (se *subEncode) getEncMeta(rfType reflect.Type, ptr unsafe.Pointer) {
-	// 最多只能剥掉一层指针
-	if rfType.Kind() == reflect.Pointer {
-		rfType = rfType.Elem()
-		// Note：有些类型本质其实是指针，但是reflect.Kind() != reflect.Pointer
-		// 比如：map | channel | func
-		// 此时需要统一变量值 ptr 指向的内存
-		if rfType.Kind() == reflect.Map {
-			ptr = *(*unsafe.Pointer)(ptr)
-		}
-	}
-
-	if meta := cacheGetEncMeta(rfType); meta != nil {
-		se.em = meta
-	} else {
-		se.em = newEncMeta(rfType)
-		cacheSetEncMeta(rfType, se.em)
-	}
-	se.srcPtr = ptr
 }
 
 // EncodeMeta
@@ -273,54 +297,56 @@ func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
 		panic(errValueType)
 
 	case reflect.Int:
-		*encFunc = encInt[int]
+		*encFunc = encIntRet[int]
 	case reflect.Int8:
-		*encFunc = encInt[int8]
+		*encFunc = encIntRet[int8]
 	case reflect.Int16:
-		*encFunc = encInt[int16]
+		*encFunc = encIntRet[int16]
 	case reflect.Int32:
-		*encFunc = encInt[int32]
+		*encFunc = encIntRet[int32]
 	case reflect.Int64:
-		*encFunc = encInt[int64]
+		*encFunc = encIntRet[int64]
 
 	case reflect.Uint:
-		*encFunc = encUint[uint]
+		*encFunc = encUintRet[uint]
 	case reflect.Uint8:
-		*encFunc = encUint[uint8]
+		*encFunc = encUintRet[uint8]
 	case reflect.Uint16:
-		*encFunc = encUint[uint16]
+		*encFunc = encUintRet[uint16]
 	case reflect.Uint32:
-		*encFunc = encUint[uint32]
+		*encFunc = encUintRet[uint32]
 	case reflect.Uint64:
-		*encFunc = encUint[uint64]
+		*encFunc = encUintRet[uint64]
 	case reflect.Uintptr:
-		*encFunc = encUint[uintptr]
+		*encFunc = encUintRet[uintptr]
 
 	case reflect.Float32:
-		*encFunc = encF32
+		*encFunc = encF32Ret
 	case reflect.Float64:
-		*encFunc = encF64
+		*encFunc = encF64Ret
 
 	case reflect.String:
-		*encFunc = encString
+		*encFunc = encStringRet
 	case reflect.Bool:
-		*encFunc = encBool
+		*encFunc = encBoolRet
 	case reflect.Interface:
-		*encFunc = encAny
+		*encFunc = encAnyRet
 
-	case reflect.Pointer, reflect.Map, reflect.Array:
-		*encFunc = encMixedItem
+	//case reflect.Pointer:
+	//	*encFunc = encPointer
+	case reflect.Map, reflect.Array:
+		*encFunc = encMixedItemRet
 	case reflect.Slice:
 		if typ == cst.TypeBytes {
-			*encFunc = encBytes
+			*encFunc = encBytesRet
 		} else {
-			*encFunc = encMixedItem
+			*encFunc = encMixedItemRet
 		}
 	case reflect.Struct:
 		if typ == cst.TypeTime {
-			*encFunc = encTime
+			*encFunc = encTimeRet
 		} else {
-			*encFunc = encMixedItem
+			*encFunc = encMixedItemRet
 		}
 	}
 }
@@ -374,7 +400,11 @@ func (em *encMeta) bindListEnc() {
 			if em.itemType == cst.TypeTime {
 				em.listEnc = encListAll
 			} else {
-				em.listEnc = encListStruct
+				if em.ss.Attrs.HasPtrField {
+					em.listEnc = encListStructPtr
+				} else {
+					em.listEnc = encListStruct
+				}
 			}
 		}
 		return
@@ -428,7 +458,7 @@ func (em *encMeta) bindListEnc() {
 		if em.itemType == cst.TypeTime {
 			em.listEnc = encListAllPtr
 		} else {
-			em.listEnc = encListStruct
+			em.listEnc = encListStructPtr
 		}
 	}
 	return

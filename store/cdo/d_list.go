@@ -427,3 +427,48 @@ func decStrListPtr(d *subDecode, tLen int) {
 		return off
 	})
 }
+
+// []struct & []*struct
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func decStructList(d *subDecode, tLen int) {
+	offS := d.scan
+
+	// 1. struct fields
+	off, typ, fSize := scanListSubtypeU16(d.str[offS:])
+	if typ != ListObjFields {
+		panic(errListType)
+	}
+	offS += off
+
+	for i := 0; i < int(fSize); i++ {
+		off1, fName := scanString(d.str[offS:])
+		offS += off1
+		d.fIdxes[i] = int16(d.dm.ss.ColumnIndex(fName))
+	}
+	d.scan = offS
+
+	// 2. records values
+	listPtr := d.dstPtr
+	for i := 0; i < tLen; i++ {
+		d.dstPtr = unsafe.Add(listPtr, i*d.dm.itemMemSize)
+
+		// 如果是指针比如：[]*struct，需要分配空间
+		if d.dm.isPtr {
+			if d.str[d.scan] == FixNilMixed {
+				d.scan++
+				continue
+			}
+			d.dstPtr = getPtrValueAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemKind, d.dm.itemType)
+		}
+
+		// 循环字段
+		for j := 0; j < int(fSize); j++ {
+			d.fIdx = int(d.fIdxes[j])
+			if d.fIdx >= 0 {
+				d.dm.fieldsDec[d.fIdx](d)
+			} else {
+				d.skipOneValue()
+			}
+		}
+	}
+}

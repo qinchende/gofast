@@ -73,7 +73,6 @@ func startEncode(v any) (bs []byte, err error) {
 	se.encStart()
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
-
 	pool.FreeBytes(se.bf)
 	return
 }
