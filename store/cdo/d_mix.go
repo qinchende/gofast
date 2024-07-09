@@ -2,54 +2,13 @@ package cdo
 
 import (
 	"github.com/qinchende/gofast/core/rt"
+	"unsafe"
 )
 
-// array & slice
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-//func (d *subDecode) scanList() {
-//	// A. 可能需要用到缓冲池记录临时数据
-//	d.resetListPool()
-//	// B. 根据目标值类型，直接匹配，提高性能
-//	d.scanListItems()
-//	// C. 将解析好的数据一次性绑定到对象上
-//	d.flushListPool()
-//}
-
-func (d *subDecode) scanListItems() {
+func (d *decoder) skipList() {
 	off1, typ, size := scanTypeU32By6(d.str[d.scan:])
 	if typ != TypeList {
-		panic(errChar)
-	}
-
-	d.scan += off1
-	for i := 0; i < int(size); i++ {
-		if d.skipValue {
-			d.skipOneValue()
-		} else {
-			d.dm.itemDec(d)
-			if d.dm.isArray {
-				d.arrIdx++
-				if d.arrIdx >= d.dm.arrLen {
-					d.skipValue = true
-				}
-			}
-		}
-	}
-	// 数组多余的部分需要重置成类型零值
-	if d.arrIdx < d.dm.arrLen {
-		d.resetArrLeftItems()
-	}
-	// 清理变量
-	if d.share != nil {
-		d.resetShareDecode()
-	}
-}
-
-func (d *subDecode) skipList() {
-	off1, typ, size := scanTypeU32By6(d.str[d.scan:])
-	if typ != TypeList {
-		panic(errChar)
+		panic(errCdoChar)
 	}
 
 	d.scan += off1
@@ -58,40 +17,7 @@ func (d *subDecode) skipList() {
 	}
 }
 
-// struct & map
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (d *subDecode) scanKVS() {
-	off1, tLen := scanListTypeU24(d.str[d.scan:])
-	d.scan += off1
-
-	if d.str[d.scan] != ListKV {
-		panic(errListType)
-	}
-	d.scan++
-
-	for i := 0; i < int(tLen); i++ {
-		off, key := scanString(d.str[d.scan:])
-		d.scan += off
-		d.dm.kvPairDec(d, key)
-	}
-}
-
-func (d *subDecode) skipKVS() {
-	//off1, _, size := scanTypeU16(d.str[d.scan:])
-	//if typ != TypeMap {
-	//	panic(errKV)
-	//}
-
-	//for i := 0; i < int(size); i++ {
-	//	off2 := skipString(d.str[off1:])
-	//	d.scan += off2 + off1
-	//	d.skipOneValue()
-	//}
-}
-
-// skip items
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (d *subDecode) skipOneValue() {
+func (d *decoder) skipOneValue() {
 	c := d.str[0]
 	typ := c & TypeMask
 	val := c & TypeValMask
@@ -105,7 +31,7 @@ func (d *subDecode) skipOneValue() {
 		}
 		switch val {
 		default:
-			panic(errChar)
+			panic(errCdoChar)
 		case FixNil, FixNilMixed, FixTrue, FixFalse:
 			off = 1
 		case FixF32:
@@ -133,106 +59,237 @@ func (d *subDecode) skipOneValue() {
 	d.scan += off
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Scan Advanced mixed type, such as map | gson | struct
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// map +++++
-// 目前只支持 map[string]any，并不支持其它map
+// pointer +++++
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanCstKVValue(d *subDecode, k string) {
-
+func scanPointerValue(d *decoder) {
+	ptr := getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemType)
+	d.runSub(d.dm.itemType, ptr)
 }
 
-// map WebKV +++++
-// 只支持 map[string]string
+// map & array & slice
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanWebKVValue(d *subDecode, k string) {
-
-}
-
-// struct +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanStructValue(d *subDecode, key string) {
-	// TODO: 此处 d.keyIdx 可以继续被优化
-	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx < 0 {
-		d.skipValue = true
-		d.skipOneValue()
-	} else {
-		d.dm.fieldsDec[d.fIdx](d) // 根据目标值类型来解析
-	}
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Scan Advanced mixed type, such as map | struct | array | slice
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// sash as map | struct
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanObjMixValue(d *subDecode) {
-	d.startSubDecode(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldMixPtr(d))
-}
-
-func scanObjPtrMixValue(d *subDecode) {
-	if d.str[d.scan] == FixNilMixed {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		d.startSubDecode(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldPtrDeep(d))
-	}
-}
-
-// sash as array | slice
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// array and item not ptr
-func scanArrMixValue(d *subDecode) {
-	typ := itemType(d.str[d.scan:])
-
-	switch typ {
-	default:
-		panic(errValueType)
-	//case TypeMap:
-	//	d.initShareDecode(arrMixItemPtr(d))
-	//	d.share.scanKVS()
-	//	d.scan = d.share.scan
-	case TypeList:
-		d.initShareDecode(arrMixItemPtr(d))
-		decListBaseType(d.share, 0)
-		d.scan = d.share.scan
-	}
-}
-
-// array and item is ptr
-func scanArrPtrMixValue(d *subDecode) {
-	if d.str[d.scan] == FixNilMixed {
-		fieldSetNil(d)
-		d.scan++
-	} else {
-		scanArrMixValue(d)
-	}
-}
-
-// slice 中可能是实体对象，也可能是对象指针
-func scanListMixValue(d *subDecode) {
+func decListMixItem(d *decoder) {
 	sh := (*rt.SliceHeader)(d.dstPtr)
 	ptr := rt.SliceNextItem(sh, d.dm.itemMemSize)
 
 	if d.dm.isPtr {
 		ptr = sliceMixItemPtr(d, ptr)
 	}
-	d.initShareDecode(ptr)
-	if d.share.dm.isList {
-		decListBaseType(d.share, 0)
+	d.initSub(ptr)
+	if d.sub.dm.isList {
+		decListAll(d.sub, 0)
 	} else {
-		d.share.scanKVS()
+		d.sub.scanKVS()
 	}
-	d.scan = d.share.scan
-
-	//d.arrIdx++
-	////sh.Len = d.arrIdx
+	d.scan = d.sub.scan
 }
 
-// pointer +++++
+// map +++++
+// 目前只支持 map[string]any，并不支持其它map
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanCstKVValue(d *decoder, k string) {
+
+}
+
+// map WebKV +++++
+// 只支持 map[string]string
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func scanWebKVValue(d *decoder, k string) {
+
+}
+
+// Struct Field
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func scanPointerValue(d *subDecode) {
-	ptr := getPtrValueAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemKind, d.dm.itemType)
-	d.startSubDecode(d.dm.itemType, ptr)
+// +++ struct & map +++
+func (d *decoder) scanKVS() {
+	off1, tLen := decListTypeU24(d.str[d.scan:])
+	d.scan += off1
+
+	if d.str[d.scan] != ListKV {
+		panic(errListType)
+	}
+	d.scan++
+
+	for i := 0; i < int(tLen); i++ {
+		off, key := scanString(d.str[d.scan:])
+		d.scan += off
+		d.dm.kvPairDec(d, key)
+	}
+}
+
+func (d *decoder) skipKVS() {
+	//off1, _, size := scanTypeU16(d.str[d.scan:])
+	//if typ != TypeMap {
+	//	panic(errKV)
+	//}
+
+	//for i := 0; i < int(size); i++ {
+	//	off2 := skipString(d.str[off1:])
+	//	d.scan += off2 + off1
+	//	d.skipOneValue()
+	//}
+}
+
+// +++ struct +++
+func decField(d *decoder, key string) {
+	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx < 0 {
+		d.skipValue = true
+		d.skipOneValue()
+	} else {
+		d.dm.fieldsDec[d.fIdx](d)
+	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func fieldNotNil(d *decoder) bool {
+	if d.str[d.scan] == FixNil {
+		*(*unsafe.Pointer)(fieldPtr(d)) = nil
+		d.scan++
+		return false
+	}
+	return true
+}
+
+// VarInt +++++
+func decVarInt(d *decoder) (byte, uint64) {
+	off, typ, v := scanVarIntVal(d.str[d.scan:])
+	d.scan += off
+	if typ == TypeVarIntPos || typ == TypeVarIntNeg {
+		return typ, v
+	}
+	panic(errValType)
+}
+
+func decVarIntField(d *decoder) (unsafe.Pointer, byte, uint64) {
+	off, typ, v := scanVarIntVal(d.str[d.scan:])
+	d.scan += off
+	if typ == TypeVarIntPos || typ == TypeVarIntNeg {
+		return fieldPtr(d), typ, v
+	}
+	panic(errValType)
+}
+
+func decVarIntFieldPtr(binder intBinder) decValFunc {
+	return func(d *decoder) {
+		if fieldNotNil(d) {
+			typ, v := decVarInt(d)
+			binder(fieldPtrDeep(d), typ, v)
+		}
+	}
+}
+
+// float32 +++++
+func decFixF32(d *decoder) float32 {
+	if d.str[d.scan] != FixF32 {
+		panic(errValType)
+	}
+	d.scan += 5
+	return scanF32Val(d.str[d.scan:])
+}
+
+func decF32Field(d *decoder) {
+	bindF32(fieldPtr(d), decFixF32(d))
+}
+
+func decF32FieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		bindF32(fieldPtrDeep(d), decFixF32(d))
+	}
+}
+
+// float64 +++++
+func decFixF64(d *decoder) float64 {
+	if d.str[d.scan] != FixF64 {
+		panic(errValType)
+	}
+	d.scan += 9
+	return scanF64Val(d.str[d.scan:])
+}
+
+func decF64Field(d *decoder) {
+	bindF64(fieldPtr(d), decFixF64(d))
+}
+
+func decF64FieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		bindF64(fieldPtrDeep(d), decFixF64(d))
+	}
+}
+
+// string +++++
+func decStrField(d *decoder) {
+	off, str := scanString(d.str[d.scan:])
+	d.scan += off
+	bindString(fieldPtr(d), str)
+}
+
+func decStrFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		off, str := scanString(d.str[d.scan:])
+		d.scan += off
+		bindString(fieldPtrDeep(d), str)
+	}
+}
+
+// []byte +++++
+func decBytesField(d *decoder) {
+	off, bs := scanBytes(d.str[d.scan:])
+	d.scan += off
+	bindBytes(fieldPtr(d), bs)
+}
+
+func decBytesFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		off, bs := scanBytes(d.str[d.scan:])
+		d.scan += off
+		bindBytes(fieldPtrDeep(d), bs)
+	}
+}
+
+// bool +++++
+func decBoolField(d *decoder) {
+	v := scanBool(d.str[d.scan:])
+	d.scan += 1
+	bindBool(fieldPtr(d), v)
+}
+
+func decBoolFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		v := scanBool(d.str[d.scan:])
+		d.scan += 1
+		bindBool(fieldPtrDeep(d), v)
+	}
+}
+
+// time.Time +++++
+func decTimeField(d *decoder) {
+	v := scanBool(d.str[d.scan:])
+	d.scan += 1
+	bindBool(fieldPtr(d), v)
+}
+
+func decTimeFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		v := scanBool(d.str[d.scan:])
+		d.scan += 1
+		bindBool(fieldPtrDeep(d), v)
+	}
+}
+
+// any +++++
+func decAnyField(d *decoder) {
+}
+
+func decAnyFieldPtr(d *decoder) {
+}
+
+// mixed field +++++  such as map|struct
+func decMixField(d *decoder) {
+	d.runSub(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldMixPtr(d))
+}
+
+func decMixFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		d.runSub(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldPtrDeep(d))
+	}
 }

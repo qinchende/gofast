@@ -26,7 +26,7 @@ func ReadAll(r io.Reader, defSize int64) ([]byte, error) {
 		if len(b) == cap(b) {
 			// 兜底控制，太大了禁止再扩大内存占用
 			if len(b) >= maxReadSize {
-				return b, errors.New("too large, stopped.")
+				return b, errors.New("out of limit, read has stopped")
 			}
 			b = append(b, 0)[:len(b)] // Add more capacity (let append pick how much).
 		}

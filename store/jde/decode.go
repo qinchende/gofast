@@ -144,7 +144,7 @@ func startDecodeStructKV(sk *dts.StructKV, source string) (err error) {
 	sd := jdeDecPool.Get().(*subDecode)
 	sd.str = source
 	sd.scan = 0
-	sd.getDecMeta(sk.SS.Attrs.Type, sk.Ptr)
+	sd.getDecMeta(sk.SS.Type, sk.Ptr)
 
 	err = sd.warpErrorCode(sd.scanStart())
 

@@ -5,8 +5,8 @@ import (
 )
 
 var (
-	cdoEncPool    = sync.Pool{New: func() any { return &subEncode{} }}
-	cdoDecPool    = sync.Pool{New: func() any { return &subDecode{} }}
+	cdoEncPool    = sync.Pool{New: func() any { return &encoder{} }}
+	cdoDecPool    = sync.Pool{New: func() any { return &decoder{} }}
 	cachedEncMeta sync.Map
 	cachedDecMeta sync.Map
 )

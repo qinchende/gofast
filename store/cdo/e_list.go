@@ -10,7 +10,7 @@ import (
 // Note: add by sdx on 2024-06-06
 // 这里将数组和切片的情况合并考虑，简化了代码；
 // 但通常我们遇到的都是切片类型，如果分开处理，将能进一步提高约 10% 的性能。
-func (se *subEncode) encList() {
+func (se *encoder) encList() {
 	if se.em.isSlice {
 		se.slice = *(*rt.SliceHeader)(se.srcPtr)
 		se.srcPtr = se.slice.DataPtr
@@ -23,7 +23,7 @@ func (se *subEncode) encList() {
 // 这是通用方法，但不是最高效的
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // List type value
-func encListAll(se *subEncode) {
+func encListAll(se *encoder) {
 	tLen := se.slice.Len
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListAny)
@@ -41,7 +41,7 @@ func encListAll(se *subEncode) {
 }
 
 // List item is ptr
-func encListAllPtr(se *subEncode) {
+func encListAllPtr(se *encoder) {
 	tLen := se.slice.Len
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListAny)
@@ -73,7 +73,7 @@ func encListAllPtr(se *subEncode) {
 // int numbers
 // Note：整形数组，用第一个字符的第一个bit位来代表正负符号
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encListVarUint[T constraints.Unsigned](se *subEncode) {
+func encListVarUint[T constraints.Unsigned](se *encoder) {
 	list := *(*[]T)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListVarInt)
@@ -88,7 +88,7 @@ func encListVarUint[T constraints.Unsigned](se *subEncode) {
 	*se.bf = bs
 }
 
-func encListVarInt[T constraints.Integer](se *subEncode) {
+func encListVarInt[T constraints.Integer](se *encoder) {
 	list := *(*[]T)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListVarInt)
@@ -111,7 +111,7 @@ func encListVarInt[T constraints.Integer](se *subEncode) {
 	*se.bf = bs
 }
 
-func encListVarIntPtr[T constraints.Integer](se *subEncode) {
+func encListVarIntPtr[T constraints.Integer](se *encoder) {
 	bs := *se.bf
 	tLen := se.slice.Len
 	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListAny)
@@ -153,7 +153,7 @@ func encListVarIntPtr[T constraints.Integer](se *subEncode) {
 
 // float
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encListF32(se *subEncode) {
+func encListF32(se *encoder) {
 	list := *(*[]float32)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListF32)
@@ -163,7 +163,7 @@ func encListF32(se *subEncode) {
 	*se.bf = bs
 }
 
-func encListF64(se *subEncode) {
+func encListF64(se *encoder) {
 	list := *(*[]float64)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListF64)
@@ -175,7 +175,7 @@ func encListF64(se *subEncode) {
 
 // bool
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encListBool(se *subEncode) {
+func encListBool(se *encoder) {
 	list := *(*[]bool)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListBool)
@@ -191,7 +191,7 @@ func encListBool(se *subEncode) {
 
 // string
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func encListString(se *subEncode) {
+func encListString(se *encoder) {
 	list := *(*[]string)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListStr)
@@ -212,7 +212,7 @@ func encListString(se *subEncode) {
 // []struct & []*struct
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // list item is type of struct
-func encListStruct(se *subEncode) {
+func encListStruct(se *encoder) {
 	// list size
 	tLen := se.slice.Len
 	bs := *se.bf
@@ -233,7 +233,7 @@ func encListStruct(se *subEncode) {
 	*se.bf = bs
 }
 
-func encListStructPtr(se *subEncode) {
+func encListStructPtr(se *encoder) {
 	// list size
 	tLen := se.slice.Len
 	bs := *se.bf
