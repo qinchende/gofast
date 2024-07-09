@@ -5,14 +5,14 @@ import (
 )
 
 // Basic type value
-func (se *subEncode) encBasic() {
+func (se *encoder) encBasic() {
 	bs := *se.bf
 	bs = se.em.itemEnc(bs, se.srcPtr, se.em.itemType)
 	*se.bf = bs
 }
 
 // Pointer type value
-func (se *subEncode) encPointer() {
+func (se *encoder) encPointer() {
 	ptr := se.srcPtr
 	bs := *se.bf
 
@@ -34,7 +34,7 @@ peelPtr:
 
 // A struct object encode same as map[string]any
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (se *subEncode) encStruct() {
+func (se *encoder) encStruct() {
 	fls := se.em.ss.FieldsAttr
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(len(fls))), ListKV)

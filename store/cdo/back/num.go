@@ -126,19 +126,19 @@ package back
 
 //func decInt64List(d *subDecode, tLen int) {
 //	list := *(*[]int64)(unsafe.Pointer(&d.slice))
-//	offS := validListItemType(d, ListVarInt)
+//	pos := validListItemType(d, ListVarInt)
 //	for i := 0; i < len(list); i++ {
-//		sym, v := listVarIntHead(d.str[offS])
+//		sym, v := listVarIntHead(d.str[pos])
 //		var off int
 //		if v <= 122 {
-//			off, v = scanU64ValBy7Part1(d.str[offS:], v)
+//			off, v = scanU64ValBy7Part1(d.str[pos:], v)
 //		} else {
-//			off, v = scanU64ValBy7Part2(d.str[offS:], v)
+//			off, v = scanU64ValBy7Part2(d.str[pos:], v)
 //		}
 //		list[i] = toInt64(sym, v)
-//		offS += off
+//		pos += off
 //	}
-//	d.scan = offS
+//	d.scan = pos
 //}
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -174,23 +174,23 @@ package back
 //}
 //
 //func decIntList(d *subDecode, tLen int) {
-//	offS := d.scan
-//	if d.str[offS] != ListVarInt {
+//	pos := d.scan
+//	if d.str[pos] != ListVarInt {
 //		panic(errChar)
 //	}
-//	offS++
+//	pos++
 //	for i := 0; i < tLen; i++ {
 //		iPtr := unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)
 //
 //		//Part0
-//		c := d.str[offS]
+//		c := d.str[pos]
 //		typ := c & 0x80
 //		v := uint64(c>>5) & 0x03
 //		var off int
 //		if v <= 2 {
-//			off, v = scanVarInt(d.str[offS:], v)
+//			off, v = scanVarInt(d.str[pos:], v)
 //		} else {
-//			off, v = scanVarInt2(d.str[offS:], uint64(c&0x0F))
+//			off, v = scanVarInt2(d.str[pos:], uint64(c&0x0F))
 //		}
 //
 //		if typ == 0x00 {
@@ -200,21 +200,21 @@ package back
 //		} else {
 //			panic(errChar)
 //		}
-//		offS += off
+//		pos += off
 //
 //		//// Part1
-//		//typ, v := typeValue(d.str[offS])
+//		//typ, v := typeValue(d.str[pos])
 //		//var off int
 //		//if v <= 59 {
-//		//	off, v = scanU64Part1(d.str[offS:], v)
+//		//	off, v = scanU64Part1(d.str[pos:], v)
 //		//} else {
-//		//	off, v = scanU64Part2(d.str[offS:], v)
+//		//	off, v = scanU64Part2(d.str[pos:], v)
 //		//}
 //		//
 //		//// Part3
-//		////off, typ, v := scanTypeLen8(d.str[offS:])
+//		////off, typ, v := scanTypeLen8(d.str[pos:])
 //		//
-//		//offS += off
+//		//pos += off
 //		//if typ == TypePosInt {
 //		//	bindInt(iPtr, int64(v))
 //		//} else if typ == TypeNegInt {
@@ -223,5 +223,5 @@ package back
 //		//	panic(errChar)
 //		//}
 //	}
-//	d.scan = offS
+//	d.scan = pos
 //}

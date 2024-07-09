@@ -6,7 +6,8 @@ import (
 	"unsafe"
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+type intBinder func(p unsafe.Pointer, sym byte, v uint64)
+
 // ++ int ++
 func bindInt(p unsafe.Pointer, sym byte, v uint64) {
 	*(*int)(p) = toInt(sym, v)

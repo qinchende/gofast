@@ -337,7 +337,7 @@ func scanSqlRowsListSuper(list any, sqlRows *sql.Rows, encPet *gson.RowsEncPet) 
 
 		sh := (*rt.SliceHeader)((*rt.AFace)(unsafe.Pointer(&list)).DataPtr)
 		for sqlRows.Next() {
-			objPtr := rt.SliceNextItem(sh, ts.SS.Attrs.MemSize)
+			objPtr := rt.SliceNextItem(sh, ts.SS.MemSize)
 
 			for i, fIdx := range fIndexes {
 				if fIdx < 0 {

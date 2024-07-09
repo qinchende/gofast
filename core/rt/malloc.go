@@ -1,6 +1,7 @@
 package rt
 
 import (
+	"reflect"
 	"unsafe"
 )
 
@@ -40,6 +41,19 @@ func SliceToArray(slicePtr unsafe.Pointer, itemSize int, sliceLen int) unsafe.Po
 	if sh.Cap < sliceLen {
 		newMem := make([]byte, itemSize*sliceLen)
 		sh.DataPtr = (*SliceHeader)(unsafe.Pointer(&newMem)).DataPtr
+		sh.Len, sh.Cap = sliceLen, sliceLen
+	} else {
+		sh.Len = sliceLen
+	}
+	return sh.DataPtr
+}
+
+// 为Slice对象分配足够的内存空间，并像Array一样，返回第一个值的地址
+// 此版本要保证内存安全性
+func SliceToArraySafe(slicePtr unsafe.Pointer, sliceLen int, sliceTyp reflect.Type) unsafe.Pointer {
+	sh := (*SliceHeader)(slicePtr)
+	if sh.Cap < sliceLen {
+		sh.DataPtr = reflect.MakeSlice(sliceTyp, sliceLen, sliceLen).UnsafePointer()
 		sh.Len, sh.Cap = sliceLen, sliceLen
 	} else {
 		sh.Len = sliceLen

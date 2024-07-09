@@ -8,38 +8,10 @@ import (
 	"unsafe"
 )
 
-func itemType(s string) (int uint8) {
-	return s[0] & TypeMask
-}
-
-func listType(s string) (int uint8) {
-	return 0
-}
-
-func typeValue(c byte) (uint8, uint64) {
-	return c & TypeMask, uint64(c & TypeValMask)
-}
-
-//func scanTypeU16(s string) (int, uint8, uint16) {
-//	c := s[0]
-//	typ := c & TypeMask
-//	size := uint16(c & TypeValMask)
-//
-//	switch size {
-//	default:
-//		return 1, typ, size // size <= 29
-//	case 30:
-//		return 2, typ, uint16(s[1])
-//	case 31:
-//		return 3, typ, uint16(s[1]) | uint16(s[2])<<8
-//
-//	}
-//}
-
-func scanListTypeU24(s string) (int, uint32) {
+func decListTypeU24(s string) (int, uint32) {
 	c := s[0]
 	if c&TypeListMask != TypeList {
-		panic(errChar)
+		panic(errCdoChar)
 	}
 	size := uint32(c & TypeListValMask)
 
@@ -57,7 +29,7 @@ func scanListTypeU24(s string) (int, uint32) {
 	}
 }
 
-func scanListSubtypeU16(s string) (int, uint8, uint16) {
+func decListSubtypeU16(s string) (int, uint8, uint16) {
 	c := s[0]
 	typ := c & ListMask
 	size := uint16(c & ListValMask)
@@ -136,7 +108,7 @@ func listVarIntHead(c byte) (byte, uint64) {
 	return c, uint64(c & 0x7F)
 }
 
-func scanListVarInt8(s string, v uint64) (int, uint64) {
+func decListVarInt8(s string, v uint64) (int, uint64) {
 	switch byte(v) >> 5 {
 	case 0:
 		return 1, uint64(s[0] & 0x1F)
@@ -145,7 +117,7 @@ func scanListVarInt8(s string, v uint64) (int, uint64) {
 	}
 }
 
-func scanListVarInt16(s string, v uint64) (int, uint64) {
+func decListVarInt16(s string, v uint64) (int, uint64) {
 	switch byte(v) >> 5 {
 	case 0:
 		return 1, uint64(s[0] & 0x1F)
@@ -158,18 +130,18 @@ func scanListVarInt16(s string, v uint64) (int, uint64) {
 	}
 }
 
-func scanListVarInt(s string) (byte, int, uint64) {
+func decListVarInt(s string) (byte, int, uint64) {
 	typ, v := listVarIntHead(s[0])
 	var off int
 	if v <= 0x63 {
-		off, v = scanListVarIntPart1(s, v)
+		off, v = decListVarIntPart1(s, v)
 	} else {
-		off, v = scanListVarIntPart2(s, v)
+		off, v = decListVarIntPart2(s, v)
 	}
 	return typ, off, v
 }
 
-func scanListVarIntPart1(s string, v uint64) (int, uint64) {
+func decListVarIntPart1(s string, v uint64) (int, uint64) {
 	switch byte(v) >> 5 {
 	case 0:
 		return 1, uint64(s[0] & 0x1F)
@@ -182,10 +154,10 @@ func scanListVarIntPart1(s string, v uint64) (int, uint64) {
 	}
 }
 
-func scanListVarIntPart2(s string, v uint64) (int, uint64) {
+func decListVarIntPart2(s string, v uint64) (int, uint64) {
 	switch byte(v) & 0x0F {
 	default:
-		panic(errChar)
+		panic(errCdoChar)
 	case 4:
 		_ = s[4]
 		return 5, uint64(s[1]) | uint64(s[2])<<8 | uint64(s[3])<<16 | uint64(s[4])<<24
@@ -205,15 +177,7 @@ func scanListVarIntPart2(s string, v uint64) (int, uint64) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func scanUint64(str string) (int, uint64) {
-//	off, typ, val := scanTypeU64By6(str)
-//	if typ != TypeVarIntPos {
-//		panic(errChar)
-//	}
-//	return off, val
-//}
-
-func scanVarInt(str string) (int, byte, uint64) {
+func scanVarIntVal(str string) (int, byte, uint64) {
 	return scanTypeU64By6(str)
 }
 
@@ -239,7 +203,7 @@ func scanBoolVal(s string) bool {
 func scanBool(s string) bool {
 	switch s[0] {
 	default:
-		panic(errChar)
+		panic(errCdoChar)
 	case FixTrue:
 		return true
 	case FixFalse:
@@ -259,7 +223,7 @@ func scanString(str string) (int, string) {
 func skipString(str string) int {
 	off1, typ, size := scanTypeU32By6(str)
 	if typ != TypeStr {
-		panic(errChar)
+		panic(errCdoChar)
 	}
 	return off1 + int(size)
 }
@@ -272,7 +236,7 @@ func scanBytes(str string) (int, []byte) {
 // memory plan
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Note: 此函数只适合 object 的 field，List 的 item 为 指针类型 的情形。非指针不能调用此方法
-func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType reflect.Type) unsafe.Pointer {
+func getPtrValAddr(ptr unsafe.Pointer, ptrLevel uint8, typ reflect.Type) unsafe.Pointer {
 	for ptrLevel > 1 {
 		if *(*unsafe.Pointer)(ptr) == nil {
 			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
@@ -288,15 +252,15 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType
 	if *(*unsafe.Pointer)(ptr) == nil {
 		var newPtr unsafe.Pointer
 
-		switch kd {
+		switch typ.Kind() {
 		case reflect.Map:
 			newPtr = unsafe.Pointer(new(unsafe.Pointer))
-			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(rfType).UnsafePointer()
+			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(typ).UnsafePointer()
 		case reflect.Slice:
 			newPtr = unsafe.Pointer(&rt.SliceHeader{})
-			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(rfType, 0, 0).UnsafePointer()
+			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(typ, 0, 0).UnsafePointer()
 		default:
-			newPtr = reflect.New(rfType).UnsafePointer()
+			newPtr = reflect.New(typ).UnsafePointer()
 		}
 
 		*(*unsafe.Pointer)(ptr) = newPtr
@@ -305,52 +269,11 @@ func getPtrValueAddr(ptr unsafe.Pointer, ptrLevel uint8, kd reflect.Kind, rfType
 	return *(*unsafe.Pointer)(ptr)
 }
 
-// array & slice
-func arrItemPtr(d *subDecode) unsafe.Pointer {
-	return unsafe.Add(d.dstPtr, d.arrIdx*d.dm.itemMemSize)
+func sliceMixItemPtr(d *decoder, ptr unsafe.Pointer) unsafe.Pointer {
+	return getPtrValAddr(ptr, d.dm.ptrLevel, d.dm.itemType)
 }
 
-func arrMixItemPtr(d *subDecode) unsafe.Pointer {
-	ptr := unsafe.Add(d.dstPtr, d.arrIdx*d.dm.itemMemSize)
-
-	// 只有field字段为map或者slice的时候，值才可能是nil
-	if d.dm.itemKind == reflect.Map {
-		if *(*unsafe.Pointer)(ptr) == nil {
-			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(d.dm.itemType).UnsafePointer()
-		}
-	}
-	return ptr
-}
-
-func arrMixItemPtrDeep(d *subDecode) unsafe.Pointer {
-	ptr := unsafe.Add(d.dstPtr, d.arrIdx*d.dm.itemMemSize)
-	return getPtrValueAddr(ptr, d.dm.ptrLevel, d.dm.itemKind, d.dm.itemType)
-}
-
-func sliceMixItemPtr(d *subDecode, ptr unsafe.Pointer) unsafe.Pointer {
-	return getPtrValueAddr(ptr, d.dm.ptrLevel, d.dm.itemKind, d.dm.itemType)
-}
-
-// reset array left item
-func (d *subDecode) resetArrLeftItems() {
-	var dfValue unsafe.Pointer
-	if !d.dm.isPtr {
-		dfValue = zeroValues[d.dm.itemKind]
-	}
-	for i := d.arrIdx; i < d.dm.arrLen; i++ {
-		*(*unsafe.Pointer)(unsafe.Add(d.dstPtr, i*d.dm.itemMemSize)) = dfValue
-	}
-}
-
-// struct & map & gson
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-
-func fieldPtr(d *subDecode) unsafe.Pointer {
-	return d.dm.ss.FieldsAttr[d.fIdx].MyPtr(d.dstPtr)
-}
-
-func fieldMixPtr(d *subDecode) unsafe.Pointer {
+func fieldMixPtr(d *decoder) unsafe.Pointer {
 	fa := &d.dm.ss.FieldsAttr[d.fIdx]
 	ptr := fa.MyPtr(d.dstPtr)
 
@@ -379,12 +302,12 @@ func fieldMixPtr(d *subDecode) unsafe.Pointer {
 	return ptr
 }
 
-func fieldPtrDeep(d *subDecode) unsafe.Pointer {
-	fa := &d.dm.ss.FieldsAttr[d.fIdx]
-	ptr := fa.MyPtr(d.dstPtr)
-	return getPtrValueAddr(ptr, fa.PtrLevel, fa.Kind, fa.Type)
+func fieldPtr(d *decoder) unsafe.Pointer {
+	return d.dm.ss.FieldsAttr[d.fIdx].MyPtr(d.dstPtr)
 }
 
-func fieldSetNil(d *subDecode) {
-	*(*unsafe.Pointer)(fieldPtr(d)) = nil
+func fieldPtrDeep(d *decoder) unsafe.Pointer {
+	fa := &d.dm.ss.FieldsAttr[d.fIdx]
+	ptr := fa.MyPtr(d.dstPtr)
+	return getPtrValAddr(ptr, fa.PtrLevel, fa.Type)
 }

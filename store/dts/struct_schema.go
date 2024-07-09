@@ -20,10 +20,10 @@ import (
 // 表结构体Schema, 限制表最多127列（用int8计数）
 type (
 	StructSchema struct {
-		Attrs      structAttrs // 结构体元数据
-		FieldsAttr []fieldAttr // 字段元数据
-		Fields     []string    // 按顺序存放的字段名
-		Columns    []string    // 按顺序存放的tag列名
+		structAttrs             // 结构体元数据
+		FieldsAttr  []fieldAttr // 字段元数据
+		Fields      []string    // 按顺序存放的字段名
+		Columns     []string    // 按顺序存放的tag列名
 
 		fTips stringsTips // field_name index
 		cTips stringsTips // pms_name index
@@ -94,8 +94,8 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 
 	// 构造ORM Model元数据
 	ss := StructSchema{}
-	ss.Attrs.Type = typ
-	ss.Attrs.MemSize = int(typ.Size())
+	ss.Type = typ
+	ss.MemSize = int(typ.Size())
 
 	// 收缩切片占用的空间，因为原slice可能有多余的cap
 	ss.Columns = make([]string, len(fColumns))
@@ -118,7 +118,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 		for fa.Type.Kind() == reflect.Pointer {
 			fa.PtrLevel++
 			fa.Type = fa.Type.Elem()
-			ss.Attrs.HasPtrField = true // 结构体保护指针字段
+			ss.HasPtrField = true // 结构体保护指针字段
 		}
 		fa.Kind = fa.Type.Kind()
 		switch fa.Kind {

@@ -88,76 +88,6 @@ const (
 	OverInt64 uint64 = -math.MinInt64
 )
 
-//func typeValue(b byte) (uint8, uint8) {
-//	return b | TypeMask, b | TypeValMask
-//}
-//
-//func extBytes2(v uint8) uint8 {
-//	return v - 2
-//}
-//
-//func extBytes4(v uint8) uint8 {
-//	return v - 4
-//}
-//
-//func extBytes8(v uint8) uint8 {
-//	return v - 8
-//}
-
-//const (
-//	// Type: 0, Format: 000|XXXXXX
-//	// some fixed type
-//	TypeFixed byte = 0b00000000 // 0
-//	// Type0 subtypes
-//	FixNil      byte = 0b00000000 // 0
-//	FixMixedNil byte = 0b00000001 // 1
-//	FixTrue     byte = 0b00000010 // 2
-//	FixFalse    byte = 0b00000011 // 3
-//	FixFloat32  byte = 0b00001000 // 8
-//	FixFloat64  byte = 0b00001001 // 9
-//	FixDateTime byte = 0b00001010 // 10
-//	FixDate     byte = 0b00001011 // 11
-//	FixDuration byte = 0b00001100 // 12
-//	FixTime     byte = 0b00001101 // 13
-//	FixMax      byte = 0b00011111 // 31
-//
-//	// Type: 1, Format: 001|XXXXXX
-//	// all int numbers  which >= 0
-//	TypePosInt byte = 0b00100000
-//
-//	// Type: 2, Format: 010|XXXXXX
-//	// all int numbers  which < 0
-//	TypeNegInt byte = 0b01000000
-//
-//	// Type: 3, Format: 011|XXXXXX
-//	// all bytes array such as string/bytes
-//	TypeBytes byte = 0b01100000
-//
-//	// Type: 4, Format: 100|XXXXXX
-//	// array data
-//	TypeList byte = 0b10000000
-//
-//	//// Type: 5, Format: 101|XXXXXX
-//	//// just kvs
-//	//TypeArrSame byte = 0b10100000
-//	//
-//	//// Type: 6, Format: 110|XXXXXX
-//	////
-//	//TypeMap byte = 0b11000000
-//	//
-//	//// Type: 7, Format: 111|XXXXXX
-//	////
-//	//TypeExt byte = 0b11100000
-//
-//	// ++++++++++++++++++++++++++++++++++++++
-//	TypeSizeOffset2 uint8 = 2
-//	TypeSizeOffset4 uint8 = 4
-//	TypeSizeOffset8 uint8 = 8
-//
-//	TypeMask      byte = 0b11100000
-//	TypeValueMask byte = 0b00011111
-//)
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 const (
@@ -171,11 +101,9 @@ type (
 
 const (
 	noErr        errType = 0  // 没有错误
-	scanEOF      errType = -1 // 扫描结束
-	errNormal    errType = -2 // 没找到期望的字符湖北 天门 铁路
-	errCdo       errType = -3 // 非法Cdo格式
-	errChar      errType = -4 // 非预期的字符
-	errEscape    errType = -5
+	errEOF       errType = -1 // 文件结尾错误
+	errNormal    errType = -2 // 没找到期望的字符
+	errCdoChar   errType = -3 // 非法Cdo格式
 	errUnicode   errType = -6
 	errOverflow  errType = -7
 	errNumberFmt errType = -8
@@ -199,11 +127,9 @@ const (
 
 var errDescription = []string{
 	noErr:           "ok",
-	-(scanEOF):      "Error eof",
+	-(errEOF):       "Error eof",
 	-(errNormal):    "Error normal",
-	-(errCdo):       "Error cdo format",
-	-(errChar):      "Error char",
-	-(errEscape):    "Error escape",
+	-(errCdoChar):   "Error cdo format",
 	-(errUnicode):   "Error unicode",
 	-(errOverflow):  "Error overflow",
 	-(errNumberFmt): "Error number format",
@@ -226,7 +152,7 @@ var errDescription = []string{
 
 var (
 	errValueIsNil      = errors.New("cdo: target value is nil")
-	errCdoTooLarge     = errors.New("cdo: string too large")
+	errCdoTooLarge     = errors.New("cdo: string length out of limit")
 	errOutOfRange      = errors.New("cdo: out of range")
 	errValueType       = errors.New("cdo: target value type error")
 	errValueMustPtr    = errors.New("cdo: target value must pointer type")

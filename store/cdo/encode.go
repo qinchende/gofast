@@ -17,7 +17,7 @@ type (
 	//encKeyFunc func(bf *[]byte, ptr unsafe.Pointer)
 	//encValFunc  func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
 	encValFunc  func(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte
-	encListFunc func(e *subEncode)
+	encListFunc func(e *encoder)
 
 	encMeta struct {
 		// Struct
@@ -50,7 +50,7 @@ type (
 		ptrLevel uint8 // [] is list and item pointer level(max 256 deeps)
 	}
 
-	subEncode struct {
+	encoder struct {
 		srcPtr unsafe.Pointer // list or object 对象值地址（其指向的值不能为nil，也不能为指针）
 		slice  rt.SliceHeader // 用于将数组模拟成切片
 		em     *encMeta       // Struct | Slice,Array
@@ -61,9 +61,9 @@ type (
 )
 
 // 默认值，用于缓存对象的重置
-var _subEncodeDefValues subEncode
+var _subEncodeDefValues encoder
 
-func (se *subEncode) reset() {
+func (se *encoder) reset() {
 	*se = _subEncodeDefValues
 }
 
@@ -82,12 +82,12 @@ func cdoEncode(v any) (bs []byte, err error) {
 		}
 	}()
 
-	//se := subEncode{}
-	se := cdoEncPool.Get().(*subEncode)
+	//se := encoder{}
+	se := cdoEncPool.Get().(*encoder)
 	se.fetchEncMeta(v)
 
 	se.bf = pool.GetBytes()
-	se.startEncode()
+	se.run()
 	bs = make([]byte, len(*se.bf))
 	copy(bs, *se.bf)
 	pool.FreeBytes(se.bf)
@@ -98,12 +98,12 @@ func cdoEncode(v any) (bs []byte, err error) {
 }
 
 func encMixedItemRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	se := cdoEncPool.Get().(*subEncode)
+	se := cdoEncPool.Get().(*encoder)
 	se.applyEncMeta(typ, ptr)
 
 	se.bs = bf
 	se.bf = &se.bs
-	se.startEncode()
+	se.run()
 
 	se.reset()
 	cdoEncPool.Put(se)
@@ -111,7 +111,7 @@ func encMixedItemRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (se *subEncode) fetchEncMeta(v any) {
+func (se *encoder) fetchEncMeta(v any) {
 	vType := reflect.TypeOf(v)
 	ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
 
@@ -129,7 +129,7 @@ func (se *subEncode) fetchEncMeta(v any) {
 	se.applyEncMeta(vType, ptr)
 }
 
-func (se *subEncode) applyEncMeta(vType reflect.Type, ptr unsafe.Pointer) {
+func (se *encoder) applyEncMeta(vType reflect.Type, ptr unsafe.Pointer) {
 	if meta := cacheGetEncMeta(vType); meta != nil {
 		se.em = meta
 	} else {
@@ -139,7 +139,7 @@ func (se *subEncode) applyEncMeta(vType reflect.Type, ptr unsafe.Pointer) {
 	se.srcPtr = ptr
 }
 
-func (se *subEncode) startEncode() {
+func (se *encoder) run() {
 	switch {
 	default:
 		se.encBasic()
@@ -222,7 +222,7 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 	// List 项如果是 struct ，是本编解码方案重点处理的情况
 	if em.itemKind == reflect.Struct && em.itemType != cst.TypeTime {
 		em.ss = dts.SchemaAsReqByType(em.itemType)
-		em.bindStructFieldsEnc()
+		em.bindFieldsEnc()
 	} else {
 		em.bindValueEnc()
 	}
@@ -235,7 +235,7 @@ func (em *encMeta) initStructMeta(rfType reflect.Type) {
 	em.isStruct = true
 	em.ss = dts.SchemaAsReqByType(rfType)
 	em.itemMemSize = int(rfType.Size())
-	em.bindStructFieldsEnc()
+	em.bindFieldsEnc()
 }
 
 // ++++++++++++++++++++++++++++++ Map
@@ -277,7 +277,7 @@ func (em *encMeta) bindMapKeyEnc() {
 }
 
 // Struct对象，各字段的编码函数
-func (em *encMeta) bindStructFieldsEnc() {
+func (em *encMeta) bindFieldsEnc() {
 	fLen := len(em.ss.FieldsAttr)
 	em.fieldsEnc = make([]encValFunc, fLen)
 
@@ -400,7 +400,7 @@ func (em *encMeta) bindListEnc() {
 			if em.itemType == cst.TypeTime {
 				em.listEnc = encListAll
 			} else {
-				if em.ss.Attrs.HasPtrField {
+				if em.ss.HasPtrField {
 					em.listEnc = encListStructPtr
 				} else {
 					em.listEnc = encListStruct
