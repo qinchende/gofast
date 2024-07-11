@@ -16,17 +16,15 @@ var unixBaseTime = time.Date(1970, 1, 1, 0, 0, 0, 0, time.UTC) // 等价于Unix�
 // 当前相对原点的时差，因为全系统都是相对时间，你可以认为这个时差就是当前时间
 func NowDur() time.Duration {
 	//return time.Now().Sub(unixBaseTime)
-	return time.Duration(time.Now().Unix()) * time.Second
+	return time.Duration(time.Now().UnixNano())
 }
 
-func ToDur(tm *time.Time) time.Duration {
-	//return tm.Sub(unixBaseTime)
-	return time.Duration(tm.Unix()) * time.Second
+func ToDur(tm time.Time) time.Duration {
+	return time.Duration(tm.UnixNano())
 }
 
 // 将指定的相对时间转成 真实的 time.Time 类型
 func ToTime(d time.Duration) time.Time {
-	//return unixBaseTime.Add(d)
 	return time.Unix(int64(d/time.Second), int64(d%time.Second))
 }
 

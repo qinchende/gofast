@@ -1,7 +1,7 @@
 package cdo
 
 import (
-	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
 	"math"
@@ -197,6 +197,18 @@ func encF64ValRet(bs []byte, f float64) []byte {
 	return append(bs, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
 }
 
+// ---------- time ----------
+func encTimeRet(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
+	tm := *((*time.Time)(ptr))
+	v := int64(timex.ToDur(tm))
+	return append(bs, FixTime, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+}
+
+func encTimeValRet(bs []byte, tm time.Time) []byte {
+	v := int64(timex.ToDur(tm))
+	return append(bs, byte(v), byte(v>>8), byte(v>>16), byte(v>>24), byte(v>>32), byte(v>>40), byte(v>>48), byte(v>>56))
+}
+
 // ---------- nil ----------
 
 // ---------- bool ----------
@@ -241,24 +253,19 @@ func encBytesRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	return append(bf, bs...)
 }
 
-// ---------- time ----------
-// 时间默认都是按 RFC3339 格式存储并解析
-func encTimeRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
-	bf = append(bf, FixTime)
-	return append(bf, (*time.Time)(ptr).Format(cst.TimeFmtRFC3339)...)
-}
-
 // ---------- any value ----------
 func encAnyRet(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	oldPtr := ptr
 
-	// ei := (*rt.AFace)(ptr)
 	ptr = (*rt.AFace)(ptr).DataPtr
 	if ptr == nil {
 		return append(bs, FixNil)
 	}
 
-	switch (*((*any)(oldPtr))).(type) {
+	v := *((*any)(oldPtr))
+	switch v.(type) {
+	default:
+		return encMixedItemRet(bs, ptr, reflect.TypeOf(v))
 
 	case int, *int:
 		return encIntRet[int](bs, ptr, nil)
@@ -297,8 +304,5 @@ func encAnyRet(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 
 	case time.Time, *time.Time:
 		return encTimeRet(bs, ptr, nil)
-
-	default:
-		return encMixedItemRet(bs, ptr, reflect.TypeOf(*((*any)(oldPtr)))) // ei.TypePtr
 	}
 }

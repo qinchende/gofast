@@ -14,20 +14,20 @@ import (
 )
 
 type (
-	//encKeyFunc func(bf *[]byte, ptr unsafe.Pointer)
-	//encValFunc  func(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type)
 	encValFunc  func(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte
 	encListFunc func(e *encoder)
 
 	encMeta struct {
-		// Struct
+		// struct
 		ss        *dts.StructSchema
 		fieldsEnc []encValFunc
 
+		// array & slice & map & baseType
+		itemType reflect.Type
+		itemKind reflect.Kind
+		itemEnc  encValFunc
+
 		// array & slice & map
-		itemType    reflect.Type
-		itemKind    reflect.Kind
-		itemEnc     encValFunc
 		itemMemSize int         // item类型对应的内存字节大小
 		arrLen      int         // 数组长度
 		listEnc     encListFunc // List整体编码
@@ -38,7 +38,7 @@ type (
 		keyEnc  encValFunc
 		keySize uint32
 
-		// status
+		// type status
 		isSuperKV bool // {} SuperKV
 		isMap     bool // {} map
 		isStruct  bool // {} struct
@@ -46,8 +46,9 @@ type (
 		isSlice   bool // [] slice
 		isArray   bool // [] array
 
-		isPtr    bool  // [] is list and item is pointer type
-		ptrLevel uint8 // [] is list and item pointer level(max 256 deeps)
+		// ext status
+		isPtr    bool  // (curr-val | list-item-val | map-value) is ptr
+		ptrLevel uint8 // ptr deep (max 256)
 	}
 
 	encoder struct {
@@ -56,7 +57,6 @@ type (
 		em     *encMeta       // Struct | Slice,Array
 		bf     *[]byte        // 当解析数组时候用到的一系列临时队列
 		bs     []byte         // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
-		//objIdx uint16         // TODO：涉及多少种不同的Struct
 	}
 )
 
@@ -110,6 +110,23 @@ func encMixedItemRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	return se.bs
 }
 
+func (se *encoder) run() {
+	switch {
+	default:
+		if se.em.isPtr {
+			se.encPointer()
+			return
+		}
+		se.encBasic()
+	case se.em.isList:
+		se.encList()
+	case se.em.isStruct:
+		se.encStruct()
+	case se.em.isMap:
+		se.encMap()
+	}
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (se *encoder) fetchEncMeta(v any) {
 	vType := reflect.TypeOf(v)
@@ -139,49 +156,33 @@ func (se *encoder) applyEncMeta(vType reflect.Type, ptr unsafe.Pointer) {
 	se.srcPtr = ptr
 }
 
-func (se *encoder) run() {
-	switch {
-	default:
-		se.encBasic()
-	case se.em.isList:
-		se.encList()
-	case se.em.isStruct:
-		se.encStruct()
-	case se.em.isMap:
-		se.encMap()
-	case se.em.isPtr:
-		se.encPointer()
-	}
-}
-
 // EncodeMeta
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func newEncMeta(rfType reflect.Type) *encMeta {
+func newEncMeta(typ reflect.Type) *encMeta {
 	em := encMeta{}
 
-	switch kd := rfType.Kind(); kd {
+	switch kd := typ.Kind(); kd {
 	default:
-		em.initBaseTypeMeta(rfType)
+		em.initBaseTypeMeta(typ)
 	case reflect.Struct:
-		if rfType == cst.TypeTime {
-			em.initBaseTypeMeta(rfType)
+		if typ == cst.TypeTime {
+			em.initBaseTypeMeta(typ)
 			break
 		}
-		em.initStructMeta(rfType)
+		em.initStructMeta(typ)
 	case reflect.Pointer:
-		em.initPointerMeta(rfType)
+		em.initPointerMeta(typ)
 	case reflect.Map:
-		em.initMapMeta(rfType)
+		em.initMapMeta(typ)
 	case reflect.Array, reflect.Slice:
-		em.initListMeta(rfType)
+		em.initListMeta(typ)
 	}
 
 	return &em
 }
 
 // 该类型中，项目值的类型解析
-func (em *encMeta) peelPtr(rfType reflect.Type) {
-	em.itemType = rfType.Elem()
+func (em *encMeta) peelPtr(typ reflect.Type) {
+	em.itemType = typ.Elem()
 	em.itemKind = em.itemType.Kind()
 	em.itemMemSize = int(em.itemType.Size())
 
@@ -195,73 +196,75 @@ peelNext:
 	}
 }
 
-func (em *encMeta) initBaseTypeMeta(rfType reflect.Type) {
-	em.itemKind = rfType.Kind()
-	em.bindValueEnc()
+func (em *encMeta) initBaseTypeMeta(typ reflect.Type) {
+	em.itemType = typ
+	em.itemKind = typ.Kind()
+	em.bindItemEnc()
 }
 
 // ++++++++++++++++++++++++++++++ Pointer
-func (em *encMeta) initPointerMeta(rfType reflect.Type) {
+func (em *encMeta) initPointerMeta(typ reflect.Type) {
 	em.isPtr = true
 	em.ptrLevel++
-	em.peelPtr(rfType)
+	em.peelPtr(typ)
+	em.bindItemEnc()
 }
 
 // ++++++++++++++++++++++++++++++ Array & Slice
-func (em *encMeta) initListMeta(rfType reflect.Type) {
+func (em *encMeta) initListMeta(typ reflect.Type) {
 	em.isList = true
-	em.peelPtr(rfType)
+	em.peelPtr(typ)
 
-	if rfType.Kind() == reflect.Array {
+	if typ.Kind() == reflect.Array {
 		em.isArray = true
-		em.arrLen = rfType.Len() // 数组长度
+		em.arrLen = typ.Len() // 数组长度
 	} else {
 		em.isSlice = true
 	}
 
 	// List 项如果是 struct ，是本编解码方案重点处理的情况
-	if em.itemKind == reflect.Struct && em.itemType != cst.TypeTime {
+	if em.itemType.Kind() == reflect.Struct && em.itemType != cst.TypeTime {
 		em.ss = dts.SchemaAsReqByType(em.itemType)
 		em.bindFieldsEnc()
 	} else {
-		em.bindValueEnc()
+		em.bindItemEnc()
 	}
 
 	em.bindListEnc()
 }
 
 // ++++++++++++++++++++++++++++++ Struct
-func (em *encMeta) initStructMeta(rfType reflect.Type) {
+func (em *encMeta) initStructMeta(typ reflect.Type) {
 	em.isStruct = true
-	em.ss = dts.SchemaAsReqByType(rfType)
-	em.itemMemSize = int(rfType.Size())
+	em.ss = dts.SchemaAsReqByType(typ)
+	em.itemMemSize = int(typ.Size())
 	em.bindFieldsEnc()
 }
 
 // ++++++++++++++++++++++++++++++ Map
 // Note: 当前只支持 map[string]any 形式
-func (em *encMeta) initMapMeta(rfType reflect.Type) {
+func (em *encMeta) initMapMeta(typ reflect.Type) {
 	em.isMap = true
 
 	// 特殊的Map单独处理，提高性能, 当前只支持 map[string]any 形式
-	if rfType == cst.TypeCstKV || rfType == cst.TypeStrAnyMap {
+	if typ == cst.TypeCstKV || typ == cst.TypeStrAnyMap {
 		em.isSuperKV = true
 	}
 
 	// Note: map 中的 key 只支持几种特定类型
-	em.keyType = rfType.Key()
+	em.keyType = typ.Key()
 	em.keyKind = em.keyType.Kind()
-	em.keySize = uint32(rfType.Key().Size())
+	em.keySize = uint32(typ.Key().Size())
 	em.bindMapKeyEnc()
 
 	// map 中的 value 可能是指针类型，需要拆包
-	em.peelPtr(rfType)
-	em.bindValueEnc()
+	em.peelPtr(typ)
+	em.bindItemEnc()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (em *encMeta) bindValueEnc() {
-	innerBindValueEnc(em.itemType, &em.itemEnc)
+func (em *encMeta) bindItemEnc() {
+	bindEnc(em.itemType, &em.itemEnc)
 }
 
 // 编码 map 的 Key 值，当前只支持如下的 Key 值类型。
@@ -271,7 +274,7 @@ func (em *encMeta) bindMapKeyEnc() {
 	default:
 		panic(errValueType)
 	case em.keyKind <= reflect.Float64, em.keyKind == reflect.String:
-		innerBindValueEnc(em.keyType, &em.keyEnc)
+		bindEnc(em.keyType, &em.keyEnc)
 	}
 	return
 }
@@ -287,11 +290,11 @@ nextField:
 	if i >= fLen {
 		return
 	}
-	innerBindValueEnc(em.ss.FieldsAttr[i].Type, &em.fieldsEnc[i])
+	bindEnc(em.ss.FieldsAttr[i].Type, &em.fieldsEnc[i])
 	goto nextField
 }
 
-func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
+func bindEnc(typ reflect.Type, encFunc *encValFunc) {
 	switch typ.Kind() {
 	default:
 		panic(errValueType)
@@ -332,8 +335,8 @@ func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
 	case reflect.Interface:
 		*encFunc = encAnyRet
 
-	//case reflect.Pointer:
-	//	*encFunc = encPointer
+	case reflect.Pointer:
+		*encFunc = encMixedItemRet
 	case reflect.Map, reflect.Array:
 		*encFunc = encMixedItemRet
 	case reflect.Slice:
@@ -354,7 +357,7 @@ func innerBindValueEnc(typ reflect.Type, encFunc *encValFunc) {
 func (em *encMeta) bindListEnc() {
 	// 数据项是非指针类型
 	if !em.isPtr {
-		switch em.itemKind {
+		switch em.itemType.Kind() {
 		default:
 			panic(errValueType)
 
@@ -398,7 +401,7 @@ func (em *encMeta) bindListEnc() {
 			em.listEnc = encListAll
 		case reflect.Struct:
 			if em.itemType == cst.TypeTime {
-				em.listEnc = encListAll
+				em.listEnc = encListTime
 			} else {
 				if em.ss.HasPtrField {
 					em.listEnc = encListStructPtr
@@ -412,7 +415,7 @@ func (em *encMeta) bindListEnc() {
 
 	// 数据项是指针类型
 	// []*item 形式
-	switch em.itemKind {
+	switch em.itemType.Kind() {
 	default:
 		panic(errValueType)
 

@@ -2,6 +2,7 @@ package cdo
 
 import (
 	"github.com/qinchende/gofast/core/rt"
+	"time"
 	"unsafe"
 )
 
@@ -412,21 +413,19 @@ func decListStrPtr(d *decoder, tLen int) {
 
 // +++ time +++
 func decListTime(d *decoder, tLen int) {
-	list := *(*[]string)(unsafe.Pointer(&d.slice))
+	list := *(*[]time.Time)(unsafe.Pointer(&d.slice))
 	pos := validListItemType(d, ListTime)
 	for i := 0; i < len(list); i++ {
-		off, str := scanString(d.str[pos:])
-		list[i] = str
-		pos += off
+		list[i] = scanTimeVal(d.str[pos:])
+		pos += 8
 	}
 	d.scan = pos
 }
 
 func decListTimePtr(d *decoder, tLen int) {
 	decListFuncPtr(d, tLen, ListTime, func(iPtr unsafe.Pointer, s string) int {
-		off, str := scanString(s)
-		bindString(iPtr, str)
-		return off
+		bindTime(iPtr, scanTimeVal(s))
+		return 8
 	})
 }
 

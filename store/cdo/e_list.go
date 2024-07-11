@@ -4,6 +4,7 @@ import (
 	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -152,7 +153,6 @@ func encListVarIntPtr[T constraints.Integer](se *encoder) {
 }
 
 // float
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListF32(se *encoder) {
 	list := *(*[]float32)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
@@ -174,7 +174,6 @@ func encListF64(se *encoder) {
 }
 
 // bool
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListBool(se *encoder) {
 	list := *(*[]bool)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
@@ -190,7 +189,6 @@ func encListBool(se *encoder) {
 }
 
 // string
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func encListString(se *encoder) {
 	list := *(*[]string)(unsafe.Pointer(&se.slice))
 	bs := *se.bf
@@ -205,6 +203,17 @@ func encListString(se *encoder) {
 			bs = encU32By6RetPart2(bs, TypeStr, v)
 		}
 		bs = append(bs, list[i]...)
+	}
+	*se.bf = bs
+}
+
+// time.Time
+func encListTime(se *encoder) {
+	list := *(*[]time.Time)(unsafe.Pointer(&se.slice))
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(len(list))), ListTime)
+	for i := 0; i < len(list); i++ {
+		bs = encTimeValRet(bs, list[i])
 	}
 	*se.bf = bs
 }

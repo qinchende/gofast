@@ -1,7 +1,6 @@
 package cdo
 
 import (
-	"github.com/qinchende/gofast/core/cst"
 	"time"
 	"unsafe"
 )
@@ -192,11 +191,6 @@ func bindAny(p unsafe.Pointer, v any) {
 }
 
 // time ++++++++++++++++++++++++++++++++++++++++++++
-// 时间默认都是按 RFC3339 格式存储并解析
-func bindTime(p unsafe.Pointer, v string) {
-	if tm, err := time.Parse(cst.TimeFmtRFC3339, v); err != nil {
-		panic(err)
-	} else {
-		*(*time.Time)(p) = tm
-	}
+func bindTime(p unsafe.Pointer, tm time.Time) {
+	*(*time.Time)(p) = tm
 }

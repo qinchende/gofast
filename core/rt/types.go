@@ -38,7 +38,7 @@ type (
 	}
 )
 
-func (self EFace) Pack() (v interface{}) {
-	*(*EFace)(unsafe.Pointer(&v)) = self
+func (ef EFace) Pack() (v interface{}) {
+	*(*EFace)(unsafe.Pointer(&v)) = ef
 	return
 }

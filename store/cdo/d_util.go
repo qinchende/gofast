@@ -2,9 +2,11 @@ package cdo
 
 import (
 	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/rt"
 	"math"
 	"reflect"
+	"time"
 	"unsafe"
 )
 
@@ -190,6 +192,13 @@ func scanF64Val(s string) float64 {
 	_ = s[7]
 	return math.Float64frombits(uint64(s[0]) | uint64(s[1])<<8 | uint64(s[2])<<16 | uint64(s[3])<<24 |
 		uint64(s[4])<<32 | uint64(s[5])<<40 | uint64(s[6])<<48 | uint64(s[7])<<56)
+}
+
+func scanTimeVal(s string) time.Time {
+	_ = s[7]
+	v := int64(s[0]) | int64(s[1])<<8 | int64(s[2])<<16 | int64(s[3])<<24 |
+		int64(s[4])<<32 | int64(s[5])<<40 | int64(s[6])<<48 | int64(s[7])<<56
+	return timex.ToTime(time.Duration(v))
 }
 
 func scanBoolVal(s string) bool {
