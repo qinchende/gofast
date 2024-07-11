@@ -28,7 +28,7 @@ peelPtr:
 		goto peelPtr
 	}
 
-	bs = encMixedItemRet(bs, ptr, se.em.itemType)
+	bs = se.em.itemEnc(bs, ptr, se.em.itemType)
 	*se.bf = bs
 }
 

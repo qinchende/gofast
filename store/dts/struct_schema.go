@@ -54,7 +54,7 @@ type (
 		Valid    *validx.ValidOptions // 验证
 
 		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
-		Kind      reflect.Kind // 字段最终类型的Kind类型
+		Kind      reflect.Kind // 字段最终类型的Kind类型，
 		Offset    uintptr      // 字段在结构体中的地址偏移量
 		PtrLevel  uint8        // 字段指针层级
 		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）

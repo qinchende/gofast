@@ -17,7 +17,6 @@ import (
 )
 
 type (
-	//decValFunc    func(d *decoder, fIdx int) int
 	decValFunc    func(d *decoder)
 	decKVPairFunc func(d *decoder, key string)
 	decListFunc   func(d *decoder, tLen int)
@@ -50,8 +49,8 @@ type (
 		isAny     bool // [] is list and item is interface type in the final
 
 		isUnsafe bool  // 分配内存容易出现安全漏洞
-		isPtr    bool  // [] is list and item is pointer type
-		ptrLevel uint8 // [] is list and item pointer level
+		isPtr    bool  // (curr-val | list-item-val | map-value) is ptr
+		ptrLevel uint8 // ptr deep (max 256)
 	}
 
 	decoder struct {
@@ -67,7 +66,7 @@ type (
 		str  string // 数据源
 		scan int    // 当前扫描定位
 
-		fIdx   int        // key index
+		fIdx   int        // field index
 		fIdxes [256]int16 // 不多于 256 个字段，暂不支持更多字段
 
 		skipValue   bool // 跳过当前要解析的值
@@ -182,7 +181,7 @@ func (d *decoder) run() (err errType) {
 	}
 
 	if d.scan != len(d.str) {
-		err = errEOF
+		err = errEOF // 数据源和目标对象需要完全匹配
 	}
 	return
 }

@@ -36,14 +36,3 @@ func cacheGetEncMeta(typAddr any) *encMeta {
 	}
 	return nil
 }
-
-//func toBytes(f float64) []byte {
-//	bytes := make([]byte, 8)
-//	binary.LittleEndian.PutUint64(bytes, math.Float64bits(f))
-//	return bytes
-//}
-//
-//// 将字节切片转换回浮点数
-//func fromBytes(bytes []byte) float64 {
-//	return math.Float64frombits(binary.LittleEndian.Uint64(bytes))
-//}

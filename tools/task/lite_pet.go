@@ -40,7 +40,7 @@ func (pet *LitePet) runTask(gorCtx context.Context, now time.Duration) {
 	if pet.lastTime == 0 {
 		if str, err := pet.group.rds.Get(pet.key); err == nil && str != "" {
 			if lst, err2 := time.Parse(cst.TimeFmtRFC3339, str); err2 == nil {
-				pet.lastTime = timex.ToDur(&lst)
+				pet.lastTime = timex.ToDur(lst)
 			}
 		}
 	}

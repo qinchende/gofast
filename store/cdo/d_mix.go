@@ -2,6 +2,7 @@ package cdo
 
 import (
 	"github.com/qinchende/gofast/core/rt"
+	"time"
 	"unsafe"
 )
 
@@ -59,15 +60,52 @@ func (d *decoder) skipOneValue() {
 	d.scan += off
 }
 
+func decAny(d *decoder) any {
+	c := d.str[0]
+	typ := c & TypeMask
+	v := c & TypeValMask
+
+	switch typ {
+	case TypeFixed:
+		if v >= TypeList {
+			d.skipList()
+			break
+		}
+		switch byte(v) {
+		default:
+			panic(errCdoChar)
+		case FixNil, FixNilMixed, FixTrue, FixFalse:
+		case FixF32:
+			return decFixF32(d)
+		case FixF64:
+			return decFixF64(d)
+		case FixTime:
+			return decFixTime(d)
+		}
+	case TypeVarIntPos, TypeVarIntNeg:
+		if v <= 23 {
+			//off = 1
+		} else {
+			//off = int(1 + v - 23)
+		}
+	case TypeStr:
+		if v <= 27 {
+			//off = 1
+		} else {
+			//off = int(1 + v - 27)
+		}
+	}
+	return nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // pointer +++++
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanPointerValue(d *decoder) {
 	ptr := getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemType)
 	d.runSub(d.dm.itemType, ptr)
 }
 
 // map & array & slice
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decListMixItem(d *decoder) {
 	sh := (*rt.SliceHeader)(d.dstPtr)
 	ptr := rt.SliceNextItem(sh, d.dm.itemMemSize)
@@ -86,20 +124,16 @@ func decListMixItem(d *decoder) {
 
 // map +++++
 // 目前只支持 map[string]any，并不支持其它map
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanCstKVValue(d *decoder, k string) {
 
 }
 
 // map WebKV +++++
 // 只支持 map[string]string
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func scanWebKVValue(d *decoder, k string) {
 
 }
 
-// Struct Field
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++ struct & map +++
 func (d *decoder) scanKVS() {
 	off1, tLen := decListTypeU24(d.str[d.scan:])
@@ -130,7 +164,8 @@ func (d *decoder) skipKVS() {
 	//}
 }
 
-// +++ struct +++
+// Struct Field
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decField(d *decoder, key string) {
 	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx < 0 {
 		d.skipValue = true
@@ -140,7 +175,6 @@ func decField(d *decoder, key string) {
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func fieldNotNil(d *decoder) bool {
 	if d.str[d.scan] == FixNil {
 		*(*unsafe.Pointer)(fieldPtr(d)) = nil
@@ -180,11 +214,14 @@ func decVarIntFieldPtr(binder intBinder) decValFunc {
 
 // float32 +++++
 func decFixF32(d *decoder) float32 {
-	if d.str[d.scan] != FixF32 {
+	pos := d.scan
+	if d.str[pos] != FixF32 {
 		panic(errValType)
 	}
-	d.scan += 5
-	return scanF32Val(d.str[d.scan:])
+	pos++
+	v := scanF32Val(d.str[pos:])
+	d.scan = pos + 4
+	return v
 }
 
 func decF32Field(d *decoder) {
@@ -199,11 +236,14 @@ func decF32FieldPtr(d *decoder) {
 
 // float64 +++++
 func decFixF64(d *decoder) float64 {
-	if d.str[d.scan] != FixF64 {
+	pos := d.scan
+	if d.str[pos] != FixF64 {
 		panic(errValType)
 	}
-	d.scan += 9
-	return scanF64Val(d.str[d.scan:])
+	pos++
+	v := scanF64Val(d.str[pos:])
+	d.scan = pos + 8
+	return v
 }
 
 func decF64Field(d *decoder) {
@@ -213,6 +253,28 @@ func decF64Field(d *decoder) {
 func decF64FieldPtr(d *decoder) {
 	if fieldNotNil(d) {
 		bindF64(fieldPtrDeep(d), decFixF64(d))
+	}
+}
+
+// time.Time +++++
+func decFixTime(d *decoder) time.Time {
+	pos := d.scan
+	if d.str[pos] != FixTime {
+		panic(errValType)
+	}
+	pos++
+	v := scanTimeVal(d.str[pos:])
+	d.scan = pos + 8
+	return v
+}
+
+func decTimeField(d *decoder) {
+	bindTime(fieldPtr(d), decFixTime(d))
+}
+
+func decTimeFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		bindTime(fieldPtrDeep(d), decFixTime(d))
 	}
 }
 
@@ -261,26 +323,15 @@ func decBoolFieldPtr(d *decoder) {
 	}
 }
 
-// time.Time +++++
-func decTimeField(d *decoder) {
-	v := scanBool(d.str[d.scan:])
-	d.scan += 1
-	bindBool(fieldPtr(d), v)
-}
-
-func decTimeFieldPtr(d *decoder) {
-	if fieldNotNil(d) {
-		v := scanBool(d.str[d.scan:])
-		d.scan += 1
-		bindBool(fieldPtrDeep(d), v)
-	}
-}
-
 // any +++++
 func decAnyField(d *decoder) {
+	bindAny(fieldPtr(d), decAny(d))
 }
 
 func decAnyFieldPtr(d *decoder) {
+	if fieldNotNil(d) {
+		bindAny(fieldPtrDeep(d), decAny(d))
+	}
 }
 
 // mixed field +++++  such as map|struct

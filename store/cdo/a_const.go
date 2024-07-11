@@ -30,7 +30,7 @@ const (
 	FixTrue     byte = 0x01 // 1
 	FixF32      byte = 0x02 // 2
 	FixF64      byte = 0x03 // 3
-	FixTime     byte = 0x04 // 4 从2000-01-01到现在的毫秒数，UTC时间
+	FixTime     byte = 0x04 // 4 unix纳秒数，UTC时间
 	FixNil      byte = 0x0E // 14
 	FixNilMixed byte = 0x0F // 15
 	FixMax      byte = 0x1F // 31
