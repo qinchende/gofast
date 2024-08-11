@@ -23,57 +23,57 @@ type SuperKV interface {
 
 // KV
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (kvs KV) Get(k string) (v any, ok bool) {
-	v, ok = kvs[k]
+func (kv KV) Get(k string) (v any, ok bool) {
+	v, ok = kv[k]
 	return
 }
 
-func (kvs KV) Set(k string, v any) {
-	kvs[k] = v
+func (kv KV) Set(k string, v any) {
+	kv[k] = v
 }
 
-func (kvs KV) Del(k string) {
-	delete(kvs, k)
+func (kv KV) Del(k string) {
+	delete(kv, k)
 }
 
-func (kvs KV) Len() int {
-	return len(kvs)
+func (kv KV) Len() int {
+	return len(kv)
 }
 
-func (kvs KV) GetString(k string) (v string, ok bool) {
-	tmp, ok := kvs[k]
+func (kv KV) GetString(k string) (v string, ok bool) {
+	tmp, ok := kv[k]
 	v = tmp.(string)
 	return
 }
 
-func (kvs KV) SetString(k string, v string) {
-	kvs[k] = v
+func (kv KV) SetString(k string, v string) {
+	kv[k] = v
 }
 
 // WebKV
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (kvs WebKV) Get(k string) (v any, ok bool) {
-	v, ok = kvs[k]
+func (wkv WebKV) Get(k string) (v any, ok bool) {
+	v, ok = wkv[k]
 	return
 }
 
-func (kvs WebKV) Set(k string, v any) {
-	kvs[k] = v.(string)
+func (wkv WebKV) Set(k string, v any) {
+	wkv[k] = v.(string)
 }
 
-func (kvs WebKV) Del(k string) {
-	delete(kvs, k)
+func (wkv WebKV) Del(k string) {
+	delete(wkv, k)
 }
 
-func (kvs WebKV) Len() int {
-	return len(kvs)
+func (wkv WebKV) Len() int {
+	return len(wkv)
 }
 
-func (kvs WebKV) GetString(k string) (v string, ok bool) {
-	v, ok = kvs[k]
+func (wkv WebKV) GetString(k string) (v string, ok bool) {
+	v, ok = wkv[k]
 	return
 }
 
-func (kvs WebKV) SetString(k string, v string) {
-	kvs[k] = v
+func (wkv WebKV) SetString(k string, v string) {
+	wkv[k] = v
 }

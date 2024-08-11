@@ -20,6 +20,7 @@ type (
 	decValFunc    func(d *decoder)
 	decKVPairFunc func(d *decoder, key string)
 	decListFunc   func(d *decoder, tLen int)
+	newSKVFunc    func(ptr unsafe.Pointer) cst.SuperKV
 
 	decMeta struct {
 		// map & struct
@@ -32,21 +33,29 @@ type (
 		// array & slice
 		listType    reflect.Type
 		itemType    reflect.Type
+		itemTypeAbi unsafe.Pointer
 		itemKind    reflect.Kind
 		itemDec     decValFunc  // include baseType
 		itemMemSize int         // item类型对应的内存字节大小
 		arrLen      int         // 如果是数组，记录其长度
 		listDec     decListFunc // List整体解码
 
+		// map
+		mapTypeAbi unsafe.Pointer
+		mapKTypAbi unsafe.Pointer
+		mapVTypAbi unsafe.Pointer
+		keyDec     decValFunc
+		skvMake    newSKVFunc
+
 		// status
-		isSuperKV bool // {} SuperKV
-		isMap     bool // {} map
-		isWebKV   bool // {} WebKV
-		isStruct  bool // {} struct
-		isList    bool // [] array & slice
-		isArray   bool // [] array
-		isSlice   bool // [] slice
-		isAny     bool // [] is list and item is interface type in the final
+		//isMapStrAny bool // {} map[str]all-type
+		isMap       bool // {} map
+		isMapSKV    bool // {} SuperKV
+		isMapStrStr bool // {} map[str]str
+		isStruct    bool // {} struct
+		isList      bool // [] array & slice
+		isArray     bool // [] array
+		isSlice     bool // [] slice
 
 		isUnsafe bool  // 分配内存容易出现安全漏洞
 		isPtr    bool  // (curr-val | list-item-val | map-value) is ptr
@@ -54,23 +63,20 @@ type (
 	}
 
 	decoder struct {
-		sub *decoder // 共享的subDecode，用来解析子对象
+		depth int      // 当前层级，有限制不能无限递归
+		dm    *decMeta // Struct | Slice,Array
 
-		mp     *cst.KV        // KV
-		wk     *cst.WebKV     // WebKV
-		dm     *decMeta       // Struct | Slice,Array
+		skv    cst.SuperKV    // 特殊Map
 		dstPtr unsafe.Pointer // 目标对象的内存地址
 		slice  rt.SliceHeader // 指向一个切片类型
 		//bOpts  *dts.BindOptions // 绑定控制
 
-		str  string // 数据源
-		scan int    // 当前扫描定位
-
-		fIdx   int        // field index
-		fIdxes [256]int16 // 不多于 256 个字段，暂不支持更多字段
-
-		skipValue   bool // 跳过当前要解析的值
-		isNeedValid bool // 在绑定到对象时，是否需要验证字段
+		str         string     // 数据源
+		scan        int        // 当前扫描定位
+		fIdx        int        // field index
+		fIdxes      [256]int16 // 不多于 256 个字段，暂不支持更多字段
+		isNeedValid bool       // 在绑定到对象时，是否需要验证字段
+		//skipValue   bool // 跳过当前要解析的值
 	}
 )
 
@@ -98,10 +104,10 @@ func decodeFromString(dst any, source string) error {
 	if len(source) > maxCdoStrLen {
 		return errCdoTooLarge
 	}
-	if sk, ok := dst.(*dts.StructKV); ok {
-		return startDecEx(sk.SS.Type, sk.Ptr, source)
-	} else {
+	if skv, ok := dst.(*dts.StructKV); !ok {
 		return startDec(dst, source)
+	} else {
+		return startDecX(skv.SS.Type, skv.Ptr, source)
 	}
 }
 
@@ -116,10 +122,10 @@ func startDec(v any, source string) error {
 	if typ.Kind() != reflect.Pointer {
 		return errValueMustPtr
 	}
-	return startDecEx(typ.Elem(), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr, source)
+	return startDecX(typ.Elem(), (*rt.AFace)(unsafe.Pointer(&v)).DataPtr, source)
 }
 
-func startDecEx(typ reflect.Type, ptr unsafe.Pointer, source string) error {
+func startDecX(typ reflect.Type, ptr unsafe.Pointer, source string) error {
 	d := cdoDecPool.Get().(*decoder)
 	d.str = source
 	d.scan = 0
@@ -128,11 +134,6 @@ func startDecEx(typ reflect.Type, ptr unsafe.Pointer, source string) error {
 	innErr := d.run()
 	err := d.warpErrorCode(innErr)
 
-	if d.sub != nil {
-		d.sub.reset()
-		cdoDecPool.Put(d.sub)
-		d.sub = nil
-	}
 	d.reset() // 此时 sd 中指针指向的对象没有被释放，要先释放再回收
 	cdoDecPool.Put(d)
 	return err
@@ -156,7 +157,6 @@ func (d *decoder) warpErrorCode(errCode errType) error {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 最终需要通过判断返回的error来确定解析是否成功，发生错误时已经解析的结果不可信，请不要使用
 func (d *decoder) run() (err errType) {
-	// 解析过程中异常，这里统一截获处理，返回解析错误编号
 	defer func() {
 		if pic := recover(); pic != nil {
 			if code, ok := pic.(errType); ok {
@@ -165,20 +165,13 @@ func (d *decoder) run() (err errType) {
 				fmt.Println(stdErr)
 				err = errCdoChar
 			} else {
-				fmt.Printf("%s\n%s", pic, debug.Stack()) // 调试的时候打印错误信息
+				fmt.Printf("%s\n%s", pic, debug.Stack())
 				err = errCdoChar
 			}
 		}
 	}()
 
-	switch {
-	default:
-		d.dm.itemDec(d)
-	case d.dm.isList:
-		d.decList()
-	case d.dm.isStruct, d.dm.isSuperKV:
-		d.scanKVS()
-	}
+	d.execDec()
 
 	if d.scan != len(d.str) {
 		err = errEOF // 数据源和目标对象需要完全匹配
@@ -187,56 +180,32 @@ func (d *decoder) run() (err errType) {
 }
 
 func (d *decoder) runSub(typ reflect.Type, ptr unsafe.Pointer) {
-	dSub := d.sub
+	sd := cdoDecPool.Get().(*decoder)
+	sd.str = d.str
+	sd.scan = d.scan
+	sd.applyDecMeta(typ, ptr)
 
-	if dSub == nil {
-		dSub = cdoDecPool.Get().(*decoder)
-	} else {
-		dSub.reset()
-	}
-	dSub.str = d.str
-	dSub.scan = d.scan
-	dSub.applyDecMeta(typ, ptr)
+	sd.execDec()
 
+	d.scan = sd.scan
+	sd.reset()
+	cdoDecPool.Put(sd)
+}
+
+func (d *decoder) execDec() {
 	switch {
 	default:
-		dSub.dm.itemDec(dSub)
-	case dSub.dm.isList:
-		dSub.decList()
-	case dSub.dm.isStruct, dSub.dm.isSuperKV:
-		dSub.scanKVS()
-	}
-
-	d.scan = dSub.scan
-	d.resetSub()
-}
-
-func (d *decoder) initSub(ptr unsafe.Pointer) {
-	if d.sub == nil {
-		d.sub = cdoDecPool.Get().(*decoder)
-		d.sub.str = d.str
-		d.sub.scan = d.scan
-		d.sub.applyDecMeta(d.dm.itemType, ptr)
-		return
-	}
-
-	d.sub.scan = d.scan
-	if d.sub.dm.isSuperKV {
-		if d.dm.isWebKV {
-			d.wk = (*cst.WebKV)(ptr)
-		} else {
-			d.sub.mp = (*cst.KV)(ptr)
+		if d.dm.isPtr {
+			d.decPointer()
+			return
 		}
-	} else {
-		d.sub.dstPtr = ptr
-	}
-}
-
-func (d *decoder) resetSub() {
-	if d.sub.sub != nil {
-		d.sub.sub.reset()
-		cdoDecPool.Put(d.sub.sub)
-		d.sub.sub = nil
+		d.dm.itemDec(d)
+	case d.dm.isList:
+		d.decList()
+	case d.dm.isStruct:
+		d.decStruct()
+	case d.dm.isMap:
+		d.decMap()
 	}
 }
 
@@ -250,19 +219,14 @@ func (d *decoder) applyDecMeta(typ reflect.Type, ptr unsafe.Pointer) {
 		cacheSetDecMeta(typ, d.dm)
 	}
 
-	if d.dm.isSuperKV {
-		if d.dm.isWebKV {
-			d.wk = (*cst.WebKV)(ptr)
-		} else {
-			d.mp = (*cst.KV)(ptr)
-		}
+	if d.dm.isMapSKV {
+		d.skv = d.dm.skvMake(ptr)
 	} else {
 		d.dstPtr = ptr
 	}
 	return
 }
 
-// 如果不是map和*GsonRow，只能是 Array|Slice|Struct
 func newDecMeta(typ reflect.Type) (dm *decMeta) {
 	dm = &decMeta{}
 
@@ -277,19 +241,7 @@ func newDecMeta(typ reflect.Type) (dm *decMeta) {
 		}
 		dm.initStructMeta(typ)
 	case reflect.Map:
-		if typ == cst.TypeCstKV || typ == cst.TypeStrAnyMap {
-			dm.isSuperKV = true
-			dm.isMap = true
-			dm.bindCstKVDec()
-			return
-		}
-		if typ == cst.TypeWebKV {
-			dm.isSuperKV = true
-			dm.isWebKV = true
-			dm.bindWebKVDec()
-			return
-		}
-		panic(errValueType)
+		dm.initMapMeta(typ)
 	case reflect.Array, reflect.Slice:
 		dm.initListMeta(typ)
 	}
@@ -308,19 +260,62 @@ ptrLevel:
 
 		dm.isPtr = true
 		dm.ptrLevel++
-		// NOTE：指针嵌套不能超过3层，这种很少见，也就是说此解码方案并不通用
-		if dm.ptrLevel > 3 {
+		// NOTE：指针嵌套不能超过9层（数据结构不能这么设计）
+		if dm.ptrLevel > 9 {
 			panic(errPtrLevel)
 		}
 		goto ptrLevel
 	}
+	dm.itemTypeAbi = (*rt.AFace)(unsafe.Pointer(&dm.itemType)).DataPtr
+}
+
+func (dm *decMeta) initBaseTypeMeta(typ reflect.Type) {
+	dm.itemType = typ
+	dm.itemKind = dm.itemType.Kind()
+	bindDec(dm.itemType, &dm.itemDec)
 }
 
 func (dm *decMeta) initPointerMeta(typ reflect.Type) {
 	dm.isPtr = true
 	dm.ptrLevel++
 	dm.peelPtr(typ)
-	dm.itemDec = scanPointerValue
+	bindDec(dm.itemType, &dm.itemDec)
+}
+
+func (dm *decMeta) initMapMeta(typ reflect.Type) {
+	dm.isMap = true
+	dm.mapTypeAbi = (*rt.AFace)(unsafe.Pointer(&typ)).DataPtr
+
+	dm.isMapSKV = true
+	switch typ {
+	default:
+		dm.isMapSKV = false
+
+		// key
+		kType := typ.Key()
+		keyKind := kType.Kind()
+		if keyKind > reflect.Float64 && keyKind != reflect.String {
+			panic(errMap)
+		}
+		dm.mapKTypAbi = (*rt.AFace)(unsafe.Pointer(&kType)).DataPtr
+		bindDec(kType, &dm.keyDec)
+
+		// value
+		dm.itemType = typ.Elem()
+		dm.mapVTypAbi = (*rt.AFace)(unsafe.Pointer(&dm.itemType)).DataPtr
+		dm.peelPtr(typ)
+		bindDec(dm.itemType, &dm.itemDec)
+	case cst.TypeMapStrStr:
+		dm.isMapStrStr = true
+		dm.skvMake = makeMapStrStr
+	case cst.TypeWebKV:
+		dm.isMapStrStr = true
+		dm.skvMake = makeWebKV
+	case cst.TypeMapStrAny:
+		dm.skvMake = makeMapStrAny
+	case cst.TypeCstKV:
+		dm.skvMake = makeKV
+	}
 }
 
 func (dm *decMeta) initStructMeta(typ reflect.Type) {
@@ -333,29 +328,17 @@ func (dm *decMeta) initStructMeta(typ reflect.Type) {
 	dm.bindFieldsDec()
 }
 
-func (dm *decMeta) initBaseTypeMeta(typ reflect.Type) {
-	dm.itemType = typ
-	dm.itemKind = dm.itemType.Kind()
-	dm.itemDec = bindBaseValDec
-}
-
 func (dm *decMeta) initListMeta(typ reflect.Type) {
 	dm.isList = true
 	dm.listType = typ
 	dm.peelPtr(typ)
 
-	if dm.itemKind == reflect.Interface {
-		dm.isAny = true
-	}
-
-	// 不是数组就是切片
 	if typ.Kind() == reflect.Array {
 		dm.isArray = true
-		dm.arrLen = typ.Len() // 数组长度
+		dm.arrLen = typ.Len()
 		if dm.isPtr {
 			return
 		}
-		dm.itemMemSize = int(dm.itemType.Size())
 	} else {
 		dm.isSlice = true
 	}
@@ -371,52 +354,61 @@ func (dm *decMeta) initListMeta(typ reflect.Type) {
 	dm.bindListDec()
 }
 
-// JSON数据主要分 object {} + list [] 两种类型
-// map & gson & struct 都需要解析 {} 他们都是 kvPair 形式的数据
-// array & slice 需要解析 [] ，他们都是 List 形式的数据
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (dm *decMeta) bindCstKVDec() {
-	dm.kvPairDec = scanCstKVValue
-}
-
-func (dm *decMeta) bindWebKVDec() {
-	dm.kvPairDec = scanWebKVValue
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func bindBaseValDec(d *decoder) {
-	// NOTE：只能是数值类型
-	switch d.dm.itemKind {
-	case reflect.Int:
-
-	case reflect.Int8:
-
-	case reflect.Int16:
-
-	case reflect.Int32:
-
-	case reflect.Int64:
-
-	case reflect.Uint:
-
-	case reflect.Uint8:
-
-	case reflect.Uint16:
-
-	case reflect.Uint32:
-
-	case reflect.Uint64:
-
-	case reflect.Float32:
-		v := scanF32Val(d.str[d.scan:])
-		d.scan += 4
-		bindF32(d.dstPtr, v)
-	case reflect.Float64:
-		v := scanF64Val(d.str[d.scan:])
-		d.scan += 8
-		bindF64(d.dstPtr, v)
+func bindDec(typ reflect.Type, decFunc *decValFunc) {
+	switch typ.Kind() {
 	default:
 		panic(errValueType)
+
+	case reflect.Int:
+		*decFunc = decInt
+	case reflect.Int8:
+		*decFunc = decInt8
+	case reflect.Int16:
+		*decFunc = decInt16
+	case reflect.Int32:
+		*decFunc = decInt32
+	case reflect.Int64:
+		*decFunc = decInt64
+	case reflect.Uint:
+		*decFunc = decUint
+	case reflect.Uint8:
+		*decFunc = decUint8
+	case reflect.Uint16:
+		*decFunc = decUint16
+	case reflect.Uint32:
+		*decFunc = decUint32
+	case reflect.Uint64:
+		*decFunc = decUint64
+	case reflect.Uintptr:
+		*decFunc = decUint64
+
+	case reflect.Float32:
+		*decFunc = decF32
+	case reflect.Float64:
+		*decFunc = decF64
+	case reflect.String:
+		*decFunc = decStr
+	case reflect.Bool:
+		*decFunc = decBool
+
+	case reflect.Pointer: // 不可能
+	case reflect.Interface:
+		*decFunc = decAny
+	case reflect.Struct:
+		if typ == cst.TypeTime {
+			*decFunc = decTime
+		} else {
+			*decFunc = decMix
+		}
+	case reflect.Map, reflect.Array:
+		*decFunc = decMix
+	case reflect.Slice:
+		if typ == cst.TypeBytes {
+			*decFunc = decBytes
+		} else {
+			*decFunc = decMix
+		}
 	}
 }
 
@@ -440,25 +432,25 @@ nextField:
 			panic(errValueType)
 
 		case reflect.Int:
-			dm.fieldsDec[i] = func(d *decoder) { bindInt(decVarIntField(d)) }
+			dm.fieldsDec[i] = decIntField
 		case reflect.Int8:
-			dm.fieldsDec[i] = func(d *decoder) { bindInt8(decVarIntField(d)) }
+			dm.fieldsDec[i] = decInt8Field
 		case reflect.Int16:
-			dm.fieldsDec[i] = func(d *decoder) { bindInt16(decVarIntField(d)) }
+			dm.fieldsDec[i] = decInt16Field
 		case reflect.Int32:
-			dm.fieldsDec[i] = func(d *decoder) { bindInt32(decVarIntField(d)) }
+			dm.fieldsDec[i] = decInt32Field
 		case reflect.Int64:
-			dm.fieldsDec[i] = func(d *decoder) { bindInt64(decVarIntField(d)) }
+			dm.fieldsDec[i] = decInt64Field
 		case reflect.Uint:
-			dm.fieldsDec[i] = func(d *decoder) { bindUint(decVarIntField(d)) }
+			dm.fieldsDec[i] = decUintField
 		case reflect.Uint8:
-			dm.fieldsDec[i] = func(d *decoder) { bindUint8(decVarIntField(d)) }
+			dm.fieldsDec[i] = decUint8Field
 		case reflect.Uint16:
-			dm.fieldsDec[i] = func(d *decoder) { bindUint16(decVarIntField(d)) }
+			dm.fieldsDec[i] = decUint16Field
 		case reflect.Uint32:
-			dm.fieldsDec[i] = func(d *decoder) { bindUint32(decVarIntField(d)) }
+			dm.fieldsDec[i] = decUint32Field
 		case reflect.Uint64:
-			dm.fieldsDec[i] = func(d *decoder) { bindUint64(decVarIntField(d)) }
+			dm.fieldsDec[i] = decUint64Field
 
 		case reflect.Float32:
 			dm.fieldsDec[i] = decF32Field
@@ -468,23 +460,24 @@ nextField:
 			dm.fieldsDec[i] = decStrField
 		case reflect.Bool:
 			dm.fieldsDec[i] = decBoolField
+
+		case reflect.Pointer: // 不可能
 		case reflect.Interface:
 			dm.fieldsDec[i] = decAnyField
-
-		case reflect.Struct:
-			if dm.ss.FieldsAttr[i].Type == cst.TypeTime {
-				dm.fieldsDec[i] = decTimeField
-			} else {
-				dm.fieldsDec[i] = decMixField
-			}
+		case reflect.Map, reflect.Array:
+			dm.fieldsDec[i] = decMixField
 		case reflect.Slice:
 			if fa.Type == cst.TypeBytes {
 				dm.fieldsDec[i] = decBytesField
 			} else {
 				dm.fieldsDec[i] = decMixField
 			}
-		case reflect.Map, reflect.Array:
-			dm.fieldsDec[i] = decMixField
+		case reflect.Struct:
+			if dm.ss.FieldsAttr[i].Type == cst.TypeTime {
+				dm.fieldsDec[i] = decTimeField
+			} else {
+				dm.fieldsDec[i] = decMixField
+			}
 		}
 		goto nextField
 	}
@@ -523,23 +516,24 @@ nextField:
 		dm.fieldsDec[i] = decStrFieldPtr
 	case reflect.Bool:
 		dm.fieldsDec[i] = decBoolFieldPtr
+
+	case reflect.Pointer: // 不可能
 	case reflect.Interface:
 		dm.fieldsDec[i] = decAnyFieldPtr
-
-	case reflect.Struct:
-		if dm.ss.FieldsAttr[i].Type == cst.TypeTime {
-			dm.fieldsDec[i] = decTimeFieldPtr
-		} else {
-			dm.fieldsDec[i] = decMixFieldPtr
-		}
+	case reflect.Map, reflect.Array:
+		dm.fieldsDec[i] = decMixFieldPtr
 	case reflect.Slice:
 		if fa.Type == cst.TypeBytes {
 			dm.fieldsDec[i] = decBytesFieldPtr
 		} else {
 			dm.fieldsDec[i] = decMixFieldPtr
 		}
-	case reflect.Map, reflect.Array:
-		dm.fieldsDec[i] = decMixFieldPtr
+	case reflect.Struct:
+		if dm.ss.FieldsAttr[i].Type == cst.TypeTime {
+			dm.fieldsDec[i] = decTimeFieldPtr
+		} else {
+			dm.fieldsDec[i] = decMixFieldPtr
+		}
 	}
 	goto nextField
 }
@@ -576,25 +570,24 @@ func (dm *decMeta) bindListDec() {
 			dm.listDec = decListF32
 		case reflect.Float64:
 			dm.listDec = decListF64
-
 		case reflect.String:
 			dm.listDec = decListStr
 		case reflect.Bool:
 			dm.listDec = decListBool
+
+		case reflect.Pointer: // 不可能
+		case reflect.Interface:
+			dm.listDec = decListAll
+			dm.itemDec = decAny
+		case reflect.Map, reflect.Array, reflect.Slice:
+			dm.listDec = decListAll
+			dm.itemDec = decListMixItem
 		case reflect.Struct:
 			if dm.itemType == cst.TypeTime {
 				dm.listDec = decListTime
 			} else {
 				dm.listDec = decListStruct
 			}
-
-		case reflect.Pointer:
-
-		case reflect.Interface:
-
-		case reflect.Map, reflect.Array, reflect.Slice:
-			dm.listDec = decListAll
-			dm.itemDec = decListMixItem
 		}
 		return
 	}
@@ -629,24 +622,23 @@ func (dm *decMeta) bindListDec() {
 		dm.listDec = decListF32Ptr
 	case reflect.Float64:
 		dm.listDec = decListF64Ptr
-
 	case reflect.String:
 		dm.listDec = decListStrPtr
 	case reflect.Bool:
 		dm.listDec = decListBoolPtr
+
+	case reflect.Pointer: // 不可能
+	case reflect.Interface:
+		dm.listDec = decListAll
+		dm.itemDec = decAny
+	case reflect.Map, reflect.Array, reflect.Slice:
+		dm.listDec = decListAll
+		dm.itemDec = decListMixItem
 	case reflect.Struct:
 		if dm.itemType == cst.TypeTime {
 			dm.listDec = decListTimePtr
 		} else {
 			dm.listDec = decListStruct
 		}
-
-	case reflect.Pointer:
-
-	case reflect.Interface:
-
-	case reflect.Map, reflect.Array, reflect.Slice:
-		dm.listDec = decListAll
-		dm.itemDec = decListMixItem
 	}
 }

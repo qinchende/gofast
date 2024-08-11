@@ -91,8 +91,9 @@ const (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 const (
-	ptrMemSize   = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
-	maxCdoStrLen = math.MaxUint32 - 1             // 最大解析 4GB Cdo 字符串
+	ptrMemSize      = int(unsafe.Sizeof(uintptr(0))) // 本机器指针占用字节数
+	maxCdoStrLen    = math.MaxUint32 - 1             // 最大解析 4GB Cdo 字符串
+	maxNestingDepth = 1000                           // 编解码对象最大嵌套层级
 )
 
 type (
@@ -113,7 +114,7 @@ const (
 	errUTF8      errType = -12
 	errKey       errType = -13
 	errValue     errType = -14
-	errKV        errType = -15
+	errMap       errType = -15
 	errNull      errType = -16
 	errObject    errType = -17
 	errList      errType = -18
@@ -139,7 +140,7 @@ var errDescription = []string{
 	-(errUTF8):      "Error utf8",
 	-(errKey):       "Error key",
 	-(errValue):     "Error value",
-	-(errKV):        "Error kv map",
+	-(errMap):       "Error kv map",
 	-(errNull):      "Error null",
 	-(errObject):    "Error object",
 	-(errList):      "Error list",

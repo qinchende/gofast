@@ -10,6 +10,7 @@ import (
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/validx"
 	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/rt"
 	"math"
 	"reflect"
 	"sync"
@@ -53,11 +54,12 @@ type (
 		RefField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 		Valid    *validx.ValidOptions // 验证
 
-		Type      reflect.Type // 字段最终的类型，剥开指针(Pointer)之后的类型
-		Kind      reflect.Kind // 字段最终类型的Kind类型，
-		Offset    uintptr      // 字段在结构体中的地址偏移量
-		PtrLevel  uint8        // 字段指针层级
-		IsMixType bool         // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
+		Type      reflect.Type   // 字段最终的类型，剥开指针(Pointer)之后的类型
+		TypeAbi   unsafe.Pointer // 模拟*runtime.abiType
+		Kind      reflect.Kind   // 字段最终类型的Kind类型，
+		Offset    uintptr        // 字段在结构体中的地址偏移量
+		PtrLevel  uint8          // 字段指针层级
+		IsMixType bool           // 是否为混合数据类型（非基础数据类型之外的类型，比如Struct,Map,Array,Slice）
 
 		KVBinder kvBinderFunc // 绑定函数
 		SqlValue SqlValueFunc
@@ -121,6 +123,7 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			ss.HasPtrField = true // 结构体保护指针字段
 		}
 		fa.Kind = fa.Type.Kind()
+		fa.TypeAbi = (*rt.AFace)(unsafe.Pointer(&fa.Type)).DataPtr
 		switch fa.Kind {
 		case reflect.Map, reflect.Struct, reflect.Array, reflect.Slice:
 			fa.IsMixType = true

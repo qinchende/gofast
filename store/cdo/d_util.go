@@ -244,8 +244,34 @@ func scanBytes(str string) (int, []byte) {
 
 // memory plan
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func fieldPtr(d *decoder) unsafe.Pointer {
+	return d.dm.ss.FieldsAttr[d.fIdx].MyPtr(d.dstPtr)
+}
+
+// field type as (map | array | slice | struct)
+func fieldMixPtr(d *decoder) unsafe.Pointer {
+	fa := &d.dm.ss.FieldsAttr[d.fIdx]
+	fPtr := fa.MyPtr(d.dstPtr)
+
+	if fa.Kind == reflect.Map {
+		if *(*unsafe.Pointer)(fPtr) == nil {
+			newPtr := rt.UnsafeNew(fa.TypeAbi)
+			*(*unsafe.Pointer)(fPtr) = newPtr
+			return newPtr
+		}
+		fPtr = *(*unsafe.Pointer)(fPtr)
+	}
+	return fPtr
+}
+
+func fieldPtrDeep(d *decoder) unsafe.Pointer {
+	fa := &d.dm.ss.FieldsAttr[d.fIdx]
+	fPtr := fa.MyPtr(d.dstPtr)
+	return getPtrValAddr(fPtr, fa.PtrLevel, fa.TypeAbi)
+}
+
 // Note: 此函数只适合 object 的 field，List 的 item 为 指针类型 的情形。非指针不能调用此方法
-func getPtrValAddr(ptr unsafe.Pointer, ptrLevel uint8, typ reflect.Type) unsafe.Pointer {
+func getPtrValAddr(ptr unsafe.Pointer, ptrLevel uint8, abiType unsafe.Pointer) unsafe.Pointer {
 	for ptrLevel > 1 {
 		if *(*unsafe.Pointer)(ptr) == nil {
 			tpPtr := unsafe.Pointer(new(unsafe.Pointer))
@@ -259,64 +285,9 @@ func getPtrValAddr(ptr unsafe.Pointer, ptrLevel uint8, typ reflect.Type) unsafe.
 	}
 
 	if *(*unsafe.Pointer)(ptr) == nil {
-		var newPtr unsafe.Pointer
-
-		switch typ.Kind() {
-		case reflect.Map:
-			newPtr = unsafe.Pointer(new(unsafe.Pointer))
-			*(*unsafe.Pointer)(newPtr) = reflect.MakeMap(typ).UnsafePointer()
-		case reflect.Slice:
-			newPtr = unsafe.Pointer(&rt.SliceHeader{})
-			*(*unsafe.Pointer)(newPtr) = reflect.MakeSlice(typ, 0, 0).UnsafePointer()
-		default:
-			newPtr = reflect.New(typ).UnsafePointer()
-		}
-
+		newPtr := rt.UnsafeNew(abiType)
 		*(*unsafe.Pointer)(ptr) = newPtr
 		return newPtr
 	}
 	return *(*unsafe.Pointer)(ptr)
-}
-
-func sliceMixItemPtr(d *decoder, ptr unsafe.Pointer) unsafe.Pointer {
-	return getPtrValAddr(ptr, d.dm.ptrLevel, d.dm.itemType)
-}
-
-func fieldMixPtr(d *decoder) unsafe.Pointer {
-	fa := &d.dm.ss.FieldsAttr[d.fIdx]
-	ptr := fa.MyPtr(d.dstPtr)
-
-	if fa.Kind == reflect.Map {
-		if *(*unsafe.Pointer)(ptr) == nil {
-			*(*unsafe.Pointer)(ptr) = reflect.MakeMap(fa.Type).UnsafePointer()
-		}
-	}
-
-	//// 只有field字段为map或者slice的时候，值才可能是nil
-	//if *(*unsafe.Pointer)(ptr) == nil {
-	//	switch fa.Kind {
-	//	// Note: 当 array & slice & struct 的时候，相当于是值类型，直接返回首地址即可
-	//	//default:
-	//	//	panic(errSupport)
-	//	case reflect.Map:
-	//		*(*unsafe.Pointer)(ptr) = reflect.MakeMap(fa.Type).UnsafePointer()
-	//		//case reflect.Slice:
-	//		// Note: fa.Kind == reflect.Slice，
-	//		// 此时可能申请slice对象没有意义，因为解析程序会自己创建临时空间，完成之后替换旧内存
-	//		// 但如果slice中的项还是 mix 类型，可能又不一样了，这种情况解析程序不会申请临时空间
-	//		//newPtr := reflect.MakeSlice(fa.Type, 0, 4).UnsafePointer()	// 默认给4个值的空间，避免扩容
-	//		//*(*unsafe.Pointer)(ptr) = *(*unsafe.Pointer)(newPtr)
-	//	}
-	//}
-	return ptr
-}
-
-func fieldPtr(d *decoder) unsafe.Pointer {
-	return d.dm.ss.FieldsAttr[d.fIdx].MyPtr(d.dstPtr)
-}
-
-func fieldPtrDeep(d *decoder) unsafe.Pointer {
-	fa := &d.dm.ss.FieldsAttr[d.fIdx]
-	ptr := fa.MyPtr(d.dstPtr)
-	return getPtrValAddr(ptr, fa.PtrLevel, fa.Type)
 }
