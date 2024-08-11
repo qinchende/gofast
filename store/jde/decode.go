@@ -68,7 +68,6 @@ type (
 		isArray   bool // [] array
 		isArrBind bool // [] is array and item not pointer type
 
-		isAny    bool  // [] is list and item is interface type in the final
 		isPtr    bool  // [] is list and item is pointer type
 		ptrLevel uint8 // [] is list and item pointer level
 	}
@@ -259,7 +258,7 @@ func newDecodeMeta(rfType reflect.Type) (dm *decMeta) {
 		dm.initStructMeta(rfType)
 	case reflect.Map:
 		// 只能解析到map[string]any，其它map类型暂时不支持
-		if rfType == cst.TypeCstKV || rfType == cst.TypeStrAnyMap {
+		if rfType == cst.TypeCstKV || rfType == cst.TypeMapStrAny {
 			dm.isSuperKV = true
 			dm.isMap = true
 			dm.bindCstKVDec()
@@ -325,11 +324,6 @@ func (dm *decMeta) initBaseValueMeta(rfType reflect.Type) {
 func (dm *decMeta) initListMeta(rfType reflect.Type) {
 	dm.isList = true
 	dm.peelPtr(rfType)
-
-	// 是否是interface类型
-	if dm.itemKind == reflect.Interface {
-		dm.isAny = true
-	}
 
 	// 进一步初始化数组
 	if rfType.Kind() == reflect.Array {

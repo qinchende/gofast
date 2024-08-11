@@ -3,7 +3,6 @@ package cdo
 import (
 	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
-	"reflect"
 	"time"
 	"unsafe"
 )
@@ -30,12 +29,7 @@ func encListAll(se *encoder) {
 	bs = append(encU24By5Ret(bs, TypeList, uint64(tLen)), ListAny)
 	for i := 0; i < tLen; i++ {
 		itemPtr := unsafe.Add(se.srcPtr, i*se.em.itemMemSize)
-
-		// 一些本身就是引用类型的数据，需要找到他们指向值的地址
-		// 比如 map | function | channel 等类型
-		if se.em.itemKind == reflect.Map {
-			itemPtr = *(*unsafe.Pointer)(itemPtr)
-		}
+		itemPtr = realPtr(se.em.itemKind, itemPtr)
 		bs = se.em.itemEnc(bs, itemPtr, se.em.itemType)
 	}
 	*se.bf = bs
@@ -62,10 +56,7 @@ func encListAllPtr(se *encoder) {
 		if ptrCt > 0 {
 			goto peelPtr
 		}
-
-		if se.em.itemKind == reflect.Map {
-			itemPtr = *(*unsafe.Pointer)(itemPtr)
-		}
+		itemPtr = realPtr(se.em.itemKind, itemPtr)
 		bs = se.em.itemEnc(bs, itemPtr, se.em.itemType)
 	}
 	*se.bf = bs

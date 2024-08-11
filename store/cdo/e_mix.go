@@ -6,9 +6,7 @@ import (
 
 // Basic type value
 func (se *encoder) encBasic() {
-	bs := *se.bf
-	bs = se.em.itemEnc(bs, se.srcPtr, se.em.itemType)
-	*se.bf = bs
+	*se.bf = se.em.itemEnc(*se.bf, se.srcPtr, se.em.itemType)
 }
 
 // Pointer type value

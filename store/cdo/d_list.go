@@ -54,7 +54,7 @@ func decListAll(d *decoder, tLen int) {
 				d.scan++
 				continue
 			}
-			d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemType)
+			d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemTypeAbi)
 		}
 		d.dm.itemDec(d)
 	}
@@ -69,7 +69,7 @@ func decListFuncPtr(d *decoder, tLen int, typ byte, fn func(iPtr unsafe.Pointer,
 			pos += 1
 			continue
 		}
-		iPtr = getPtrValAddr(iPtr, d.dm.ptrLevel, d.dm.itemType)
+		iPtr = getPtrValAddr(iPtr, d.dm.ptrLevel, d.dm.itemTypeAbi)
 		pos += fn(iPtr, d.str[pos:])
 	}
 	d.scan = pos
@@ -397,8 +397,8 @@ func decListStr(d *decoder, tLen int) {
 	pos := validListItemType(d, ListStr)
 	for i := 0; i < len(list); i++ {
 		off, str := scanString(d.str[pos:])
-		list[i] = str
 		pos += off
+		list[i] = str
 	}
 	d.scan = pos
 }
@@ -459,7 +459,7 @@ func decListStruct(d *decoder, tLen int) {
 				d.scan++
 				continue
 			}
-			d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemType)
+			d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemTypeAbi)
 		}
 
 		// 循环字段

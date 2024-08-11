@@ -15,18 +15,23 @@ import (
 //)
 
 var (
+	// common map
 	TypeCstKV     reflect.Type
 	TypeWebKV     reflect.Type
-	TypeStrAnyMap reflect.Type
-	TypeTime      reflect.Type
-	TypeDuration  reflect.Type
-	TypeBytes     reflect.Type
+	TypeMapStrAny reflect.Type
+	TypeMapStrStr reflect.Type
+
+	TypeTime     reflect.Type
+	TypeDuration reflect.Type
+	TypeBytes    reflect.Type
 )
 
 func init() {
 	TypeCstKV = reflect.TypeOf(KV{})
 	TypeWebKV = reflect.TypeOf(WebKV{})
-	TypeStrAnyMap = reflect.TypeOf(map[string]any{})
+	TypeMapStrAny = reflect.TypeOf(map[string]any{})
+	TypeMapStrStr = reflect.TypeOf(map[string]string{})
+
 	TypeTime = reflect.TypeOf(time.Time{})
 	TypeDuration = reflect.TypeOf(time.Duration(0))
 	TypeBytes = reflect.TypeOf(make([]byte, 0))

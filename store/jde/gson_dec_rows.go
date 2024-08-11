@@ -182,7 +182,7 @@ func (grs *gsonRowsDecode) scanGsonRows() {
 		//} else {
 		//	sh.Len = tmpCT
 		//}
-		ptr := rt.SliceToArray(sd.dstPtr, dm.itemMemSize, tmpCT)
+		ptr := rt.SliceToArraySafe(sd.dstPtr, tmpCT, dm.itemType)
 		// END分配内存空间 ++++++++++++++++
 
 		tmpCT = 0

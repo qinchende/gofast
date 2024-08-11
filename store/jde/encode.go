@@ -193,7 +193,7 @@ func (em *encMeta) initMapMeta(rfType reflect.Type) {
 	em.isMap = true
 
 	// 特殊的Map单独处理，提高性能, 当前只支持 map[string]any 形式
-	if rfType == cst.TypeCstKV || rfType == cst.TypeStrAnyMap {
+	if rfType == cst.TypeCstKV || rfType == cst.TypeMapStrAny {
 		em.isSuperKV = true
 	}
 

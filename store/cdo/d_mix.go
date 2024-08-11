@@ -2,9 +2,50 @@ package cdo
 
 import (
 	"github.com/qinchende/gofast/core/rt"
+	"reflect"
 	"time"
 	"unsafe"
 )
+
+// pointer +++++
+func (d *decoder) decPointer() {
+	d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemTypeAbi)
+	d.dm.itemDec(d)
+}
+
+// +++ struct & map +++
+func (d *decoder) kvLenPos() (int, int) {
+	pos := d.scan
+	off, tLen := decListTypeU24(d.str[pos:])
+	pos += off
+
+	if d.str[pos] != ListKV {
+		panic(errListType)
+	}
+	pos++
+	return int(tLen), pos
+}
+
+func (d *decoder) decStruct() {
+	tLen, pos := d.kvLenPos()
+	d.scan = pos
+	for i := 0; i < tLen; i++ {
+		d.dm.kvPairDec(d, decStrVal(d))
+	}
+}
+
+func (d *decoder) skipKVS() {
+	//off1, _, size := scanTypeU16(d.str[d.scan:])
+	//if typ != TypeMap {
+	//	panic(errKV)
+	//}
+
+	//for i := 0; i < int(size); i++ {
+	//	off2 := skipString(d.str[off1:])
+	//	d.scan += off2 + off1
+	//	d.skipOneValue()
+	//}
+}
 
 func (d *decoder) skipList() {
 	off1, typ, size := scanTypeU32By6(d.str[d.scan:])
@@ -19,7 +60,7 @@ func (d *decoder) skipList() {
 }
 
 func (d *decoder) skipOneValue() {
-	c := d.str[0]
+	c := d.str[d.scan]
 	typ := c & TypeMask
 	val := c & TypeValMask
 	off := 0
@@ -60,8 +101,8 @@ func (d *decoder) skipOneValue() {
 	d.scan += off
 }
 
-func decAny(d *decoder) any {
-	c := d.str[0]
+func scanAny(d *decoder) any {
+	c := d.str[d.scan]
 	typ := c & TypeMask
 	v := c & TypeValMask
 
@@ -99,79 +140,24 @@ func decAny(d *decoder) any {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// pointer +++++
-func scanPointerValue(d *decoder) {
-	ptr := getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemType)
-	d.runSub(d.dm.itemType, ptr)
-}
-
-// map & array & slice
+// list[map | array | slice]
 func decListMixItem(d *decoder) {
 	sh := (*rt.SliceHeader)(d.dstPtr)
-	ptr := rt.SliceNextItem(sh, d.dm.itemMemSize)
-
+	ptr := rt.SliceNextItemSafe(sh, d.dm.itemMemSize, d.dm.itemType)
 	if d.dm.isPtr {
-		ptr = sliceMixItemPtr(d, ptr)
+		ptr = getPtrValAddr(ptr, d.dm.ptrLevel, d.dm.itemTypeAbi)
 	}
-	d.initSub(ptr)
-	if d.sub.dm.isList {
-		decListAll(d.sub, 0)
-	} else {
-		d.sub.scanKVS()
-	}
-	d.scan = d.sub.scan
-}
-
-// map +++++
-// 目前只支持 map[string]any，并不支持其它map
-func scanCstKVValue(d *decoder, k string) {
-
-}
-
-// map WebKV +++++
-// 只支持 map[string]string
-func scanWebKVValue(d *decoder, k string) {
-
-}
-
-// +++ struct & map +++
-func (d *decoder) scanKVS() {
-	off1, tLen := decListTypeU24(d.str[d.scan:])
-	d.scan += off1
-
-	if d.str[d.scan] != ListKV {
-		panic(errListType)
-	}
-	d.scan++
-
-	for i := 0; i < int(tLen); i++ {
-		off, key := scanString(d.str[d.scan:])
-		d.scan += off
-		d.dm.kvPairDec(d, key)
-	}
-}
-
-func (d *decoder) skipKVS() {
-	//off1, _, size := scanTypeU16(d.str[d.scan:])
-	//if typ != TypeMap {
-	//	panic(errKV)
-	//}
-
-	//for i := 0; i < int(size); i++ {
-	//	off2 := skipString(d.str[off1:])
-	//	d.scan += off2 + off1
-	//	d.skipOneValue()
-	//}
+	d.runSub(d.dm.itemType, ptr)
 }
 
 // Struct Field
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func decField(d *decoder, key string) {
-	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx < 0 {
-		d.skipValue = true
-		d.skipOneValue()
-	} else {
+	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx >= 0 {
 		d.dm.fieldsDec[d.fIdx](d)
+	} else {
+		//d.skipValue = true
+		d.skipOneValue()
 	}
 }
 
@@ -194,15 +180,6 @@ func decVarInt(d *decoder) (byte, uint64) {
 	panic(errValType)
 }
 
-func decVarIntField(d *decoder) (unsafe.Pointer, byte, uint64) {
-	off, typ, v := scanVarIntVal(d.str[d.scan:])
-	d.scan += off
-	if typ == TypeVarIntPos || typ == TypeVarIntNeg {
-		return fieldPtr(d), typ, v
-	}
-	panic(errValType)
-}
-
 func decVarIntFieldPtr(binder intBinder) decValFunc {
 	return func(d *decoder) {
 		if fieldNotNil(d) {
@@ -210,6 +187,106 @@ func decVarIntFieldPtr(binder intBinder) decValFunc {
 			binder(fieldPtrDeep(d), typ, v)
 		}
 	}
+}
+
+func decInt(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt(d.dstPtr, typ, v)
+}
+
+func decIntField(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt(fieldPtr(d), typ, v)
+}
+
+func decInt8(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt8(d.dstPtr, typ, v)
+}
+
+func decInt8Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt8(fieldPtr(d), typ, v)
+}
+
+func decInt16(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt16(d.dstPtr, typ, v)
+}
+
+func decInt16Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt16(fieldPtr(d), typ, v)
+}
+
+func decInt32(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt32(d.dstPtr, typ, v)
+}
+
+func decInt32Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt32(fieldPtr(d), typ, v)
+}
+
+func decInt64(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt64(d.dstPtr, typ, v)
+}
+
+func decInt64Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindInt64(fieldPtr(d), typ, v)
+}
+
+func decUint(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint(d.dstPtr, typ, v)
+}
+
+func decUintField(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint(fieldPtr(d), typ, v)
+}
+
+func decUint8(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint8(d.dstPtr, typ, v)
+}
+
+func decUint8Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint8(fieldPtr(d), typ, v)
+}
+
+func decUint16(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint16(d.dstPtr, typ, v)
+}
+
+func decUint16Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint16(fieldPtr(d), typ, v)
+}
+
+func decUint32(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint32(d.dstPtr, typ, v)
+}
+
+func decUint32Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint32(fieldPtr(d), typ, v)
+}
+
+func decUint64(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint64(d.dstPtr, typ, v)
+}
+
+func decUint64Field(d *decoder) {
+	typ, v := decVarInt(d)
+	bindUint64(fieldPtr(d), typ, v)
 }
 
 // float32 +++++
@@ -222,6 +299,10 @@ func decFixF32(d *decoder) float32 {
 	v := scanF32Val(d.str[pos:])
 	d.scan = pos + 4
 	return v
+}
+
+func decF32(d *decoder) {
+	bindF32(d.dstPtr, decFixF32(d))
 }
 
 func decF32Field(d *decoder) {
@@ -246,6 +327,10 @@ func decFixF64(d *decoder) float64 {
 	return v
 }
 
+func decF64(d *decoder) {
+	bindF64(d.dstPtr, decFixF64(d))
+}
+
 func decF64Field(d *decoder) {
 	bindF64(fieldPtr(d), decFixF64(d))
 }
@@ -268,6 +353,10 @@ func decFixTime(d *decoder) time.Time {
 	return v
 }
 
+func decTime(d *decoder) {
+	bindTime(d.dstPtr, decFixTime(d))
+}
+
 func decTimeField(d *decoder) {
 	bindTime(fieldPtr(d), decFixTime(d))
 }
@@ -279,62 +368,99 @@ func decTimeFieldPtr(d *decoder) {
 }
 
 // string +++++
-func decStrField(d *decoder) {
+func decStrVal(d *decoder) string {
 	off, str := scanString(d.str[d.scan:])
 	d.scan += off
-	bindString(fieldPtr(d), str)
+	return str
+}
+
+func decStr(d *decoder) {
+	bindString(d.dstPtr, decStrVal(d))
+}
+
+func decStrField(d *decoder) {
+	bindString(fieldPtr(d), decStrVal(d))
 }
 
 func decStrFieldPtr(d *decoder) {
 	if fieldNotNil(d) {
-		off, str := scanString(d.str[d.scan:])
-		d.scan += off
-		bindString(fieldPtrDeep(d), str)
+		bindString(fieldPtrDeep(d), decStrVal(d))
 	}
 }
 
 // []byte +++++
-func decBytesField(d *decoder) {
+func decBytesVal(d *decoder) []byte {
 	off, bs := scanBytes(d.str[d.scan:])
 	d.scan += off
-	bindBytes(fieldPtr(d), bs)
+	return bs
+}
+
+func decBytes(d *decoder) {
+	bindBytes(d.dstPtr, decBytesVal(d))
+}
+
+func decBytesField(d *decoder) {
+	bindBytes(fieldPtr(d), decBytesVal(d))
 }
 
 func decBytesFieldPtr(d *decoder) {
 	if fieldNotNil(d) {
-		off, bs := scanBytes(d.str[d.scan:])
-		d.scan += off
-		bindBytes(fieldPtrDeep(d), bs)
+		bindBytes(fieldPtrDeep(d), decBytesVal(d))
 	}
 }
 
 // bool +++++
-func decBoolField(d *decoder) {
+func decBoolVal(d *decoder) bool {
 	v := scanBool(d.str[d.scan:])
 	d.scan += 1
-	bindBool(fieldPtr(d), v)
+	return v
+}
+
+func decBool(d *decoder) {
+	bindBool(d.dstPtr, decBoolVal(d))
+}
+
+func decBoolField(d *decoder) {
+	bindBool(fieldPtr(d), decBoolVal(d))
 }
 
 func decBoolFieldPtr(d *decoder) {
 	if fieldNotNil(d) {
-		v := scanBool(d.str[d.scan:])
-		d.scan += 1
-		bindBool(fieldPtrDeep(d), v)
+		bindBool(fieldPtrDeep(d), decBoolVal(d))
 	}
 }
 
 // any +++++
+func decAnyVal(d *decoder, iPtr unsafe.Pointer) {
+	v := *((*any)(iPtr))
+	vTyp := reflect.TypeOf(v)
+	if v == nil || vTyp.Kind() != reflect.Pointer {
+		bindAny(iPtr, scanAny(d))
+		return
+	}
+	vTyp = vTyp.Elem()
+	d.runSub(vTyp, (*rt.AFace)(iPtr).DataPtr)
+}
+
+func decAny(d *decoder) {
+	decAnyVal(d, d.dstPtr)
+}
+
 func decAnyField(d *decoder) {
-	bindAny(fieldPtr(d), decAny(d))
+	decAnyVal(d, fieldPtr(d))
 }
 
 func decAnyFieldPtr(d *decoder) {
 	if fieldNotNil(d) {
-		bindAny(fieldPtrDeep(d), decAny(d))
+		bindAny(fieldPtrDeep(d), scanAny(d))
 	}
 }
 
 // mixed field +++++  such as map|struct
+func decMix(d *decoder) {
+	d.runSub(d.dm.ss.FieldsAttr[d.fIdx].Type, d.dstPtr)
+}
+
 func decMixField(d *decoder) {
 	d.runSub(d.dm.ss.FieldsAttr[d.fIdx].Type, fieldMixPtr(d))
 }

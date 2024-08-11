@@ -265,7 +265,12 @@ func encAnyRet(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	v := *((*any)(oldPtr))
 	switch v.(type) {
 	default:
-		return encMixedItemRet(bs, ptr, reflect.TypeOf(v))
+		vTyp := reflect.TypeOf(v)
+		// Note: 如果Any代表的是指针类型的值，需要剥离一层指针
+		if vTyp.Kind() == reflect.Pointer {
+			vTyp = vTyp.Elem()
+		}
+		return encMixedItemRet(bs, ptr, vTyp)
 
 	case int, *int:
 		return encIntRet[int](bs, ptr, nil)
@@ -305,4 +310,14 @@ func encAnyRet(bs []byte, ptr unsafe.Pointer, typ reflect.Type) []byte {
 	case time.Time, *time.Time:
 		return encTimeRet(bs, ptr, nil)
 	}
+}
+
+func realPtr(kd reflect.Kind, ptr unsafe.Pointer) unsafe.Pointer {
+	// Note：有些类型其实是个指针，但reflect.Kind() != reflect.Pointer
+	// 比如：map | channel | func
+	// ptr 需要表示为真实存放数据的内存起始地址
+	if kd == reflect.Map {
+		ptr = *(*unsafe.Pointer)(ptr)
+	}
+	return ptr
 }

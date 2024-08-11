@@ -332,7 +332,7 @@ func scanArrPtrMixValue(sd *subDecode) {
 // slice 中可能是实体对象，也可能是对象指针
 func scanListMixValue(sd *subDecode) {
 	sh := (*rt.SliceHeader)(sd.dstPtr)
-	ptr := rt.SliceNextItem(sh, sd.dm.itemMemSize)
+	ptr := rt.SliceNextItemSafe(sh, sd.dm.itemMemSize, sd.dm.itemType)
 
 	switch sd.str[sd.scan] {
 	case '{', '[':
