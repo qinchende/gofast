@@ -106,7 +106,7 @@ func encMixedItemRet(bf []byte, ptr unsafe.Pointer, typ reflect.Type) (bs []byte
 	se.bs = bf
 	se.bf = &se.bs
 	se.execEnc()
-	bs = se.bs // must return before se.reset()
+	bs = se.bs // must return bytes before se.reset()
 
 	se.reset()
 	cdoEncPool.Put(se)
@@ -135,7 +135,7 @@ func (se *encoder) fetchEncMeta(v any) {
 	vType := reflect.TypeOf(v)
 	ptr := (*rt.AFace)(unsafe.Pointer(&v)).DataPtr
 
-	// v可能是一个值的地址，剥掉一层指针
+	// v is a ptr value, need peel ptr
 	if vType.Kind() == reflect.Pointer {
 		vType = vType.Elem()
 		ptr = realPtr(vType.Kind(), ptr)

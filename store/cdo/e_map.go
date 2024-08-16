@@ -1,9 +1,11 @@
 package cdo
 
 import (
+	"encoding"
 	"github.com/qinchende/gofast/core/rt"
 	"golang.org/x/exp/constraints"
 	"reflect"
+	"strconv"
 	"unsafe"
 )
 
@@ -234,18 +236,20 @@ func encMapAllPtr[TK string | constraints.Unsigned, TV any](se *encoder) {
 // encode map using reflect
 func encMapStrAllReflect(se *encoder) {
 	theMap := reflect.MakeMapWithSize(reflect.MapOf(se.em.keyType, se.em.itemType), 0)
-	//mapAddr := theMap.set
-	//*((*unsafe.Pointer)(mapAddr)) = se.srcPtr
-	//theMap..SetPointer(se.srcPtr)
+	refVal := (*rt.ReflectValue)(unsafe.Pointer(&theMap))
+	refVal.DataPtr = se.srcPtr
 
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(theMap.Len())), ListKV)
+
 	iter := theMap.MapRange()
 	for iter.Next() {
-		k := iter.Key().Interface().(string)
-		v := iter.Value().Addr().UnsafePointer()
+		k := resolveKeyName(iter.Key())
 		bs = encStringDirectRet(bs, k)
-		bs = se.em.itemEnc(bs, v, se.em.itemType)
+
+		val := iter.Value()
+		vRef := (*rt.ReflectValue)(unsafe.Pointer(&val))
+		bs = se.em.itemEnc(bs, vRef.DataPtr, se.em.itemType)
 	}
 	*se.bf = bs
 }
@@ -288,4 +292,30 @@ func encMapAllReflect(se *encoder) {
 		bs = se.em.itemEnc(bs, ptr, se.em.itemType)
 	}
 	*se.bf = bs
+}
+
+// utils +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func resolveKeyName(k reflect.Value) string {
+	if k.Kind() == reflect.String {
+		return k.String()
+	}
+	if tm, ok := k.Interface().(encoding.TextMarshaler); ok {
+		if k.Kind() == reflect.Pointer && k.IsNil() {
+			return ""
+		}
+		if buf, err := tm.MarshalText(); err == nil {
+			return string(buf)
+		} else {
+			panic(errKey)
+		}
+	}
+
+	switch k.Kind() {
+	default:
+		panic(errKey)
+	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
+		return strconv.FormatInt(k.Int(), 10)
+	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64, reflect.Uintptr:
+		return strconv.FormatUint(k.Uint(), 10)
+	}
 }

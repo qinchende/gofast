@@ -36,6 +36,12 @@ type (
 		ItabPtr *GoItab
 		DataPtr unsafe.Pointer
 	}
+
+	ReflectValue struct {
+		TypePtr *TypeAgent
+		DataPtr unsafe.Pointer
+		Flag    uintptr
+	}
 )
 
 func (ef EFace) Pack() (v interface{}) {
