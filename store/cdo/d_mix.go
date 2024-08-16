@@ -458,7 +458,7 @@ func decAnyFieldPtr(d *decoder) {
 
 // mixed field +++++  such as map|struct
 func decMix(d *decoder) {
-	d.runSub(d.dm.ss.FieldsAttr[d.fIdx].Type, d.dstPtr)
+	d.runSub(d.dm.itemType, d.dstPtr)
 }
 
 func decMixField(d *decoder) {
