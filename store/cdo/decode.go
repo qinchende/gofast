@@ -69,13 +69,14 @@ type (
 		skv    cst.SuperKV    // 特殊Map
 		dstPtr unsafe.Pointer // 目标对象的内存地址
 		slice  rt.SliceHeader // 指向一个切片类型
-		//bOpts  *dts.BindOptions // 绑定控制
 
-		str         string     // 数据源
-		scan        int        // 当前扫描定位
-		fIdx        int        // field index
-		fIdxes      [256]int16 // 不多于 256 个字段，暂不支持更多字段
-		isNeedValid bool       // 在绑定到对象时，是否需要验证字段
+		str    string     // 数据源
+		scan   int        // 当前扫描定位
+		fIdx   int        // field index
+		fIdxes [256]int16 // 不多于 256 个字段，暂不支持更多字段
+
+		//bOpts  *dts.BindOptions // 绑定控制
+		//isNeedValid bool       // 在绑定到对象时，是否需要验证字段
 		//skipValue   bool // 跳过当前要解析的值
 	}
 )

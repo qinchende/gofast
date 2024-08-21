@@ -18,7 +18,7 @@ func (se *encoder) encMap() {
 	} else if se.em.isMapStrAll && !se.em.isPtr {
 		switch se.em.itemMemSize {
 		default:
-			encMapStrAllReflect(se)
+			encMapStrAllRuntime(se)
 		case 1:
 			encMapStrAll[rt.TByte1](se)
 		case 2:
@@ -43,12 +43,12 @@ func (se *encoder) encMapOthers() {
 
 	switch kSize {
 	default:
-		encMapAllReflect(se)
+		encMapAllRuntime(se)
 
 	case 1:
 		switch vSize {
 		default:
-			encMapAllReflect(se)
+			encMapAllRuntime(se)
 		case 1:
 			encMapAll[uint8, rt.TByte1](se)
 		case 2:
@@ -66,7 +66,7 @@ func (se *encoder) encMapOthers() {
 	case 2:
 		switch vSize {
 		default:
-			encMapAllReflect(se)
+			encMapAllRuntime(se)
 		case 1:
 			encMapAll[uint16, rt.TByte1](se)
 		case 2:
@@ -84,7 +84,7 @@ func (se *encoder) encMapOthers() {
 	case 4:
 		switch vSize {
 		default:
-			encMapAllReflect(se)
+			encMapAllRuntime(se)
 		case 1:
 			encMapAll[uint32, rt.TByte1](se)
 		case 2:
@@ -102,7 +102,7 @@ func (se *encoder) encMapOthers() {
 	case 8:
 		switch vSize {
 		default:
-			encMapAllReflect(se)
+			encMapAllRuntime(se)
 		case 1:
 			encMapAll[uint64, rt.TByte1](se)
 		case 2:
@@ -120,7 +120,7 @@ func (se *encoder) encMapOthers() {
 	case 16:
 		switch vSize {
 		default:
-			encMapAllReflect(se)
+			encMapAllRuntime(se)
 		case 1:
 			encMapAll[string, rt.TByte1](se)
 		case 2:
@@ -233,45 +233,111 @@ func encMapAllPtr[TK string | constraints.Unsigned, TV any](se *encoder) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func encMapStrAllRuntime(se *encoder) {
+	pIter := &rt.HIter{}
+	rt.MapIterInit(se.em.mapTypeAbi, se.srcPtr, pIter)
+	size := rt.MapLen(se.srcPtr)
+
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(size)), ListKV)
+	for size > 0 {
+		// key
+		bs = se.em.keyEnc(bs, rt.MapIterKey(pIter), nil)
+		// value
+		bs = se.em.itemEnc(bs, rt.MapIterValue(pIter), se.em.itemType)
+		// next
+		rt.MapIterNext(pIter)
+		size--
+	}
+	*se.bf = bs
+}
+
+func encMapAllRuntime(se *encoder) {
+	pIter := &rt.HIter{}
+	rt.MapIterInit(se.em.mapTypeAbi, se.srcPtr, pIter)
+	size := rt.MapLen(se.srcPtr)
+
+	bs := *se.bf
+	bs = append(encU24By5Ret(bs, TypeList, uint64(size)), ListKV)
+	for size > 0 {
+		// key
+		bs = se.em.keyEnc(bs, rt.MapIterKey(pIter), nil)
+
+		// value
+		ptrLevel := se.em.ptrLevel
+		ptr := rt.MapIterValue(pIter)
+		if ptrLevel == 0 {
+			goto encMapValue
+		}
+
+	peelPtr:
+		ptr = *(*unsafe.Pointer)(ptr)
+		if ptr == nil {
+			bs = append(bs, FixNil)
+			continue
+		}
+		ptrLevel--
+		if ptrLevel > 0 {
+			goto peelPtr
+		}
+		// -----------
+
+	encMapValue:
+		bs = se.em.itemEnc(bs, ptr, se.em.itemType)
+
+		// next
+		rt.MapIterNext(pIter)
+		size--
+	}
+	*se.bf = bs
+}
+
+// other ways ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // encode map using reflect
 func encMapStrAllReflect(se *encoder) {
-	theMap := reflect.MakeMapWithSize(reflect.MapOf(se.em.keyType, se.em.itemType), 0)
-	refVal := (*rt.ReflectValue)(unsafe.Pointer(&theMap))
-	refVal.DataPtr = se.srcPtr
+	theMap := reflect.MakeMap(reflect.MapOf(se.em.keyType, se.em.itemType))
+	(*rt.ReflectValue)(unsafe.Pointer(&theMap)).DataPtr = se.srcPtr
 
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(theMap.Len())), ListKV)
 
 	iter := theMap.MapRange()
 	for iter.Next() {
+		// key
 		k := resolveKeyName(iter.Key())
 		bs = encStringDirectRet(bs, k)
 
+		// value
 		val := iter.Value()
-		vRef := (*rt.ReflectValue)(unsafe.Pointer(&val))
-		bs = se.em.itemEnc(bs, vRef.DataPtr, se.em.itemType)
+		refVal := (*rt.ReflectValue)(unsafe.Pointer(&val))
+		bs = se.em.itemEnc(bs, refVal.DataPtr, se.em.itemType)
 	}
 	*se.bf = bs
 }
 
 func encMapAllReflect(se *encoder) {
 	theMap := reflect.MakeMap(reflect.MapOf(se.em.keyType, se.em.itemType))
-	theMap.SetPointer(se.srcPtr)
+	(*rt.ReflectValue)(unsafe.Pointer(&theMap)).DataPtr = se.srcPtr
 
 	bs := *se.bf
 	bs = append(encU24By5Ret(bs, TypeList, uint64(theMap.Len())), ListKV)
+
 	iter := theMap.MapRange()
 	for iter.Next() {
-		k := iter.Key().Addr().UnsafePointer()
-		v := iter.Value().Addr().UnsafePointer()
+		//k := iter.Key().Addr().UnsafePointer()
+		//v := iter.Value().Addr().UnsafePointer()
+		key := iter.Key()
+		refKey := (*rt.ReflectValue)(unsafe.Pointer(&key))
+		val := iter.Value()
+		refVal := (*rt.ReflectValue)(unsafe.Pointer(&val))
 
 		// key
-		bs = se.em.keyEnc(bs, k, nil)
+		bs = se.em.keyEnc(bs, refKey.DataPtr, nil)
 
 		// value
 		// --- ptr ---
 		ptrLevel := se.em.ptrLevel
-		ptr := v
+		ptr := refVal.DataPtr
 		if ptrLevel == 0 {
 			goto encMapValue
 		}
@@ -294,7 +360,6 @@ func encMapAllReflect(se *encoder) {
 	*se.bf = bs
 }
 
-// utils +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func resolveKeyName(k reflect.Value) string {
 	if k.Kind() == reflect.String {
 		return k.String()
