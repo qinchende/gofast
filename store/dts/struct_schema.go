@@ -208,11 +208,11 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 
 	copy(ss.cTips.items, ss.Columns)
 	lang.SortByLen(ss.cTips.items)
-	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1]) // 最长string长度（最后一个就是最长的）
+	lastLen := len(ss.cTips.items[len(ss.cTips.items)-1]) // 按长度排序后，最后一个字符串就是最长的
 	if lastLen > math.MaxUint8 {
 		cst.PanicString("Struct has field large the 256 chars")
 	}
-	ss.cTips.lenOff = make([]uint8, lastLen+1)
+	ss.cTips.lenOff = make([]uint8, lastLen+1) // 将来字符串长度直接作为下标索引，所以这里必须+1
 	lastLen = 0
 
 	for idx, item := range ss.cTips.items {

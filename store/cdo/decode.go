@@ -200,7 +200,7 @@ func (d *decoder) execDec() {
 			d.decPointer()
 			return
 		}
-		d.dm.itemDec(d)
+		d.decBasic()
 	case d.dm.isList:
 		d.decList()
 	case d.dm.isStruct:

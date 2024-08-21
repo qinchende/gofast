@@ -75,6 +75,19 @@ func decListFuncPtr(d *decoder, tLen int, typ byte, fn func(iPtr unsafe.Pointer,
 	d.scan = pos
 }
 
+func (d *decoder) skipListKVS() {
+	//off1, _, size := scanTypeU16(d.str[d.scan:])
+	//if typ != TypeMap {
+	//	panic(errKV)
+	//}
+
+	//for i := 0; i < int(size); i++ {
+	//	off2 := skipString(d.str[off1:])
+	//	d.scan += off2 + off1
+	//	d.skipOneValue()
+	//}
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++ int +++
 func decListInt(d *decoder, tLen int) {
@@ -411,6 +424,10 @@ func decListStrPtr(d *decoder, tLen int) {
 	})
 }
 
+func skipListStr() {
+
+}
+
 // +++ time +++
 func decListTime(d *decoder, tLen int) {
 	list := *(*[]time.Time)(unsafe.Pointer(&d.slice))
@@ -435,6 +452,7 @@ func decListStruct(d *decoder, tLen int) {
 	pos := d.scan
 
 	// 1. struct fields
+	// TODO： 这里还可能为 struct index
 	off, typ, fSize := decListSubtypeU16(d.str[pos:])
 	if typ != ListObjFields {
 		panic(errListType)
@@ -462,7 +480,7 @@ func decListStruct(d *decoder, tLen int) {
 			d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemTypeAbi)
 		}
 
-		// 循环字段
+		// decode fields value
 		for j := 0; j < int(fSize); j++ {
 			d.fIdx = int(d.fIdxes[j])
 			if d.fIdx >= 0 {
