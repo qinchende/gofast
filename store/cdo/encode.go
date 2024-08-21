@@ -33,10 +33,11 @@ type (
 		listEnc     encListFunc // List整体编码
 
 		// map
-		keyType reflect.Type
-		keyKind reflect.Kind
-		keyEnc  encValFunc
-		keySize uint32
+		mapTypeAbi unsafe.Pointer
+		keyType    reflect.Type
+		keyKind    reflect.Kind
+		keyEnc     encValFunc
+		keySize    uint32
 
 		// type status
 		isMap       bool // {} map
@@ -241,6 +242,7 @@ func (em *encMeta) initStructMeta(typ reflect.Type) {
 // ++++++++++++++++++++++++++++++ Map
 func (em *encMeta) initMapMeta(typ reflect.Type) {
 	em.isMap = true
+	em.mapTypeAbi = (*rt.AFace)(unsafe.Pointer(&typ)).DataPtr
 
 	// Note: map 中的 key 只支持几种特定类型
 	em.keyType = typ.Key()

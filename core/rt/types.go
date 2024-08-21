@@ -27,13 +27,13 @@ type (
 
 	// 1. empty interface (has no function)
 	EFace struct {
-		TypePtr *GoType
+		TypePtr unsafe.Pointer
 		DataPtr unsafe.Pointer
 	}
 
 	// 2. typed interface (define some function)
 	IFace struct {
-		ItabPtr *GoItab
+		ItabPtr unsafe.Pointer
 		DataPtr unsafe.Pointer
 	}
 
