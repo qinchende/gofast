@@ -229,11 +229,8 @@ func scanString(str string) (int, string) {
 	return int(size), str[off1:size]
 }
 
-func skipString(str string) int {
-	off1, typ, size := scanTypeU32By6(str)
-	if typ != TypeStr {
-		panic(errCdoChar)
-	}
+func skipStringDirect(str string) int {
+	off1, _, size := scanTypeU32By6(str)
 	return off1 + int(size)
 }
 

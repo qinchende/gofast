@@ -4,15 +4,13 @@
 
 GoFast是一个用Go语言实现的微服务开发框架。他的产生源于目前流行的gin、go-zero、fastify等众多开源框架；同时结合了作者多年的开发实践经验，很多模块的实现方式都是作者首创；当然也免不了不断借鉴社区中优秀的设计理念。我们的目标是简洁高效易上手，在封装大量特性的同时又不失灵活性。希望你能喜欢GoFast。
 
-更多了解：[GoFast的实现细节](https://chende.ren/tags/gofast-intr/)
-
 GoFast的微服务：虽然也提供现成的微服务治理能力，但我们想强调的是，GoFast更专注于帮助框架使用者清晰的开发业务逻辑。大型项目上框架应该弱化微服务治理，将这一部分特性交给istio处理。
 
 ## Installation
 
 To install GoFast package, you need to install Go and set your Go workspace first.
 
-The first need [Go](https://golang.org/) installed (**version 1.15+ is required**), then you can use the below Go command to install GoFast.
+The first need [Go](https://golang.org/) installed (**version 1.20+ is required**), then you can use the below Go command to install GoFast.
 
 ```sh
 $ go get -u github.com/qinchende/gofast
@@ -22,67 +20,76 @@ $ go get -u github.com/qinchende/gofast
 
 ```sh
 # assume the following codes in example.go file
-$ cat example.go
+$ cat main.go
 ```
 
 ```go
-package main
-
 import (
-	"fmt"
-	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/fstx"
-	"log"
-	"net/http"
-	"time"
+    "fmt"
+    "github.com/qinchende/gofast/aid/conf"
+    "github.com/qinchende/gofast/core/cst"
+    "github.com/qinchende/gofast/core/logx"
+    "github.com/qinchende/gofast/fst"
+    "github.com/qinchende/gofast/sdx"
+    "log"
+    "net/http"
+    "time"
 )
 
 var handler = func(str string) func(c *fst.Context) {
-	return func(c *fst.Context) {
-		log.Println(str)
-	}
+    return func(c *fst.Context) {
+        log.Println(str)
+    }
 }
 
 var handlerRender = func(str string) func(c *fst.Context) {
-	return func(c *fst.Context) {
-		log.Println(str)
-		c.Fai(200, cst.KV{"data": str})
-	}
+    return func(c *fst.Context) {
+        log.Println(str)
+        c.FaiData(cst.KV{"data": str})
+    }
 }
 
 func main() {
-	app := fst.CreateServer(&fst.AppConfig{
-		PrintRouteTrees:        true,
-		HandleMethodNotAllowed: true,
-		RunMode:                "debug",
-		//FitMaxReqCount:         1,
-		//FitMaxReqContentLen:    10 * 1024,
-	})
+    appCfg := &fst.GfConfig{
+        RunMode: "debug",
+    }
+    _ = conf.LoadConfigFromJsonBytes(&appCfg.WebConfig, []byte("{}"))
+    _ = conf.LoadConfigFromJsonBytes(&appCfg.LogConfig, []byte("{}"))
+    _ = conf.LoadConfigFromJsonBytes(&appCfg.SdxConfig, []byte("{}"))
+    appCfg.WebConfig.PrintRouteTrees = true
+    appCfg.LogConfig.LogLevel = "debug"
+    appCfg.LogConfig.FileFolder = "_logs_"
+
+	app := fst.CreateServer(appCfg)
+	logx.MustSetup(&appCfg.LogConfig)
 
 	// 拦截器，微服务治理 ++++++++++++++++++++++++++++++++++++++
-	app.Fits(fstx.AddDefaultFits)
-	app.Fit(func(w *fst.GFResponse, r *http.Request) {
-		log.Println("app fit before 1")
-		w.NextFit(r)
-		log.Println("app fit after 1")
+	app.UseHttpHandler(func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			log.Println("app enter before 1")
+			next(w, r)
+			log.Println("app enter after 1")
+		}
 	})
+	//app.UseGlobal(sdx.SuperHandlers)
+	app.Before(sdx.PmsParser) // 解析请求参数，构造 ctx.Pms
 
 	// 根路由
-	app.NoRoute(func(ctx *fst.Context) {
-		ctx.JSON(http.StatusNotFound, "404-Can't find the path.")
+	app.Reg404(func(c *fst.Context) {
+		c.Json(http.StatusNotFound, "404-Can't find the path.")
 	})
-	app.NoMethod(func(ctx *fst.Context) {
-		ctx.JSON(http.StatusMethodNotAllowed, "405-Method not allowed.")
+	app.Reg405(func(c *fst.Context) {
+		c.Json(http.StatusMethodNotAllowed, "405-Method not allowed.")
 	})
 
 	// ++ (用这种方法可以模拟中间件需要上下文变量的场景)
-	app.Before(func(ctx *fst.Context) {
-		ctx.Set("nowTime", time.Now())
-		time.Sleep(3 * time.Second)
+	app.Before(func(c *fst.Context) {
+		c.Set("nowTime", time.Now())
+		//time.Sleep(3 * time.Second)
 	})
-	app.After(func(ctx *fst.Context) {
+	app.After(func(c *fst.Context) {
 		// 处理后获取消耗时间
-		val, exist := ctx.Get("nowTime")
+		val, exist := c.Get("nowTime")
 		if exist {
 			costTime := time.Since(val.(time.Time)) / time.Millisecond
 			fmt.Printf("The request cost %dms", costTime)
@@ -91,30 +98,26 @@ func main() {
 	// ++ end
 
 	// curl -H "Content-Type: application/json" -X POST  --data '{"data":"bmc","nick":"yes"}' http://127.0.0.1:8099/root?first=yang\&last=lmx
-	// curl -H "Content-Type: application/x-www-form-urlencoded" -X POST  --data '{"data":"bmc","nick":"yes"}' http://127.0.0.1:8099/root?first=yang\&last=lmx
-	// curl -H "Content-Type: application/x-www-form-urlencoded" -X POST  --data "data=bmc&nick=yes" http://127.0.0.1:8099/root?ids[a]=1234\&ids[b]=hello\&first=yang\&last=lmx
+	// curl -H "Content-Type: application/x-www-form-urlencoded" -X POST  --data "data=bmc&nick=yes" http://127.0.0.1:8099/root?
+	// 		ids[a]=1234\&ids[b]=hello\&first=yang\&last=lmx
 	type MyData struct {
-		Data string `json:"data"`
-		Nick string `json:"nick"`
+		Data string `v:"must,len=[1:16]"`
+		Nick string `v:"must,len=[1:32]"`
 	}
-	app.Post("/root", func(ctx *fst.Context) {
-		myData := MyData{}
-		_ = ctx.ShouldBindBodyWith(&myData, binding.JSON)
+	app.Post("/root", func(c *fst.Context) {
+		var myData MyData
+		c.PanicIfErr(c.BindAndValid(&myData), "数据解析错误")
 		log.Printf("%v %+v %#v\n", myData, myData, myData)
 
-		myDataT := MyData{}
-		_ = ctx.ShouldBindBodyWith(&myDataT, binding.JSON)
-		log.Printf("%v %+v %#v\n", myDataT, myDataT, myDataT)
+		ids, _ := c.GetString("ids")
+		firstname := c.GetStringDef("first", "Guest")
+		lastname := c.GetStringMust("last")
 
-		ids := ctx.QueryMap("ids")
-		firstname := ctx.DefaultQuery("first", "Guest")
-		lastname := ctx.Query("last") // shortcut for ctx.Request.URL.Query().Get("lastname")
+		message := c.GetStringMust("data")
+		nick := c.GetStringDef("nick", "anonymous")
 
-		message := ctx.PostForm("data")
-		nick := ctx.DefaultPostForm("nick", "anonymous")
-
-		//names := ctx.PostFormMap("names")
-		ctx.Suc(cst.KV{
+		//names := c.PostFormMap("names")
+		c.SucData(cst.KV{
 			"message": message,
 			"nick":    nick,
 			"first":   firstname,
@@ -122,29 +125,29 @@ func main() {
 			"ids":     ids,
 			//"data":    myData,
 		})
-		//ctx.String(http.StatusOK, fmt.Sprintf("file uploaded!"))
-		//ctx.JSON(http.StatusOK, myData)
+		//c.String(http.StatusOK, fmt.Sprintf("file uploaded!"))
+		//c.JSON(http.StatusOK, myData)
 	})
 
-	app.Post("/root", handler("root"))
+	//app.Post("/root", handler("root"))
 	app.Before(handler("before root")).After(handler("after root"))
 
 	// 分组路由1
-	adm := app.AddGroup("/admin")
+	adm := app.Group("/admin")
 	adm.After(handler("after group admin")).Before(handler("before group admin"))
 
-	tst := adm.Get("/chende", handlerRender("handle chende"))
+	tst := adm.Get("/sdx", handlerRender("handle sdx"))
 	// 添加路由处理事件
 	tst.Before(handler("before tst_url"))
 	tst.After(handler("after tst_url"))
-	tst.PreSend(handler("preSend tst_url"))
+	tst.BeforeSend(handler("beforeSend tst_url"))
 	tst.AfterSend(handler("afterSend tst_url"))
 
 	// 分组路由2
-	adm2 := app.AddGroup("/admin2").Before(handler("before admin2"))
+	adm2 := app.Group("/admin2").Before(handler("before admin2"))
 	adm2.Get("/zht", handler("zht")).After(handler("after zht"))
 
-	adm22 := adm2.AddGroup("/group2").Before(handler("before group2"))
+	adm22 := adm2.Group("/group2").Before(handler("before group2"))
 	adm22.Get("/lmx", handler("lmx")).Before(handler("before lmx"))
 
 	// 应用级事件
@@ -156,58 +159,59 @@ func main() {
 		log.Println("App OnClose Call.")
 	})
 	// 开始监听接收请求
-	_ = app.Listen("127.0.0.1:8099")
+	app.Listen("127.0.0.1:8099")
 }
+
 ```
 
 ```sh
-# run example.go and visit website 127.0.0.1:8099 on browser
-$ go run example.go
+# run main.go and visit website 127.0.0.1:8099 on browser
+$ go run main.go
 ```
 
 在控制台启动后台Web服务器之后，你会看到底层的路由树构造结果：
 
 ```
-[GoFast-debug] POST   /root                     --> main.glob..func1.1 (1 handlers)
-[GoFast-debug] GET    /admin/chende             --> main.glob..func2.1 (1 handlers)
-[GoFast-debug] GET    /admin2/zht               --> main.glob..func1.1 (1 handlers)
-[GoFast-debug] GET    /admin2/group2/lmx        --> main.glob..func1.1 (1 handlers)
-++++++++++The route tree:
+API server listening at: 127.0.0.1:59863
+2024/08/22 15:22:21 Current GoFast version: v0.5.0.20240306.2
+2024/08/22 15:22:21 App OnReady Call.
+2024/08/22 15:22:21 Listening and serving HTTP on 127.0.0.1:8099
+[08-22 15:22:21][debug]: POST   /root                     main.main.func6 (1 hds)
+[08-22 15:22:21][debug]: GET    /admin/sdx                main.init.func2.1 (1 hds)
+[08-22 15:22:21][debug]: GET    /admin2/zht               main.init.func1.1 (1 hds)
+[08-22 15:22:21][debug]: GET    /admin2/group2/lmx        main.init.func1.1 (1 hds)
 
++++++++++++++++The route tree:
 (GET)
-└── /admin                                                       [false-/2]
-    ├── /chende                                                  [true-]
-    └── 2/                                                       [false-zg]
-        ├── zht                                                  [true-]
-        └── group2/lmx                                           [true-]
+└── /admin                                                       [0-/2]
+    ├── /sdx                                                     [1]
+    └── 2/                                                       [0-zg]
+        ├── zht                                                  [1]
+        └── group2/lmx                                           [1]
 (POST)
-└── /root                                                        [true-]
-
-++++++++++THE END.
-2021/02/20 02:56:00 App OnReady Call.
-2021/02/20 02:56:00 Listening and serving HTTP on 127.0.0.1:8099
+└── /root                                                        [1]
+++++++++++++++++++++++++++++++
 ```
 
-浏览器输入网址访问地址：`127.0.0.1:8099/admin/chende`，日志会输出：
+浏览器输入网址访问地址：`127.0.0.1:8099/admin/sdx`，日志会输出：
 
 ```
-2021/02/20 02:57:17 app fit before 1
-2021/02/20 02:57:20 before root
-2021/02/20 02:57:20 before group admin
-2021/02/20 02:57:20 before tst_url
-2021/02/20 02:57:20 handle chende
-2021/02/20 02:57:20 preSend tst_url
-2021/02/20 02:57:20 afterSend tst_url
-2021/02/20 02:57:20 after tst_url
-2021/02/20 02:57:20 after group admin
-2021/02/20 02:57:20 after root
-2021/02/20 02:57:20 app fit after 1
-The request cost 3000ms
-[GET] /admin/chende (127.0.0.1/02-20 02:57:20) 200/24 [3000]
-  B:  C: 
-  P: 
-  R: 
-  E: 
+2024/08/22 15:41:07 app enter before 1
+2024/08/22 15:41:07 before root
+2024/08/22 15:41:07 before group admin
+2024/08/22 15:41:07 before tst_url
+2024/08/22 15:41:07 handle sdx
+2024/08/22 15:41:07 beforeSend tst_url
+2024/08/22 15:41:07 afterSend tst_url
+2024/08/22 15:41:07 after tst_url
+2024/08/22 15:41:07 after group admin
+2024/08/22 15:41:07 after root
+2024/08/22 15:41:07 app enter after 1
+The request cost 0ms
+[GET] /admin/sdx (127.0.0.1/08-23 15:41:07) [200/63/0]
+  B: {}
+  P: {"nowTime":"2024-08-22T15:41:07+08:00"}
+  R: {"status":"fai","code":0,"msg":"","data":{"data":"handle sdx"}}
 ```
 
 ## Core feature
@@ -239,6 +243,35 @@ tst.After(handler("after tst_url"))
 tst.PreSend(handler("preSend tst_url"))
 tst.AfterSend(handler("afterSend tst_url"))
 ```
+
+
+#### Sample ORM
+
+本框架集成了自研ORM框架，简单够用性能好，你用了就会爱上她。
+
+```go
+func QueryUserCache(c *fst.Context) {
+    userId := c.GetIntMust("user_id")
+
+	var ccUser acc.SysUser
+	ct := cf.DDemo.QueryPrimaryCache(&ccUser, userId)
+
+	userId += 1
+	var ccUser2 acc.SysUser
+	ct = cf.DDemo.QueryPrimaryCache(&ccUser2, userId)
+
+	//kvs := make(cst.KV)
+	//ct := cf.DDemo.QuerySqlRow(&kvs, "select * from sys_user where id=?;", userId)
+
+	if ct > 0 {
+		c.SucData(cst.KV{"name1": ccUser.Name, "name2": ccUser2.Name})
+		// c.SucData(kvs)
+	} else {
+		c.FaiMsg("can't find the record")
+	}
+}
+```
+
 
 ## benchmark
 

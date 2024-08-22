@@ -7,6 +7,11 @@ import (
 	"unsafe"
 )
 
+// Basic type value
+func (d *decoder) decBasic() {
+	d.dm.itemDec(d)
+}
+
 // pointer +++++
 func (d *decoder) decPointer() {
 	d.dstPtr = getPtrValAddr(d.dstPtr, d.dm.ptrLevel, d.dm.itemTypeAbi)
@@ -34,45 +39,48 @@ func (d *decoder) decStruct() {
 	}
 }
 
-func (d *decoder) skipKVS() {
-	//off1, _, size := scanTypeU16(d.str[d.scan:])
-	//if typ != TypeMap {
-	//	panic(errKV)
-	//}
-
-	//for i := 0; i < int(size); i++ {
-	//	off2 := skipString(d.str[off1:])
-	//	d.scan += off2 + off1
-	//	d.skipOneValue()
-	//}
-}
+// skip items
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 func (d *decoder) skipList() {
-	off1, typ, size := scanTypeU32By6(d.str[d.scan:])
-	if typ != TypeList {
-		panic(errCdoChar)
-	}
+	//off1, tLen := decListTypeU24(d.str[d.scan:])
+	//d.scan += off1
 
-	d.scan += off1
-	for i := 0; i < int(size); i++ {
-		d.skipOneValue()
-	}
+	//off, typ, fSize := decListSubtypeU16(d.str[d.scan:])
+
+	//switch typ {
+	//default:
+	//	panic(errListType)
+	//case ListVarInt:
+	//case ListF32:
+	//	d.scan += 4 * int(tLen)
+	//case ListF64, ListTime:
+	//	d.scan += 8 * int(tLen)
+	//case ListBool:
+	//	d.scan += 1 * int(tLen)
+	//case ListStr:
+	//case ListKV:
+	//case ListAny:
+	//case ListObjFields:
+	//case ListObjIndex:
+	//}
 }
 
 func (d *decoder) skipOneValue() {
-	c := d.str[d.scan]
+	str := d.str[d.scan:]
+	c := str[0]
 	typ := c & TypeMask
 	val := c & TypeValMask
 	off := 0
 
 	switch typ {
 	case TypeFixed:
-		if val <= TypeList {
-			d.skipList()
-			break
-		}
 		switch val {
 		default:
+			if val >= TypeList {
+				d.skipList()
+				return
+			}
 			panic(errCdoChar)
 		case FixNil, FixNilMixed, FixTrue, FixFalse:
 			off = 1
@@ -84,35 +92,29 @@ func (d *decoder) skipOneValue() {
 			off = 5
 		}
 	case TypeVarIntPos, TypeVarIntNeg:
-		if val <= 23 {
-			off = 1
-		} else {
-			off = int(1 + val - 23)
+		off = 1
+		if val > 55 {
+			off += int(val - 55)
 		}
 	case TypeStr:
-		if val <= 27 {
-			off = 1
-		} else {
-			off = int(1 + val - 27)
-		}
+		off = skipStringDirect(str)
 	}
 
-	// 解析标记往前走
-	d.scan += off
+	d.scan += off // 往前跳过相应字节
 }
 
 func scanAny(d *decoder) any {
 	c := d.str[d.scan]
 	typ := c & TypeMask
-	v := c & TypeValMask
+	val := c & TypeValMask
 
 	switch typ {
 	case TypeFixed:
-		if v >= TypeList {
+		if val >= TypeList {
 			d.skipList()
 			break
 		}
-		switch byte(v) {
+		switch val {
 		default:
 			panic(errCdoChar)
 		case FixNil, FixNilMixed, FixTrue, FixFalse:
@@ -124,17 +126,7 @@ func scanAny(d *decoder) any {
 			return decFixTime(d)
 		}
 	case TypeVarIntPos, TypeVarIntNeg:
-		if v <= 23 {
-			//off = 1
-		} else {
-			//off = int(1 + v - 23)
-		}
 	case TypeStr:
-		if v <= 27 {
-			//off = 1
-		} else {
-			//off = int(1 + v - 27)
-		}
 	}
 	return nil
 }
