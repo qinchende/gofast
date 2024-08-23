@@ -77,7 +77,6 @@ type (
 
 		//bOpts  *dts.BindOptions // 绑定控制
 		//isNeedValid bool       // 在绑定到对象时，是否需要验证字段
-		//skipValue   bool // 跳过当前要解析的值
 	}
 )
 

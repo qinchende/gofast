@@ -36,21 +36,27 @@ const (
 	FixMax      byte = 0x1F // 31
 
 	// TypeList subtypes ++++++++++++++++++++++++
+	ListBaseType  byte = 0b00000000 // 00: All-BaseType
+	ListObjFields byte = 0b01000000 // 01: 都是object，提供所有的Fields
+	ListObjIndex  byte = 0b10000000 // 10: 都是object，提供前面出现的索引号
+	ListExt       byte = 0b11000000 // 11: 预留
+
 	// 00 | 000000
 	ListMask      byte = 0b11000000
 	ListValMask   byte = 0b00111111
 	ListVarIntPos byte = 0b00000000
 	ListVarIntNeg byte = 0b10000000
 
-	ListVarInt    byte = 0x00
-	ListF32       byte = 0x01
-	ListF64       byte = 0x02
-	ListBool      byte = 0x03
-	ListStr       byte = 0x04
-	ListKV        byte = 0x05
+	ListVarInt    byte = 0x00 // +++ List item type, maybe is nil
+	ListBool      byte = 0x01
+	ListF32       byte = 0x02
+	ListF64       byte = 0x03
+	ListTime      byte = 0x04
+	ListStr       byte = 0x05
 	ListAny       byte = 0x06
-	ListTime      byte = 0x07
-	ListFixInt08  byte = 0x10 // 固定长度的数值类型
+	ListKV        byte = 0x07
+	ListList      byte = 0x08
+	ListFixInt08  byte = 0x10 // +++ Same type and length, not nil
 	ListFixInt16  byte = 0x11
 	ListFixInt32  byte = 0x12
 	ListFixInt64  byte = 0x13
@@ -58,13 +64,6 @@ const (
 	ListFixUint16 byte = 0x15
 	ListFixUint32 byte = 0x16
 	ListFixUint64 byte = 0x17
-
-	// 01
-	ListObjFields byte = 0b01000000 // 都是object，提供所有的Fields
-	// 10
-	ListObjIndex byte = 0b10000000 // 都是object，提供前面出现的索引号
-	// 11
-	ListExt byte = 0b11000000 // 预留
 )
 
 const (

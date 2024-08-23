@@ -75,19 +75,6 @@ func decListFuncPtr(d *decoder, tLen int, typ byte, fn func(iPtr unsafe.Pointer,
 	d.scan = pos
 }
 
-func (d *decoder) skipListKVS() {
-	//off1, _, size := scanTypeU16(d.str[d.scan:])
-	//if typ != TypeMap {
-	//	panic(errKV)
-	//}
-
-	//for i := 0; i < int(size); i++ {
-	//	off2 := skipString(d.str[off1:])
-	//	d.scan += off2 + off1
-	//	d.skipOneValue()
-	//}
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++ int +++
 func decListInt(d *decoder, tLen int) {
@@ -422,10 +409,6 @@ func decListStrPtr(d *decoder, tLen int) {
 		bindString(iPtr, str)
 		return off
 	})
-}
-
-func skipListStr() {
-
 }
 
 // +++ time +++

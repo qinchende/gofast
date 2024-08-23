@@ -229,7 +229,7 @@ func scanString(str string) (int, string) {
 	return int(size), str[off1:size]
 }
 
-func skipStringDirect(str string) int {
+func scanStringLen(str string) int {
 	off1, _, size := scanTypeU32By6(str)
 	return off1 + int(size)
 }
