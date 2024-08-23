@@ -32,7 +32,7 @@ func (d *decoder) decMapStrAny() {
 	tLen, pos := d.kvLenPos()
 	d.scan = pos
 	for i := 0; i < tLen; i++ {
-		d.skv.Set(decStrVal(d), scanAny(d))
+		d.skv.Set(decStrVal(d), d.decAny())
 	}
 }
 

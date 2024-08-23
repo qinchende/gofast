@@ -18,6 +18,35 @@ func (d *decoder) decPointer() {
 	d.dm.itemDec(d)
 }
 
+// any value +++++
+func (d *decoder) decAny() any {
+	c := d.str[d.scan]
+	typ := c & TypeMask
+	val := c & TypeValMask
+
+	switch typ {
+	case TypeFixed:
+		if val >= TypeList {
+			d.decList()
+			break
+		}
+		switch val {
+		default:
+			panic(errCdoChar)
+		case FixNil, FixNilMixed, FixTrue, FixFalse:
+		case FixF32:
+			return decFixF32(d)
+		case FixF64:
+			return decFixF64(d)
+		case FixTime:
+			return decFixTime(d)
+		}
+	case TypeVarIntPos, TypeVarIntNeg:
+	case TypeStr:
+	}
+	return nil
+}
+
 // +++ struct & map +++
 func (d *decoder) kvLenPos() (int, int) {
 	pos := d.scan
@@ -39,98 +68,6 @@ func (d *decoder) decStruct() {
 	}
 }
 
-// skip items
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-func (d *decoder) skipList() {
-	//off1, tLen := decListTypeU24(d.str[d.scan:])
-	//d.scan += off1
-
-	//off, typ, fSize := decListSubtypeU16(d.str[d.scan:])
-
-	//switch typ {
-	//default:
-	//	panic(errListType)
-	//case ListVarInt:
-	//case ListF32:
-	//	d.scan += 4 * int(tLen)
-	//case ListF64, ListTime:
-	//	d.scan += 8 * int(tLen)
-	//case ListBool:
-	//	d.scan += 1 * int(tLen)
-	//case ListStr:
-	//case ListKV:
-	//case ListAny:
-	//case ListObjFields:
-	//case ListObjIndex:
-	//}
-}
-
-func (d *decoder) skipOneValue() {
-	str := d.str[d.scan:]
-	c := str[0]
-	typ := c & TypeMask
-	val := c & TypeValMask
-	off := 0
-
-	switch typ {
-	case TypeFixed:
-		switch val {
-		default:
-			if val >= TypeList {
-				d.skipList()
-				return
-			}
-			panic(errCdoChar)
-		case FixNil, FixNilMixed, FixTrue, FixFalse:
-			off = 1
-		case FixF32:
-			off = 5
-		case FixF64:
-			off = 9
-		case FixTime:
-			off = 5
-		}
-	case TypeVarIntPos, TypeVarIntNeg:
-		off = 1
-		if val > 55 {
-			off += int(val - 55)
-		}
-	case TypeStr:
-		off = skipStringDirect(str)
-	}
-
-	d.scan += off // 往前跳过相应字节
-}
-
-func scanAny(d *decoder) any {
-	c := d.str[d.scan]
-	typ := c & TypeMask
-	val := c & TypeValMask
-
-	switch typ {
-	case TypeFixed:
-		if val >= TypeList {
-			d.skipList()
-			break
-		}
-		switch val {
-		default:
-			panic(errCdoChar)
-		case FixNil, FixNilMixed, FixTrue, FixFalse:
-		case FixF32:
-			return decFixF32(d)
-		case FixF64:
-			return decFixF64(d)
-		case FixTime:
-			return decFixTime(d)
-		}
-	case TypeVarIntPos, TypeVarIntNeg:
-	case TypeStr:
-	}
-	return nil
-}
-
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // list[map | array | slice]
 func decListMixItem(d *decoder) {
@@ -148,7 +85,6 @@ func decField(d *decoder, key string) {
 	if d.fIdx = d.dm.ss.ColumnIndex(key); d.fIdx >= 0 {
 		d.dm.fieldsDec[d.fIdx](d)
 	} else {
-		//d.skipValue = true
 		d.skipOneValue()
 	}
 }
@@ -427,7 +363,7 @@ func decAnyVal(d *decoder, iPtr unsafe.Pointer) {
 	v := *((*any)(iPtr))
 	vTyp := reflect.TypeOf(v)
 	if v == nil || vTyp.Kind() != reflect.Pointer {
-		bindAny(iPtr, scanAny(d))
+		bindAny(iPtr, d.decAny())
 		return
 	}
 	vTyp = vTyp.Elem()
@@ -444,7 +380,7 @@ func decAnyField(d *decoder) {
 
 func decAnyFieldPtr(d *decoder) {
 	if fieldNotNil(d) {
-		bindAny(fieldPtrDeep(d), scanAny(d))
+		bindAny(fieldPtrDeep(d), d.decAny())
 	}
 }
 
