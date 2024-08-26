@@ -58,7 +58,7 @@ func (d *decoder) skipList() {
 	default:
 		panic(errCdoChar)
 	case ListBaseType:
-		switch val {
+		switch byte(val) {
 		default:
 			panic(errListType)
 		case ListVarInt:

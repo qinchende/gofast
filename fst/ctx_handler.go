@@ -3,19 +3,19 @@ package fst
 import (
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
+	dts2 "github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/store/bind"
-	"github.com/qinchende/gofast/store/dts"
 )
 
 var rHandlers []*RHandler // 所有配置项汇总
 type (
 	newSuperKV func() cst.SuperKV
 	RHandler   struct {
-		rIndex    uint16           // 索引位置
-		handler   CtxHandler       // 处理函数
-		pmsNew    newSuperKV       // 解析到具体的struct对象
-		pmsFields []string         // 从结构体类型解析出的字段，需要排序，相当于解析到 map
-		bOpts     *dts.BindOptions // 绑定相关控制
+		rIndex    uint16            // 索引位置
+		handler   CtxHandler        // 处理函数
+		pmsNew    newSuperKV        // 解析到具体的struct对象
+		pmsFields []string          // 从结构体类型解析出的字段，需要排序，相当于解析到 map
+		bOpts     *dts2.BindOptions // 绑定相关控制
 	}
 )
 
@@ -53,12 +53,12 @@ func RebuildRHandlers(routesLen uint16) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func WrapHandler(hd CtxHandler, fn newSuperKV, cls []string) *RHandler {
 	if fn != nil {
-		return WrapHandlerX(hd, fn, cls, dts.AsOptions(dts.AsReq))
+		return WrapHandlerX(hd, fn, cls, dts2.AsOptions(dts2.AsReq))
 	}
 	return WrapHandlerX(hd, fn, cls, nil)
 }
 
-func WrapHandlerX(hd CtxHandler, fn newSuperKV, cls []string, opts *dts.BindOptions) *RHandler {
+func WrapHandlerX(hd CtxHandler, fn newSuperKV, cls []string, opts *dts2.BindOptions) *RHandler {
 	return &RHandler{
 		handler:   hd,
 		pmsNew:    fn,
@@ -68,18 +68,18 @@ func WrapHandlerX(hd CtxHandler, fn newSuperKV, cls []string, opts *dts.BindOpti
 }
 
 func ToSuperKV(v any) cst.SuperKV {
-	return dts.AsSuperKV(v)
+	return dts2.AsSuperKV(v)
 }
 
 func NewSuperKV[T any]() cst.SuperKV {
-	return dts.AsSuperKV(new(T))
+	return dts2.AsSuperKV(new(T))
 }
 
 func PmsAs[T any](c *Context) *T {
-	return (*T)((c.Pms).(*dts.StructKV).Ptr)
+	return (*T)((c.Pms).(*dts2.StructKV).Ptr)
 }
 
 func PmsAsAndValid[T any](c *Context) (*T, error) {
-	ret := (*T)((c.Pms).(*dts.StructKV).Ptr)
+	ret := (*T)((c.Pms).(*dts2.StructKV).Ptr)
 	return ret, bind.ValidateStruct(ret, pBindAndValidOptions)
 }

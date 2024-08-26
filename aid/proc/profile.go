@@ -5,6 +5,7 @@ package proc
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/aid/logx"
 	"os"
 	"os/signal"
 	"path"
@@ -14,8 +15,6 @@ import (
 	"sync/atomic"
 	"syscall"
 	"time"
-
-	"github.com/qinchende/gofast/core/logx"
 )
 
 // DefaultMemProfileRate is the default memory profiling rate.

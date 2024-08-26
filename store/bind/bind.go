@@ -6,8 +6,8 @@ import (
 	"errors"
 	"github.com/qinchende/gofast/aid/validx"
 	"github.com/qinchende/gofast/core/cst"
+	dts2 "github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/store/dts"
 	"reflect"
 	"unsafe"
 )
@@ -28,7 +28,7 @@ func checkStructDest(dst any) (dstTyp reflect.Type, ptr unsafe.Pointer, err erro
 
 // object:
 // 用传入的hash数据源，赋值目标对象，并可以做数据校验
-func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
+func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts2.BindOptions) error {
 	// 数据源和目标对象只要有一个为nil，啥都不做，也不返回错误
 	if dst == nil || opts == nil {
 		return errors.New("has nil param.")
@@ -40,8 +40,8 @@ func bindKVToStruct(dst any, kvs cst.SuperKV, opts *dts.BindOptions) error {
 	}
 }
 
-func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, opts *dts.BindOptions) (err error) {
-	sm := dts.SchemaByType(dstT, opts)
+func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, opts *dts2.BindOptions) (err error) {
+	sm := dts2.SchemaByType(dstT, opts)
 
 	var fls []string
 	if opts.UseFieldName {
@@ -102,7 +102,7 @@ func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, 
 }
 
 // 绑定列表数据
-func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOptions) (err error) {
+func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts2.BindOptions) (err error) {
 	// 因为绑定数据来源于JSON，YAML等数据的解析，这类数据在遇到数组时候，几乎都是用 []any 表示
 	list, ok := src.([]any)
 	if !ok {
@@ -145,13 +145,13 @@ func bindList(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOpti
 	default:
 		for i := 0; i < srcLen; i++ {
 			itPtr := unsafe.Add(ptr, i*itemBytes)
-			dts.BindBaseValueAsConfig(itemKind, itPtr, list[i])
+			dts2.BindBaseValueAsConfig(itemKind, itPtr, list[i])
 		}
 	}
 	return
 }
 
-func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts.BindOptions) error {
+func bindStruct(ptr unsafe.Pointer, dstT reflect.Type, src any, opts *dts2.BindOptions) error {
 	switch v := src.(type) {
 	case map[string]any:
 		return bindKVToStructIter(ptr, dstT, cst.KV(v), opts)
@@ -167,7 +167,7 @@ func bindMap(ptr unsafe.Pointer, val any) (err error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 主要用于给dst加上默认值，然后执行每个字段规则验证
-func optimizeStruct(dst any, opts *dts.BindOptions) error {
+func optimizeStruct(dst any, opts *dts2.BindOptions) error {
 	if dst == nil || opts == nil {
 		return errors.New("has nil param.")
 	}
@@ -178,8 +178,8 @@ func optimizeStruct(dst any, opts *dts.BindOptions) error {
 	}
 }
 
-func optimizeStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOptions) (err error) {
-	sm := dts.SchemaByType(dstT, opts)
+func optimizeStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts2.BindOptions) (err error) {
+	sm := dts2.SchemaByType(dstT, opts)
 
 	for i := 0; i < len(sm.Fields); i++ {
 		fa := &sm.FieldsAttr[i] // 肯定不会是nil
@@ -203,7 +203,7 @@ func optimizeStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOpt
 			continue
 		}
 
-		fPtr = dts.PeelPtr(fPtr, fa.PtrLevel)
+		fPtr = dts2.PeelPtr(fPtr, fa.PtrLevel)
 		// 如果字段是初始化值，尝试设置默认值
 		if opts.UseDefValue && vOpt.DefValue != "" && isInitialValue(fKind, fPtr) && fa.KVBinder != nil && fPtr != nil {
 			fa.KVBinder(fPtr, vOpt.DefValue)

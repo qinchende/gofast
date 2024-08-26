@@ -6,8 +6,7 @@ import (
 	"crypto/cipher"
 	"encoding/base64"
 	"errors"
-
-	"github.com/qinchende/gofast/core/logx"
+	"github.com/qinchende/gofast/aid/logx"
 )
 
 // ErrPaddingSize indicates bad padding size.

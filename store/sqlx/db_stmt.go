@@ -5,9 +5,9 @@ package sqlx
 import (
 	"context"
 	"database/sql"
+	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/core/logx"
 	"time"
 )
 

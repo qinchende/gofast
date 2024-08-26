@@ -2,11 +2,11 @@ package cpux
 
 import (
 	"errors"
+	"github.com/qinchende/gofast/aid/logx"
 	"strings"
 	"time"
 
 	"github.com/qinchende/gofast/aid/iox"
-	"github.com/qinchende/gofast/core/logx"
 )
 
 const (

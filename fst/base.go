@@ -4,7 +4,7 @@ package fst
 
 import (
 	"github.com/qinchende/gofast"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"log"
 	"math"
 	"net/http"

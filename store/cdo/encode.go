@@ -6,9 +6,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/core/cst"
+	dts2 "github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/store/dts"
 	"reflect"
 	"unsafe"
 )
@@ -19,7 +19,7 @@ type (
 
 	encMeta struct {
 		// struct
-		ss        *dts.StructSchema
+		ss        *dts2.StructSchema
 		fieldsEnc []encValFunc
 
 		// array & slice & map & baseType
@@ -222,7 +222,7 @@ func (em *encMeta) initListMeta(typ reflect.Type) {
 
 	// List 项如果是 struct ，是本编解码方案重点处理的情况
 	if em.itemKind == reflect.Struct && em.itemType != cst.TypeTime {
-		em.ss = dts.SchemaAsReqByType(em.itemType)
+		em.ss = dts2.SchemaAsReqByType(em.itemType)
 		em.bindFieldsEnc()
 	} else {
 		bindEnc(em.itemType, &em.itemEnc)
@@ -234,7 +234,7 @@ func (em *encMeta) initListMeta(typ reflect.Type) {
 // ++++++++++++++++++++++++++++++ Struct
 func (em *encMeta) initStructMeta(typ reflect.Type) {
 	em.isStruct = true
-	em.ss = dts.SchemaAsReqByType(typ)
+	em.ss = dts2.SchemaAsReqByType(typ)
 	em.itemMemSize = int(typ.Size())
 	em.bindFieldsEnc()
 }

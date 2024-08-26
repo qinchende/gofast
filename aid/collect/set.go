@@ -2,7 +2,7 @@ package collect
 
 import (
 	"github.com/qinchende/gofast/aid/lang"
-	"github.com/qinchende/gofast/core/logx"
+	"github.com/qinchende/gofast/aid/logx"
 )
 
 const (

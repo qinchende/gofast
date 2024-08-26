@@ -6,7 +6,7 @@ import (
 	"context"
 	"database/sql"
 	"github.com/qinchende/gofast/connx/redis"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/store/orm"
 	"reflect"
 	"sync"

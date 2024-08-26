@@ -4,11 +4,10 @@
 package proc
 
 import (
+	"github.com/qinchende/gofast/aid/logx"
 	"os"
 	"os/signal"
 	"syscall"
-
-	"github.com/qinchende/gofast/core/logx"
 )
 
 const timeFormat = "0102150405"

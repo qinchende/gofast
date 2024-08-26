@@ -2,7 +2,7 @@ package orm
 
 import (
 	"database/sql"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 )
 
 const (

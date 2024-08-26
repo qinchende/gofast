@@ -3,7 +3,6 @@
 package mid
 
 import (
-	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst"
 	"time"
 )
@@ -45,7 +44,7 @@ func (ras *RAttrs) Clone() fst.RouteAttrs {
 }
 
 // 构建所有路由的属性数组。没有指定的就用默认值填充。
-func (*listAttrs) Rebuild(routesLen uint16, cnf *cst.SdxConfig) {
+func (*listAttrs) Rebuild(routesLen uint16, cnf *fst.SdxConfig) {
 	old := RoutesAttrs
 	RoutesAttrs = make(listAttrs, routesLen)
 	for i := range old {

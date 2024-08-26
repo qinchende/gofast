@@ -2,7 +2,7 @@ package gmp
 
 import (
 	"bytes"
-	"github.com/qinchende/gofast/core/logx"
+	"github.com/qinchende/gofast/aid/logx"
 	"runtime"
 	"strconv"
 )

@@ -3,10 +3,10 @@ package trace
 import (
 	"context"
 	"fmt"
+	"github.com/qinchende/gofast/aid/logx"
 	"sync"
 
 	"github.com/qinchende/gofast/aid/lang"
-	"github.com/qinchende/gofast/core/logx"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"

@@ -5,7 +5,7 @@ import (
 	"github.com/qinchende/gofast/aid/hashx"
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"reflect"
 	"strings"
 	"sync"

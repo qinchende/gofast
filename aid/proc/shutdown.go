@@ -4,13 +4,12 @@
 package proc
 
 import (
+	"github.com/qinchende/gofast/aid/logx"
 	"os"
 	"os/signal"
 	"sync"
 	"syscall"
 	"time"
-
-	"github.com/qinchende/gofast/core/logx"
 )
 
 const (
