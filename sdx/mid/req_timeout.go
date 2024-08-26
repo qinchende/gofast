@@ -4,7 +4,7 @@ package mid
 
 import (
 	"context"
-	"github.com/qinchende/gofast/core/logx"
+	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/sdx/gate"
 	"net/http"

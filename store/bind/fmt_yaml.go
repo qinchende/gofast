@@ -8,7 +8,7 @@ import (
 	"github.com/qinchende/gofast/aid/iox"
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"gopkg.in/yaml.v2"
 	"io"
 )

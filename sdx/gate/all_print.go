@@ -3,9 +3,9 @@ package gate
 import (
 	"github.com/qinchende/gofast/aid/fuse"
 	"github.com/qinchende/gofast/aid/lang"
+	logx2 "github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/proc"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/core/logx"
 	"time"
 )
 
@@ -18,8 +18,8 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 		if extra.total == 0 {
 			continue
 		}
-		logx.StatKV(cst.KV{
-			"typ": logx.LogStatRouteReq.Type,
+		logx2.StatKV(cst.KV{
+			"typ": logx2.LogStatRouteReq.Type,
 			"pth": specialRouteMethod + rb.extraPaths[idx],
 			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
 			"val": [6]any{extra.total, 0, 0, 0.00, 0.00, 0},
@@ -39,8 +39,8 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 			aveTimeMS = rt.totalTimeMS / int64(rt.accepts)
 		}
 
-		logx.StatKV(cst.KV{
-			"typ": logx.LogStatRouteReq.Type,
+		logx2.StatKV(cst.KV{
+			"typ": logx2.LogStatRouteReq.Type,
 			"pth": rb.paths[idx],
 			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
 			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang.Round32(qps, 2), aveTimeMS, rt.maxTimeMS},
@@ -53,8 +53,8 @@ func (bk *Breaker) LogError(err error) {
 		if err != fuse.ErrServiceUnavailable {
 			return
 		}
-		logx.InfoReport(cst.KV{
-			"typ":    logx.LogStatBreakerOpen.Type,
+		logx2.InfoReport(cst.KV{
+			"typ":    logx2.LogStatBreakerOpen.Type,
 			"proc":   proc.ProcessName() + "/" + lang.ToString(proc.Pid()),
 			"callee": bk.name,
 			"skip":   skipTimes,

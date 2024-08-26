@@ -3,7 +3,7 @@ package bind
 import (
 	"errors"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"reflect"
 	"unsafe"
 )

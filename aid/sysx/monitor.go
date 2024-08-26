@@ -3,9 +3,9 @@ package sysx
 import (
 	"github.com/qinchende/gofast/aid/gmp"
 	"github.com/qinchende/gofast/aid/lang"
+	logx2 "github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/sysx/cpux"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/core/logx"
 	"github.com/shirou/gopsutil/v3/cpu"
 	"runtime"
 	"sync"
@@ -78,8 +78,8 @@ func printSysResourceStatus(cpuAvaUsage float64) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	logx.StatKV(cst.KV{
-		"typ": logx.LogStatSysMonitor.Type,
+	logx2.StatKV(cst.KV{
+		"typ": logx2.LogStatSysMonitor.Type,
 		//"fls": []string{"cpu", "mem", "gor", "gc"},
 		"val": []any{
 			[2]float64{lang.Round64(CpuSmoothUsage, 2), lang.Round64(cpuAvaUsage, 2)},

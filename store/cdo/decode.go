@@ -8,8 +8,8 @@ import (
 	"github.com/qinchende/gofast/aid/iox"
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
+	dts2 "github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/store/dts"
 	"io"
 	"reflect"
 	"runtime/debug"
@@ -27,7 +27,7 @@ type (
 		kvPairDec decKVPairFunc
 
 		// struct
-		ss        *dts.StructSchema
+		ss        *dts2.StructSchema
 		fieldsDec []decValFunc
 
 		// array & slice
@@ -104,7 +104,7 @@ func decodeFromString(dst any, source string) error {
 	if len(source) > maxCdoStrLen {
 		return errCdoTooLarge
 	}
-	if skv, ok := dst.(*dts.StructKV); !ok {
+	if skv, ok := dst.(*dts2.StructKV); !ok {
 		return startDec(dst, source)
 	} else {
 		return startDecX(skv.SS.Type, skv.Ptr, source)
@@ -320,7 +320,7 @@ func (dm *decMeta) initMapMeta(typ reflect.Type) {
 
 func (dm *decMeta) initStructMeta(typ reflect.Type) {
 	dm.isStruct = true
-	dm.ss = dts.SchemaAsReqByType(typ)
+	dm.ss = dts2.SchemaAsReqByType(typ)
 	if dm.isPtr && dm.ss.HasPtrField {
 		dm.isUnsafe = true
 	}
@@ -345,7 +345,7 @@ func (dm *decMeta) initListMeta(typ reflect.Type) {
 
 	// List 项如果是 struct ，是本编解码方案重点处理的情况
 	if dm.itemKind == reflect.Struct && dm.itemType != cst.TypeTime {
-		dm.ss = dts.SchemaAsReqByType(dm.itemType)
+		dm.ss = dts2.SchemaAsReqByType(dm.itemType)
 		if dm.isPtr && dm.ss.HasPtrField {
 			dm.isUnsafe = true
 		}

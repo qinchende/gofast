@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/connx/redis"
-	"github.com/qinchende/gofast/store/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"time"
 )
 

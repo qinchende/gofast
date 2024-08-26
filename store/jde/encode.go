@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/core/cst"
+	dts2 "github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/core/rt"
-	"github.com/qinchende/gofast/store/dts"
 	"reflect"
 	"unsafe"
 )
@@ -23,7 +23,7 @@ type (
 
 	encMeta struct {
 		// Struct
-		ss        *dts.StructSchema
+		ss        *dts2.StructSchema
 		fieldsEnc []encValFunc
 
 		// array & slice & map
@@ -181,7 +181,7 @@ func (em *encMeta) initListMeta(rfType reflect.Type) {
 // ++++++++++++++++++++++++++++++ Struct
 func (em *encMeta) initStructMeta(rfType reflect.Type) {
 	em.isStruct = true
-	em.ss = dts.SchemaAsReqByType(rfType)
+	em.ss = dts2.SchemaAsReqByType(rfType)
 	em.itemMemSize = int(rfType.Size())
 
 	em.bindStructPick()

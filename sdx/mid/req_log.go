@@ -3,8 +3,8 @@
 package mid
 
 import (
+	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/timex"
-	"github.com/qinchende/gofast/core/logx"
 	"github.com/qinchende/gofast/fst"
 )
 

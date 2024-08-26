@@ -5,7 +5,7 @@ package fst
 import (
 	"fmt"
 	"github.com/qinchende/gofast/aid/lang"
-	"github.com/qinchende/gofast/core/logx"
+	"github.com/qinchende/gofast/aid/logx"
 	"strings"
 )
 

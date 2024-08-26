@@ -4,8 +4,8 @@ package fst
 
 import (
 	"context"
+	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/timex"
-	"github.com/qinchende/gofast/core/logx"
 	"github.com/qinchende/gofast/fst/httpx"
 	"net/http"
 	"os"
@@ -17,7 +17,7 @@ import (
 // GoFast is the framework's instance.
 // Create an instance of GoFast, by using CreateServer().
 type GoFast struct {
-	*GfConfig // 引用配置
+	*AppConfig // 引用配置
 
 	httpSrv   *http.Server // WebServer
 	appEvents              // 应用级事件
@@ -56,7 +56,7 @@ type HomeRouter struct {
 // 一个快速创建Server的函数，使用默认配置参数，方便调用。
 // 记住：使用之前一定要先调用 ReadyToListen方法。
 func Default() *GoFast {
-	app := CreateServer(&GfConfig{
+	app := CreateServer(&AppConfig{
 		RunMode: ProductMode,
 	})
 	return app
@@ -64,13 +64,13 @@ func Default() *GoFast {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 第一步：初始化一个 WebServer , 配置各种参数
-func CreateServer(cfg *GfConfig) *GoFast {
+func CreateServer(cfg *AppConfig) *GoFast {
 	// 初始化当前环境变量
 	app := new(GoFast)
 	if cfg == nil {
-		app.GfConfig = &GfConfig{}
+		app.AppConfig = &AppConfig{}
 	} else {
-		app.GfConfig = cfg
+		app.AppConfig = cfg
 	}
 	app.initServerConfig()
 	app.initHomeRouter()

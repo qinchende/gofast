@@ -3,7 +3,7 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/core/logx"
+	"github.com/qinchende/gofast/aid/logx"
 	"net/http"
 	"path"
 )

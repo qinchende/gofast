@@ -1,10 +1,10 @@
 package collect
 
 import (
+	"github.com/qinchende/gofast/aid/logx"
 	"sort"
 	"testing"
 
-	"github.com/qinchende/gofast/core/logx"
 	"github.com/stretchr/testify/assert"
 )
 

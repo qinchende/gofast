@@ -99,7 +99,8 @@ func main() {
 
 	// curl -H "Content-Type: application/json" -X POST  --data '{"data":"bmc","nick":"yes"}'
 	//      http://127.0.0.1:8099/root?first=yang\&last=lmx
-	// curl -H "Content-Type: application/x-www-form-urlencoded" -X POST  --data "data=bmc&nick=yes"
+	// curl -H "Content-Type: application/x-www-form-urlencoded"
+	//      -X POST --data "data=bmc&nick=yes"
 	//      http://127.0.0.1:8099/root?ids[a]=1234\&ids[b]=hello\&first=yang\&last=lmx
 	type MyData struct {
 		Data string `v:"must,len=[1:16]"`

@@ -2,13 +2,13 @@ package collect
 
 import (
 	"container/list"
+	"github.com/qinchende/gofast/aid/logx"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/qinchende/gofast/aid/mathx"
 	"github.com/qinchende/gofast/aid/syncx"
-	"github.com/qinchende/gofast/core/logx"
 )
 
 const (

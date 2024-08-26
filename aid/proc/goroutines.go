@@ -5,13 +5,12 @@ package proc
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/aid/logx"
 	"os"
 	"path"
 	"runtime/pprof"
 	"syscall"
 	"time"
-
-	"github.com/qinchende/gofast/core/logx"
 )
 
 const (
