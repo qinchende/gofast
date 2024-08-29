@@ -11,8 +11,8 @@ import (
 
 // TODO：注意这个熔断算法的关键参数
 const (
-	bk_window  = time.Second * 10 // 10秒钟是一个完整的窗口周期
-	bk_buckets = 40               // 本周期分成40个桶, 那么每个桶占用250ms, 1秒钟分布4个桶。（这个粒度还是比较通用的）
+	bkWindow   = time.Second * 10 // 10秒钟是一个完整的窗口周期
+	bkBuckets  = 40               // 本周期分成40个桶, 那么每个桶占用250ms, 1秒钟分布4个桶。（这个粒度还是比较通用的）
 	k          = 1.5              // 熔断算法中的敏感系数
 	protection = 5                // 最小请求个数，窗口期请求总数<=本请求数，即使都出错也不熔断
 )
@@ -27,10 +27,10 @@ type googleThrottle struct {
 }
 
 func newGoogleThrottle() *googleThrottle {
-	dur := time.Duration(int64(bk_window) / int64(bk_buckets))
+	dur := time.Duration(int64(bkWindow) / int64(bkBuckets))
 
 	return &googleThrottle{
-		sWin: collect.NewSlideWindowBreak(bk_buckets, dur),
+		sWin: collect.NewSlideWindowBreak(bkBuckets, dur),
 		k:    k,
 		may:  mathx.NewMaybe(),
 	}
