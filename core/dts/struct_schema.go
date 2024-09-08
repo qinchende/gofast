@@ -220,9 +220,10 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			ss.cTips.lenOff[len(item)] = uint8(idx)
 			lastLen = len(item)
 		}
-		for sIdx := range ss.Columns {
-			if item == ss.Columns[sIdx] {
-				ss.cTips.idxes[idx] = uint8(sIdx)
+		for fIdx := range ss.Columns {
+			if item == ss.Columns[fIdx] {
+				// 排序后的字段对应 struct 中原始 field 的索引
+				ss.cTips.idxes[idx] = uint8(fIdx)
 				break
 			}
 		}
@@ -247,9 +248,9 @@ func buildStructSchema(typ reflect.Type, opts *BindOptions) *StructSchema {
 			ss.fTips.lenOff[len(item)] = uint8(idx)
 			lastLen = len(item)
 		}
-		for sIdx := range ss.Fields {
-			if item == ss.Fields[sIdx] {
-				ss.fTips.idxes[idx] = uint8(sIdx)
+		for fIdx := range ss.Fields {
+			if item == ss.Fields[fIdx] {
+				ss.fTips.idxes[idx] = uint8(fIdx)
 				break
 			}
 		}
