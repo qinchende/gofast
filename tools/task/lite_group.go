@@ -8,7 +8,7 @@ import (
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/core/cst"
-	lang2 "github.com/qinchende/gofast/core/lang"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/store/bind"
 	"sync"
 	"time"
@@ -33,7 +33,7 @@ type LiteGroup struct {
 	key string
 
 	createdTime time.Duration
-	stopRun     chan lang2.PlaceholderType
+	stopRun     chan lang.PlaceholderType
 	lock        sync.RWMutex
 
 	lastState  string // 上次的运行标记
@@ -52,13 +52,13 @@ func NewLiteGroup(appName, serverName, gpName string, rds *redis.GfRedis) *LiteG
 		rds:         rds,
 		key:         liteStoreKeyPrefix + "Group." + appName + "." + gpName,
 		createdTime: timex.NowDur(),
-		stopRun:     make(chan lang2.PlaceholderType, 1),
+		stopRun:     make(chan lang.PlaceholderType, 1),
 	}
 }
 
 func (lite *LiteGroup) AddTask(pet *LitePet) {
 	pet.group = lite
-	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang2.FuncName(pet.Task)
+	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task)
 
 	if err := bind.Optimize(pet, bind.AsConfig); err != nil {
 		logx.TimerError(err.Error())
@@ -83,7 +83,7 @@ func (lite *LiteGroup) StartRun() {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					logx.TimerError(lang2.ToString(p))
+					logx.TimerError(lang.ToString(p))
 				}
 				wg.Done()
 			}()
@@ -163,7 +163,7 @@ func (lite *LiteGroup) killMyself() {
 	lite.lock.RLock()
 	if lite.isRunning && lite.isStopping == false {
 		logx.Timer("Send stop sign to kill myself.")
-		lite.stopRun <- lang2.ShareVal
+		lite.stopRun <- lang.ShareVal
 		lite.isStopping = true
 	}
 	lite.lock.RUnlock()

@@ -5,7 +5,7 @@ import (
 	logx2 "github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/proc"
 	"github.com/qinchende/gofast/core/cst"
-	lang2 "github.com/qinchende/gofast/core/lang"
+	"github.com/qinchende/gofast/core/lang"
 	"time"
 )
 
@@ -43,7 +43,7 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 			"typ": logx2.LogStatRouteReq.Type,
 			"pth": rb.paths[idx],
 			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
-			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang2.Round32(qps, 2), aveTimeMS, rt.maxTimeMS},
+			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang.Round32(qps, 2), aveTimeMS, rt.maxTimeMS},
 		})
 	}
 }
@@ -55,7 +55,7 @@ func (bk *Breaker) LogError(err error) {
 		}
 		logx2.InfoReport(cst.KV{
 			"typ":    logx2.LogStatBreakerOpen.Type,
-			"proc":   proc.ProcessName() + "/" + lang2.ToString(proc.Pid()),
+			"proc":   proc.ProcessName() + "/" + lang.ToString(proc.Pid()),
 			"callee": bk.name,
 			"skip":   skipTimes,
 			"msg":    bk.Breaker.Errors(","),
