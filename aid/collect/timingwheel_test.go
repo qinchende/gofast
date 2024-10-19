@@ -1,10 +1,10 @@
 package collect
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/randx"
 	"github.com/qinchende/gofast/aid/syncx"
 	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/stretchr/testify/assert"
 	"sort"
 	"sync"

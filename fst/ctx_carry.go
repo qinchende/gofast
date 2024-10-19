@@ -3,24 +3,24 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/aid/bag"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/fst/tips"
 )
 
 // 将来可以扩展，携带各种数据类型
 const (
-	carryTypeAny        tips.CarryType = 0
-	carryTypePrivate    tips.CarryType = 1 << 0
-	carryTypePublic     tips.CarryType = 1 << 1
-	carryTypeMsg        tips.CarryType = 1 << 2 // 传递消息
-	carryTypeFormCache  tips.CarryType = 1 << 3 // formCache  url.Values  // the parsed form data from POST, PATCH, or PUT body parameters.
-	carryTypeQueryCache tips.CarryType = 1 << 4 // queryCache url.Values  // param query result from c.Req.URL.Query()
+	carryTypeAny        bag.CarryType = 0
+	carryTypePrivate    bag.CarryType = 1 << 0
+	carryTypePublic     bag.CarryType = 1 << 1
+	carryTypeMsg        bag.CarryType = 1 << 2 // 传递消息
+	carryTypeFormCache  bag.CarryType = 1 << 3 // formCache  url.Values  // the parsed form data from POST, PATCH, or PUT body parameters.
+	carryTypeQueryCache bag.CarryType = 1 << 4 // queryCache url.Values  // param query result from c.Req.URL.Query()
 )
 
 // 添加一条消息，日志系统会打印出这些传递信息
 func (c *Context) CarryMsg(msg string) {
 	c.checkCarrySize()
-	msgItem := &tips.CarryItem{
+	msgItem := &bag.CarryItem{
 		Type: carryTypeMsg,
 		Msg:  msg,
 		Meta: nil,
@@ -29,7 +29,7 @@ func (c *Context) CarryMsg(msg string) {
 }
 
 // 取出只作为消息传递的项
-func (c *Context) CarryMsgItems() tips.CarryList {
+func (c *Context) CarryMsgItems() bag.CarryList {
 	return c.CarryItems.ByType(carryTypeMsg)
 }
 
@@ -54,7 +54,7 @@ func (c *Context) CarryMsgItems() tips.CarryList {
 
 func (c *Context) setQueryCache(val cst.WebKV) {
 	c.checkCarrySize()
-	queryItem := &tips.CarryItem{
+	queryItem := &bag.CarryItem{
 		Type: carryTypeQueryCache,
 		Msg:  "form params",
 		Meta: val,

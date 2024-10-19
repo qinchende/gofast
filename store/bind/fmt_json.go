@@ -3,9 +3,9 @@
 package bind
 
 import (
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/dts"
-	"github.com/qinchende/gofast/store/jde"
 	"io"
 )
 
@@ -16,7 +16,7 @@ func BindJsonBytes(dst any, content []byte, like int8) error {
 
 func BindJsonBytesX(dst any, content []byte, opts *dts.BindOptions) error {
 	var kv cst.KV
-	if err := jde.DecodeBytes(&kv, content); err != nil {
+	if err := jsonx.Unmarshal(&kv, content); err != nil {
 		return err
 	}
 	return BindKVX(dst, kv, opts)
@@ -29,7 +29,7 @@ func BindJsonReader(dst any, reader io.Reader, like int8) error {
 
 func BindJsonReaderX(dst any, reader io.Reader, opts *dts.BindOptions) error {
 	var kv cst.KV
-	if err := jde.DecodeReader(&kv, reader, 0); err != nil {
+	if err := jsonx.DecodeReader(&kv, reader, 0); err != nil {
 		return err
 	}
 	return BindKVX(dst, kv, opts)

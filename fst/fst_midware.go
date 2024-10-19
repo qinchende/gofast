@@ -7,9 +7,8 @@ import (
 	"net/http"
 )
 
-// 用于封装，框架自定义一组
-func (gft *GoFast) UseGlobal(inject injectFunc) *GoFast {
-	return inject(gft)
+func (gft *GoFast) Apply(apply appSelfFunc) *GoFast {
+	return apply(gft)
 }
 
 // 添加单个全局拦截器
@@ -21,9 +20,9 @@ func (gft *GoFast) UseHttpHandler(hds HttpHandler) *GoFast {
 	return gft
 }
 
-// 将下一级 context 的处理函数，加入fitHandlers 执行链的最后面
+// 将下一级 context 的处理函数，加入 httpHandlers 执行链的最后面
 func (gft *GoFast) bindContextHandler(handler http.HandlerFunc) {
-	// 倒序加入
+	// 倒序加入原始http中间件
 	for i := len(gft.httpHandlers) - 1; i >= 0; i-- {
 		handler = gft.httpHandlers[i](handler)
 	}

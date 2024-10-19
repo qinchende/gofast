@@ -3,13 +3,13 @@ package task
 import (
 	"context"
 	"github.com/qinchende/gofast/aid/gmp"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/core/cst"
+	lang2 "github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/store/bind"
-	"github.com/qinchende/gofast/store/jde"
 	"sync"
 	"time"
 )
@@ -33,7 +33,7 @@ type LiteGroup struct {
 	key string
 
 	createdTime time.Duration
-	stopRun     chan lang.PlaceholderType
+	stopRun     chan lang2.PlaceholderType
 	lock        sync.RWMutex
 
 	lastState  string // 上次的运行标记
@@ -52,13 +52,13 @@ func NewLiteGroup(appName, serverName, gpName string, rds *redis.GfRedis) *LiteG
 		rds:         rds,
 		key:         liteStoreKeyPrefix + "Group." + appName + "." + gpName,
 		createdTime: timex.NowDur(),
-		stopRun:     make(chan lang.PlaceholderType, 1),
+		stopRun:     make(chan lang2.PlaceholderType, 1),
 	}
 }
 
 func (lite *LiteGroup) AddTask(pet *LitePet) {
 	pet.group = lite
-	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task)
+	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang2.FuncName(pet.Task)
 
 	if err := bind.Optimize(pet, bind.AsConfig); err != nil {
 		logx.TimerError(err.Error())
@@ -83,7 +83,7 @@ func (lite *LiteGroup) StartRun() {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					logx.TimerError(lang.ToString(p))
+					logx.TimerError(lang2.ToString(p))
 				}
 				wg.Done()
 			}()
@@ -104,7 +104,7 @@ func (lite *LiteGroup) scanController() {
 	// 检查争夺运行权
 	if str, err := lite.rds.Get(lite.key); err == nil && str != "" {
 		kvs := make(cst.KV)
-		if err2 := jde.DecodeString(&kvs, str); err2 == nil {
+		if err2 := jsonx.UnmarshalFromString(&kvs, str); err2 == nil {
 			lite.lostTimes = 0
 
 			if kvs[stateFieldServerName] == lite.serverName {
@@ -163,7 +163,7 @@ func (lite *LiteGroup) killMyself() {
 	lite.lock.RLock()
 	if lite.isRunning && lite.isStopping == false {
 		logx.Timer("Send stop sign to kill myself.")
-		lite.stopRun <- lang.ShareVal
+		lite.stopRun <- lang2.ShareVal
 		lite.isStopping = true
 	}
 	lite.lock.RUnlock()
@@ -230,6 +230,6 @@ func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 func (lite *LiteGroup) flushTime(kvs cst.KV) {
 	kvs[stateFieldTime] = time.Now().Format(cst.TimeFmtRFC3339)
 
-	jsonStr, _ := jde.EncodeToString(kvs)
+	jsonStr, _ := jsonx.Marshal(kvs)
 	_, _ = lite.rds.Set(lite.key, jsonStr, liteStoreRunFlagExpireTTL)
 }

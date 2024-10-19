@@ -2,7 +2,7 @@ package dts
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/lang"
 	"strconv"
 	"time"
 	"unsafe"

@@ -2,9 +2,9 @@ package exec
 
 import (
 	"github.com/qinchende/gofast/aid/gmp"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/proc"
 	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/lang"
 	"reflect"
 	"sync"
 	"sync/atomic"

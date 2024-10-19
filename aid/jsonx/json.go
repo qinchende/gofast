@@ -1,11 +1,14 @@
-//go:build !jsoniter && !gojson
+//go:build !gojson && !jde
 
 package jsonx
 
 import (
 	"bytes"
 	"encoding/json"
+	"github.com/qinchende/gofast/aid/iox"
 	"io"
+	"math"
+	"net/http"
 	"strings"
 )
 
@@ -32,4 +35,27 @@ func UnmarshalFromReader(v any, reader io.Reader) error {
 	decoder := NewDecoder(reader)
 	decoder.UseNumber()
 	return decoder.Decode(v)
+}
+
+// ext +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+const maxJsonStrLen = math.MaxInt32 - 1 // 最大解析2GB JSON字符串
+
+func DecodeRequest(v any, req *http.Request) error {
+	return decodeFromReader(v, req.Body, req.ContentLength)
+}
+
+func DecodeReader(v any, reader io.Reader, bufSize int64) error {
+	return decodeFromReader(v, reader, bufSize)
+}
+
+func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
+	// 一次性读取完成，或者遇到EOF标记或者其它错误
+	if ctSize > maxJsonStrLen {
+		ctSize = maxJsonStrLen
+	}
+	bs, err1 := iox.ReadAll(reader, ctSize)
+	if err1 != nil {
+		return err1
+	}
+	return Unmarshal(dst, bs)
 }

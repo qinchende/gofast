@@ -3,9 +3,9 @@ package httpx
 import (
 	"bytes"
 	"context"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/store/jde"
+	"github.com/qinchende/gofast/core/lang"
 	"io"
 	"net/http"
 	"net/url"
@@ -106,8 +106,8 @@ func buildBody(pet *RequestPet) io.Reader {
 	var buf bytes.Buffer
 	switch pet.BodyFormat {
 	case FormatJson:
-		//_ = jde.NewEncoder(&buf).Encode(pet.BodyArgs)
-		bs, _ := jde.EncodeToBytes(pet.BodyArgs)
+		//_ = jsonx.NewEncoder(&buf).Encode(pet.BodyArgs)
+		bs, _ := jsonx.Marshal(pet.BodyArgs)
 		return bytes.NewBuffer(bs)
 	case FormatUrlEncoding:
 		data := url.Values{}

@@ -2,11 +2,10 @@ package hashx
 
 import (
 	"fmt"
+	lang2 "github.com/qinchende/gofast/core/lang"
 	"sort"
 	"strconv"
 	"sync"
-
-	"github.com/qinchende/gofast/aid/lang"
 )
 
 const (
@@ -24,7 +23,7 @@ type (
 		replicas int
 		keys     []uint64
 		ring     map[uint64][]any
-		nodes    map[string]lang.PlaceholderType
+		nodes    map[string]lang2.PlaceholderType
 		lock     sync.RWMutex
 	}
 )
@@ -46,7 +45,7 @@ func NewCustomConsistentHash(replicas int, fn HashFunc) *ConsistentHash {
 		hashFunc: fn,
 		replicas: replicas,
 		ring:     make(map[uint64][]any),
-		nodes:    make(map[string]lang.PlaceholderType),
+		nodes:    make(map[string]lang2.PlaceholderType),
 	}
 }
 
@@ -158,7 +157,7 @@ func (h *ConsistentHash) removeRingNode(hash uint64, nodeRepr string) {
 }
 
 func (h *ConsistentHash) addNode(nodeRepr string) {
-	h.nodes[nodeRepr] = lang.Placeholder
+	h.nodes[nodeRepr] = lang2.Placeholder
 }
 
 func (h *ConsistentHash) containsNode(nodeRepr string) bool {
@@ -175,5 +174,5 @@ func innerRepr(node any) string {
 }
 
 func repr(node any) string {
-	return lang.ToString(node)
+	return lang2.ToString(node)
 }

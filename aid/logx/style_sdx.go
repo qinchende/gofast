@@ -4,11 +4,11 @@ package logx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/bag"
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/fst/tips"
-	"github.com/qinchende/gofast/store/jde"
+	"github.com/qinchende/gofast/core/lang"
 	"strconv"
 	"strings"
 	"time"
@@ -58,12 +58,12 @@ func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
 			basePms["tok"] = tok
 			p.Pms.Del("tok")
 		}
-		reqBaseParams, _ = jde.EncodeToBytes(basePms)
+		reqBaseParams, _ = jsonx.Marshal(basePms)
 
 		// 2. 请求的其它参数
-		reqParams, _ = jde.EncodeToBytes(p.Pms)
+		reqParams, _ = jsonx.Marshal(p.Pms)
 	} else if p.RawReq.Form != nil {
-		reqParams, _ = jde.EncodeToBytes(p.RawReq.Form)
+		reqParams, _ = jsonx.Marshal(p.RawReq.Form)
 	}
 
 	return fmt.Sprintf(formatStr,
@@ -104,7 +104,7 @@ func buildSdxReqLogMini(p *ReqLogEntity) string {
 }
 
 // 所有错误合并成字符串
-func buildCarryInfos(bs tips.CarryList) string {
+func buildCarryInfos(bs bag.CarryList) string {
 	if len(bs) == 0 {
 		return ""
 	}

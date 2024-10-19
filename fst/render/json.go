@@ -7,8 +7,8 @@ package render
 import (
 	"bytes"
 	"fmt"
-	"github.com/qinchende/gofast/aid/lang"
-	"github.com/qinchende/gofast/store/jde"
+	"github.com/qinchende/gofast/aid/jsonx"
+	"github.com/qinchende/gofast/core/lang"
 	"html/template"
 	"net/http"
 )
@@ -38,7 +38,7 @@ func (r JSON) WriteContentType(w http.ResponseWriter) {
 // WriteJSON marshals the given interface object and writes it with custom ContentType.
 func WriteJSON(w http.ResponseWriter, obj any) error {
 	setContentType(w, jsonContentType)
-	jsonBytes, err := jde.EncodeToBytes(obj)
+	jsonBytes, err := jsonx.Marshal(obj)
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ type PureJSON struct {
 // Render (IndentedJSON) marshals the given interface object and writes it with custom ContentType.
 func (r IndentedJSON) Write(w http.ResponseWriter) error {
 	r.WriteContentType(w)
-	jsonBytes, err := jde.EncodeToBytesIndent(r.Data, "", "    ")
+	jsonBytes, err := jsonx.MarshalIndent(r.Data, "", "    ")
 	if err != nil {
 		return err
 	}
@@ -98,7 +98,7 @@ func (r IndentedJSON) WriteContentType(w http.ResponseWriter) {
 // Render (SecureJSON) marshals the given interface object and writes it with custom ContentType.
 func (r SecureJSON) Write(w http.ResponseWriter) error {
 	r.WriteContentType(w)
-	jsonBytes, err := jde.EncodeToBytes(r.Data)
+	jsonBytes, err := jsonx.Marshal(r.Data)
 	if err != nil {
 		return err
 	}
@@ -122,7 +122,7 @@ func (r SecureJSON) WriteContentType(w http.ResponseWriter) {
 // Render (JsonpJSON) marshals the given interface object and writes it and its callback with custom ContentType.
 func (r JsonpJSON) Write(w http.ResponseWriter) (err error) {
 	r.WriteContentType(w)
-	ret, err := jde.EncodeToBytes(r.Data)
+	ret, err := jsonx.Marshal(r.Data)
 	if err != nil {
 		return err
 	}
@@ -161,7 +161,7 @@ func (r JsonpJSON) WriteContentType(w http.ResponseWriter) {
 // Render (AsciiJSON) marshals the given interface object and writes it with custom ContentType.
 func (r AsciiJSON) Write(w http.ResponseWriter) (err error) {
 	r.WriteContentType(w)
-	ret, err := jde.EncodeToBytes(r.Data)
+	ret, err := jsonx.Marshal(r.Data)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (r AsciiJSON) WriteContentType(w http.ResponseWriter) {
 //// Render (PureJSON) writes custom ContentType and encodes the given interface object.
 //func (r PureJSON) Write(w http.ResponseWriter) error {
 //	r.WriteContentType(w)
-//	encoder := jde.NewEncoder(w)
+//	encoder := jsonx.NewEncoder(w)
 //	encoder.SetEscapeHTML(false)
 //	return encoder.Encode(r.Data)
 //}

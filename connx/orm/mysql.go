@@ -13,11 +13,11 @@ import (
 
 type (
 	MysqlConnCnf struct {
-		ConnStr    string   `v:"must"`
-		ConnStrR   string   `v:"must=false"`
-		MaxOpen    int      `v:"def=100,range=[1:1000]"`
-		MaxIdle    int      `v:"def=100"`
-		RedisNodes []string `v:"must=false,len=[10:300]"`
+		ConnStr    string   `v:"must"`                    // 主库连接
+		ConnStrR   string   `v:"must=false"`              // 从库连接
+		MaxOpen    int      `v:"def=100,range=[1:1000]"`  // 最大连接数
+		MaxIdle    int      `v:"def=100"`                 // 最大空闲连接数
+		RedisNodes []string `v:"must=false,len=[10:300]"` // 做缓存的Redis节点
 	}
 )
 

@@ -1,8 +1,8 @@
 package gmp
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/logx"
+	"github.com/qinchende/gofast/core/lang"
 )
 
 type TaskRunner struct {

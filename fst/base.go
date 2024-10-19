@@ -15,8 +15,7 @@ type (
 	HttpHandler func(http.HandlerFunc) http.HandlerFunc
 	CtxHandler  func(ctx *Context)
 
-	// 抽取出一些常用函数原型
-	injectFunc func(*GoFast) *GoFast
+	appSelfFunc func(*GoFast) *GoFast
 )
 
 const (

@@ -4,9 +4,9 @@ package logx
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/bag"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/fst/tips"
+	"github.com/qinchende/gofast/core/lang"
 	"net/http"
 	"time"
 )
@@ -65,7 +65,7 @@ type ReqLogEntity struct {
 	Pms        cst.SuperKV
 	BodySize   int
 	ResData    []byte
-	CarryItems tips.CarryList
+	CarryItems bag.CarryList
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

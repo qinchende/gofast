@@ -2,9 +2,9 @@ package conf
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/logx"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/store/bind"
-	"log"
 	"os"
 	"path"
 )
@@ -13,19 +13,19 @@ import (
 // 1. JSON
 // 2. Yaml
 var loaders = map[string]func(any, []byte) error{
-	".json": LoadConfigFromJsonBytes,
-	".yaml": LoadConfigFromYamlBytes,
-	".yml":  LoadConfigFromYamlBytes,
+	".json": LoadFromJson,
+	".yaml": LoadFromYaml,
+	".yml":  LoadFromYaml,
 }
 
 // 必须加载配置，否则应用无法启动，直接退出
 func MustLoad(path string, dst any) {
-	if err := LoadConfig(path, dst); err != nil {
-		log.Fatalf("error: config file %s, %s", path, err.Error())
+	if err := LoadFile(path, dst); err != nil {
+		logx.ErrorFatalF("error: config file %s, %s", path, err.Error())
 	}
 }
 
-func LoadConfig(file string, dst any) error {
+func LoadFile(file string, dst any) error {
 	if content, err := os.ReadFile(file); err != nil {
 		return err
 	} else if loader, ok := loaders[path.Ext(file)]; ok {
@@ -35,10 +35,10 @@ func LoadConfig(file string, dst any) error {
 	}
 }
 
-func LoadConfigFromJsonBytes(dst any, content []byte) error {
+func LoadFromJson(dst any, content []byte) error {
 	return bind.BindJsonBytes(dst, content, bind.AsConfig)
 }
 
-func LoadConfigFromYamlBytes(dst any, content []byte) error {
+func LoadFromYaml(dst any, content []byte) error {
 	return bind.BindYamlBytes(dst, content, bind.AsConfig)
 }

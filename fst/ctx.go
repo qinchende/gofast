@@ -3,9 +3,9 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/aid/bag"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst/httpx"
-	"github.com/qinchende/gofast/fst/tips"
 	"sync"
 	"time"
 )
@@ -26,10 +26,10 @@ type Context struct {
 	execIdx  int8         // 执行链的索引 不能大于 127 个
 	rendered bool         // 当前请求是否已经Render
 
-	Sess       SessionKeeper  // Session数据，数据存储部分可以自定义
-	Pms        cst.SuperKV    // 所有Request参数的KV（queryCache + formCache）一般用于构造model对象
-	CarryItems tips.CarryList // []*CarryItem，可以携带扩展的自定义数据
-	PanicPet   panicHandler   // 业务逻辑异常之后的处理
+	Sess       SessionKeeper // Session数据，数据存储部分可以自定义
+	Pms        cst.SuperKV   // 所有Request参数的KV（queryCache + formCache）一般用于构造model对象
+	CarryItems bag.CarryList // []*CarryItem，可以携带扩展的自定义数据
+	PanicPet   panicHandler  // 业务逻辑异常之后的处理
 }
 
 /************************************/

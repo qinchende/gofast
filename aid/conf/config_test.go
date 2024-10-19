@@ -11,14 +11,14 @@ import (
 )
 
 func TestLoadConfig_notExists(t *testing.T) {
-	assert.NotNil(t, LoadConfig("not_a_file", nil))
+	assert.NotNil(t, LoadFile("not_a_file", nil))
 }
 
 func TestLoadConfig_notRecogFile(t *testing.T) {
 	filename, err := fs.TempFilenameWithText("hello")
 	assert.Nil(t, err)
 	defer os.Remove(filename)
-	assert.NotNil(t, LoadConfig(filename, nil))
+	assert.NotNil(t, LoadFile(filename, nil))
 }
 
 func TestConfigJson(t *testing.T) {

@@ -4,13 +4,13 @@ import (
 	"errors"
 	"github.com/qinchende/gofast/aid/validx"
 	"github.com/qinchende/gofast/core/cst"
-	dts2 "github.com/qinchende/gofast/core/dts"
+	"github.com/qinchende/gofast/core/dts"
 	"reflect"
 	"unsafe"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func ValidateStruct(dst any, opts *dts2.BindOptions) error {
+func ValidateStruct(dst any, opts *dts.BindOptions) error {
 	if dst == nil || opts == nil {
 		return errors.New("has nil param.")
 	}
@@ -24,8 +24,8 @@ func ValidateStruct(dst any, opts *dts2.BindOptions) error {
 	}
 }
 
-func validStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts2.BindOptions) (err error) {
-	sm := dts2.SchemaByType(dstT, opts)
+func validStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOptions) (err error) {
+	sm := dts.SchemaByType(dstT, opts)
 
 	for i := 0; i < len(sm.Fields); i++ {
 		fa := &sm.FieldsAttr[i] // 肯定不会是nil
@@ -48,7 +48,7 @@ func validStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts2.BindOptio
 		if vOpt == nil {
 			continue
 		}
-		fPtr = dts2.PeelPtr(fPtr, fa.PtrLevel)
+		fPtr = dts.PeelPtr(fPtr, fa.PtrLevel)
 		if err = validx.ValidateFieldPtr(fPtr, fKind, vOpt); err != nil {
 			return
 		}

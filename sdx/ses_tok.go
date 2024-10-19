@@ -3,10 +3,10 @@
 package sdx
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/store/jde"
 	"time"
 )
 
@@ -58,13 +58,13 @@ func TokSessBuilder(c *fst.Context) {
 // 默认将使用 Redis 存放 session 信息
 // TODO: 注意，这个实现是非线程安全的
 type TokSession struct {
-	raw        string    // raw token
-	guid       string    // unique session key
-	values     cst.WebKV // map[string]string
-	ttl        uint32    // 过期时间，秒
-	tokenIsNew bool      // just new token?
-	changed    bool      // 值是否改变
-	saved      bool      // Whether it has been saved
+	raw      string    // raw token
+	guid     string    // unique session key
+	values   cst.WebKV // map[string]string
+	ttl      uint32    // 过期时间，秒
+	isNewTok bool      // just new token?
+	changed  bool      // 值是否改变
+	saved    bool      // Whether it has been saved
 }
 
 // TokSession 需要实现 sessionKeeper 所有接口
@@ -133,7 +133,7 @@ func (ss *TokSession) ExpireS(ttl uint32) {
 }
 
 func (ss *TokSession) TokenIsNew() bool {
-	return ss.tokenIsNew
+	return ss.isNewTok
 }
 
 func (ss *TokSession) Token() string {
@@ -170,7 +170,7 @@ func (ss *TokSession) createNewToken() {
 	base64Enc.Encode(buf[sidLen+1:tokLen], buf[tokLen:minSize])
 
 	ss.guid, ss.raw = lang.BTS(buf[:sidLen]), lang.BTS(buf[:tokLen])
-	ss.tokenIsNew = true
+	ss.isNewTok = true
 
 	// 意味着没有设置值的时候不需要保存，新的token传给前端即可
 	// 可减轻大量首次请求，保存占用大量数据库资源
@@ -212,7 +212,7 @@ func (ss *TokSession) loadSessFromRedis() error {
 	if ss.values == nil {
 		ss.values = make(cst.WebKV)
 	}
-	return jde.DecodeBytes(&ss.values, lang.STB(str))
+	return jsonx.Unmarshal(&ss.values, lang.STB(str))
 }
 
 func (ss *TokSession) saveSessToRedis() (err error) {
@@ -222,9 +222,9 @@ func (ss *TokSession) saveSessToRedis() (err error) {
 	}
 
 	if ss.changed {
-		str := ""
-		if str, err = jde.EncodeToString(ss.values); err == nil {
-			_, err = MySessDB.Redis.Set(ss.redisKey(), str, ttl)
+		bs := []byte{}
+		if bs, err = jsonx.Marshal(ss.values); err == nil {
+			_, err = MySessDB.Redis.Set(ss.redisKey(), bs, ttl)
 		}
 	} else {
 		_, err = MySessDB.Redis.Expire(ss.redisKey(), ttl)

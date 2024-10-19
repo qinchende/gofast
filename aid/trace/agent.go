@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"github.com/qinchende/gofast/aid/logx"
+	"github.com/qinchende/gofast/core/lang"
 	"sync"
 
-	"github.com/qinchende/gofast/aid/lang"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/jaeger"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"

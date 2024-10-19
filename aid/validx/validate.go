@@ -5,7 +5,7 @@ package validx
 import (
 	"errors"
 	"fmt"
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/core/lang"
 	"reflect"
 	"regexp"
 	"time"

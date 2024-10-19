@@ -4,8 +4,8 @@ import (
 	"container/list"
 	"fmt"
 	"github.com/qinchende/gofast/aid/gmp"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/lang"
 	"time"
 )
 

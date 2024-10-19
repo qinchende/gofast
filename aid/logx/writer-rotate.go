@@ -7,8 +7,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/aid/fs"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/timex"
+	lang2 "github.com/qinchende/gofast/core/lang"
 	"io"
 	"log"
 	"os"
@@ -43,7 +43,7 @@ type (
 
 		fp        *os.File
 		channel   chan []byte
-		done      chan lang.PlaceholderType
+		done      chan lang2.PlaceholderType
 		waitGroup sync.WaitGroup // can't use threading.RoutineGroup because of cycle import
 		closeOnce sync.Once
 	}
@@ -123,7 +123,7 @@ func NewRotateLogger(filename string, rule RotateRule, compress bool) (*RotateLo
 		rule:     rule,
 		compress: compress,
 		channel:  make(chan []byte, bufferSize),
-		done:     make(chan lang.PlaceholderType),
+		done:     make(chan lang2.PlaceholderType),
 	}
 	if err := rl.initRotateLogger(); err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func (rl *RotateLogger) Writeln(str string) (err error) {
 		_, err = rl.Write(bytes)
 		return
 	}
-	_, err = rl.Write(lang.STB(str))
+	_, err = rl.Write(lang2.STB(str))
 	return
 }
 
@@ -185,7 +185,7 @@ func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
 	if str[len(str)-1] != '\n' {
 		sb.WriteByte('\n')
 	}
-	_, err = rl.Write(lang.STB(sb.String()))
+	_, err = rl.Write(lang2.STB(sb.String()))
 	return
 }
 

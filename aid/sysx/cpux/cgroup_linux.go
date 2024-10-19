@@ -4,13 +4,13 @@ package cpux
 
 import (
 	"fmt"
+	"github.com/qinchende/gofast/core/lang"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
 	"github.com/qinchende/gofast/aid/iox"
-	"github.com/qinchende/gofast/aid/lang"
 )
 
 const cgroupDir = "/sys/fs/cgroup"

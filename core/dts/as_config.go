@@ -1,8 +1,8 @@
 package dts
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
+	lang2 "github.com/qinchende/gofast/core/lang"
 	"reflect"
 	"time"
 	"unsafe"
@@ -59,9 +59,9 @@ func setInt(p unsafe.Pointer, val any) {
 	case int64:
 		BindInt(p, v)
 	case string:
-		BindInt(p, lang.ParseInt(v))
+		BindInt(p, lang2.ParseInt(v))
 	case *string:
-		BindInt(p, lang.ParseInt(*v))
+		BindInt(p, lang2.ParseInt(*v))
 	}
 }
 
@@ -70,9 +70,9 @@ func setInt8(p unsafe.Pointer, val any) {
 	case int64:
 		BindInt8(p, v)
 	case string:
-		BindInt8(p, lang.ParseInt(v))
+		BindInt8(p, lang2.ParseInt(v))
 	case *string:
-		BindInt8(p, lang.ParseInt(*v))
+		BindInt8(p, lang2.ParseInt(*v))
 	}
 }
 
@@ -81,9 +81,9 @@ func setInt16(p unsafe.Pointer, val any) {
 	case int64:
 		BindInt16(p, v)
 	case string:
-		BindInt16(p, lang.ParseInt(v))
+		BindInt16(p, lang2.ParseInt(v))
 	case *string:
-		BindInt16(p, lang.ParseInt(*v))
+		BindInt16(p, lang2.ParseInt(*v))
 	}
 }
 
@@ -92,9 +92,9 @@ func setInt32(p unsafe.Pointer, val any) {
 	case int64:
 		BindInt32(p, v)
 	case string:
-		BindInt32(p, lang.ParseInt(v))
+		BindInt32(p, lang2.ParseInt(v))
 	case *string:
-		BindInt32(p, lang.ParseInt(*v))
+		BindInt32(p, lang2.ParseInt(*v))
 	}
 }
 
@@ -103,9 +103,9 @@ func setInt64(p unsafe.Pointer, val any) {
 	case int64:
 		BindInt64(p, v)
 	case string:
-		BindInt64(p, lang.ParseInt(v))
+		BindInt64(p, lang2.ParseInt(v))
 	case *string:
-		BindInt64(p, lang.ParseInt(*v))
+		BindInt64(p, lang2.ParseInt(*v))
 	}
 }
 
@@ -130,9 +130,9 @@ func setUint(p unsafe.Pointer, val any) {
 	case uint64:
 		BindUint(p, v)
 	case string:
-		BindUint(p, lang.ParseUint(v))
+		BindUint(p, lang2.ParseUint(v))
 	case *string:
-		BindUint(p, lang.ParseUint(*v))
+		BindUint(p, lang2.ParseUint(*v))
 	}
 }
 
@@ -141,9 +141,9 @@ func setUint8(p unsafe.Pointer, val any) {
 	case uint64:
 		BindUint8(p, v)
 	case string:
-		BindUint8(p, lang.ParseUint(v))
+		BindUint8(p, lang2.ParseUint(v))
 	case *string:
-		BindUint8(p, lang.ParseUint(*v))
+		BindUint8(p, lang2.ParseUint(*v))
 	}
 }
 
@@ -152,9 +152,9 @@ func setUint16(p unsafe.Pointer, val any) {
 	case uint64:
 		BindUint16(p, v)
 	case string:
-		BindUint16(p, lang.ParseUint(v))
+		BindUint16(p, lang2.ParseUint(v))
 	case *string:
-		BindUint16(p, lang.ParseUint(*v))
+		BindUint16(p, lang2.ParseUint(*v))
 	}
 }
 
@@ -163,9 +163,9 @@ func setUint32(p unsafe.Pointer, val any) {
 	case uint64:
 		BindUint32(p, v)
 	case string:
-		BindUint32(p, lang.ParseUint(v))
+		BindUint32(p, lang2.ParseUint(v))
 	case *string:
-		BindUint32(p, lang.ParseUint(*v))
+		BindUint32(p, lang2.ParseUint(*v))
 	}
 }
 
@@ -174,9 +174,9 @@ func setUint64(p unsafe.Pointer, val any) {
 	case uint64:
 		BindUint64(p, v)
 	case string:
-		BindUint64(p, lang.ParseUint(v))
+		BindUint64(p, lang2.ParseUint(v))
 	case *string:
-		BindUint64(p, lang.ParseUint(*v))
+		BindUint64(p, lang2.ParseUint(*v))
 	}
 }
 
@@ -186,9 +186,9 @@ func setFloat32(p unsafe.Pointer, val any) {
 	case float64:
 		BindFloat32(p, v)
 	case string:
-		BindFloat32(p, lang.ParseFloat(v))
+		BindFloat32(p, lang2.ParseFloat(v))
 	case *string:
-		BindFloat32(p, lang.ParseFloat(*v))
+		BindFloat32(p, lang2.ParseFloat(*v))
 	}
 }
 
@@ -197,9 +197,9 @@ func setFloat64(p unsafe.Pointer, val any) {
 	case float64:
 		BindFloat64(p, v)
 	case string:
-		BindFloat64(p, lang.ParseFloat(v))
+		BindFloat64(p, lang2.ParseFloat(v))
 	case *string:
-		BindFloat64(p, lang.ParseFloat(*v))
+		BindFloat64(p, lang2.ParseFloat(*v))
 	}
 }
 
@@ -211,7 +211,7 @@ func setString(p unsafe.Pointer, val any) {
 	case *string:
 		BindString(p, *v)
 	default:
-		BindString(p, lang.ToString(v))
+		BindString(p, lang2.ToString(v))
 	}
 }
 
@@ -220,9 +220,9 @@ func setBool(p unsafe.Pointer, val any) {
 	case bool:
 		BindBool(p, v)
 	case string:
-		BindBool(p, lang.ParseBool(v))
+		BindBool(p, lang2.ParseBool(v))
 	case *string:
-		BindBool(p, lang.ParseBool(*v))
+		BindBool(p, lang2.ParseBool(*v))
 	}
 }
 
