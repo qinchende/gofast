@@ -1,8 +1,8 @@
 package httpx
 
 import (
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 	"strings"
 )
@@ -16,7 +16,7 @@ func parseJsonResponse(resp *http.Response, err error) (cst.KV, error) {
 		return nil, err
 	}
 	kv := cst.KV{}
-	if err = jde.DecodeReader(&kv, resp.Body, resp.ContentLength); err != nil {
+	if err = jsonx.DecodeReader(&kv, resp.Body, resp.ContentLength); err != nil {
 		return nil, err
 	}
 	return kv, err

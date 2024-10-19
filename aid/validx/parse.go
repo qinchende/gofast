@@ -4,7 +4,6 @@ package validx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/core/cst"
 	"math"
 	"reflect"
 	"strconv"
@@ -51,7 +50,7 @@ func ParseOptions(sField *reflect.StructField, str string) (*ValidOptions, error
 				//vOpts.DefExist = true
 			case kv[0] == attrRange:
 				isDur := false
-				if sField.Type == cst.TypeDuration {
+				if sField.Type == TypeDuration {
 					isDur = true
 				}
 				if vOpts.Range, err = parseNumberRange(kv[1], isDur); err != nil {

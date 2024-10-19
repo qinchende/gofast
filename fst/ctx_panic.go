@@ -3,8 +3,8 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/lang"
 )
 
 // 异常处理逻辑的接口定义

@@ -3,11 +3,11 @@
 package fst
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/fst/render"
-	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 	"strings"
 )
@@ -152,7 +152,7 @@ func (c *Context) AbortFai(code int, msg string, data any) {
 	if data != nil {
 		jsonData[dataField] = data
 	}
-	bytes, _ := jde.EncodeToBytes(jsonData)
+	bytes, _ := jsonx.Marshal(jsonData)
 	c.AbortDirect(http.StatusOK, bytes)
 }
 

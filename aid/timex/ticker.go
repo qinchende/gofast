@@ -2,9 +2,8 @@ package timex
 
 import (
 	"errors"
+	"github.com/qinchende/gofast/core/lang"
 	"time"
-
-	"github.com/qinchende/gofast/aid/lang"
 )
 
 type (

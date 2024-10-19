@@ -2,6 +2,11 @@
 // Use of this source code is governed by a MIT license
 package validx
 
+import (
+	"reflect"
+	"time"
+)
+
 const (
 	attrRequired = "must" // 必填项
 	attrDefault  = "def"
@@ -36,4 +41,8 @@ type (
 		includeMin bool    // 包括最小
 		includeMax bool    // 包括最大
 	}
+)
+
+var (
+	TypeDuration = reflect.TypeOf(time.Duration(0))
 )

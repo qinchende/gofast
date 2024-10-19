@@ -6,9 +6,9 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/qinchende/gofast/aid/iox"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/dts"
+	"github.com/qinchende/gofast/core/lang"
 	"gopkg.in/yaml.v2"
 	"io"
 )

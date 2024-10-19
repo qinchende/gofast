@@ -3,9 +3,9 @@ package orm
 import (
 	"fmt"
 	"github.com/qinchende/gofast/aid/hashx"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/dts"
+	lang2 "github.com/qinchende/gofast/core/lang"
 	"reflect"
 	"strings"
 	"sync"
@@ -172,14 +172,14 @@ func fetchSchema(typ reflect.Type) *TableSchema {
 		mdAttrs = &TableAttrs{}
 	}
 	if mdAttrs.TableName == "" {
-		mdAttrs.TableName = lang.Camel2Snake(typ.Name())
+		mdAttrs.TableName = lang2.Camel2Snake(typ.Name())
 	}
 
 	// Important Note:
 	// 表字段的hash值，决定了数据存贮对应的字段以及顺序。
 	// 这个特性一定程度能解决，表结构在重构过程中字段发生变化的问题，此表缓存的数据也将失效。
-	mdAttrs.columnsHash = hashx.Sum64(lang.STB(strings.Join(ss.Columns, ",")))
-	hashStr := lang.ToString(mdAttrs.columnsHash)
+	mdAttrs.columnsHash = hashx.Sum64(lang2.STB(strings.Join(ss.Columns, ",")))
+	hashStr := lang2.ToString(mdAttrs.columnsHash)
 	priKeyName := ss.FieldsAttr[ts.primaryIndex].RefField.Name
 	// 行记录缓存 Key format
 	mdAttrs.cacheKeyFmt = "Gf#Line#%v#" + mdAttrs.TableName + "#" + hashStr + "#" + priKeyName + "#%v"

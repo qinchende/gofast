@@ -3,10 +3,10 @@
 package fst
 
 import (
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/fst/httpx"
 	"github.com/qinchende/gofast/store/bind"
-	"github.com/qinchende/gofast/store/jde"
 	"net/http"
 	"strings"
 )
@@ -88,7 +88,7 @@ func (c *Context) CollectPms() error {
 	if strings.HasPrefix(ctType, cst.MIMEAppJson) {
 		// +++ JSON格式（可以解析GsonRows数据）
 		// 这里可以将复杂的JSON格式数据，直接解析成对象
-		if err := jde.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
+		if err := jsonx.DecodeRequest(c.Pms, c.Req.Raw); err != nil {
 			return err
 		}
 	} else if strings.HasPrefix(ctType, cst.MIMEPostForm) || strings.HasPrefix(ctType, cst.MIMEMultiPostForm) {

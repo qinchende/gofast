@@ -5,8 +5,8 @@ package httpx
 import (
 	"errors"
 	"github.com/qinchende/gofast/aid/iox"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/lang"
 	"io"
 	"mime"
 	"mime/multipart"

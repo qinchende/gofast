@@ -1,10 +1,10 @@
 // Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
 // Use of this source code is governed by a MIT license
-package tips
+package bag
 
 import (
+	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/store/jde"
 	"reflect"
 )
 
@@ -57,7 +57,7 @@ func (it *CarryItem) JSON() any {
 }
 
 func (it *CarryItem) MarshalJSON() ([]byte, error) {
-	return jde.EncodeToBytes(it.JSON())
+	return jsonx.Marshal(it.JSON())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -122,5 +122,5 @@ func (list CarryList) JSON() any {
 }
 
 func (list CarryList) MarshalJSON() ([]byte, error) {
-	return jde.EncodeToBytes(list.JSON())
+	return jsonx.Marshal(list.JSON())
 }

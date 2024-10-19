@@ -1,8 +1,8 @@
 package collect
 
 import (
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/aid/logx"
+	"github.com/qinchende/gofast/core/lang"
 )
 
 const (

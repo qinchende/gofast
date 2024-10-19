@@ -16,7 +16,7 @@ type StructKV struct {
 	Ptr unsafe.Pointer // struct 对象对应的地址
 }
 
-// Note: 这里返回StructKV的指针类型，而不是值类型。主要是因为要讲这个变量赋值给接口 fst.Context.Pms ，不希望发生值拷贝
+// Note: 这里返回StructKV的指针类型，而不是值类型。主要是因为要将这个变量赋值给接口 fst.Context.Pms ，不希望发生值拷贝
 func AsSuperKV(v any) (ret *StructKV) {
 	ret = &StructKV{
 		SS:  SchemaAsReq(v),

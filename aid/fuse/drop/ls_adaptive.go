@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/aid/collect"
-	logx2 "github.com/qinchende/gofast/aid/logx"
+	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/aid/syncx"
 	"github.com/qinchende/gofast/aid/sysx"
 	"github.com/qinchende/gofast/aid/timex"
@@ -154,8 +154,8 @@ func (as *adaptiveShedder) shouldDrop() bool {
 			msg := fmt.Sprintf(
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
 				sysx.CpuSmoothUsage, as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
-			logx2.Error(msg)
-			logx2.InfoReport(cst.KV{msg: msg})
+			logx.Error(msg)
+			logx.InfoReport(cst.KV{msg: msg})
 			return true
 		}
 	}

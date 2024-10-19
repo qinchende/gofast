@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qinchende/gofast/aid/iox"
-	"github.com/qinchende/gofast/aid/lang"
 	"github.com/qinchende/gofast/core/cst"
-	dts2 "github.com/qinchende/gofast/core/dts"
+	"github.com/qinchende/gofast/core/dts"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/core/rt"
 	"github.com/qinchende/gofast/store/gson"
 	"io"
@@ -47,7 +47,7 @@ type (
 		kvPairDec decKVPairFunc
 
 		// Struct
-		ss        *dts2.StructSchema
+		ss        *dts.StructSchema
 		fieldsDec []decValFunc
 
 		// array & slice
@@ -100,7 +100,7 @@ func decodeFromString(dst any, source string) (err error) {
 	if len(source) > maxJsonStrLen {
 		return errJsonTooLarge
 	}
-	if sk, ok := dst.(*dts2.StructKV); ok {
+	if sk, ok := dst.(*dts.StructKV); ok {
 		return startDecodeStructKV(sk, source)
 	} else {
 		return startDecode(dst, source)
@@ -139,7 +139,7 @@ func startDecode(dst any, source string) (err error) {
 	return
 }
 
-func startDecodeStructKV(sk *dts2.StructKV, source string) (err error) {
+func startDecodeStructKV(sk *dts.StructKV, source string) (err error) {
 	sd := jdeDecPool.Get().(*subDecode)
 	sd.str = source
 	sd.scan = 0
@@ -309,7 +309,7 @@ func (dm *decMeta) initPointerMeta(rfType reflect.Type) {
 
 func (dm *decMeta) initStructMeta(rfType reflect.Type) {
 	dm.isStruct = true
-	dm.ss = dts2.SchemaAsReqByType(rfType)
+	dm.ss = dts.SchemaAsReqByType(rfType)
 	dm.itemMemSize = int(rfType.Size())
 
 	dm.bindStructDec()
