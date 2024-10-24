@@ -8,32 +8,32 @@ import (
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/connx/redis"
 	"github.com/qinchende/gofast/core/cst"
-	lang2 "github.com/qinchende/gofast/core/lang"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/store/bind"
 	"sync"
 	"time"
 )
 
 const (
-	stateFieldServerName = "ServerName"
-	stateFieldStatus     = "Status"
-	stateFieldTime       = "Time"
-	checkPowerIntervalS  = 30 * time.Second
-	checkTimesBeforeRun  = 4 // 夺取运行权之前的，循环检查的次数
+	stateFieldHostName  = "HostName"
+	stateFieldStatus    = "Status"
+	stateFieldTime      = "Time"
+	checkPowerIntervalS = 30 * time.Second
+	checkTimesBeforeRun = 4 // 夺取运行权之前的，循环检查的次数
 )
 
 // Note: LiteGroup中的任务是支持分布式部署的。在应用多机部署的时候能满足高可用(这一点需要Redis数据库的保证)
 type LiteGroup struct {
-	appName    string
-	serverName string
-	groupName  string
-	tasks      []*LitePet
+	appName   string
+	hostName  string
+	groupName string
+	tasks     []*LitePet
 
 	rds *redis.GfRedis // Note：最好用一个实时持久化的Redis数据库
 	key string
 
 	createdTime time.Duration
-	stopRun     chan lang2.PlaceholderType
+	stopRun     chan lang.PlaceholderType
 	lock        sync.RWMutex
 
 	lastState  string // 上次的运行标记
@@ -43,22 +43,22 @@ type LiteGroup struct {
 	isStopping bool   // 是否正在停止任务
 }
 
-func NewLiteGroup(appName, serverName, gpName string, rds *redis.GfRedis) *LiteGroup {
+func NewLiteGroup(appName, hostName, gpName string, rds *redis.GfRedis) *LiteGroup {
 	return &LiteGroup{
 		appName:     appName,
-		serverName:  serverName,
+		hostName:    hostName,
 		groupName:   gpName,
 		tasks:       make([]*LitePet, 0),
 		rds:         rds,
 		key:         liteStoreKeyPrefix + "Group." + appName + "." + gpName,
 		createdTime: timex.NowDur(),
-		stopRun:     make(chan lang2.PlaceholderType, 1),
+		stopRun:     make(chan lang.PlaceholderType, 1),
 	}
 }
 
 func (lite *LiteGroup) AddTask(pet *LitePet) {
 	pet.group = lite
-	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang2.FuncName(pet.Task)
+	pet.key = liteStoreKeyPrefix + "Task." + lite.appName + "." + lang.FuncName(pet.Task)
 
 	if err := bind.Optimize(pet, bind.AsConfig); err != nil {
 		logx.TimerError(err.Error())
@@ -83,7 +83,7 @@ func (lite *LiteGroup) StartRun() {
 		go func() {
 			defer func() {
 				if p := recover(); p != nil {
-					logx.TimerError(lang2.ToString(p))
+					logx.TimerError(lang.ToString(p))
 				}
 				wg.Done()
 			}()
@@ -107,7 +107,7 @@ func (lite *LiteGroup) scanController() {
 		if err2 := jsonx.UnmarshalFromString(&kvs, str); err2 == nil {
 			lite.lostTimes = 0
 
-			if kvs[stateFieldServerName] == lite.serverName {
+			if kvs[stateFieldHostName] == lite.hostName {
 				lite.waitTimes = 0
 
 				if kvs[stateFieldStatus] == "1" {
@@ -133,7 +133,7 @@ func (lite *LiteGroup) scanController() {
 				if lite.waitTimes < -checkTimesBeforeRun {
 					lite.flushStatus(kvs, "0")
 				} else {
-					logx.TimerF("Run by %s, wait %d", kvs[stateFieldServerName], lite.waitTimes)
+					logx.TimerF("Run by %s, wait %d", kvs[stateFieldHostName], lite.waitTimes)
 				}
 			}
 		} else {
@@ -163,7 +163,7 @@ func (lite *LiteGroup) killMyself() {
 	lite.lock.RLock()
 	if lite.isRunning && lite.isStopping == false {
 		logx.Timer("Send stop sign to kill myself.")
-		lite.stopRun <- lang2.ShareVal
+		lite.stopRun <- lang.ShareVal
 		lite.isStopping = true
 	}
 	lite.lock.RUnlock()
@@ -221,7 +221,7 @@ func (lite *LiteGroup) flushStatus(kvs cst.KV, status string) {
 	if kvs == nil {
 		kvs = cst.KV{}
 	}
-	kvs[stateFieldServerName] = lite.serverName
+	kvs[stateFieldHostName] = lite.hostName
 	kvs[stateFieldStatus] = status
 
 	lite.flushTime(kvs)

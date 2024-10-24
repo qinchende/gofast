@@ -40,15 +40,15 @@ const (
 func initStyle(c *LogConfig) error {
 	switch c.LogStyle {
 	case styleCustomStr:
-		c.logStyleInt8 = LogStyleCustom
+		c.iStyle = LogStyleCustom
 	case styleSdxStr:
-		c.logStyleInt8 = LogStyleSdx
+		c.iStyle = LogStyleSdx
 	case styleSdxJson:
-		c.logStyleInt8 = LogStyleSdxJson
+		c.iStyle = LogStyleSdxJson
 	case styleELKStr:
-		c.logStyleInt8 = LogStyleELK
+		c.iStyle = LogStyleELK
 	case stylePrometheusStr:
-		c.logStyleInt8 = LogStylePrometheus
+		c.iStyle = LogStylePrometheus
 	default:
 		return errors.New("item LogStyle not match")
 	}
@@ -77,7 +77,7 @@ func output(w WriterCloser, logLevel string, data any, useStyle bool) {
 	//log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
 
 	if useStyle == true {
-		switch myCnf.logStyleInt8 {
+		switch myCnf.iStyle {
 		case LogStyleCustom:
 			outputCustomStyle(w, logLevel, data)
 		case LogStyleSdx:
@@ -98,7 +98,7 @@ func output(w WriterCloser, logLevel string, data any, useStyle bool) {
 
 // 打印请求日志，可以指定不同的输出样式
 func RequestsLog(p *ReqLogEntity, flag int8) {
-	switch myCnf.logStyleInt8 {
+	switch myCnf.iStyle {
 	case LogStyleCustom:
 		InfoDirect(buildCustomReqLog(p, flag))
 	case LogStyleSdx:

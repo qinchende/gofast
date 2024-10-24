@@ -5,7 +5,7 @@ import (
 	"github.com/qinchende/gofast/aid/jsonx"
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/cst"
-	lang2 "github.com/qinchende/gofast/core/lang"
+	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/fst"
 	"strconv"
 	"strings"
@@ -162,7 +162,7 @@ func (ss *JwtSession) Recreate() {
 
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *JwtSession) createNewToken() {
-	ss.guid = lang2.BTS(genSessGuid(0))
+	ss.guid = lang.BTS(genSessGuid(0))
 	ss.expAt = timex.NowDur() + MySessDB.TTL
 	ss.changed = true
 }
@@ -179,7 +179,7 @@ func parseJwt(tok string) (string, string) {
 }
 
 func checkJwt(data, sHmac string) bool {
-	md5Val := md5B64Str(lang2.STB(data), MySessDB.secretBytes)
+	md5Val := md5B64Str(lang.STB(data), MySessDB.secretBytes)
 	return sHmac == md5Val
 }
 
@@ -204,7 +204,7 @@ func (ss *JwtSession) parsePayloadValues() error {
 	if val, ok := ss.Get(jwtExpire); !ok {
 		return errors.New("token must include jwt expire time")
 	} else {
-		ss.expAt = time.Duration(lang2.ParseIntFast(val)) * time.Second
+		ss.expAt = time.Duration(lang.ParseIntFast(val)) * time.Second
 	}
 	return nil
 }
@@ -247,5 +247,5 @@ func (ss *JwtSession) buildToken() string {
 	base64Enc.Encode(buf[payB64Len+1:tokLen], buf[tokLen:minSize])
 
 	ss.changed = false
-	return lang2.BTS(buf[:tokLen])
+	return lang.BTS(buf[:tokLen])
 }
