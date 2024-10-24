@@ -12,7 +12,7 @@ import (
 )
 
 type (
-	MysqlConnCnf struct {
+	MysqlConfig struct {
 		ConnStr    string   `v:"must"`                    // 主库连接
 		ConnStrR   string   `v:"must=false"`              // 从库连接
 		MaxOpen    int      `v:"def=100,range=[1:1000]"`  // 最大连接数
@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func OpenMysql(cf *MysqlConnCnf) *sqlx.OrmDB {
+func OpenMysql(cf *MysqlConfig) *sqlx.OrmDB {
 	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
 	ormDB.Cmd = &sqlx.MysqlBuilder{}
 

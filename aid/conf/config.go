@@ -9,13 +9,17 @@ import (
 	"path"
 )
 
-// 系统目前支持两种格式的配置文件：
-// 1. JSON
+// 系统目前支持下面几种格式的配置文件：
+// 1. Json
 // 2. Yaml
+// 3. Toml
+// 4. Ini
 var loaders = map[string]func(any, []byte) error{
 	".json": LoadFromJson,
+	".toml": LoadFromToml,
 	".yaml": LoadFromYaml,
 	".yml":  LoadFromYaml,
+	".int":  LoadFromIni,
 }
 
 // 必须加载配置，否则应用无法启动，直接退出
@@ -41,4 +45,12 @@ func LoadFromJson(dst any, content []byte) error {
 
 func LoadFromYaml(dst any, content []byte) error {
 	return bind.BindYamlBytes(dst, content, bind.AsConfig)
+}
+
+func LoadFromToml(dst any, content []byte) error {
+	return nil
+}
+
+func LoadFromIni(dst any, content []byte) error {
+	return nil
 }

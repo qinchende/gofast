@@ -23,6 +23,7 @@ const (
 	MIMEMsgPack       = "application/msgpack"
 	MIMEXMsgPack      = "application/x-msgpack"
 	MIMEYaml          = "application/x-yaml"
+	MIMECdo           = "application/cdo" // 自研Cdo编解码协议（compact data of object）
 )
 
 // MIME types + CharsetUTF8

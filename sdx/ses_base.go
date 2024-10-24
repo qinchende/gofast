@@ -31,7 +31,7 @@ func PmsKeys(obj any) []string {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-type SessionCnf struct {
+type SessionConfig struct {
 	//PrefixToken   string        `v:"def=t:"`                         // token 字符串的 前缀
 	RedisConn     redis.ConnCnf `v:""`                           // 用 Redis 做持久化
 	PrefixSessKey string        `v:"def=ses:"`                   // session 的前缀
@@ -49,7 +49,7 @@ type SessionCnf struct {
 
 // 参数配置，Redis实例等
 type SessionDB struct {
-	SessionCnf
+	SessionConfig
 	Redis *redis.GfRedis
 }
 
