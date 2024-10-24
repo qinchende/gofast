@@ -21,7 +21,7 @@ type (
 	}
 )
 
-func OpenPg(cf *MysqlConnCnf) *sqlx.OrmDB {
+func OpenPg(cf *MysqlConfig) *sqlx.OrmDB {
 	ormDB := sqlx.OrmDB{Attrs: &sqlx.DBAttrs{DriverName: "mysql"}, Ctx: context.Background()}
 	ormDB.Cmd = &sqlx.PgBuilder{}
 

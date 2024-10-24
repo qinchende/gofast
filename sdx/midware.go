@@ -7,12 +7,33 @@ import (
 	"github.com/qinchende/gofast/fst"
 	"github.com/qinchende/gofast/sdx/gate"
 	"github.com/qinchende/gofast/sdx/mid"
+	"time"
 )
+
+// 闪电侠实现的中间件控制参数
+type MidConfig struct {
+	//SysStateMonitor  bool  `v:"def=true"`                  // 是否启动系统资源使用情况的定时检查工作
+	PrintSysState    bool  `v:"def=true"`                  // 定时打印系统资源状态检查日志
+	PrintRouteState  bool  `v:"def=true"`                  // 定时打印路由访问统计数据
+	MaxContentLength int64 `v:"def=33554432"`              // 最大请求字节数，32MB（33554432），传0不限制
+	MaxConnections   int32 `v:"def=0,range=[0:100000000]"` // 最大同时请求数，0不限制
+
+	EnableSpecialHandlers bool          `v:"def=true"`   // 是否启用默认的特殊路由中间件
+	EnableTrack           bool          `v:"def=false"`  // 启动链路追踪
+	EnableGunzip          bool          `v:"def=false"`  // 启动gunzip
+	EnableShedding        bool          `v:"def=true"`   // 启动降载限制访问
+	EnableTimeout         bool          `v:"def=true"`   // 启动超时拦截
+	DefaultTimeout        time.Duration `v:"def=3000ms"` // 默认请求超时时间（单位：毫秒）
+}
+
+var cnf MidConfig
+
+func SetMidConfig(cf *MidConfig) {
+	cnf = *cf
+}
 
 // GoFast default handlers chain
 func SuperHandlers(app *fst.GoFast) *fst.GoFast {
-	cnf := app.SdxConfig
-
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流降载熔断，定时日志）
 	keeper := gate.NewReqKeeper(gate.KeeperCnf{
 		ProjName:   app.ProjectName(),

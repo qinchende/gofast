@@ -2,7 +2,9 @@
 // Use of this source code is governed by a MIT license
 package sdx
 
-import "github.com/qinchende/gofast/fst"
+import (
+	"github.com/qinchende/gofast/fst"
+)
 
 func PmsParser(c *fst.Context) {
 	c.PanicIfErr(c.CollectPms(), "parse the request data error")
