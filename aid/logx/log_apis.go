@@ -13,83 +13,83 @@ import (
 )
 
 func ShowDebug() bool {
-	return myCnf.iLevel <= LogLevelDebug
+	return myCnf.iLevel <= LevelDebug
 }
 
 func ShowInfo() bool {
-	return myCnf.iLevel <= LogLevelInfo
+	return myCnf.iLevel <= LevelInfo
 }
 
 func ShowWarn() bool {
-	return myCnf.iLevel <= LogLevelWarn
+	return myCnf.iLevel <= LevelWarn
 }
 
 func ShowError() bool {
-	return myCnf.iLevel <= LogLevelError
+	return myCnf.iLevel <= LevelError
 }
 
 func ShowStack() bool {
-	return myCnf.iLevel <= LogLevelStack
+	return myCnf.iLevel <= LevelStack
 }
 
 func ShowStat() bool {
-	return myCnf.LogStats
+	return myCnf.LogStat
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Debug(v string) {
-	if myCnf.iLevel <= LogLevelDebug {
-		output(debugLog, typeDebug, v, true)
+	if myCnf.iLevel <= LevelDebug {
+		output(debugLog, labelDebug, v, true)
 	}
 }
 
 func Debugs(v ...any) {
-	if myCnf.iLevel <= LogLevelDebug {
-		output(debugLog, typeDebug, fmt.Sprint(v...), true)
+	if myCnf.iLevel <= LevelDebug {
+		output(debugLog, labelDebug, fmt.Sprint(v...), true)
 	}
 }
 
 func DebugF(format string, v ...any) {
-	if myCnf.iLevel <= LogLevelDebug {
-		output(debugLog, typeDebug, fmt.Sprintf(format, v...), true)
+	if myCnf.iLevel <= LevelDebug {
+		output(debugLog, labelDebug, fmt.Sprintf(format, v...), true)
 	}
 }
 
 func DebugDirect(v string) {
-	if myCnf.iLevel <= LogLevelDebug {
-		output(debugLog, typeDebug, v, false)
+	if myCnf.iLevel <= LevelDebug {
+		output(debugLog, labelDebug, v, false)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Info(v string) {
-	if myCnf.iLevel <= LogLevelInfo {
-		output(infoLog, typeInfo, v, true)
+	if myCnf.iLevel <= LevelInfo {
+		output(infoLog, labelInfo, v, true)
 	}
 }
 
 func InfoKV(v cst.KV) {
-	if myCnf.iLevel <= LogLevelInfo {
-		output(infoLog, typeInfo, v, true)
+	if myCnf.iLevel <= LevelInfo {
+		output(infoLog, labelInfo, v, true)
 	}
 }
 
 func Infos(v ...any) {
-	if myCnf.iLevel <= LogLevelInfo {
-		output(infoLog, typeInfo, fmt.Sprint(v...), true)
+	if myCnf.iLevel <= LevelInfo {
+		output(infoLog, labelInfo, fmt.Sprint(v...), true)
 	}
 }
 
 func InfoF(format string, v ...any) {
-	if myCnf.iLevel <= LogLevelInfo {
-		output(infoLog, typeInfo, fmt.Sprintf(format, v...), true)
+	if myCnf.iLevel <= LevelInfo {
+		output(infoLog, labelInfo, fmt.Sprintf(format, v...), true)
 	}
 }
 
 // 直接打印所给的数据
 func InfoDirect(v string) {
-	if myCnf.iLevel <= LogLevelInfo {
-		output(infoLog, typeInfo, v, false)
+	if myCnf.iLevel <= LevelInfo {
+		output(infoLog, labelInfo, v, false)
 	}
 }
 
@@ -108,24 +108,24 @@ func WarnF(format string, v ...any) {
 
 // +++
 func Error(v string) {
-	errorSync(v, callerInnerDepth, true)
+	errorSync(v, callerSkipDepth, true)
 }
 
 func Errors(v ...any) {
-	errorSync(fmt.Sprint(v...), callerInnerDepth, true)
+	errorSync(fmt.Sprint(v...), callerSkipDepth, true)
 }
 
 func ErrorF(format string, v ...any) {
-	errorSync(fmt.Sprintf(format, v...), callerInnerDepth, true)
+	errorSync(fmt.Sprintf(format, v...), callerSkipDepth, true)
 }
 
 func ErrorFatal(v ...any) {
-	errorSync(fmt.Sprint(v...), callerInnerDepth, true)
+	errorSync(fmt.Sprint(v...), callerSkipDepth, true)
 	os.Exit(1)
 }
 
 func ErrorFatalF(format string, v ...any) {
-	errorSync(fmt.Sprintf(format, v...), callerInnerDepth, true)
+	errorSync(fmt.Sprintf(format, v...), callerSkipDepth, true)
 	os.Exit(1)
 }
 
@@ -144,95 +144,95 @@ func StackF(format string, v ...any) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stat(v string) {
-	if myCnf.LogStats {
-		output(statLog, typeStat, v, true)
+	if myCnf.LogStat {
+		output(statLog, labelStat, v, true)
 	}
 }
 
 func StatKV(data cst.KV) {
-	if myCnf.LogStats {
-		output(statLog, typeStat, data, true)
+	if myCnf.LogStat {
+		output(statLog, labelStat, data, true)
 	}
 }
 
 func Stats(v ...any) {
-	if myCnf.LogStats {
-		output(statLog, typeStat, fmt.Sprint(v...), true)
+	if myCnf.LogStat {
+		output(statLog, labelStat, fmt.Sprint(v...), true)
 	}
 }
 
 func StatF(format string, v ...any) {
-	if myCnf.LogStats {
-		output(statLog, typeStat, fmt.Sprintf(format, v...), true)
+	if myCnf.LogStat {
+		output(statLog, labelStat, fmt.Sprintf(format, v...), true)
 	}
 }
 
 // +++
 func Slow(v string) {
-	if myCnf.LogStats {
-		output(slowLog, typeSlow, v, true)
+	if myCnf.LogStat {
+		output(slowLog, labelSlow, v, true)
 	}
 }
 
 func Slows(v ...any) {
-	if myCnf.LogStats {
-		output(slowLog, typeSlow, fmt.Sprint(v...), true)
+	if myCnf.LogStat {
+		output(slowLog, labelSlow, fmt.Sprint(v...), true)
 	}
 }
 
 func SlowF(format string, v ...any) {
-	if myCnf.LogStats {
-		output(slowLog, typeSlow, fmt.Sprintf(format, v...), true)
+	if myCnf.LogStat {
+		output(slowLog, labelSlow, fmt.Sprintf(format, v...), true)
 	}
 }
 
 // +++
 func Timer(v string) {
-	if myCnf.LogStats {
-		output(timerLog, typeTimer, v, true)
+	if myCnf.LogStat {
+		output(timerLog, labelTimer, v, true)
 	}
 }
 
 func TimerKV(data cst.KV) {
-	if myCnf.LogStats {
-		output(timerLog, typeTimer, data, true)
+	if myCnf.LogStat {
+		output(timerLog, labelTimer, data, true)
 	}
 }
 
 func Timers(v ...any) {
-	if myCnf.LogStats {
-		output(timerLog, typeTimer, fmt.Sprint(v...), true)
+	if myCnf.LogStat {
+		output(timerLog, labelTimer, fmt.Sprint(v...), true)
 	}
 }
 
 func TimerF(format string, v ...any) {
-	if myCnf.LogStats {
-		output(timerLog, typeTimer, fmt.Sprintf(format, v...), true)
+	if myCnf.LogStat {
+		output(timerLog, labelTimer, fmt.Sprintf(format, v...), true)
 	}
 }
 
 func TimerError(v string) {
-	if myCnf.LogStats {
-		output(errorLog, typeError, formatWithCaller(v, callerInnerDepth), true)
+	if myCnf.LogStat {
+		output(errorLog, labelError, formatWithCaller(v, callerSkipDepth), true)
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // inner call apis
 func warnSync(msg string, useStyle bool) {
-	if myCnf.iLevel <= LogLevelWarn {
-		output(warnLog, typeWarn, msg, useStyle)
+	if myCnf.iLevel <= LevelWarn {
+		output(warnLog, labelWarn, msg, useStyle)
 	}
 }
 
 func errorSync(msg string, callDepth int, useStyle bool) {
-	if myCnf.iLevel <= LogLevelError {
-		output(errorLog, typeError, formatWithCaller(msg, callDepth), useStyle)
+	if myCnf.iLevel <= LevelError {
+		output(errorLog, labelError, formatWithCaller(msg, callDepth), useStyle)
 	}
 }
 
 func stackSync(msg string, useStyle bool) {
-	if myCnf.iLevel <= LogLevelStack {
-		output(stackLog, typeStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()), useStyle)
+	if myCnf.iLevel <= LevelStack {
+		output(stackLog, labelStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()), useStyle)
 	}
 }

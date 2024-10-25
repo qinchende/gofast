@@ -3,6 +3,7 @@
 package logx
 
 import (
+	"github.com/qinchende/gofast/core/lang"
 	"log"
 	"runtime"
 	"strconv"
@@ -37,6 +38,14 @@ func getCaller(callDepth int) *strings.Builder {
 		buf.WriteString(strconv.Itoa(line))
 	}
 	return &buf
+}
+
+func outputDirect(w WriterCloser, logLevel string, data any) {
+	if w == nil {
+		log.Println(lang.ToString(data))
+	} else {
+		_ = w.Writeln(lang.ToString(data))
+	}
 }
 
 func outputDirectString(w WriterCloser, str string) {

@@ -36,9 +36,9 @@ func MustSetup(cnf *LogConfig) {
 	}
 
 	if err := setup(myCnf); err != nil {
-		info := formatWithCaller(err.Error(), callerInnerDepth)
+		info := formatWithCaller(err.Error(), callerSkipDepth)
 		log.Println(info)
-		output(stackLog, info, typeStack, true)
+		output(stackLog, info, labelStack, true)
 		os.Exit(1)
 	}
 }
@@ -46,15 +46,15 @@ func MustSetup(cnf *LogConfig) {
 func setup(c *LogConfig) error {
 	switch c.LogLevel {
 	case "debug":
-		c.iLevel = LogLevelDebug
+		c.iLevel = LevelDebug
 	case "info":
-		c.iLevel = LogLevelInfo
+		c.iLevel = LevelInfo
 	case "warn":
-		c.iLevel = LogLevelWarn
+		c.iLevel = LevelWarn
 	case "error":
-		c.iLevel = LogLevelError
+		c.iLevel = LevelError
 	case "stack":
-		c.iLevel = LogLevelStack
+		c.iLevel = LevelStack
 	default:
 		return errors.New("item LogLevel not match")
 	}
@@ -64,11 +64,11 @@ func setup(c *LogConfig) error {
 	}
 
 	switch c.LogMedium {
-	case logMediumConsole:
+	case toConsole:
 		return setupWithConsole(c)
-	case logMediumFile:
+	case toFile:
 		return setupWithFiles(c)
-	case logMediumVolume:
+	case toVolume:
 		return setupWithVolume(c)
 	default:
 		return errors.New("item LogMedium not match")
@@ -97,44 +97,44 @@ func setupWithFiles(c *LogConfig) error {
 	}
 	initOnce.Do(func() {
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		infoLog = createFile(typeInfo)
+		infoLog = createFile(labelInfo)
 		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
 		*os.Stdout = *infoLog.(*RotateLogger).fp
 		*os.Stderr = *os.Stdout
 		//log.SetOutput(infoLog) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
 		if c.FileSplit&1 != 0 {
-			debugLog = createFile(typeDebug)
+			debugLog = createFile(labelDebug)
 		} else {
 			debugLog = infoLog
 		}
 		if c.FileSplit&2 != 0 {
-			warnLog = createFile(typeWarn)
+			warnLog = createFile(labelWarn)
 		} else {
 			warnLog = infoLog
 		}
 		if c.FileSplit&4 != 0 {
-			errorLog = createFile(typeError)
+			errorLog = createFile(labelError)
 		} else {
 			errorLog = warnLog
 		}
 		if c.FileSplit&8 != 0 {
-			stackLog = createFile(typeStack)
+			stackLog = createFile(labelStack)
 		} else {
 			stackLog = errorLog
 		}
 		if c.FileSplit&32 != 0 {
-			statLog = createFile(typeStat)
+			statLog = createFile(labelStat)
 		} else {
 			statLog = stackLog
 		}
 		if c.FileSplit&64 != 0 {
-			slowLog = createFile(typeSlow)
+			slowLog = createFile(labelSlow)
 		} else {
 			slowLog = statLog
 		}
 		if c.FileSplit&128 != 0 {
-			timerLog = createFile(typeTimer)
+			timerLog = createFile(labelTimer)
 		} else {
 			timerLog = slowLog
 		}

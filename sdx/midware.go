@@ -23,7 +23,7 @@ type MidConfig struct {
 	EnableGunzip          bool          `v:"def=false"`  // 启动gunzip
 	EnableShedding        bool          `v:"def=true"`   // 启动降载限制访问
 	EnableTimeout         bool          `v:"def=true"`   // 启动超时拦截
-	DefaultTimeout        time.Duration `v:"def=3000ms"` // 默认请求超时时间（单位：毫秒）
+	ReqTimeout            time.Duration `v:"def=3000ms"` // 默认请求超时时间
 }
 
 var cnf MidConfig
@@ -32,6 +32,7 @@ func SetMidConfig(cf *MidConfig) {
 	cnf = *cf
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GoFast default handlers chain
 func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	// 初始化一个全局的 请求管理器（记录访问数据，分析统计，限流降载熔断，定时日志）
@@ -41,8 +42,8 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	})
 	app.OnBeforeBuildRoutes(func(app *fst.GoFast) {
 		// 因为Routes的数量只能在加载完所有路由之后才知道,所以这里选择延时构造所有Breakers
-		mid.RoutesAttrs.Rebuild(app.RoutesLen(), &cnf) // 所有路由配置
-		sysx.OpenSysMonitor(cnf.PrintSysState)         // 系统资源监控
+		mid.RoutesAttrs.Rebuild(app.RoutesLen(), cnf.ReqTimeout) // 所有路由配置
+		sysx.OpenSysMonitor(cnf.PrintSysState)                   // 系统资源监控
 
 		routePaths := app.RoutePathsWithMethod()
 		extraPaths := []string{"AllRequest", "RouteMatched", "LoadShedding"}

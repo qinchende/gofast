@@ -6,7 +6,6 @@ import (
 	"errors"
 	"github.com/qinchende/gofast/aid/bag"
 	"github.com/qinchende/gofast/core/cst"
-	"github.com/qinchende/gofast/core/lang"
 	"net/http"
 	"time"
 )
@@ -36,20 +35,28 @@ const (
 	stylePrometheusStr = "prometheus"
 )
 
+var Formatter func(w WriterCloser, level string, data any)
+
 // 将名称字符串转换成整数类型，提高判断性能
 func initStyle(c *LogConfig) error {
 	switch c.LogStyle {
 	case styleCustomStr:
 		c.iStyle = LogStyleCustom
+		Formatter = outputCustomStyle
 	case styleSdxStr:
 		c.iStyle = LogStyleSdx
+		Formatter = outputSdxStyle
 	case styleSdxJson:
 		c.iStyle = LogStyleSdxJson
+		Formatter = outputSdxJsonStyle
 	case styleELKStr:
 		c.iStyle = LogStyleELK
+		Formatter = outputElkStyle
 	case stylePrometheusStr:
 		c.iStyle = LogStylePrometheus
+		Formatter = outputPrometheusStyle
 	default:
+		Formatter = outputDirect
 		return errors.New("item LogStyle not match")
 	}
 	return nil
@@ -70,30 +77,34 @@ type ReqLogEntity struct {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要到这个方法进行输出
+//
+//	func output(w WriterCloser, logLevel string, data any, useStyle bool) {
+//		// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
+//		//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
+//		//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
+//		//log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
+//
+//		if useStyle == true {
+//			switch myCnf.iStyle {
+//			case LogStyleCustom:
+//				outputCustomStyle(w, logLevel, data)
+//			case LogStyleSdx:
+//				outputSdxStyle(w, logLevel, data)
+//			case LogStyleSdxJson:
+//				outputSdxJsonStyle(w, logLevel, data)
+//			case LogStyleELK:
+//				outputElkStyle(w, logLevel, data)
+//			case LogStylePrometheus:
+//				outputPrometheusStyle(w, logLevel, data)
+//			default:
+//				outputDirectString(w, lang.ToString(data))
+//			}
+//		} else {
+//			outputDirectString(w, lang.ToString(data))
+//		}
+//	}
 func output(w WriterCloser, logLevel string, data any, useStyle bool) {
-	// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
-	//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
-	//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
-	//log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
-
-	if useStyle == true {
-		switch myCnf.iStyle {
-		case LogStyleCustom:
-			outputCustomStyle(w, logLevel, data)
-		case LogStyleSdx:
-			outputSdxStyle(w, logLevel, data)
-		case LogStyleSdxJson:
-			outputSdxJsonStyle(w, logLevel, data)
-		case LogStyleELK:
-			outputElkStyle(w, logLevel, data)
-		case LogStylePrometheus:
-			outputPrometheusStyle(w, logLevel, data)
-		default:
-			outputDirectString(w, lang.ToString(data))
-		}
-	} else {
-		outputDirectString(w, lang.ToString(data))
-	}
+	Formatter(w, logLevel, data)
 }
 
 // 打印请求日志，可以指定不同的输出样式
