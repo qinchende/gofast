@@ -3,7 +3,7 @@
 package logx
 
 func CloseFiles() error {
-	if myCnf.LogMedium == logMediumConsole {
+	if myCnf.LogMedium == toConsole {
 		return nil
 	}
 

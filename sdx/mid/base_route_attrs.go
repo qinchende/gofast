@@ -4,11 +4,11 @@ package mid
 
 import (
 	"github.com/qinchende/gofast/fst"
-	"github.com/qinchende/gofast/sdx"
 	"time"
 )
 
 type (
+	// RouteAttrs 用来对每个请求地址的单独配置
 	RAttrs struct {
 		RIndex    uint16 `v:""`                       // 索引位置
 		Priority  int16  `v:"def=500,range=[0:1000]"` // 业务优先级
@@ -18,7 +18,7 @@ type (
 		//MaxReq    int32   `cnf:",def=1000000,range=[0:100000000]"` // 支持最大并发量 (对单个请求不支持这个参数，这个是由自适应降载逻辑自动判断的)
 		//BreakRate float32 `cnf:",def=3000,range=[0:600000]"` // google sre算法K值敏感度，K 越小越容易丢请求，推荐 1.5-2 之间 （这个算法目前底层写死1.5，基本上通用了，不必每个路由单独设置）
 	}
-	listAttrs []*RAttrs // 高级功能：每项路由可选配置，精准控制
+	listAttrs []*RAttrs
 )
 
 var RoutesAttrs listAttrs // 所有配置项汇总
@@ -45,7 +45,7 @@ func (ras *RAttrs) Clone() fst.RouteAttrs {
 }
 
 // 构建所有路由的属性数组。没有指定的就用默认值填充。
-func (*listAttrs) Rebuild(routesLen uint16, cnf *sdx.MidConfig) {
+func (*listAttrs) Rebuild(routesLen uint16, defTimeout time.Duration) {
 	old := RoutesAttrs
 	RoutesAttrs = make(listAttrs, routesLen)
 	for i := range old {
@@ -56,7 +56,7 @@ func (*listAttrs) Rebuild(routesLen uint16, cnf *sdx.MidConfig) {
 		if RoutesAttrs[i] == nil {
 			RoutesAttrs[i] = &RAttrs{
 				MaxLen:    0,
-				TimeoutMS: int32(cnf.DefaultTimeout / time.Millisecond),
+				TimeoutMS: int32(defTimeout / time.Millisecond),
 				//MaxReq:    1000000,
 				//BreakRate: 1.5,
 			}
