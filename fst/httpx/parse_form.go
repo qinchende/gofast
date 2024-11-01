@@ -78,7 +78,7 @@ func ParseMultipartForm(pms cst.SuperKV, r *http.Request, ct string, maxMemory i
 			if bytes, err := iox.ReadAll(reader, r.ContentLength); err != nil {
 				parseErr = err
 			} else {
-				ParseQuery(pms, lang.BTS(bytes))
+				ParseQuery(pms, lang.B2S(bytes))
 			}
 		}
 	} else if strings.HasPrefix(ct, "multipart/form-data") {

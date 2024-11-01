@@ -4,10 +4,6 @@ package logx
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/aid/bag"
-	"github.com/qinchende/gofast/core/cst"
-	"net/http"
-	"time"
 )
 
 const (
@@ -21,18 +17,16 @@ const (
 const (
 	LogStyleCustom int8 = iota
 	LogStyleSdx
-	LogStyleSdxJson
 	LogStyleELK
-	LogStylePrometheus
+	LogStyleJson
 )
 
 // 日志样式名称
 const (
-	styleCustomStr     = "custom" // 自定义
-	styleSdxStr        = "sdx"
-	styleSdxJson       = "sdx-json"
-	styleELKStr        = "elk"
-	stylePrometheusStr = "prometheus"
+	styleSdxStr    = "sdx"
+	styleJsonStr   = "json"
+	styleELKStr    = "elk"
+	styleCustomStr = "custom" // 自定义
 )
 
 var Formatter func(w WriterCloser, level string, data any)
@@ -40,39 +34,24 @@ var Formatter func(w WriterCloser, level string, data any)
 // 将名称字符串转换成整数类型，提高判断性能
 func initStyle(c *LogConfig) error {
 	switch c.LogStyle {
-	case styleCustomStr:
-		c.iStyle = LogStyleCustom
-		Formatter = outputCustomStyle
+
 	case styleSdxStr:
 		c.iStyle = LogStyleSdx
 		Formatter = outputSdxStyle
-	case styleSdxJson:
-		c.iStyle = LogStyleSdxJson
-		Formatter = outputSdxJsonStyle
 	case styleELKStr:
 		c.iStyle = LogStyleELK
 		Formatter = outputElkStyle
-	case stylePrometheusStr:
-		c.iStyle = LogStylePrometheus
+	case styleJsonStr:
+		c.iStyle = LogStyleJson
 		Formatter = outputPrometheusStyle
+	case styleCustomStr:
+		c.iStyle = LogStyleCustom
+		Formatter = outputCustomStyle
 	default:
 		Formatter = outputDirect
 		return errors.New("item LogStyle not match")
 	}
 	return nil
-}
-
-// 日志参数实体
-type ReqLogEntity struct {
-	RawReq     *http.Request
-	TimeStamp  time.Duration
-	Latency    time.Duration
-	ClientIP   string
-	StatusCode int
-	Pms        cst.SuperKV
-	BodySize   int
-	ResData    []byte
-	CarryItems bag.CarryList
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -94,7 +73,7 @@ type ReqLogEntity struct {
 //				outputSdxJsonStyle(w, logLevel, data)
 //			case LogStyleELK:
 //				outputElkStyle(w, logLevel, data)
-//			case LogStylePrometheus:
+//			case LogStyleJson:
 //				outputPrometheusStyle(w, logLevel, data)
 //			default:
 //				outputDirectString(w, lang.ToString(data))
@@ -103,23 +82,21 @@ type ReqLogEntity struct {
 //			outputDirectString(w, lang.ToString(data))
 //		}
 //	}
-func output(w WriterCloser, logLevel string, data any, useStyle bool) {
+func output(w WriterCloser, logLevel string, data any) {
 	Formatter(w, logLevel, data)
 }
 
 // 打印请求日志，可以指定不同的输出样式
 func RequestsLog(p *ReqLogEntity, flag int8) {
 	switch myCnf.iStyle {
-	case LogStyleCustom:
-		InfoDirect(buildCustomReqLog(p, flag))
 	case LogStyleSdx:
-		InfoDirect(buildSdxReqLog(p, flag))
-	case LogStyleSdxJson:
 		InfoDirect(buildSdxReqLog(p, flag))
 	case LogStyleELK:
 		InfoDirect(buildElkReqLog(p, flag))
-	case LogStylePrometheus:
+	case LogStyleJson:
 		InfoDirect(buildPrometheusReqLog(p, flag))
+	case LogStyleCustom:
+		InfoDirect(buildCustomReqLog(p, flag))
 	default:
 	}
 }

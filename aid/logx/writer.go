@@ -8,6 +8,15 @@ import (
 	"strings"
 )
 
+const (
+	dateFormatYMD       = "2006-01-02"
+	hoursPerDay         = 24
+	bufferSize          = 100
+	defaultDirMode      = 0755
+	defaultFileMode     = 0600
+	backupFileDelimiter = "-"
+)
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type WriterCloser interface {
 	io.WriteCloser

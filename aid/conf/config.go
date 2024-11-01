@@ -33,7 +33,7 @@ func LoadFile(file string, dst any) error {
 	if content, err := os.ReadFile(file); err != nil {
 		return err
 	} else if loader, ok := loaders[path.Ext(file)]; ok {
-		return loader(dst, lang.STB(os.ExpandEnv(string(content))))
+		return loader(dst, lang.S2B(os.ExpandEnv(string(content))))
 	} else {
 		return fmt.Errorf("unrecoginized file type: %s", file)
 	}

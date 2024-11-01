@@ -11,11 +11,11 @@ const (
 
 // 数字验证码
 func RandomNumbers(size int) string {
-	return lang.BTS(randomBytes(sOnlyNumbers, size))
+	return lang.B2S(randomBytes(sOnlyNumbers, size))
 }
 
 func RandomString(size int) string {
-	return lang.BTS(randomBytes(sLetters, size))
+	return lang.B2S(randomBytes(sLetters, size))
 }
 
 func RandomBytes(size int) []byte {

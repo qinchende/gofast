@@ -43,7 +43,7 @@ func DecodeString(v any, source string) error {
 }
 
 func DecodeBytes(v any, source []byte) error {
-	return decodeFromString(v, lang.BTS(source))
+	return decodeFromString(v, lang.B2S(source))
 }
 
 // 事先精确指定 bufSize ，能有效避免字节数组中途扩容，若未知，传 0 即可，默认初始化内存空间
@@ -59,7 +59,7 @@ func DecodeRequest(v any, req *http.Request) error {
 func DecodeStringCopy(v any, source string) error {
 	newMem := make([]byte, len(source))
 	copy(newMem, source)
-	return decodeFromString(v, lang.BTS(newMem))
+	return decodeFromString(v, lang.B2S(newMem))
 }
 
 func DecodeBytesCopy(v any, source []byte) error {
@@ -67,7 +67,7 @@ func DecodeBytesCopy(v any, source []byte) error {
 }
 
 //func Unmarshal(str []byte, v any) error {
-//	return decodeFromString(v, lang.BTS(str))
+//	return decodeFromString(v, lang.B2S(str))
 //}
 //
 //func UnmarshalFromString(str string, v any) error {
@@ -83,7 +83,7 @@ func EncodeToBytes(v any) ([]byte, error) {
 
 func EncodeToString(v any) (string, error) {
 	b, err := startEncode(v)
-	return lang.BTS(b), err
+	return lang.B2S(b), err
 }
 
 func EncodeToBytesIndent(v any, prefix, indent string) ([]byte, error) {
@@ -96,7 +96,7 @@ func EncodeToBytesIndent(v any, prefix, indent string) ([]byte, error) {
 //
 //func MarshalToString(v any) (string, error) {
 //	b, err := startEncode(v)
-//	return lang.BTS(b), err
+//	return lang.B2S(b), err
 //}
 //
 //func MarshalIndent(v any, prefix, indent string) ([]byte, error) {

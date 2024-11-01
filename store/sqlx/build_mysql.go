@@ -42,7 +42,7 @@ func (*MysqlBuilder) Insert(ts *orm.TableSchema) string {
 			bVal[ct] = '?'
 			ct++
 		}
-		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ts.TableName(), sBuf.String(), lang.BTS(bVal))
+		return fmt.Sprintf("INSERT INTO %s (%s) VALUES (%s);", ts.TableName(), sBuf.String(), lang.B2S(bVal))
 	})
 }
 

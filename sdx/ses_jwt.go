@@ -162,7 +162,7 @@ func (ss *JwtSession) Recreate() {
 
 // 新生成一个SDX Session对象，生成新的tok
 func (ss *JwtSession) createNewToken() {
-	ss.guid = lang.BTS(genSessGuid(0))
+	ss.guid = lang.B2S(genSessGuid(0))
 	ss.expAt = timex.NowDur() + MySessDB.TTL
 	ss.changed = true
 }
@@ -179,7 +179,7 @@ func parseJwt(tok string) (string, string) {
 }
 
 func checkJwt(data, sHmac string) bool {
-	md5Val := md5B64Str(lang.STB(data), MySessDB.secretBytes)
+	md5Val := md5B64Str(lang.S2B(data), MySessDB.secretBytes)
 	return sHmac == md5Val
 }
 
@@ -247,5 +247,5 @@ func (ss *JwtSession) buildToken() string {
 	base64Enc.Encode(buf[payB64Len+1:tokLen], buf[tokLen:minSize])
 
 	ss.changed = false
-	return lang.BTS(buf[:tokLen])
+	return lang.B2S(buf[:tokLen])
 }

@@ -93,7 +93,7 @@ func decodeFromReader(dst any, reader io.Reader, ctSize int64) error {
 	if err1 != nil {
 		return err1
 	}
-	return decodeFromString(dst, lang.BTS(bytes))
+	return decodeFromString(dst, lang.B2S(bytes))
 }
 
 func decodeFromString(dst any, source string) (err error) {

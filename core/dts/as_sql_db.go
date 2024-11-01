@@ -191,7 +191,7 @@ func (val *SqlFloat64) Scan(src any) error {
 //func (val *sqlString) Scan(src any) error {
 //	switch s := src.(type) {
 //	case []byte:
-//		*val = (sqlString)(lang.BTS(s))
+//		*val = (sqlString)(lang.B2S(s))
 //	}
 //	return nil
 //}
@@ -205,7 +205,7 @@ func (val *SqlBool) Scan(src any) error {
 			return fmt.Errorf("dts: couldn't convert %d into type bool", s)
 		}
 	case []byte:
-		bv, err := strconv.ParseBool(lang.BTS(s))
+		bv, err := strconv.ParseBool(lang.B2S(s))
 		if err == nil {
 			*val = SqlBool(bv)
 		}

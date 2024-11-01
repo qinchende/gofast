@@ -169,7 +169,7 @@ func (ss *TokSession) createNewToken() {
 	// md5 base64
 	base64Enc.Encode(buf[sidLen+1:tokLen], buf[tokLen:minSize])
 
-	ss.guid, ss.raw = lang.BTS(buf[:sidLen]), lang.BTS(buf[:tokLen])
+	ss.guid, ss.raw = lang.B2S(buf[:sidLen]), lang.B2S(buf[:tokLen])
 	ss.isNewTok = true
 
 	// 意味着没有设置值的时候不需要保存，新的token传给前端即可
@@ -195,7 +195,7 @@ func parseToken(tok string) (string, string) {
 
 // 利用当前 guid 和 c 中包含的 request_ip | 计算出hmac值，然后和token中携带的 hmac值比较，来得出合法性
 func checkToken(guid, sHmac string) bool {
-	md5Val := md5B64Str(lang.STB(guid), MySessDB.secretBytes)
+	md5Val := md5B64Str(lang.S2B(guid), MySessDB.secretBytes)
 	return sHmac == md5Val
 }
 
@@ -212,7 +212,7 @@ func (ss *TokSession) loadSessFromRedis() error {
 	if ss.values == nil {
 		ss.values = make(cst.WebKV)
 	}
-	return jsonx.Unmarshal(&ss.values, lang.STB(str))
+	return jsonx.Unmarshal(&ss.values, lang.S2B(str))
 }
 
 func (ss *TokSession) saveSessToRedis() (err error) {

@@ -7,43 +7,43 @@ func CloseFiles() error {
 		return nil
 	}
 
-	if debugLog != nil {
-		if err := debugLog.Close(); err != nil {
+	if ioDebug != nil {
+		if err := ioDebug.Close(); err != nil {
 			return err
 		}
 	}
-	if infoLog != nil {
-		if err := infoLog.Close(); err != nil {
+	if ioInfo != nil {
+		if err := ioInfo.Close(); err != nil {
 			return err
 		}
 	}
-	if warnLog != nil {
-		if err := warnLog.Close(); err != nil {
+	if ioWarn != nil {
+		if err := ioWarn.Close(); err != nil {
 			return err
 		}
 	}
-	if errorLog != nil {
-		if err := errorLog.Close(); err != nil {
+	if ioErr != nil {
+		if err := ioErr.Close(); err != nil {
 			return err
 		}
 	}
-	if stackLog != nil {
-		if err := stackLog.Close(); err != nil {
+	if ioStack != nil {
+		if err := ioStack.Close(); err != nil {
 			return err
 		}
 	}
-	if statLog != nil {
-		if err := statLog.Close(); err != nil {
+	if ioStat != nil {
+		if err := ioStat.Close(); err != nil {
 			return err
 		}
 	}
-	if slowLog != nil {
-		if err := slowLog.Close(); err != nil {
+	if ioSlow != nil {
+		if err := ioSlow.Close(); err != nil {
 			return err
 		}
 	}
-	if timerLog != nil {
-		if err := timerLog.Close(); err != nil {
+	if ioTimer != nil {
+		if err := ioTimer.Close(); err != nil {
 			return err
 		}
 	}
@@ -55,10 +55,10 @@ func Disable() {
 	initOnce.Do(func() {
 		//atomic.StoreUint32(&initialized, 1)
 
-		//infoLog = iox.NopCloser(ioutil.Discard)
-		//errorLog = iox.NopCloser(ioutil.Discard)
-		//slowLog = iox.NopCloser(ioutil.Discard)
-		//statLog = iox.NopCloser(ioutil.Discard)
-		//stackLog = ioutil.Discard
+		//ioInfo = iox.NopCloser(ioutil.Discard)
+		//ioErr = iox.NopCloser(ioutil.Discard)
+		//ioSlow = iox.NopCloser(ioutil.Discard)
+		//ioStat = iox.NopCloser(ioutil.Discard)
+		//ioStack = ioutil.Discard
 	})
 }

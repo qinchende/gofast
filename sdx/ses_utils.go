@@ -41,7 +41,7 @@ func md5B64Str(data, secret []byte) string {
 	buf := make([]byte, md5B64Len+md5Len)
 	md5Fill(data, secret, buf[md5B64Len:md5B64Len])
 	base64Enc.Encode(buf[:md5B64Len], buf[md5B64Len:])
-	return lang.BTS(buf[:md5B64Len])
+	return lang.B2S(buf[:md5B64Len])
 }
 
 // 返回的md5值，存放在底层自己生成的字节切片对象

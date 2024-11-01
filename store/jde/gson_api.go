@@ -9,7 +9,7 @@ import (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // GsonRow ++++++
 func DecodeGsonRowFromValueBytes(obj any, bs []byte) error {
-	return DecodeGsonRowFromValueString(obj, lang.BTS(bs))
+	return DecodeGsonRowFromValueString(obj, lang.B2S(bs))
 }
 
 // 这里解析的 str字符串 只包含GsonRow的 values，而不包含 cls
@@ -57,5 +57,5 @@ func EncodeGsonRowsPetBytes(pet *gson.RowsEncPet) ([]byte, error) {
 
 func EncodeGsonRowsPetString(pet *gson.RowsEncPet) (string, error) {
 	ret, err := encGsonRows(*pet)
-	return lang.BTS(ret), err
+	return lang.B2S(ret), err
 }

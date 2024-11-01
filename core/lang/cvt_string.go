@@ -6,9 +6,9 @@ import (
 	"unsafe"
 )
 
-// NOTE：STB 和 BTS 这种黑魔法转换是不推荐使用的，特殊场景可能会出现意想不到的错误。
+// NOTE：S2B 和 B2S 这种黑魔法转换是不推荐使用的，特殊场景可能会出现意想不到的错误。
 // go 1.20后期版本中会提供标准库，实现类似的功能
-func STB(s string) (b []byte) {
+func S2B(s string) (b []byte) {
 	return unsafe.Slice(unsafe.StringData(s), len(s))
 	//sh := *(*rt.StringHeader)(unsafe.Pointer(&s))
 	//bh := (*rt.SliceHeader)(unsafe.Pointer(&b))
@@ -16,9 +16,9 @@ func STB(s string) (b []byte) {
 	//return b
 }
 
-func BTS(b []byte) string {
-	//return unsafe.String(unsafe.SliceData(b), len(b))
-	return *(*string)(unsafe.Pointer(&b))
+func B2S(b []byte) string {
+	return unsafe.String(unsafe.SliceData(b), len(b))
+	//return *(*string)(unsafe.Pointer(&b))
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

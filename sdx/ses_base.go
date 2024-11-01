@@ -62,7 +62,7 @@ func SetSessionDB(ss *SessionDB) {
 	if ss.Redis == nil {
 		ss.Redis = redis.NewGoRedis(&ss.RedisConn)
 	}
-	MySessDB.secretBytes = lang.STB(MySessDB.Secret)
+	MySessDB.secretBytes = lang.S2B(MySessDB.Secret)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

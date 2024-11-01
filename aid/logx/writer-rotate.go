@@ -19,15 +19,6 @@ import (
 	"time"
 )
 
-const (
-	dateFormatYMD       = "2006-01-02"
-	hoursPerDay         = 24
-	bufferSize          = 100
-	defaultDirMode      = 0755
-	defaultFileMode     = 0600
-	backupFileDelimiter = "-"
-)
-
 type RotateRule interface {
 	ArchiveFileName() string
 	OutdatedFiles() []string
@@ -168,7 +159,7 @@ func (rl *RotateLogger) Writeln(str string) (err error) {
 		_, err = rl.Write(bytes)
 		return
 	}
-	_, err = rl.Write(lang.STB(str))
+	_, err = rl.Write(lang.S2B(str))
 	return
 }
 
@@ -185,7 +176,7 @@ func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
 	if str[len(str)-1] != '\n' {
 		sb.WriteByte('\n')
 	}
-	_, err = rl.Write(lang.STB(sb.String()))
+	_, err = rl.Write(lang.S2B(sb.String()))
 	return
 }
 

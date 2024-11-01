@@ -20,11 +20,11 @@ func Md5HexBytes(data []byte) string {
 	src := Md5(data)
 	dst := make([]byte, len(src)*2)
 	hex.Encode(dst, src)
-	return lang.BTS(dst)
+	return lang.B2S(dst)
 }
 
 func Md5HexString(data string) string {
-	return Md5HexBytes(lang.STB(data))
+	return Md5HexBytes(lang.S2B(data))
 }
 
 // ++++++++++++++++++++++++++++++++
@@ -38,11 +38,11 @@ func Sha1HexBytes(data []byte) string {
 	src := Sha1(data)
 	dst := make([]byte, len(src)*2)
 	hex.Encode(dst, src)
-	return lang.BTS(dst)
+	return lang.B2S(dst)
 }
 
 func Sha1HexString(data string) string {
-	return Sha1HexBytes(lang.STB(data))
+	return Sha1HexBytes(lang.S2B(data))
 }
 
 func Sha256(data []byte) []byte {

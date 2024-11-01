@@ -25,7 +25,7 @@ func Unmarshal(v any, data []byte) error {
 }
 
 func UnmarshalFromString(v any, str string) error {
-	return Unmarshal(v, lang.STB(str))
+	return Unmarshal(v, lang.S2B(str))
 }
 
 func UnmarshalFromReader(v any, reader io.Reader) error {

@@ -913,7 +913,7 @@ func scanObjBytesValue(sd *subDecode) {
 		// stand base64 string decode
 		decodedLen := base64.StdEncoding.DecodedLen(len(bytes))
 		buf := make([]byte, decodedLen)
-		n, err := base64.StdEncoding.Decode(buf, lang.STB(bytes))
+		n, err := base64.StdEncoding.Decode(buf, lang.S2B(bytes))
 		if err != nil {
 			panic(err)
 		}

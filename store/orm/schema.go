@@ -178,7 +178,7 @@ func fetchSchema(typ reflect.Type) *TableSchema {
 	// Important Note:
 	// 表字段的hash值，决定了数据存贮对应的字段以及顺序。
 	// 这个特性一定程度能解决，表结构在重构过程中字段发生变化的问题，此表缓存的数据也将失效。
-	mdAttrs.columnsHash = hashx.Sum64(lang.STB(strings.Join(ss.Columns, ",")))
+	mdAttrs.columnsHash = hashx.Sum64(lang.S2B(strings.Join(ss.Columns, ",")))
 	hashStr := lang.ToString(mdAttrs.columnsHash)
 	priKeyName := ss.FieldsAttr[ts.primaryIndex].RefField.Name
 	// 行记录缓存 Key format
