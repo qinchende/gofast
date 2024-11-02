@@ -12,6 +12,10 @@ import (
 	"runtime/debug"
 )
 
+func ShowStack() bool {
+	return myCnf.iLevel <= LevelStack
+}
+
 func ShowDebug() bool {
 	return myCnf.iLevel <= LevelDebug
 }
@@ -24,19 +28,32 @@ func ShowWarn() bool {
 	return myCnf.iLevel <= LevelWarn
 }
 
-func ShowError() bool {
-	return myCnf.iLevel <= LevelError
-}
-
-func ShowStack() bool {
-	return myCnf.iLevel <= LevelStack
+func ShowErr() bool {
+	return myCnf.iLevel <= LevelErr
 }
 
 func ShowStat() bool {
-	return myCnf.LogStat
+	return myCnf.EnableStat && ShowInfo()
+}
+
+func ShowSlow() bool {
+	return myCnf.EnableSlow && ShowWarn()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func Stack(v string) {
+	stackSync(v)
+}
+
+func Stacks(v ...any) {
+	stackSync(fmt.Sprint(v...))
+}
+
+func StackF(format string, v ...any) {
+	stackSync(fmt.Sprintf(format, v...))
+}
+
+// +++
 func Debug(v string) {
 	if myCnf.iLevel <= LevelDebug {
 		output(ioDebug, labelDebug, v)
@@ -95,144 +112,131 @@ func InfoDirect(v string) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Warn(v string) {
-	warnSync(v, true)
+	warnSync(v)
 }
 
 func Warns(v ...any) {
-	warnSync(fmt.Sprint(v...), true)
+	warnSync(fmt.Sprint(v...))
 }
 
 func WarnF(format string, v ...any) {
-	warnSync(fmt.Sprintf(format, v...), true)
+	warnSync(fmt.Sprintf(format, v...))
 }
 
 // +++
 func Error(v string) {
-	errorSync(v, callerSkipDepth, true)
+	errorSync(v, callerSkipDepth)
 }
 
 func Errors(v ...any) {
-	errorSync(fmt.Sprint(v...), callerSkipDepth, true)
+	errorSync(fmt.Sprint(v...), callerSkipDepth)
 }
 
 func ErrorF(format string, v ...any) {
-	errorSync(fmt.Sprintf(format, v...), callerSkipDepth, true)
+	errorSync(fmt.Sprintf(format, v...), callerSkipDepth)
 }
 
 func ErrorFatal(v ...any) {
-	errorSync(fmt.Sprint(v...), callerSkipDepth, true)
+	errorSync(fmt.Sprint(v...), callerSkipDepth)
 	os.Exit(1)
 }
 
 func ErrorFatalF(format string, v ...any) {
-	errorSync(fmt.Sprintf(format, v...), callerSkipDepth, true)
+	errorSync(fmt.Sprintf(format, v...), callerSkipDepth)
 	os.Exit(1)
-}
-
-// +++
-func Stack(v string) {
-	stackSync(v, true)
-}
-
-func Stacks(v ...any) {
-	stackSync(fmt.Sprint(v...), true)
-}
-
-func StackF(format string, v ...any) {
-	stackSync(fmt.Sprintf(format, v...), true)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stat(v string) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioStat, labelStat, v)
 	}
 }
 
 func StatKV(data cst.KV) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioStat, labelStat, data)
 	}
 }
 
 func Stats(v ...any) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioStat, labelStat, fmt.Sprint(v...))
 	}
 }
 
 func StatF(format string, v ...any) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioStat, labelStat, fmt.Sprintf(format, v...))
 	}
 }
 
 // +++
 func Slow(v string) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioSlow, labelSlow, v)
 	}
 }
 
 func Slows(v ...any) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioSlow, labelSlow, fmt.Sprint(v...))
 	}
 }
 
 func SlowF(format string, v ...any) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioSlow, labelSlow, fmt.Sprintf(format, v...))
 	}
 }
 
 // +++
 func Timer(v string) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioTimer, labelTimer, v)
 	}
 }
 
 func TimerKV(data cst.KV) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioTimer, labelTimer, data)
 	}
 }
 
 func Timers(v ...any) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioTimer, labelTimer, fmt.Sprint(v...))
 	}
 }
 
 func TimerF(format string, v ...any) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioTimer, labelTimer, fmt.Sprintf(format, v...))
 	}
 }
 
 func TimerError(v string) {
-	if myCnf.LogStat {
+	if myCnf.EnableStat {
 		output(ioErr, labelErr, formatWithCaller(v, callerSkipDepth))
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // inner call apis
-func warnSync(msg string, useStyle bool) {
-	if myCnf.iLevel <= LevelWarn {
+func warnSync(msg string) {
+	if ShowWarn() {
 		output(ioWarn, labelWarn, msg)
 	}
 }
 
-func errorSync(msg string, callDepth int, useStyle bool) {
-	if myCnf.iLevel <= LevelError {
+func errorSync(msg string, callDepth int) {
+	if ShowErr() {
 		output(ioErr, labelErr, formatWithCaller(msg, callDepth))
 	}
 }
 
-func stackSync(msg string, useStyle bool) {
-	if myCnf.iLevel <= LevelStack {
+func stackSync(msg string) {
+	if ShowStack() {
 		output(ioStack, labelStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()))
 	}
 }

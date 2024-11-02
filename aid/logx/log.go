@@ -16,12 +16,13 @@ var (
 	ioStack WriterCloser
 	ioDebug WriterCloser
 	ioInfo  WriterCloser
-	ioWarn  WriterCloser
-	ioErr   WriterCloser
-	ioSlow  WriterCloser
-	ioStat  WriterCloser
 	ioReq   WriterCloser
 	ioTimer WriterCloser
+	ioStat  WriterCloser
+	ioWarn  WriterCloser
+	ioSlow  WriterCloser
+	ioErr   WriterCloser
+	ioPanic WriterCloser
 
 	initOnce sync.Once
 	myCnf    *LogConfig
@@ -54,20 +55,20 @@ func Setup(cnf *LogConfig) error {
 
 func initLogger(c *LogConfig) error {
 	switch c.LogLevel {
-	case "discard":
-		c.iLevel = LevelDiscard
+	case "stack":
+		c.iLevel = LevelStack
 	case "debug":
 		c.iLevel = LevelDebug
 	case "info":
 		c.iLevel = LevelInfo
 	case "warn":
 		c.iLevel = LevelWarn
-	case "error":
-		c.iLevel = LevelError
-	case "stack":
-		c.iLevel = LevelStack
+	case "err":
+		c.iLevel = LevelErr
+	case "discard":
+		c.iLevel = LevelDiscard
 	default:
-		return errors.New("item LogLevel not match")
+		return errors.New("Wrong LogLevel value in log config")
 	}
 
 	if err := initStyle(c); err != nil {
