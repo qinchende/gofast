@@ -4,55 +4,78 @@ package logx
 
 import (
 	"errors"
+	"time"
 )
 
+// NOTE：系统内置了几个系列的请求日志输出样式，当然你也可以自定义输出样式
+// 当前内置三种：sdx-style、json-style、cdo-style
 const (
-	timeFormat     = "2006-01-02 15:04:05"
-	timeFormatMini = "01-02 15:04:05"
-)
-
-// NOTE：系统内置了几个系列的请求日志输出样式，比如custom、sdx、elk、prometheus等，当然你也可以自定义输出样式
-
-// 日志样式类型
-const (
-	LogStyleCustom int8 = iota
-	LogStyleSdx
-	LogStyleELK
-	LogStyleJson
+	StyleSdx int8 = iota
+	StyleJson
+	StyleCdo
+	StyleCustom
 )
 
 // 日志样式名称
 const (
 	styleSdxStr    = "sdx"
 	styleJsonStr   = "json"
-	styleELKStr    = "elk"
-	styleCustomStr = "custom" // 自定义
+	styleCdoStr    = "cdo"
+	styleCustomStr = "custom"
 )
 
-var Formatter func(w WriterCloser, level string, data any)
+var (
+	Formatter        func(w WriterCloser, level string, data any)
+	CustomOutputFunc func(logLevel string, data any) string
+	RequestsLog      func(p *ReqRecord, flag int8) string
+	TimeToStr        func(tm time.Time) string
+)
 
 // 将名称字符串转换成整数类型，提高判断性能
 func initStyle(c *LogConfig) error {
 	switch c.LogStyle {
 
 	case styleSdxStr:
-		c.iStyle = LogStyleSdx
-		Formatter = outputSdxStyle
-	case styleELKStr:
-		c.iStyle = LogStyleELK
+		c.iStyle = StyleSdx
+		{
+			Formatter = outputSdxStyle
+			RequestsLog = buildSdxReqLog
+		}
+	case styleCdoStr:
+		c.iStyle = StyleCdo
 		Formatter = outputElkStyle
 	case styleJsonStr:
-		c.iStyle = LogStyleJson
+		c.iStyle = StyleJson
 		Formatter = outputPrometheusStyle
 	case styleCustomStr:
-		c.iStyle = LogStyleCustom
-		Formatter = outputCustomStyle
+		c.iStyle = StyleCustom
+		//Formatter = outputCustomStyle
 	default:
 		Formatter = outputDirect
 		return errors.New("item LogStyle not match")
 	}
 	return nil
 }
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func output(w WriterCloser, logLevel string, data any) {
+	Formatter(w, logLevel, data)
+}
+
+//// 打印请求日志，可以指定不同的输出样式
+//func RequestsLog(p *ReqLogEntity, flag int8) {
+//	switch myCnf.iStyle {
+//	case StyleSdx:
+//		InfoDirect()
+//	case StyleCdo:
+//		InfoDirect(buildElkReqLog(p, flag))
+//	case StyleJson:
+//		InfoDirect(buildPrometheusReqLog(p, flag))
+//	case StyleCustom:
+//		InfoDirect(buildCustomReqLog(p, flag))
+//	default:
+//	}
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 日志的输出，最后都要到这个方法进行输出
@@ -65,15 +88,15 @@ func initStyle(c *LogConfig) error {
 //
 //		if useStyle == true {
 //			switch myCnf.iStyle {
-//			case LogStyleCustom:
+//			case StyleCustom:
 //				outputCustomStyle(w, logLevel, data)
-//			case LogStyleSdx:
+//			case StyleSdx:
 //				outputSdxStyle(w, logLevel, data)
 //			case LogStyleSdxJson:
 //				outputSdxJsonStyle(w, logLevel, data)
 //			case LogStyleELK:
 //				outputElkStyle(w, logLevel, data)
-//			case LogStyleJson:
+//			case StyleJson:
 //				outputPrometheusStyle(w, logLevel, data)
 //			default:
 //				outputDirectString(w, lang.ToString(data))
@@ -82,21 +105,3 @@ func initStyle(c *LogConfig) error {
 //			outputDirectString(w, lang.ToString(data))
 //		}
 //	}
-func output(w WriterCloser, logLevel string, data any) {
-	Formatter(w, logLevel, data)
-}
-
-// 打印请求日志，可以指定不同的输出样式
-func RequestsLog(p *ReqLogEntity, flag int8) {
-	switch myCnf.iStyle {
-	case LogStyleSdx:
-		InfoDirect(buildSdxReqLog(p, flag))
-	case LogStyleELK:
-		InfoDirect(buildElkReqLog(p, flag))
-	case LogStyleJson:
-		InfoDirect(buildPrometheusReqLog(p, flag))
-	case LogStyleCustom:
-		InfoDirect(buildCustomReqLog(p, flag))
-	default:
-	}
-}

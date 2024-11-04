@@ -12,6 +12,7 @@ import (
 	"sync"
 )
 
+// 每种分类可以有单独输出到不同的日志文件
 var (
 	ioStack WriterCloser
 	ioDebug WriterCloser
@@ -55,20 +56,20 @@ func Setup(cnf *LogConfig) error {
 
 func initLogger(c *LogConfig) error {
 	switch c.LogLevel {
-	case "stack":
+	case labelStack:
 		c.iLevel = LevelStack
-	case "debug":
+	case labelDebug:
 		c.iLevel = LevelDebug
-	case "info":
+	case labelInfo:
 		c.iLevel = LevelInfo
-	case "warn":
+	case labelWarn:
 		c.iLevel = LevelWarn
-	case "err":
+	case labelErr:
 		c.iLevel = LevelErr
-	case "discard":
+	case labelDiscard:
 		c.iLevel = LevelDiscard
 	default:
-		return errors.New("Wrong LogLevel value in log config")
+		return errors.New("Wrong LogLevel by config")
 	}
 
 	if err := initStyle(c); err != nil {
@@ -83,7 +84,7 @@ func initLogger(c *LogConfig) error {
 	case toVolume:
 		return setupWithVolume(c)
 	default:
-		return errors.New("item LogMedium not match")
+		return errors.New("Wrong LogMedium by config")
 	}
 }
 
@@ -183,4 +184,66 @@ func setupWithVolume(c *LogConfig) error {
 	}
 	c.FilePath = path.Join(c.FilePath, c.AppName, host.Hostname())
 	return setupWithFiles(c)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func CloseFiles() error {
+	if myCnf.LogMedium == toConsole {
+		return nil
+	}
+
+	if ioDebug != nil {
+		if err := ioDebug.Close(); err != nil {
+			return err
+		}
+	}
+	if ioInfo != nil {
+		if err := ioInfo.Close(); err != nil {
+			return err
+		}
+	}
+	if ioWarn != nil {
+		if err := ioWarn.Close(); err != nil {
+			return err
+		}
+	}
+	if ioErr != nil {
+		if err := ioErr.Close(); err != nil {
+			return err
+		}
+	}
+	if ioStack != nil {
+		if err := ioStack.Close(); err != nil {
+			return err
+		}
+	}
+	if ioStat != nil {
+		if err := ioStat.Close(); err != nil {
+			return err
+		}
+	}
+	if ioSlow != nil {
+		if err := ioSlow.Close(); err != nil {
+			return err
+		}
+	}
+	if ioTimer != nil {
+		if err := ioTimer.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func Disable() {
+	initOnce.Do(func() {
+		//atomic.StoreUint32(&initialized, 1)
+
+		//ioInfo = iox.NopCloser(ioutil.Discard)
+		//ioErr = iox.NopCloser(ioutil.Discard)
+		//ioSlow = iox.NopCloser(ioutil.Discard)
+		//ioStat = iox.NopCloser(ioutil.Discard)
+		//ioStack = ioutil.Discard
+	})
 }

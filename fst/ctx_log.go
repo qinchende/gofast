@@ -2,7 +2,9 @@
 // Use of this source code is governed by a MIT license
 package fst
 
-func (c *Context) Log(kvs ...any) {
+import "github.com/qinchende/gofast/aid/logx"
+
+func (c *Context) Log(kvs ...logx.Field) {
 }
 
 func (c *Context) LogGroup(name string, kvs ...any) {

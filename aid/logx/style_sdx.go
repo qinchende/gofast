@@ -14,6 +14,11 @@ import (
 	"time"
 )
 
+const (
+	timeFormat     = "2006-01-02 15:04:05"
+	timeFormatMini = "01-02 15:04:05"
+)
+
 func outputSdxStyle(w WriterCloser, logLevel string, data any) {
 	info := lang.ToString(data)
 	sb := strings.Builder{}
