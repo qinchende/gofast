@@ -32,11 +32,11 @@ var (
 // 必须准备好日志环境，否则启动失败自动退出
 func MustSetup(cnf *LogConfig) {
 	if err := Setup(cnf); err != nil {
-		data := formatWithCaller(err.Error(), callerSkipDepth)
+		msg := msgWithStack(err.Error())
 		if ioErr != nil {
-			output(ioErr, labelErr, data)
+			output(ioErr, labelErr, msg)
 		} else {
-			log.Println(data)
+			log.Println(msg)
 		}
 		os.Exit(1)
 	}

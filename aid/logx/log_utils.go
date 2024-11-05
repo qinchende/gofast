@@ -12,19 +12,14 @@ import (
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 消息前面加上堆栈信息
-func formatWithCaller(msg string, callDepth int) string {
-	callerBuf := getCaller(callDepth)
-	if callerBuf.Len() > 0 {
-		callerBuf.WriteByte(' ')
-	}
-	callerBuf.WriteString(msg)
-	return callerBuf.String()
+func msgWithStack(msg string) string {
+	return msgWithCaller(msg, callerSkipDepth)
 }
 
-func getCaller(callDepth int) *strings.Builder {
-	var buf strings.Builder
+func msgWithCaller(msg string, skip int) string {
+	var bf strings.Builder
 
-	_, file, line, ok := runtime.Caller(callDepth)
+	_, file, line, ok := runtime.Caller(skip)
 	if ok {
 		short := file
 		for i := len(file) - 1; i > 0; i-- {
@@ -33,11 +28,16 @@ func getCaller(callDepth int) *strings.Builder {
 				break
 			}
 		}
-		buf.WriteString(short)
-		buf.WriteByte(':')
-		buf.WriteString(strconv.Itoa(line))
+		bf.WriteString(short)
+		bf.WriteByte(':')
+		bf.WriteString(strconv.Itoa(line))
 	}
-	return &buf
+
+	if bf.Len() > 0 {
+		bf.WriteByte(' ')
+	}
+	bf.WriteString(msg)
+	return bf.String()
 }
 
 func outputDirect(w WriterCloser, logLevel string, data any) {

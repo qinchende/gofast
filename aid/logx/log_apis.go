@@ -217,7 +217,7 @@ func TimerF(format string, v ...any) {
 
 func TimerError(v string) {
 	if myCnf.EnableStat {
-		output(ioErr, labelErr, formatWithCaller(v, callerSkipDepth))
+		output(ioErr, labelErr, msgWithStack(v))
 	}
 }
 
@@ -229,9 +229,9 @@ func warnSync(msg string) {
 	}
 }
 
-func errorSync(msg string, callDepth int) {
+func errorSync(msg string, skip int) {
 	if ShowErr() {
-		output(ioErr, labelErr, formatWithCaller(msg, callDepth))
+		output(ioErr, labelErr, msgWithCaller(msg, skip))
 	}
 }
 
