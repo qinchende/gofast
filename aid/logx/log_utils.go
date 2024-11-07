@@ -3,8 +3,6 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/core/lang"
-	"log"
 	"runtime"
 	"strconv"
 	"strings"
@@ -40,36 +38,36 @@ func msgWithCaller(msg string, skip int) string {
 	return bf.String()
 }
 
-func outputDirect(w WriterCloser, logLevel string, data any) {
-	if w == nil {
-		log.Println(lang.ToString(data))
-	} else {
-		_ = w.Writeln(lang.ToString(data))
-	}
-}
-
-func outputDirectString(w WriterCloser, str string) {
-	if w == nil {
-		log.Println(str)
-	} else {
-		_ = w.Writeln(str)
-	}
-}
-
-// 不推荐使用 bytes 版本
-func outputDirectBytes(w WriterCloser, bytes []byte) {
-	if w == nil {
-		log.Println(bytes)
-	} else {
-		_ = w.WritelnBytes(bytes)
-	}
-}
-
-// 推荐使用strings.Builder版本
-func outputDirectBuilder(w WriterCloser, sb *strings.Builder) {
-	if w == nil {
-		log.Println(sb.String())
-	} else {
-		_ = w.WritelnBuilder(sb)
-	}
-}
+//func outputDirect(w WriterCloser, logLevel string, data any) {
+//	if w == nil {
+//		log.Println(lang.ToString(data))
+//	} else {
+//		_ = w.Writeln(lang.ToString(data))
+//	}
+//}
+//
+//func outputDirectString(w WriterCloser, str string) {
+//	if w == nil {
+//		log.Println(str)
+//	} else {
+//		_ = w.Writeln(str)
+//	}
+//}
+//
+//// 不推荐使用 bytes 版本
+//func outputDirectBytes(w WriterCloser, bytes []byte) {
+//	if w == nil {
+//		log.Println(bytes)
+//	} else {
+//		_ = w.WritelnBytes(bytes)
+//	}
+//}
+//
+//// 推荐使用strings.Builder版本
+//func outputDirectBuilder(w WriterCloser, sb *strings.Builder) {
+//	if w == nil {
+//		log.Println(sb.String())
+//	} else {
+//		_ = w.WritelnBuilder(sb)
+//	}
+//}

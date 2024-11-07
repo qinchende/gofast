@@ -21,10 +21,10 @@ func outputPrometheusStyle(w WriterCloser, logLevel string, data any) {
 		Level:     logLevel,
 		Content:   data,
 	}
-	if content, err := jsonx.Marshal(logWrap); err != nil {
-		outputDirectString(w, err.Error())
+	if _, err := jsonx.Marshal(logWrap); err != nil {
+		//outputDirectString(w, err.Error())
 	} else {
-		outputDirectBytes(w, content)
+		//outputDirectBytes(w, content)
 	}
 }
 

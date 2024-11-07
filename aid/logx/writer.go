@@ -21,9 +21,9 @@ const (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type WriterCloser interface {
 	io.WriteCloser
-	Writeln(data string) (err error)
-	WritelnBytes(data []byte) (err error)
-	WritelnBuilder(sb *strings.Builder) (err error)
+	//Writeln(data string) (err error)
+	//WritelnBytes(data []byte) (err error)
+	//WritelnBuilder(sb *strings.Builder) (err error)
 }
 
 // 自定义 logger

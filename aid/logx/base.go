@@ -74,4 +74,5 @@ const (
 	toConsole = "console"
 	toFile    = "file"
 	toVolume  = "volume"
+	toCustom  = "custom"
 )

@@ -25,6 +25,7 @@ var (
 	ioSlow  WriterCloser
 	ioErr   WriterCloser
 	ioPanic WriterCloser
+	//ioDiscard WriterCloser
 
 	initOnce sync.Once
 	myCnf    *LogConfig
@@ -79,11 +80,13 @@ func initLogger(c *LogConfig) error {
 
 	switch c.LogMedium {
 	case toConsole:
-		return setupWithConsole(c)
+		return setupForConsole(c)
 	case toFile:
-		return setupWithFiles(c)
+		return setupForFiles(c)
 	case toVolume:
-		return setupWithVolume(c)
+		return setupForVolume(c)
+	case toCustom:
+		return nil
 	default:
 		return errors.New("Wrong LogMedium by config")
 	}
@@ -91,23 +94,27 @@ func initLogger(c *LogConfig) error {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 第一种：打印在console
-func setupWithConsole(c *LogConfig) error {
+func setupForConsole(c *LogConfig) error {
 	initOnce.Do(func() {
-		ioInfo = newLogWriter(os.Stdout)
-		ioDebug = ioInfo
-		ioStat = ioInfo
-		ioSlow = ioInfo
-		ioTimer = ioInfo
-		ioReq = ioInfo
-		ioWarn = newLogWriter(log.New(os.Stderr, "", 0))
-		ioErr = ioWarn
-		ioStack = ioWarn
+		w1 := os.Stdout
+		ioStack = w1
+		ioDebug = w1
+		ioInfo = w1
+		ioReq = w1
+		ioTimer = w1
+		ioStat = w1
+
+		w2 := os.Stderr
+		ioWarn = w2
+		ioSlow = w2
+		ioErr = w2
+		ioPanic = w2
 	})
 	return nil
 }
 
 // 第二种：文件日志模式下的初始化工作
-func setupWithFiles(c *LogConfig) error {
+func setupForFiles(c *LogConfig) error {
 	if len(c.FilePath) == 0 {
 		return errors.New("log file folder must be set")
 	}
@@ -117,7 +124,7 @@ func setupWithFiles(c *LogConfig) error {
 		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
 		*os.Stdout = *ioInfo.(*RotateLogger).fp
 		*os.Stderr = *os.Stdout
-		//log.SetOutput(ioInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
+		log.SetOutput(ioInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
 		fStep := 0
 		fiNames := strings.Split(c.FileSplit, "|")
@@ -150,12 +157,12 @@ func createFile(label string) WriterCloser {
 }
 
 // 第三种：分卷存储文件（其实也是写文件，但是更严格的分层文件夹。）
-func setupWithVolume(c *LogConfig) error {
+func setupForVolume(c *LogConfig) error {
 	if len(c.AppName) == 0 {
 		return errors.New("log config item [AppName] must be set")
 	}
 	c.FilePath = path.Join(c.FilePath, c.AppName, host.Hostname())
-	return setupWithFiles(c)
+	return setupForFiles(c)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

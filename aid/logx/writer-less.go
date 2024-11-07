@@ -47,7 +47,7 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		execute()
 		return
 	}
-
+	
 	now := timex.NowDur()
 	if now-le.lastTime.Load() <= le.threshold {
 		atomic.AddUint32(&le.discarded, 1)
@@ -55,7 +55,8 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		le.lastTime.Set(now)
 		discarded := atomic.SwapUint32(&le.discarded, 0)
 		if discarded > 0 {
-			ErrorF("Discarded %d error messages", discarded)
+			//logx.info()((),, discarded)
+			Err().MsgF("Discarded %d error messages", discarded)
 		}
 		execute()
 	}

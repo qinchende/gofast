@@ -80,6 +80,7 @@ func getRecordFromPool() *Record {
 	r := recordPool.Get().(*Record)
 	r.bf = pool.GetBytes()
 	r.bs = *r.bf
+	//r.bs = r.bs[0:0]
 	return r
 }
 
@@ -92,8 +93,7 @@ func putRecordToPool(r *Record) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-func newRecord(w io.Writer, label string) *Record {
+func NewRecord(w io.Writer, label string) *Record {
 	r := getRecordFromPool()
 	r.Time = timex.NowDur()
 	r.Label = label
@@ -102,9 +102,12 @@ func newRecord(w io.Writer, label string) *Record {
 }
 
 func (r *Record) output(msg string) {
-	jde.AppendStrField(r.bs, "msg", msg)
+	r.bs = jde.AppendStrField(r.bs, "msg", msg)
+	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
+	r.bs = append(r.bs, "\n"...)
+
 	if _, err := r.w.Write(r.bs); err != nil {
-		log.Println("Panic to write log, details: " + err.Error())
+		log.Println("Panic to write log, error: " + err.Error())
 		panic(err)
 	}
 	putRecordToPool(r)

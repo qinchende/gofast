@@ -53,7 +53,7 @@ func initStyle(c *LogConfig) error {
 		c.iStyle = StyleCustom
 		//Formatter = outputCustomStyle
 	default:
-		Formatter = outputDirect
+		//Formatter = outputDirect
 		return errors.New("item LogStyle not match")
 	}
 	return nil

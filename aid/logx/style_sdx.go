@@ -29,7 +29,7 @@ func outputSdxStyle(w WriterCloser, logLevel string, data any) {
 	sb.WriteString(logLevel)
 	sb.WriteString("]: ")
 	sb.WriteString(info)
-	outputDirectBuilder(w, &sb)
+	//outputDirectBuilder(w, &sb)
 }
 
 // 通过模板构造字符串可能性能更好。
