@@ -186,7 +186,7 @@ func encInt[T constraints.Signed](bf *[]byte, ptr unsafe.Pointer, typ reflect.Ty
 }
 
 func encIntOnly[T constraints.Signed](bf *[]byte, ptr unsafe.Pointer) {
-	*bf = append(*bf, strconv.FormatInt(int64(*((*T)(ptr))), 10)...)
+	*bf = strconv.AppendInt(*bf, int64(*((*T)(ptr))), 10)
 }
 
 func encUint[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
@@ -196,16 +196,16 @@ func encUint[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer, typ reflect
 }
 
 func encUintOnly[T constraints.Unsigned](bf *[]byte, ptr unsafe.Pointer) {
-	*bf = append(*bf, strconv.FormatUint(uint64(*((*T)(ptr))), 10)...)
+	*bf = strconv.AppendUint(*bf, uint64(*((*T)(ptr))), 10)
 }
 
 func encFloat64(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
-	*bf = append(*bf, strconv.FormatFloat(*((*float64)(ptr)), 'g', -1, 64)...)
+	*bf = strconv.AppendFloat(*bf, *((*float64)(ptr)), 'g', -1, 64)
 	*bf = append(*bf, ',')
 }
 
 func encFloat32(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
-	*bf = append(*bf, strconv.FormatFloat(float64(*((*float32)(ptr))), 'g', -1, 32)...)
+	*bf = strconv.AppendFloat(*bf, float64(*((*float32)(ptr))), 'g', -1, 32)
 	*bf = append(*bf, ',')
 }
 
@@ -298,4 +298,41 @@ func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 		//return encMixItem(bf, ptr, ei.TypePtr)
 	}
 	//return bf
+}
+
+// 一些方法可以供外部使用
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func appendKey(bf []byte, k string) []byte {
+	bf = append(bf, '"') // need check escape chars
+	bf = append(bf, k...)
+	bf = append(bf, "\":"...)
+	return bf
+}
+
+// TODO：need check escape chars
+func AppendStrField(bf []byte, k, v string) []byte {
+	bf = append(bf, '"')
+	bf = append(bf, k...)
+	bf = append(bf, "\":\""...)
+	bf = append(bf, v...)
+	bf = append(bf, "\","...)
+	return bf
+}
+
+func AppendIntField(bf []byte, k string, v int) []byte {
+	bf = appendKey(bf, k)
+	bf = strconv.AppendInt(bf, int64(v), 10)
+	bf = append(bf, ',')
+	return bf
+
+}
+
+func AppendBoolField(bf []byte, k string, v bool) []byte {
+	bf = appendKey(bf, k)
+	if v {
+		bf = append(bf, "true,"...)
+	} else {
+		bf = append(bf, "false,"...)
+	}
+	return bf
 }

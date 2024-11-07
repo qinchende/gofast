@@ -3,6 +3,7 @@
 package logx
 
 import (
+	"github.com/qinchende/gofast/core/lang"
 	"io"
 	"log"
 	"strings"
@@ -42,8 +43,8 @@ func (lw logWriter) Close() error {
 }
 
 func (lw logWriter) Write(data []byte) (int, error) {
-	lw.logger.Print(data)
-	return len(data), nil
+	err := lw.logger.Output(2, lang.B2S(data))
+	return len(data), err
 }
 
 func (lw logWriter) Writeln(data string) error {

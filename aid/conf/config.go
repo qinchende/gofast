@@ -2,9 +2,9 @@ package conf
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/aid/logx"
 	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/store/bind"
+	"log"
 	"os"
 	"path"
 )
@@ -23,19 +23,19 @@ var loaders = map[string]func(any, []byte) error{
 }
 
 // 必须加载配置，否则应用无法启动，直接退出
-func MustLoad(path string, dst any) {
-	if err := LoadFile(path, dst); err != nil {
-		logx.ErrorFatalF("error: config file %s, %s", path, err.Error())
+func MustLoad(dst any, file string) {
+	if err := LoadFile(dst, file); err != nil {
+		log.Fatalf("error: config file %s, %s", file, err.Error())
 	}
 }
 
-func LoadFile(file string, dst any) error {
+func LoadFile(dst any, file string) error {
 	if content, err := os.ReadFile(file); err != nil {
 		return err
 	} else if loader, ok := loaders[path.Ext(file)]; ok {
 		return loader(dst, lang.S2B(os.ExpandEnv(string(content))))
 	} else {
-		return fmt.Errorf("unrecoginized file type: %s", file)
+		return fmt.Errorf("unsupport file type: %s", file)
 	}
 }
 

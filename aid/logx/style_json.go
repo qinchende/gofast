@@ -28,6 +28,6 @@ func outputPrometheusStyle(w WriterCloser, logLevel string, data any) {
 	}
 }
 
-func buildPrometheusReqLog(p *ReqLogEntity, flag int8) string {
-	return ""
-}
+//func buildPrometheusReqLog(p *ReqRecord, flag int8) string {
+//	return ""
+//}

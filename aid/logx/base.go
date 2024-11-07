@@ -5,7 +5,7 @@ package logx
 type LogConfig struct {
 	AppName    string `v:"def=AppName"`                                     // 应用名称
 	HostName   string `v:"def=HostName"`                                    // 主机名称
-	LogMedium  string `v:"def=console,enum=console|file|volume"`            // 记录存储媒介
+	LogMedium  string `v:"def=console,enum=console|file|volume|custom"`     // 记录存储媒介
 	LogLevel   string `v:"def=info,enum=stack|debug|info|warn|err|discard"` // 记录日志的级别
 	LogStyle   string `v:"def=sdx,enum=sdx|json|cdo|custom"`                // 日志样式
 	EnableStat bool   `v:"def=true"`                                        // 是否记录统计数据
@@ -48,7 +48,23 @@ const (
 	labelSlow    = "slow"    // 4 慢日志
 	labelErr     = "err"     // 5
 	labelPanic   = "panic"   // 5
-	labelDiscard = "discard" // 6
+	labelDiscard = "discard" // 5
+
+	//iStack   int8 = 0
+	//iDebug   int8 = 1
+	//iInfo    int8 = 2
+	//iReq     int8 = 3
+	//iTimer   int8 = 4
+	//iStat    int8 = 5
+	//iWarn    int8 = 6
+	//iSlow    int8 = 7
+	//iErr     int8 = 8
+	//iPanic   int8 = 9
+	//iDiscard int8 = 10
+)
+
+var (
+// labels = [11]string{"stack", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}
 )
 
 const (

@@ -4,6 +4,7 @@ package logx
 
 import (
 	"errors"
+	"github.com/qinchende/gofast/aid/conf"
 	"github.com/qinchende/gofast/aid/sysx/host"
 	"log"
 	"os"
@@ -29,6 +30,13 @@ var (
 	myCnf    *LogConfig
 )
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func DefaultSetup() {
+	cnf := &LogConfig{}
+	_ = conf.LoadFromJson(cnf, []byte("{}"))
+	MustSetup(cnf)
+}
+
 // 必须准备好日志环境，否则启动失败自动退出
 func MustSetup(cnf *LogConfig) {
 	if err := Setup(cnf); err != nil {
@@ -44,13 +52,6 @@ func MustSetup(cnf *LogConfig) {
 
 func Setup(cnf *LogConfig) error {
 	myCnf = cnf
-
-	if len(myCnf.FileName) > 0 {
-		myCnf.FileName += "."
-	} else if len(myCnf.AppName) > 0 {
-		myCnf.FileName = myCnf.AppName + "."
-	}
-
 	return initLogger(myCnf)
 }
 
@@ -92,11 +93,12 @@ func initLogger(c *LogConfig) error {
 // 第一种：打印在console
 func setupWithConsole(c *LogConfig) error {
 	initOnce.Do(func() {
-		ioInfo = newLogWriter(log.New(os.Stdout, "", 0))
+		ioInfo = newLogWriter(os.Stdout)
 		ioDebug = ioInfo
 		ioStat = ioInfo
 		ioSlow = ioInfo
 		ioTimer = ioInfo
+		ioReq = ioInfo
 		ioWarn = newLogWriter(log.New(os.Stderr, "", 0))
 		ioErr = ioWarn
 		ioStack = ioWarn
@@ -125,43 +127,9 @@ func setupWithFiles(c *LogConfig) error {
 		} else {
 			ioDebug = ioInfo
 		}
-		//if c.FileSplit&2 != 0 {
-		//	ioWarn = createFile(labelWarn)
-		//} else {
-		//	ioWarn = ioInfo
-		//}
-		//if c.FileSplit&4 != 0 {
-		//	ioErr = createFile(labelErr)
-		//} else {
-		//	ioErr = ioWarn
-		//}
-		//if c.FileSplit&8 != 0 {
-		//	ioStack = createFile(labelStack)
-		//} else {
-		//	ioStack = ioErr
-		//}
-		//if c.FileSplit&32 != 0 {
-		//	ioStat = createFile(labelStat)
-		//} else {
-		//	ioStat = ioStack
-		//}
-		//if c.FileSplit&64 != 0 {
-		//	ioSlow = createFile(labelSlow)
-		//} else {
-		//	ioSlow = ioStat
-		//}
-		//if c.FileSplit&128 != 0 {
-		//	ioTimer = createFile(labelTimer)
-		//} else {
-		//	ioTimer = ioSlow
-		//}
 	})
 
 	return nil
-}
-
-func logFilePath(logType string) string {
-	return path.Join(myCnf.FilePath, myCnf.FileName+logType+".log")
 }
 
 func createWriterFile(path string) WriterCloser {
@@ -173,8 +141,12 @@ func createWriterFile(path string) WriterCloser {
 	return wr
 }
 
-func createFile(logType string) WriterCloser {
-	return createWriterFile(logFilePath(logType))
+func createFile(label string) WriterCloser {
+	if myCnf.FileName == "" {
+		myCnf.FileName = "[FileName]"
+	}
+	filePath := path.Join(myCnf.FilePath, myCnf.FileName+"."+label+".log")
+	return createWriterFile(filePath)
 }
 
 // 第三种：分卷存储文件（其实也是写文件，但是更严格的分层文件夹。）

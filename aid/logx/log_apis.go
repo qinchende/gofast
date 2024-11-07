@@ -12,6 +12,21 @@ import (
 	"runtime/debug"
 )
 
+func Info() *Record {
+	if ShowInfo() {
+		return newRecord(ioInfo, labelInfo)
+	}
+	return nil
+}
+
+func Err() *Record {
+	if ShowErr() {
+		return newRecord(ioErr, labelErr)
+	}
+	return nil
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func ShowStack() bool {
 	return myCnf.iLevel <= LevelStack
 }
@@ -79,11 +94,11 @@ func DebugDirect(v string) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Info(v string) {
-	if myCnf.iLevel <= LevelInfo {
-		output(ioInfo, labelInfo, v)
-	}
-}
+//func Info(v string) {
+//	if myCnf.iLevel <= LevelInfo {
+//		output(ioInfo, labelInfo, v)
+//	}
+//}
 
 func InfoKV(v cst.KV) {
 	if myCnf.iLevel <= LevelInfo {

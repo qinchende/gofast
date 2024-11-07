@@ -33,7 +33,7 @@ func outputSdxStyle(w WriterCloser, logLevel string, data any) {
 }
 
 // 通过模板构造字符串可能性能更好。
-func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
+func buildSdxReqLog(p *ReqRecord, flag int8) string {
 	// 需要用Mini版本
 	if flag > 0 {
 		return buildSdxReqLogMini(p)
@@ -74,7 +74,7 @@ func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
 	return fmt.Sprintf(formatStr,
 		p.RawReq.Method,
 		p.RawReq.URL.Path,
-		p.ClientIP,
+		p.RemoteAddr,
 		timex.ToTime(p.TimeStamp).Format(timeFormatMini),
 		p.StatusCode,
 		p.BodySize,
@@ -86,26 +86,27 @@ func buildSdxReqLog(p *ReqLogEntity, flag int8) string {
 	)
 }
 
-func buildSdxReqLogMini(p *ReqLogEntity) string {
-	formatStr := `
-[%s] %s (%s/%s) [%d/%d/%d] %s
-`
-	// 最长打印出 1024个字节的结果
-	tLen := p.BodySize
-	if tLen > 1024 {
-		tLen = 1024
-	}
-
-	return fmt.Sprintf(formatStr,
-		p.RawReq.Method,
-		p.RawReq.URL.Path,
-		p.ClientIP,
-		timex.ToTime(p.TimeStamp).Format(timeFormatMini),
-		p.StatusCode,
-		p.BodySize,
-		p.Latency/time.Millisecond,
-		(p.ResData)[:tLen],
-	)
+func buildSdxReqLogMini(p *ReqRecord) string {
+	return ""
+	//	formatStr := `
+	//[%s] %s (%s/%s) [%d/%d/%d] %s
+	//`
+	//	// 最长打印出 1024个字节的结果
+	//	tLen := p.BodySize
+	//	if tLen > 1024 {
+	//		tLen = 1024
+	//	}
+	//
+	//	return fmt.Sprintf(formatStr,
+	//		p.RawReq.Method,
+	//		p.RawReq.URL.Path,
+	//		p.ClientIP,
+	//		timex.ToTime(p.TimeStamp).Format(timeFormatMini),
+	//		p.StatusCode,
+	//		p.BodySize,
+	//		p.Latency/time.Millisecond,
+	//		(p.ResData)[:tLen],
+	//	)
 }
 
 // 所有错误合并成字符串

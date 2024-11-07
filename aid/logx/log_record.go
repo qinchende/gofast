@@ -4,8 +4,14 @@ package logx
 
 import (
 	"github.com/qinchende/gofast/aid/bag"
+	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/cst"
+	"github.com/qinchende/gofast/core/pool"
+	"github.com/qinchende/gofast/store/jde"
+	"io"
+	"log"
 	"net/http"
+	"sync"
 	"time"
 )
 
@@ -14,36 +20,16 @@ type Field struct {
 	Val any
 }
 
-//
-//type ZapField struct {
-//	Key       string
-//	Type      uint8
-//	Integer   int64
-//	String    string
-//	Interface interface{}
-//}
-
-//// Event represents a log event. It is instanced by one of the level method of
-//// Logger and finalized by the Msg or Msgf method.
-//type Event struct {
-//	buf       []byte
-//	w         LevelWriter
-//	level     Level
-//	done      func(msg string)
-//	stack     bool            // enable error stack trace
-//	ch        []Hook          // hooks from context
-//	skipFrame int             // The number of additional frames to skip when printing the caller.
-//	ctx       context.Context // Optional Go context for event
-//}
-
-type Event struct {
-	bf *[]byte
-
+type Record struct {
 	Time  time.Duration
 	App   string
 	Host  string
 	Label string
-	Msg   string
+	//Msg   string
+
+	w  io.Writer
+	bf *[]byte
+	bs []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
 }
 
 type ReqRecord struct {
@@ -54,7 +40,7 @@ type ReqRecord struct {
 	UserAgent  string
 	RemoteAddr string
 
-	Event
+	Record
 	TimeStamp  time.Duration
 	Latency    time.Duration
 	Pms        cst.SuperKV
@@ -63,23 +49,63 @@ type ReqRecord struct {
 	CarryItems bag.CarryList
 }
 
-//
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// Str adds the field key with val as a string to the *Event context.
-//func (e *Event) Str(key, val string) *Event {
-//	*e.bf = append(*e.bf, key...,  ":"..., val...)
-//	return e
-//}
-//
-//// Strs adds the field key with vals as a []string to the *Event context.
-//func (e *Event) Strs(key string, vals []string) *Event {
-//	e.buf = enc.AppendStrings(enc.AppendKey(e.buf, key), vals)
-//	return e
-//}
-//
-//// Stringer adds the field key with val.String() (or null if val is nil)
-//// to the *Event context.
-//func (e *Event) Stringer(key string, val fmt.Stringer) *Event {
-//	e.buf = enc.AppendStringer(enc.AppendKey(e.buf, key), val)
-//	return e
-//}
+var (
+	recordPool = &sync.Pool{
+		New: func() interface{} {
+			r := &Record{}
+			r.init()
+			return r
+		},
+	}
+	reqRecordPool = &sync.Pool{
+		New: func() interface{} {
+			r := &ReqRecord{}
+			r.Record.init()
+			return r
+		},
+	}
+
+	_recordDefValue    Record
+	_reqRecordDefValue ReqRecord
+)
+
+func (r *Record) init() {
+	r.bf = pool.GetBytes()
+	r.bs = *r.bf
+	r.App = myCnf.AppName
+	r.Host = myCnf.HostName
+}
+
+func getRecordFromPool() *Record {
+	r := recordPool.Get().(*Record)
+	r.bf = pool.GetBytes()
+	r.bs = *r.bf
+	return r
+}
+
+func putRecordToPool(r *Record) {
+	*r.bf = r.bs
+	pool.FreeBytes(r.bf)
+	r.bf = nil
+	r.bs = nil
+	recordPool.Put(r)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+func newRecord(w io.Writer, label string) *Record {
+	r := getRecordFromPool()
+	r.Time = timex.NowDur()
+	r.Label = label
+	r.w = w
+	return r
+}
+
+func (r *Record) output(msg string) {
+	jde.AppendStrField(r.bs, "msg", msg)
+	if _, err := r.w.Write(r.bs); err != nil {
+		log.Println("Panic to write log, details: " + err.Error())
+		panic(err)
+	}
+	putRecordToPool(r)
+}

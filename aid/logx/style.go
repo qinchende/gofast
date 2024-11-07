@@ -29,6 +29,8 @@ var (
 	CustomOutputFunc func(logLevel string, data any) string
 	RequestsLog      func(p *ReqRecord, flag int8) string
 	TimeToStr        func(tm time.Time) string
+	WriteRecord      func(r *Record, flag int8) string
+	WriteReqRecord   func(r *ReqRecord, flag int8) string
 )
 
 // 将名称字符串转换成整数类型，提高判断性能
@@ -43,7 +45,7 @@ func initStyle(c *LogConfig) error {
 		}
 	case styleCdoStr:
 		c.iStyle = StyleCdo
-		Formatter = outputElkStyle
+		//Formatter =
 	case styleJsonStr:
 		c.iStyle = StyleJson
 		Formatter = outputPrometheusStyle
