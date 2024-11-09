@@ -9,6 +9,7 @@ import (
 	"github.com/qinchende/gofast/aid/timex"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/lang"
+	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -19,7 +20,7 @@ const (
 	timeFormatMini = "01-02 15:04:05"
 )
 
-func outputSdxStyle(w WriterCloser, logLevel string, data any) {
+func outputSdxStyle(w io.WriteCloser, logLevel string, data any) {
 	info := lang.ToString(data)
 	sb := strings.Builder{}
 	sb.Grow(len(info) + 26)

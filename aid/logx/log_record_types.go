@@ -7,26 +7,26 @@ import (
 
 func (r *Record) Send() {
 	if r != nil {
-		r.output("")
+		r.out.output("")
 	}
 }
 
 func (r *Record) Msg(msg string) {
 	if r != nil {
-		r.output(msg)
+		r.out.output(msg)
 	}
 }
 
 // MsgF虽然方便，但不推荐使用
 func (r *Record) MsgF(str string, v ...any) {
 	if r != nil {
-		r.output(fmt.Sprintf(str, v...))
+		r.out.output(fmt.Sprintf(str, v...))
 	}
 }
 
 func (r *Record) MsgFunc(createMsg func() string) {
 	if r != nil {
-		r.output(createMsg())
+		r.out.output(createMsg())
 	}
 }
 

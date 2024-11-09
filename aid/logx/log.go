@@ -6,6 +6,7 @@ import (
 	"errors"
 	"github.com/qinchende/gofast/aid/conf"
 	"github.com/qinchende/gofast/aid/sysx/host"
+	"io"
 	"log"
 	"os"
 	"path"
@@ -13,33 +14,36 @@ import (
 	"sync"
 )
 
+type RecordOutput interface {
+	output(msg string)
+}
+
 // 每种分类可以有单独输出到不同的日志文件
 var (
-	ioStack WriterCloser
-	ioDebug WriterCloser
-	ioInfo  WriterCloser
-	ioReq   WriterCloser
-	ioTimer WriterCloser
-	ioStat  WriterCloser
-	ioWarn  WriterCloser
-	ioSlow  WriterCloser
-	ioErr   WriterCloser
-	ioPanic WriterCloser
-	//ioDiscard WriterCloser
+	ioStack io.WriteCloser
+	ioDebug io.WriteCloser
+	ioInfo  io.WriteCloser
+	ioReq   io.WriteCloser
+	ioTimer io.WriteCloser
+	ioStat  io.WriteCloser
+	ioWarn  io.WriteCloser
+	ioSlow  io.WriteCloser
+	ioErr   io.WriteCloser
+	ioPanic io.WriteCloser
+	//ioDiscard io.WriteCloser
 
 	initOnce sync.Once
 	myCnf    *LogConfig
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func DefaultSetup() {
+func SetupDefault() {
 	cnf := &LogConfig{}
 	_ = conf.LoadFromJson(cnf, []byte("{}"))
-	MustSetup(cnf)
+	SetupMust(cnf)
 }
 
 // 必须准备好日志环境，否则启动失败自动退出
-func MustSetup(cnf *LogConfig) {
+func SetupMust(cnf *LogConfig) {
 	if err := Setup(cnf); err != nil {
 		msg := msgWithStack(err.Error())
 		if ioErr != nil {
@@ -56,6 +60,7 @@ func Setup(cnf *LogConfig) error {
 	return initLogger(myCnf)
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func initLogger(c *LogConfig) error {
 	switch c.LogLevel {
 	case labelStack:
@@ -92,7 +97,6 @@ func initLogger(c *LogConfig) error {
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 第一种：打印在console
 func setupForConsole(c *LogConfig) error {
 	initOnce.Do(func() {
@@ -122,7 +126,7 @@ func setupForFiles(c *LogConfig) error {
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
 		ioInfo = createFile(labelInfo)
 		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
-		*os.Stdout = *ioInfo.(*RotateLogger).fp
+		*os.Stdout = *ioInfo.(*RotateWriter).fp
 		*os.Stderr = *os.Stdout
 		log.SetOutput(ioInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
@@ -139,16 +143,16 @@ func setupForFiles(c *LogConfig) error {
 	return nil
 }
 
-func createWriterFile(path string) WriterCloser {
+func createWriterFile(path string) io.WriteCloser {
 	rr := DefDailyRotateRule(path, backupFileDelimiter, myCnf.FileKeepDays, myCnf.FileGzip)
-	wr, err := NewRotateLogger(path, rr, myCnf.FileGzip)
+	wr, err := NewRotateWriter(path, rr, myCnf.FileGzip)
 	if err != nil {
 		panic(err)
 	}
 	return wr
 }
 
-func createFile(label string) WriterCloser {
+func createFile(label string) io.WriteCloser {
 	if myCnf.FileName == "" {
 		myCnf.FileName = "[FileName]"
 	}

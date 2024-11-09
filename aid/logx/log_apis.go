@@ -6,9 +6,7 @@
 package logx
 
 import (
-	"fmt"
 	"github.com/qinchende/gofast/core/cst"
-	"runtime/debug"
 )
 
 func Stack() *Record {
@@ -32,23 +30,16 @@ func Info() *Record {
 	return nil
 }
 
-func InfoReq() *Record {
-	if ShowInfo() {
-		return NewRecord(ioInfo, labelReq)
-	}
-	return nil
-}
-
 func InfoTimers() *Record {
 	if ShowInfo() {
-		return NewRecord(ioInfo, labelTimer)
+		return NewRecord(ioTimer, labelTimer)
 	}
 	return nil
 }
 
 func InfoStat() *Record {
-	if ShowInfo() {
-		return NewRecord(ioInfo, labelStat)
+	if ShowStat() {
+		return NewRecord(ioStat, labelStat)
 	}
 	return nil
 }
@@ -61,8 +52,8 @@ func Warn() *Record {
 }
 
 func WarnSlow() *Record {
-	if ShowWarn() {
-		return NewRecord(ioWarn, labelSlow)
+	if ShowSlow() {
+		return NewRecord(ioSlow, labelSlow)
 	}
 	return nil
 }
@@ -103,11 +94,11 @@ func ShowErr() bool {
 }
 
 func ShowStat() bool {
-	return myCnf.EnableStat && ShowInfo()
+	return ShowInfo() && !myCnf.DisableStat
 }
 
 func ShowSlow() bool {
-	return myCnf.EnableSlow && ShowWarn()
+	return ShowWarn() && !myCnf.DisableSlow
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -222,13 +213,13 @@ func ShowSlow() bool {
 //
 // // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stat(v string) {
-	if myCnf.EnableStat {
+	if !myCnf.DisableStat {
 		output(ioStat, labelStat, v)
 	}
 }
 
 func StatKV(data cst.KV) {
-	if myCnf.EnableStat {
+	if !myCnf.DisableStat {
 		output(ioStat, labelStat, data)
 	}
 }
@@ -295,23 +286,23 @@ func StatKV(data cst.KV) {
 //		output(ioErr, labelErr, msgWithStack(v))
 //	}
 //}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// inner call apis
-func warnSync(msg string) {
-	if ShowWarn() {
-		output(ioWarn, labelWarn, msg)
-	}
-}
-
-func errorSync(msg string, skip int) {
-	if ShowErr() {
-		output(ioErr, labelErr, msgWithCaller(msg, skip))
-	}
-}
-
-func stackSync(msg string) {
-	if ShowStack() {
-		output(ioStack, labelStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()))
-	}
-}
+//
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//// inner call apis
+//func warnSync(msg string) {
+//	if ShowWarn() {
+//		output(ioWarn, labelWarn, msg)
+//	}
+//}
+//
+//func errorSync(msg string, skip int) {
+//	if ShowErr() {
+//		output(ioErr, labelErr, msgWithCaller(msg, skip))
+//	}
+//}
+//
+//func stackSync(msg string) {
+//	if ShowStack() {
+//		output(ioStack, labelStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()))
+//	}
+//}

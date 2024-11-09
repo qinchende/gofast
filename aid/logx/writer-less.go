@@ -15,6 +15,7 @@ type lessWriter struct {
 	writer io.Writer
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func NewLessWriter(writer io.Writer, milliseconds int) *lessWriter {
 	return &lessWriter{
 		limitedExecutor: newLimitedExecutor(milliseconds),
@@ -47,7 +48,7 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		execute()
 		return
 	}
-	
+
 	now := timex.NowDur()
 	if now-le.lastTime.Load() <= le.threshold {
 		atomic.AddUint32(&le.discarded, 1)

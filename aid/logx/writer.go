@@ -3,10 +3,8 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/core/lang"
 	"io"
-	"log"
-	"strings"
+	"sync"
 )
 
 const (
@@ -18,46 +16,60 @@ const (
 	backupFileDelimiter = "-"
 )
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-type WriterCloser interface {
-	io.WriteCloser
-	//Writeln(data string) (err error)
-	//WritelnBytes(data []byte) (err error)
-	//WritelnBuilder(sb *strings.Builder) (err error)
+//
+//type WriterCloser interface {
+//	io.WriteCloser
+//	//Writeln(data string) (err error)
+//	//WritelnBytes(data []byte) (err error)
+//	//WritelnBuilder(sb *strings.Builder) (err error)
+//}
+
+type syncWriter struct {
+	mu sync.Mutex
+	lw io.WriteCloser
 }
 
-// 自定义 logger
-type logWriter struct {
-	logger *log.Logger
+type consoleWriter struct {
+	*limitedExecutor
+	lw io.WriteCloser
 }
 
-func newLogWriter(logger *log.Logger) logWriter {
-	return logWriter{
-		logger: logger,
-	}
+type multiWriter struct {
+	lws []io.WriteCloser
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (lw logWriter) Close() error {
-	return nil
-}
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//type logWriter struct {
+//	logger *log.Logger
+//}
+//
+//func newLogWriter(logger *log.Logger) logWriter {
+//	return logWriter{
+//		logger: logger,
+//	}
+//}
+//
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func (lw logWriter) Close() error {
+//	return nil
+//}
+//
+//func (lw logWriter) Write(data []byte) (int, error) {
+//	err := lw.logger.Output(2, lang.B2S(data))
+//	return len(data), err
+//}
 
-func (lw logWriter) Write(data []byte) (int, error) {
-	err := lw.logger.Output(2, lang.B2S(data))
-	return len(data), err
-}
-
-func (lw logWriter) Writeln(data string) error {
-	err := lw.logger.Output(2, data)
-	return err
-}
-
-func (lw logWriter) WritelnBytes(bs []byte) error {
-	err := lw.logger.Output(2, string(bs))
-	return err
-}
-
-func (lw logWriter) WritelnBuilder(sb *strings.Builder) error {
-	err := lw.logger.Output(2, sb.String())
-	return err
-}
+//func (lw logWriter) Writeln(data string) error {
+//	err := lw.logger.Output(2, data)
+//	return err
+//}
+//
+//func (lw logWriter) WritelnBytes(bs []byte) error {
+//	err := lw.logger.Output(2, string(bs))
+//	return err
+//}
+//
+//func (lw logWriter) WritelnBuilder(sb *strings.Builder) error {
+//	err := lw.logger.Output(2, sb.String())
+//	return err
+//}

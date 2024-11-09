@@ -19,15 +19,8 @@ import (
 	"time"
 )
 
-type RotateRule interface {
-	ArchiveFileName() string
-	OutdatedFiles() []string
-	NeedRotate() bool
-	MarkRotated()
-}
-
 type (
-	RotateLogger struct {
+	RotateWriter struct {
 		filename string
 		rule     RotateRule
 		compress bool
@@ -47,6 +40,13 @@ type (
 		gzip      bool
 	}
 )
+
+type RotateRule interface {
+	ArchiveFileName() string
+	OutdatedFiles() []string
+	NeedRotate() bool
+	MarkRotated()
+}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func DefDailyRotateRule(filename, delimiter string, days int, gzip bool) RotateRule {
@@ -108,8 +108,8 @@ func (r *DailyRotateRule) NeedRotate() bool {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 自动归档日志系统
-func NewRotateLogger(filename string, rule RotateRule, compress bool) (*RotateLogger, error) {
-	rl := &RotateLogger{
+func NewRotateWriter(filename string, rule RotateRule, compress bool) (*RotateWriter, error) {
+	rl := &RotateWriter{
 		filename: filename,
 		rule:     rule,
 		compress: compress,
@@ -124,7 +124,7 @@ func NewRotateLogger(filename string, rule RotateRule, compress bool) (*RotateLo
 	return rl, nil
 }
 
-func (rl *RotateLogger) Close() error {
+func (rl *RotateWriter) Close() error {
 	var err error
 	rl.closeOnce.Do(func() {
 		close(rl.done)
@@ -137,7 +137,7 @@ func (rl *RotateLogger) Close() error {
 	return err
 }
 
-func (rl *RotateLogger) Write(bytes []byte) (int, error) {
+func (rl *RotateWriter) Write(bytes []byte) (int, error) {
 	select {
 	case rl.channel <- bytes:
 		return len(bytes), nil
@@ -148,7 +148,7 @@ func (rl *RotateLogger) Write(bytes []byte) (int, error) {
 }
 
 // 每次调用都会在 str 后面自动判断并加上 \n
-func (rl *RotateLogger) Writeln(str string) (err error) {
+func (rl *RotateWriter) Writeln(str string) (err error) {
 	if str[len(str)-1] != '\n' {
 		Debug().MsgF("NOTE: A line break is recommended by this log info.")
 
@@ -163,7 +163,7 @@ func (rl *RotateLogger) Writeln(str string) (err error) {
 	return
 }
 
-func (rl *RotateLogger) WritelnBytes(bytes []byte) (err error) {
+func (rl *RotateWriter) WritelnBytes(bytes []byte) (err error) {
 	if len(bytes) == 0 || bytes[len(bytes)-1] != '\n' {
 		bytes = append(bytes, '\n')
 	}
@@ -171,7 +171,7 @@ func (rl *RotateLogger) WritelnBytes(bytes []byte) (err error) {
 	return
 }
 
-func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
+func (rl *RotateWriter) WritelnBuilder(sb *strings.Builder) (err error) {
 	str := sb.String()
 	if str[len(str)-1] != '\n' {
 		sb.WriteByte('\n')
@@ -182,7 +182,7 @@ func (rl *RotateLogger) WritelnBuilder(sb *strings.Builder) (err error) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // utils
-func (rl *RotateLogger) initRotateLogger() error {
+func (rl *RotateWriter) initRotateLogger() error {
 	// 判断当前日志文件是否存在，不存在就创建新的
 	if _, err := os.Stat(rl.filename); err != nil {
 		basePath := path.Dir(rl.filename)
@@ -203,7 +203,7 @@ func (rl *RotateLogger) initRotateLogger() error {
 	return nil
 }
 
-func (rl *RotateLogger) maybeCompressFile(file string) {
+func (rl *RotateWriter) maybeCompressFile(file string) {
 	if !rl.compress {
 		return
 	}
@@ -216,7 +216,7 @@ func (rl *RotateLogger) maybeCompressFile(file string) {
 	compressLogFile(file)
 }
 
-func (rl *RotateLogger) maybeDeleteOutdatedFiles() {
+func (rl *RotateWriter) maybeDeleteOutdatedFiles() {
 	files := rl.rule.OutdatedFiles()
 	for _, file := range files {
 		if err := os.Remove(file); err != nil {
@@ -225,7 +225,7 @@ func (rl *RotateLogger) maybeDeleteOutdatedFiles() {
 	}
 }
 
-func (rl *RotateLogger) postRotate(file string) {
+func (rl *RotateWriter) postRotate(file string) {
 	go func() {
 		// we cannot use threading.GoSafe here, because of import cycle.
 		rl.maybeCompressFile(file)
@@ -234,7 +234,7 @@ func (rl *RotateLogger) postRotate(file string) {
 }
 
 // 开始归档
-func (rl *RotateLogger) doRotate() error {
+func (rl *RotateWriter) doRotate() error {
 	if rl.fp != nil {
 		err := rl.fp.Close()
 		rl.fp = nil
@@ -259,7 +259,7 @@ func (rl *RotateLogger) doRotate() error {
 	return err
 }
 
-func (rl *RotateLogger) startWorker() {
+func (rl *RotateWriter) startWorker() {
 	rl.waitGroup.Add(1)
 
 	go func() {
@@ -276,7 +276,7 @@ func (rl *RotateLogger) startWorker() {
 }
 
 // 检查标记，做好日志的拆分，自动判断 gzip 标记并压缩
-func (rl *RotateLogger) writeExec(bytes []byte) {
+func (rl *RotateWriter) writeExec(bytes []byte) {
 	if rl.rule.NeedRotate() {
 		if err := rl.doRotate(); err != nil {
 			log.Println(err)

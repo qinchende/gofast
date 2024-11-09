@@ -4,6 +4,7 @@ package logx
 
 import (
 	"errors"
+	"io"
 	"time"
 )
 
@@ -25,7 +26,7 @@ const (
 )
 
 var (
-	Formatter        func(w WriterCloser, level string, data any)
+	Formatter        func(w io.WriteCloser, level string, data any)
 	CustomOutputFunc func(logLevel string, data any) string
 	RequestsLog      func(p *ReqRecord, flag int8) string
 	TimeToStr        func(tm time.Time) string
@@ -60,7 +61,7 @@ func initStyle(c *LogConfig) error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func output(w WriterCloser, logLevel string, data any) {
+func output(w io.WriteCloser, logLevel string, data any) {
 	Formatter(w, logLevel, data)
 }
 

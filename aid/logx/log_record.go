@@ -3,14 +3,12 @@
 package logx
 
 import (
-	"github.com/qinchende/gofast/aid/bag"
+	"fmt"
 	"github.com/qinchende/gofast/aid/timex"
-	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/store/jde"
 	"io"
-	"log"
-	"net/http"
+	"os"
 	"sync"
 	"time"
 )
@@ -27,26 +25,10 @@ type Record struct {
 	Label string
 	//Msg   string
 
-	w  io.Writer
-	bf *[]byte
-	bs []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
-}
-
-type ReqRecord struct {
-	RawReq     *http.Request
-	StatusCode int
-	Method     string
-	RequestURI string
-	UserAgent  string
-	RemoteAddr string
-
-	Record
-	TimeStamp  time.Duration
-	Latency    time.Duration
-	Pms        cst.SuperKV
-	BodySize   int
-	ResData    []byte
-	CarryItems bag.CarryList
+	w   io.WriteCloser
+	out RecordOutput
+	bf  *[]byte
+	bs  []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
 }
 
 var (
@@ -57,16 +39,7 @@ var (
 			return r
 		},
 	}
-	reqRecordPool = &sync.Pool{
-		New: func() interface{} {
-			r := &ReqRecord{}
-			r.Record.init()
-			return r
-		},
-	}
-
-	_recordDefValue    Record
-	_reqRecordDefValue ReqRecord
+	_recordDefValue Record
 )
 
 func (r *Record) init() {
@@ -93,11 +66,12 @@ func putRecordToPool(r *Record) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func NewRecord(w io.Writer, label string) *Record {
+func NewRecord(w io.WriteCloser, label string) *Record {
 	r := getRecordFromPool()
 	r.Time = timex.NowDur()
 	r.Label = label
 	r.w = w
+	r.out = r
 	return r
 }
 
@@ -107,8 +81,7 @@ func (r *Record) output(msg string) {
 	r.bs = append(r.bs, "\n"...)
 
 	if _, err := r.w.Write(r.bs); err != nil {
-		log.Println("Panic to write log, error: " + err.Error())
-		panic(err)
+		_, _ = fmt.Fprintf(os.Stderr, "logx: write record error: %s\n", err.Error())
 	}
 	putRecordToPool(r)
 }

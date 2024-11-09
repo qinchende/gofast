@@ -4,6 +4,7 @@ package logx
 
 import (
 	"github.com/qinchende/gofast/aid/jsonx"
+	"io"
 	"time"
 )
 
@@ -15,7 +16,7 @@ type logPrometheusEntry struct {
 	Content   any    `pms:"ct"`
 }
 
-func outputPrometheusStyle(w WriterCloser, logLevel string, data any) {
+func outputPrometheusStyle(w io.WriteCloser, logLevel string, data any) {
 	logWrap := logPrometheusEntry{
 		Timestamp: time.Now().Format(timeFormat),
 		Level:     logLevel,
