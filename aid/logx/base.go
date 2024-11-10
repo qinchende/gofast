@@ -54,22 +54,6 @@ const (
 	labelErr     = "err"     // 5
 	labelPanic   = "panic"   // 5
 	labelDiscard = "discard" // 6
-
-	//iStack   int8 = 0
-	//iDebug   int8 = 1
-	//iInfo    int8 = 2
-	//iReq     int8 = 3
-	//iTimer   int8 = 4
-	//iStat    int8 = 5
-	//iWarn    int8 = 6
-	//iSlow    int8 = 7
-	//iErr     int8 = 8
-	//iPanic   int8 = 9
-	//iDiscard int8 = 10
-)
-
-var (
-// labels = [11]string{"stack", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}
 )
 
 const (
@@ -81,3 +65,18 @@ const (
 	toVolume  = "volume"
 	toCustom  = "custom"
 )
+
+//var (
+//	labels = [11]string{"stack", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}
+//)
+//iStack   int8 = 0
+//iDebug   int8 = 1
+//iInfo    int8 = 2
+//iReq     int8 = 3
+//iTimer   int8 = 4
+//iStat    int8 = 5
+//iWarn    int8 = 6
+//iSlow    int8 = 7
+//iErr     int8 = 8
+//iPanic   int8 = 9
+//iDiscard int8 = 10

@@ -55,21 +55,21 @@ type multiWriter struct {
 //}
 //
 //func (lw logWriter) Write(data []byte) (int, error) {
-//	err := lw.logger.Output(2, lang.B2S(data))
+//	err := lw.logger.LogOutput(2, lang.B2S(data))
 //	return len(data), err
 //}
 
 //func (lw logWriter) Writeln(data string) error {
-//	err := lw.logger.Output(2, data)
+//	err := lw.logger.LogOutput(2, data)
 //	return err
 //}
 //
 //func (lw logWriter) WritelnBytes(bs []byte) error {
-//	err := lw.logger.Output(2, string(bs))
+//	err := lw.logger.LogOutput(2, string(bs))
 //	return err
 //}
 //
 //func (lw logWriter) WritelnBuilder(sb *strings.Builder) error {
-//	err := lw.logger.Output(2, sb.String())
+//	err := lw.logger.LogOutput(2, sb.String())
 //	return err
 //}

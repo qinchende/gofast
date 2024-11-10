@@ -5,10 +5,6 @@
 // 提取封装函数再调用能简化代码，但都采用封装调用的方式，很有可能条件不满足，大量的fmt.Sprint函数做无用功。
 package logx
 
-import (
-	"github.com/qinchende/gofast/core/cst"
-)
-
 func Stack() *Record {
 	if ShowStack() {
 		return NewRecord(ioStack, labelStack)
@@ -116,25 +112,25 @@ func ShowSlow() bool {
 //
 //// +++
 //func Debug(v string) {
-//	if myCnf.iLevel <= LevelDebug {
+//	if cnf.iLevel <= LevelDebug {
 //		output(ioDebug, labelDebug, v)
 //	}
 //}
 //
 //func Debugs(v ...any) {
-//	if myCnf.iLevel <= LevelDebug {
+//	if cnf.iLevel <= LevelDebug {
 //		output(ioDebug, labelDebug, fmt.Sprint(v...))
 //	}
 //}
 //
 //func DebugF(format string, v ...any) {
-//	if myCnf.iLevel <= LevelDebug {
+//	if cnf.iLevel <= LevelDebug {
 //		output(ioDebug, labelDebug, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //func DebugDirect(v string) {
-//	if myCnf.iLevel <= LevelDebug {
+//	if cnf.iLevel <= LevelDebug {
 //		output(ioDebug, labelDebug, v)
 //	}
 //}
@@ -142,25 +138,25 @@ func ShowSlow() bool {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //
 //	func Info(v string) {
-//		if myCnf.iLevel <= LevelInfo {
+//		if cnf.iLevel <= LevelInfo {
 //			output(ioInfo, labelInfo, v)
 //		}
 //	}
 //
 //	func InfoKV(v cst.KV) {
-//		if myCnf.iLevel <= LevelInfo {
+//		if cnf.iLevel <= LevelInfo {
 //			output(ioInfo, labelInfo, v)
 //		}
 //	}
 //
 //	func Infos(v ...any) {
-//		if myCnf.iLevel <= LevelInfo {
+//		if cnf.iLevel <= LevelInfo {
 //			output(ioInfo, labelInfo, fmt.Sprint(v...))
 //		}
 //	}
 //
 //	func InfoF(format string, v ...any) {
-//		if myCnf.iLevel <= LevelInfo {
+//		if cnf.iLevel <= LevelInfo {
 //			output(ioInfo, labelInfo, fmt.Sprintf(format, v...))
 //		}
 //	}
@@ -168,7 +164,7 @@ func ShowSlow() bool {
 // // 直接打印所给的数据
 //
 //	func InfoDirect(v string) {
-//		if myCnf.iLevel <= LevelInfo {
+//		if cnf.iLevel <= LevelInfo {
 //			output(ioInfo, labelInfo, v)
 //		}
 //	}
@@ -212,77 +208,77 @@ func ShowSlow() bool {
 //	}
 //
 // // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Stat(v string) {
-	if !myCnf.DisableStat {
-		output(ioStat, labelStat, v)
-	}
-}
-
-func StatKV(data cst.KV) {
-	if !myCnf.DisableStat {
-		output(ioStat, labelStat, data)
-	}
-}
+//func Stat(v string) {
+//	if !cnf.DisableStat {
+//		output(ioStat, labelStat, v)
+//	}
+//}
+//
+//func StatKV(data cst.KV) {
+//	if !cnf.DisableStat {
+//		output(ioStat, labelStat, data)
+//	}
+//}
 
 //
 //func Stats(v ...any) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioStat, labelStat, fmt.Sprint(v...))
 //	}
 //}
 //
 //func StatF(format string, v ...any) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioStat, labelStat, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //// +++
 //func Slow(v string) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioSlow, labelSlow, v)
 //	}
 //}
 //
 //func Slows(v ...any) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioSlow, labelSlow, fmt.Sprint(v...))
 //	}
 //}
 //
 //func SlowF(format string, v ...any) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioSlow, labelSlow, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //// +++
 //func Timer(v string) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioTimer, labelTimer, v)
 //	}
 //}
 //
 //func TimerKV(data cst.KV) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioTimer, labelTimer, data)
 //	}
 //}
 //
 //func Timers(v ...any) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioTimer, labelTimer, fmt.Sprint(v...))
 //	}
 //}
 //
 //func TimerF(format string, v ...any) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioTimer, labelTimer, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //func TimerError(v string) {
-//	if myCnf.EnableStat {
+//	if cnf.EnableStat {
 //		output(ioErr, labelErr, msgWithStack(v))
 //	}
 //}

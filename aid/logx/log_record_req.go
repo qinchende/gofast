@@ -60,7 +60,7 @@ func putReqRecordToPool(r *ReqRecord) {
 	pool.FreeBytes(r.bf)
 	r.bf = nil
 	r.bs = nil
-	recordPool.Put(r)
+	reqRecordPool.Put(r)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -83,7 +83,7 @@ func InfoReq() *ReqRecord {
 	return nil
 }
 
-func (r *ReqRecord) output(msg string) {
+func (r *ReqRecord) Output(msg string) {
 
 	r.bs = jde.AppendStrField(r.bs, "msg", msg)
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号

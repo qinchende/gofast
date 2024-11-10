@@ -17,5 +17,5 @@ func InfoReport(kv cst.KV) {
 		kv["cluster"] = clusterName
 	}
 	kv["host"] = host.Hostname()
-	StatKV(kv)
+	//StatKV(kv)
 }

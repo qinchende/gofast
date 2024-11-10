@@ -26,7 +26,7 @@ type Record struct {
 	//Msg   string
 
 	w   io.WriteCloser
-	out RecordOutput
+	out LogOutput
 	bf  *[]byte
 	bs  []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
 }
@@ -75,7 +75,7 @@ func NewRecord(w io.WriteCloser, label string) *Record {
 	return r
 }
 
-func (r *Record) output(msg string) {
+func (r *Record) Output(msg string) {
 	r.bs = jde.AppendStrField(r.bs, "msg", msg)
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
 	r.bs = append(r.bs, "\n"...)

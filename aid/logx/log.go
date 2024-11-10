@@ -4,6 +4,7 @@ package logx
 
 import (
 	"errors"
+	"fmt"
 	"github.com/qinchende/gofast/aid/conf"
 	"github.com/qinchende/gofast/aid/sysx/host"
 	"io"
@@ -14,12 +15,12 @@ import (
 	"sync"
 )
 
-type RecordOutput interface {
-	output(msg string)
+type LogOutput interface {
+	Output(msg string)
 }
 
-// 每种分类可以有单独输出到不同的日志文件
-var (
+type Logger struct {
+	// 每种分类可以有单独输出到不同的日志文件
 	ioStack io.WriteCloser
 	ioDebug io.WriteCloser
 	ioInfo  io.WriteCloser
@@ -33,8 +34,10 @@ var (
 	//ioDiscard io.WriteCloser
 
 	initOnce sync.Once
-	myCnf    *LogConfig
-)
+	cnf      *LogConfig
+}
+
+var myLogger Logger
 
 func SetupDefault() {
 	cnf := &LogConfig{}
@@ -46,18 +49,14 @@ func SetupDefault() {
 func SetupMust(cnf *LogConfig) {
 	if err := Setup(cnf); err != nil {
 		msg := msgWithStack(err.Error())
-		if ioErr != nil {
-			output(ioErr, labelErr, msg)
-		} else {
-			log.Println(msg)
-		}
+		_, _ = fmt.Fprintf(os.Stderr, "logx: SetupMust error: %s\n", msg)
 		os.Exit(1)
 	}
 }
 
 func Setup(cnf *LogConfig) error {
-	myCnf = cnf
-	return initLogger(myCnf)
+	myLogger.cnf = cnf
+	return initLogger(myLogger.cnf)
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -169,64 +168,64 @@ func setupForVolume(c *LogConfig) error {
 	return setupForFiles(c)
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func CloseFiles() error {
-	if myCnf.LogMedium == toConsole {
-		return nil
-	}
-
-	if ioDebug != nil {
-		if err := ioDebug.Close(); err != nil {
-			return err
-		}
-	}
-	if ioInfo != nil {
-		if err := ioInfo.Close(); err != nil {
-			return err
-		}
-	}
-	if ioWarn != nil {
-		if err := ioWarn.Close(); err != nil {
-			return err
-		}
-	}
-	if ioErr != nil {
-		if err := ioErr.Close(); err != nil {
-			return err
-		}
-	}
-	if ioStack != nil {
-		if err := ioStack.Close(); err != nil {
-			return err
-		}
-	}
-	if ioStat != nil {
-		if err := ioStat.Close(); err != nil {
-			return err
-		}
-	}
-	if ioSlow != nil {
-		if err := ioSlow.Close(); err != nil {
-			return err
-		}
-	}
-	if ioTimer != nil {
-		if err := ioTimer.Close(); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func Disable() {
-	initOnce.Do(func() {
-		//atomic.StoreUint32(&initialized, 1)
-
-		//ioInfo = iox.NopCloser(ioutil.Discard)
-		//ioErr = iox.NopCloser(ioutil.Discard)
-		//ioSlow = iox.NopCloser(ioutil.Discard)
-		//ioStat = iox.NopCloser(ioutil.Discard)
-		//ioStack = ioutil.Discard
-	})
-}
+//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//func CloseFiles() error {
+//	if myCnf.LogMedium == toConsole {
+//		return nil
+//	}
+//
+//	if ioDebug != nil {
+//		if err := ioDebug.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioInfo != nil {
+//		if err := ioInfo.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioWarn != nil {
+//		if err := ioWarn.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioErr != nil {
+//		if err := ioErr.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioStack != nil {
+//		if err := ioStack.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioStat != nil {
+//		if err := ioStat.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioSlow != nil {
+//		if err := ioSlow.Close(); err != nil {
+//			return err
+//		}
+//	}
+//	if ioTimer != nil {
+//		if err := ioTimer.Close(); err != nil {
+//			return err
+//		}
+//	}
+//
+//	return nil
+//}
+//
+//func Disable() {
+//	initOnce.Do(func() {
+//		//atomic.StoreUint32(&initialized, 1)
+//
+//		//ioInfo = iox.NopCloser(ioutil.Discard)
+//		//ioErr = iox.NopCloser(ioutil.Discard)
+//		//ioSlow = iox.NopCloser(ioutil.Discard)
+//		//ioStat = iox.NopCloser(ioutil.Discard)
+//		//ioStack = ioutil.Discard
+//	})
+//}

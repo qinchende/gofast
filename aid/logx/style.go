@@ -61,13 +61,13 @@ func initStyle(c *LogConfig) error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func output(w io.WriteCloser, logLevel string, data any) {
+func Output(w io.WriteCloser, logLevel string, data any) {
 	Formatter(w, logLevel, data)
 }
 
 //// 打印请求日志，可以指定不同的输出样式
 //func RequestsLog(p *ReqLogEntity, flag int8) {
-//	switch myCnf.iStyle {
+//	switch cnf.iStyle {
 //	case StyleSdx:
 //		InfoDirect()
 //	case StyleCdo:
@@ -90,7 +90,7 @@ func output(w io.WriteCloser, logLevel string, data any) {
 //		//log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
 //
 //		if useStyle == true {
-//			switch myCnf.iStyle {
+//			switch cnf.iStyle {
 //			case StyleCustom:
 //				outputCustomStyle(w, logLevel, data)
 //			case StyleSdx:
