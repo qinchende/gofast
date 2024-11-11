@@ -12,160 +12,157 @@ import (
 	"os"
 	"path"
 	"strings"
-	"sync"
 )
 
-type LogOutput interface {
-	Output(msg string)
+var myLogger *Logger
+
+// 指定LogConfig初始化默认日志记录器
+func SetupDefault(cnf *LogConfig) {
+	if myLogger != nil {
+		myLogger.Warn().Msg("logx: default logger already existed")
+		return
+	}
+	if cnf == nil {
+		cnf = &LogConfig{}
+		_ = conf.LoadFromJson(cnf, []byte("{}"))
+	}
+	myLogger = NewMust(cnf)
 }
 
-type Logger struct {
-	// 每种分类可以有单独输出到不同的日志文件
-	ioStack io.WriteCloser
-	ioDebug io.WriteCloser
-	ioInfo  io.WriteCloser
-	ioReq   io.WriteCloser
-	ioTimer io.WriteCloser
-	ioStat  io.WriteCloser
-	ioWarn  io.WriteCloser
-	ioSlow  io.WriteCloser
-	ioErr   io.WriteCloser
-	ioPanic io.WriteCloser
-	//ioDiscard io.WriteCloser
-
-	initOnce sync.Once
-	cnf      *LogConfig
-}
-
-var myLogger Logger
-
-func SetupDefault() {
-	cnf := &LogConfig{}
-	_ = conf.LoadFromJson(cnf, []byte("{}"))
-	SetupMust(cnf)
-}
-
-// 必须准备好日志环境，否则启动失败自动退出
-func SetupMust(cnf *LogConfig) {
-	if err := Setup(cnf); err != nil {
-		msg := msgWithStack(err.Error())
-		_, _ = fmt.Fprintf(os.Stderr, "logx: SetupMust error: %s\n", msg)
-		os.Exit(1)
+// 可以自定义默认日志记录器
+func SetDefault(l *Logger) {
+	if l == nil {
+		myLogger = l
 	}
 }
 
-func Setup(cnf *LogConfig) error {
-	myLogger.cnf = cnf
-	return initLogger(myLogger.cnf)
+func NewMust(cnf *LogConfig) *Logger {
+	l, err := New(cnf)
+	if err != nil {
+		msg := msgWithStack(err.Error())
+		_, _ = fmt.Fprintf(os.Stderr, "logx: NewMust error: %s\n", msg)
+		os.Exit(1)
+	}
+	return l
+}
+
+func New(cnf *LogConfig) (l *Logger, err error) {
+	l = &Logger{cnf: cnf}
+	if err = l.initLogger(); err != nil {
+		return nil, err
+	}
+	return l, nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func initLogger(c *LogConfig) error {
-	switch c.LogLevel {
+func (l *Logger) initLogger() error {
+	switch l.cnf.LogLevel {
 	case labelStack:
-		c.iLevel = LevelStack
+		l.iLevel = LevelStack
 	case labelDebug:
-		c.iLevel = LevelDebug
+		l.iLevel = LevelDebug
 	case labelInfo:
-		c.iLevel = LevelInfo
+		l.iLevel = LevelInfo
 	case labelWarn:
-		c.iLevel = LevelWarn
+		l.iLevel = LevelWarn
 	case labelErr:
-		c.iLevel = LevelErr
+		l.iLevel = LevelErr
 	case labelDiscard:
-		c.iLevel = LevelDiscard
+		l.iLevel = LevelDiscard
 	default:
-		return errors.New("Wrong LogLevel by config")
+		return errors.New("Wrong LogLevel of config")
 	}
 
-	if err := initStyle(c); err != nil {
+	if err := l.initStyle(); err != nil {
 		return err
 	}
 
-	switch c.LogMedium {
+	switch l.cnf.LogMedium {
 	case toConsole:
-		return setupForConsole(c)
+		return l.setupForConsole()
 	case toFile:
-		return setupForFiles(c)
+		return l.setupForFiles()
 	case toVolume:
-		return setupForVolume(c)
+		return l.setupForVolume()
 	case toCustom:
 		return nil
 	default:
-		return errors.New("Wrong LogMedium by config")
+		return errors.New("Wrong LogMedium of config")
 	}
 }
 
 // 第一种：打印在console
-func setupForConsole(c *LogConfig) error {
-	initOnce.Do(func() {
+func (l *Logger) setupForConsole() error {
+	l.initOnce.Do(func() {
 		w1 := os.Stdout
-		ioStack = w1
-		ioDebug = w1
-		ioInfo = w1
-		ioReq = w1
-		ioTimer = w1
-		ioStat = w1
+		l.ioStack = w1
+		l.ioDebug = w1
+		l.ioInfo = w1
+		l.ioReq = w1
+		l.ioTimer = w1
+		l.ioStat = w1
 
 		w2 := os.Stderr
-		ioWarn = w2
-		ioSlow = w2
-		ioErr = w2
-		ioPanic = w2
+		l.ioWarn = w2
+		l.ioSlow = w2
+		l.ioErr = w2
+		l.ioPanic = w2
 	})
 	return nil
 }
 
 // 第二种：文件日志模式下的初始化工作
-func setupForFiles(c *LogConfig) error {
+func (l *Logger) setupForFiles() error {
+	c := l.cnf
 	if len(c.FilePath) == 0 {
 		return errors.New("log file folder must be set")
 	}
-	initOnce.Do(func() {
+	l.initOnce.Do(func() {
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		ioInfo = createFile(labelInfo)
+		l.ioInfo = l.createFile(labelInfo)
 		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
-		*os.Stdout = *ioInfo.(*RotateWriter).fp
+		*os.Stdout = *l.ioInfo.(*RotateWriter).fp
 		*os.Stderr = *os.Stdout
-		log.SetOutput(ioInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
+		log.SetOutput(l.ioInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
 		fStep := 0
 		fiNames := strings.Split(c.FileSplit, "|")
 
 		if fiNames[fStep] != "debug" {
-			ioDebug = createFile(labelDebug)
+			l.ioDebug = l.createFile(labelDebug)
 		} else {
-			ioDebug = ioInfo
+			l.ioDebug = l.ioInfo
 		}
 	})
 
 	return nil
 }
 
-func createWriterFile(path string) io.WriteCloser {
-	rr := DefDailyRotateRule(path, backupFileDelimiter, myCnf.FileKeepDays, myCnf.FileGzip)
-	wr, err := NewRotateWriter(path, rr, myCnf.FileGzip)
+func (l *Logger) createWriterFile(path string) io.WriteCloser {
+	rr := DefDailyRotateRule(path, backupFileDelimiter, l.cnf.FileKeepDays, l.cnf.FileGzip)
+	wr, err := NewRotateWriter(path, rr, l.cnf.FileGzip)
 	if err != nil {
 		panic(err)
 	}
 	return wr
 }
 
-func createFile(label string) io.WriteCloser {
-	if myCnf.FileName == "" {
-		myCnf.FileName = "[FileName]"
+func (l *Logger) createFile(label string) io.WriteCloser {
+	if l.cnf.FileName == "" {
+		l.cnf.FileName = "[FileName]"
 	}
-	filePath := path.Join(myCnf.FilePath, myCnf.FileName+"."+label+".log")
-	return createWriterFile(filePath)
+	filePath := path.Join(l.cnf.FilePath, l.cnf.FileName+"."+label+".log")
+	return l.createWriterFile(filePath)
 }
 
 // 第三种：分卷存储文件（其实也是写文件，但是更严格的分层文件夹。）
-func setupForVolume(c *LogConfig) error {
+func (l *Logger) setupForVolume() error {
+	c := l.cnf
 	if len(c.AppName) == 0 {
 		return errors.New("log config item [AppName] must be set")
 	}
 	c.FilePath = path.Join(c.FilePath, c.AppName, host.Hostname())
-	return setupForFiles(c)
+	return l.setupForFiles()
 }
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

@@ -16,6 +16,7 @@ import (
 	"time"
 )
 
+// 专为收集请求日志而设计
 type ReqRecord struct {
 	Record
 
@@ -31,10 +32,6 @@ type ReqRecord struct {
 	BodySize   int
 	ResData    []byte
 	CarryItems bag.CarryList
-}
-
-func (r *ReqRecord) Close() error {
-	return nil
 }
 
 var (
@@ -68,17 +65,17 @@ func newReqRecord(w io.WriteCloser, label string) *ReqRecord {
 	r := getReqRecordFromPool()
 
 	// Record记录的数据
-	r.Time = timex.NowDur()
+	r.Ts = timex.NowDur()
 	r.Label = label
-	r.w = w
+	r.iow = w
 	r.out = r
 
 	return r
 }
 
 func InfoReq() *ReqRecord {
-	if ShowInfo() {
-		return newReqRecord(ioReq, labelReq)
+	if myLogger.ShowInfo() {
+		return newReqRecord(myLogger.ioReq, labelReq)
 	}
 	return nil
 }
@@ -89,7 +86,7 @@ func (r *ReqRecord) Output(msg string) {
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
 	r.bs = append(r.bs, "\n"...)
 
-	if _, err := r.w.Write(r.bs); err != nil {
+	if _, err := r.iow.Write(r.bs); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "logx: write req-record error: %s\n", err.Error())
 	}
 	putReqRecordToPool(r)

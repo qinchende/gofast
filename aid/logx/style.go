@@ -35,23 +35,23 @@ var (
 )
 
 // 将名称字符串转换成整数类型，提高判断性能
-func initStyle(c *LogConfig) error {
-	switch c.LogStyle {
+func (l *Logger) initStyle() error {
+	switch l.cnf.LogStyle {
 
 	case styleSdxStr:
-		c.iStyle = StyleSdx
+		l.iStyle = StyleSdx
 		{
 			Formatter = outputSdxStyle
 			RequestsLog = buildSdxReqLog
 		}
 	case styleCdoStr:
-		c.iStyle = StyleCdo
+		l.iStyle = StyleCdo
 		//Formatter =
 	case styleJsonStr:
-		c.iStyle = StyleJson
+		l.iStyle = StyleJson
 		Formatter = outputPrometheusStyle
 	case styleCustomStr:
-		c.iStyle = StyleCustom
+		l.iStyle = StyleCustom
 		//Formatter = outputCustomStyle
 	default:
 		//Formatter = outputDirect

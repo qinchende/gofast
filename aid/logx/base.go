@@ -2,6 +2,11 @@
 // Use of this source code is governed by a MIT license
 package logx
 
+import (
+	"io"
+	"sync"
+)
+
 type LogConfig struct {
 	AppName   string `v:"def=AppName"`                                     // 应用名称
 	HostName  string `v:"def=HostName"`                                    // 主机名称
@@ -26,15 +31,12 @@ type LogConfig struct {
 	EnableMini   bool   `v:"def=false"`
 	DisableMark  bool   `v:"def=false"` // 是否打印应用标记
 	CdoGroupSize uint16 `v:"def=100"`   // Cdo编码时分页大小
-
-	iLevel int8 // 日志级别
-	iStyle int8 // 日志样式类型
 }
 
 const (
-	// 日志级别的设定，自动输出对应级别的日志。主要是用来控制日志输出的多少
+	// 日志级别的设定，主要是用来控制日志输出的多少
 	// Note: 日志级别不需要太多，如果你觉得自己需要，多半都是打印日志的逻辑出问题了
-	// 默认下面几个日志级别，足够了。当然你是可以扩展的
+	// 默认下面几个日志级别，足够了。可以自定义扩展，但我不推荐
 	LevelStack   int8 = -8  // 1
 	LevelDebug   int8 = -4  // 2
 	LevelInfo    int8 = 0   // 3
@@ -46,8 +48,8 @@ const (
 	labelStack   = "stack"   // 1
 	labelDebug   = "debug"   // 2
 	labelInfo    = "info"    // 3
-	labelTimer   = "timer"   // 3 定时器执行的任务日志，一般为定时脚本准备
 	labelReq     = "req"     // 3 请求日志
+	labelTimer   = "timer"   // 3 定时器执行的任务日志，一般为定时脚本准备
 	labelStat    = "stat"    // 3 运行状态日志
 	labelWarn    = "warn"    // 4
 	labelSlow    = "slow"    // 4 慢日志
@@ -65,6 +67,31 @@ const (
 	toVolume  = "volume"
 	toCustom  = "custom"
 )
+
+type LogBuilder interface {
+	Output(msg string)
+}
+
+type Logger struct {
+	// 每种分类可以有单独输出到不同的日志文件
+	ioStack io.WriteCloser
+	ioDebug io.WriteCloser
+	ioInfo  io.WriteCloser
+	ioReq   io.WriteCloser
+	ioTimer io.WriteCloser
+	ioStat  io.WriteCloser
+	ioWarn  io.WriteCloser
+	ioSlow  io.WriteCloser
+	ioErr   io.WriteCloser
+	ioPanic io.WriteCloser
+	//ioDiscard io.WriteCloser
+
+	initOnce sync.Once
+	cnf      *LogConfig
+
+	iLevel int8 // 日志级别
+	iStyle int8 // 日志样式类型
+}
 
 //var (
 //	labels = [11]string{"stack", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}

@@ -5,96 +5,137 @@
 // 提取封装函数再调用能简化代码，但都采用封装调用的方式，很有可能条件不满足，大量的fmt.Sprint函数做无用功。
 package logx
 
+// Default logger
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stack() *Record {
-	if ShowStack() {
-		return NewRecord(ioStack, labelStack)
-	}
-	return nil
+	return myLogger.Stack()
 }
 
 func Debug() *Record {
-	if ShowDebug() {
-		return NewRecord(ioDebug, labelDebug)
-	}
-	return nil
+	return myLogger.Debug()
 }
 
 func Info() *Record {
-	if ShowInfo() {
-		return NewRecord(ioInfo, labelInfo)
-	}
-	return nil
+	return myLogger.Info()
 }
 
-func InfoTimers() *Record {
-	if ShowInfo() {
-		return NewRecord(ioTimer, labelTimer)
-	}
-	return nil
+func InfoTimer() *Record {
+	return myLogger.InfoTimer()
 }
 
 func InfoStat() *Record {
-	if ShowStat() {
-		return NewRecord(ioStat, labelStat)
-	}
-	return nil
+	return myLogger.InfoStat()
 }
 
 func Warn() *Record {
-	if ShowWarn() {
-		return NewRecord(ioWarn, labelWarn)
-	}
-	return nil
+	return myLogger.Warn()
 }
 
 func WarnSlow() *Record {
-	if ShowSlow() {
-		return NewRecord(ioSlow, labelSlow)
-	}
-	return nil
+	return myLogger.WarnSlow()
 }
 
 func Err() *Record {
-	if ShowErr() {
-		return NewRecord(ioErr, labelErr)
-	}
-	return nil
+	return myLogger.Err()
 }
 
 func ErrPanic() *Record {
-	if ShowErr() {
-		return NewRecord(ioErr, labelPanic)
+	return myLogger.ErrPanic()
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// Logger Methods
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (l *Logger) ShowStack() bool {
+	return l.iLevel <= LevelStack
+}
+
+func (l *Logger) ShowDebug() bool {
+	return l.iLevel <= LevelDebug
+}
+
+func (l *Logger) ShowInfo() bool {
+	return l.iLevel <= LevelInfo
+}
+
+func (l *Logger) ShowWarn() bool {
+	return l.iLevel <= LevelWarn
+}
+
+func (l *Logger) ShowErr() bool {
+	return l.iLevel <= LevelErr
+}
+
+func (l *Logger) ShowStat() bool {
+	return l.ShowInfo() && !l.cnf.DisableStat
+}
+
+func (l *Logger) ShowSlow() bool {
+	return l.ShowWarn() && !l.cnf.DisableSlow
+}
+
+// @@++@@
+func (l *Logger) Stack() *Record {
+	if l.ShowStack() {
+		return newRecord(l.ioStack, labelStack)
 	}
 	return nil
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func ShowStack() bool {
-	return myCnf.iLevel <= LevelStack
+func (l *Logger) Debug() *Record {
+	if l.ShowDebug() {
+		return newRecord(l.ioDebug, labelDebug)
+	}
+	return nil
 }
 
-func ShowDebug() bool {
-	return myCnf.iLevel <= LevelDebug
+func (l *Logger) Info() *Record {
+	if l.ShowInfo() {
+		return newRecord(l.ioInfo, labelInfo)
+	}
+	return nil
 }
 
-func ShowInfo() bool {
-	return myCnf.iLevel <= LevelInfo
+func (l *Logger) InfoTimer() *Record {
+	if l.ShowInfo() {
+		return newRecord(l.ioTimer, labelTimer)
+	}
+	return nil
 }
 
-func ShowWarn() bool {
-	return myCnf.iLevel <= LevelWarn
+func (l *Logger) InfoStat() *Record {
+	if l.ShowStat() {
+		return newRecord(l.ioStat, labelStat)
+	}
+	return nil
 }
 
-func ShowErr() bool {
-	return myCnf.iLevel <= LevelErr
+func (l *Logger) Warn() *Record {
+	if l.ShowWarn() {
+		return newRecord(l.ioWarn, labelWarn)
+	}
+	return nil
 }
 
-func ShowStat() bool {
-	return ShowInfo() && !myCnf.DisableStat
+func (l *Logger) WarnSlow() *Record {
+	if l.ShowSlow() {
+		return newRecord(l.ioSlow, labelSlow)
+	}
+	return nil
 }
 
-func ShowSlow() bool {
-	return ShowWarn() && !myCnf.DisableSlow
+func (l *Logger) Err() *Record {
+	if l.ShowErr() {
+		return newRecord(l.ioErr, labelErr)
+	}
+	return nil
+}
+
+func (l *Logger) ErrPanic() *Record {
+	if l.ShowErr() {
+		return newRecord(l.ioErr, labelPanic)
+	}
+	return nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

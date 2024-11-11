@@ -13,20 +13,20 @@ import (
 	"time"
 )
 
-type Field struct {
-	Key string
-	Val any
-}
+//type Field struct {
+//	Key string
+//	Val any
+//}
 
 type Record struct {
-	Time  time.Duration
-	App   string
-	Host  string
-	Label string
+	Ts    time.Duration `json:"ts"`
+	App   string        `json:"app"`
+	Host  string        `json:"host"`
+	Label string        `json:"label"`
 	//Msg   string
 
-	w   io.WriteCloser
-	out LogOutput
+	iow io.WriteCloser
+	out LogBuilder
 	bf  *[]byte
 	bs  []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
 }
@@ -45,8 +45,8 @@ var (
 func (r *Record) init() {
 	r.bf = pool.GetBytes()
 	r.bs = *r.bf
-	r.App = myCnf.AppName
-	r.Host = myCnf.HostName
+	r.App = myLogger.cnf.AppName
+	r.Host = myLogger.cnf.HostName
 }
 
 func getRecordFromPool() *Record {
@@ -66,11 +66,11 @@ func putRecordToPool(r *Record) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func NewRecord(w io.WriteCloser, label string) *Record {
+func newRecord(w io.WriteCloser, label string) *Record {
 	r := getRecordFromPool()
-	r.Time = timex.NowDur()
+	r.Ts = timex.NowDur()
 	r.Label = label
-	r.w = w
+	r.iow = w
 	r.out = r
 	return r
 }
@@ -80,8 +80,66 @@ func (r *Record) Output(msg string) {
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
 	r.bs = append(r.bs, "\n"...)
 
-	if _, err := r.w.Write(r.bs); err != nil {
+	if _, err := r.iow.Write(r.bs); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "logx: write record error: %s\n", err.Error())
 	}
 	putRecordToPool(r)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (r *Record) SetLabel(label string) *Record {
+	if r == nil {
+		return nil
+	}
+	r.Label = label
+	return r
+}
+
+func (r *Record) Send() {
+	if r != nil {
+		r.out.Output("")
+	}
+}
+
+func (r *Record) Msg(msg string) {
+	if r != nil {
+		r.out.Output(msg)
+	}
+}
+
+// MsgF虽然方便，但不推荐使用
+func (r *Record) MsgF(str string, v ...any) {
+	if r != nil {
+		r.out.Output(fmt.Sprintf(str, v...))
+	}
+}
+
+func (r *Record) MsgFunc(createMsg func() string) {
+	if r != nil {
+		r.out.Output(createMsg())
+	}
+}
+
+func (r *Record) Str(k, v string) *Record {
+	if r == nil {
+		return nil
+	}
+	r.bs = jde.AppendStrField(r.bs, k, v)
+	return r
+}
+
+func (r *Record) Int(k string, v int) *Record {
+	if r == nil {
+		return nil
+	}
+	r.bs = jde.AppendIntField(r.bs, k, v)
+	return r
+}
+
+func (r *Record) Bool(k string, v bool) *Record {
+	if r == nil {
+		return nil
+	}
+	r.bs = jde.AppendBoolField(r.bs, k, v)
+	return r
 }
