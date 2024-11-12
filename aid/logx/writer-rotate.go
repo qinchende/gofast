@@ -210,7 +210,7 @@ func (rl *RotateWriter) maybeCompressFile(file string) {
 
 	defer func() {
 		if r := recover(); r != nil {
-			//Stack().Msg((r)
+			//Trace().Msg((r)
 		}
 	}()
 	compressLogFile(file)

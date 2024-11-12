@@ -14,26 +14,19 @@ import (
 	"strings"
 )
 
-var myLogger *Logger
+var DefLogger *Logger
 
 // 指定LogConfig初始化默认日志记录器
 func SetupDefault(cnf *LogConfig) {
-	if myLogger != nil {
-		myLogger.Warn().Msg("logx: default logger already existed")
+	if DefLogger != nil {
+		DefLogger.Warn().Msg("logx: default logger already existed")
 		return
 	}
 	if cnf == nil {
 		cnf = &LogConfig{}
 		_ = conf.LoadFromJson(cnf, []byte("{}"))
 	}
-	myLogger = NewMust(cnf)
-}
-
-// 可以自定义默认日志记录器
-func SetDefault(l *Logger) {
-	if l == nil {
-		myLogger = l
-	}
+	DefLogger = NewMust(cnf)
 }
 
 func NewMust(cnf *LogConfig) *Logger {
@@ -57,17 +50,17 @@ func New(cnf *LogConfig) (l *Logger, err error) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (l *Logger) initLogger() error {
 	switch l.cnf.LogLevel {
-	case labelStack:
-		l.iLevel = LevelStack
-	case labelDebug:
+	case LabelTrace:
+		l.iLevel = LevelTrace
+	case LabelDebug:
 		l.iLevel = LevelDebug
-	case labelInfo:
+	case LabelInfo:
 		l.iLevel = LevelInfo
-	case labelWarn:
+	case LabelWarn:
 		l.iLevel = LevelWarn
-	case labelErr:
+	case LabelErr:
 		l.iLevel = LevelErr
-	case labelDiscard:
+	case LabelDiscard:
 		l.iLevel = LevelDiscard
 	default:
 		return errors.New("Wrong LogLevel of config")
@@ -95,18 +88,18 @@ func (l *Logger) initLogger() error {
 func (l *Logger) setupForConsole() error {
 	l.initOnce.Do(func() {
 		w1 := os.Stdout
-		l.ioStack = w1
-		l.ioDebug = w1
-		l.ioInfo = w1
-		l.ioReq = w1
-		l.ioTimer = w1
-		l.ioStat = w1
+		l.WStack = w1
+		l.WDebug = w1
+		l.WInfo = w1
+		l.WReq = w1
+		l.WTimer = w1
+		l.WStat = w1
 
 		w2 := os.Stderr
-		l.ioWarn = w2
-		l.ioSlow = w2
-		l.ioErr = w2
-		l.ioPanic = w2
+		l.WWarn = w2
+		l.WSlow = w2
+		l.WErr = w2
+		l.WPanic = w2
 	})
 	return nil
 }
@@ -119,19 +112,19 @@ func (l *Logger) setupForFiles() error {
 	}
 	l.initOnce.Do(func() {
 		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		l.ioInfo = l.createFile(labelInfo)
+		l.WInfo = l.createFile(LabelInfo)
 		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
-		*os.Stdout = *l.ioInfo.(*RotateWriter).fp
+		*os.Stdout = *l.WInfo.(*RotateWriter).fp
 		*os.Stderr = *os.Stdout
-		log.SetOutput(l.ioInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
+		log.SetOutput(l.WInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
 		fStep := 0
 		fiNames := strings.Split(c.FileSplit, "|")
 
 		if fiNames[fStep] != "debug" {
-			l.ioDebug = l.createFile(labelDebug)
+			l.WDebug = l.createFile(LabelDebug)
 		} else {
-			l.ioDebug = l.ioInfo
+			l.WDebug = l.WInfo
 		}
 	})
 
@@ -171,43 +164,43 @@ func (l *Logger) setupForVolume() error {
 //		return nil
 //	}
 //
-//	if ioDebug != nil {
-//		if err := ioDebug.Close(); err != nil {
+//	if WDebug != nil {
+//		if err := WDebug.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioInfo != nil {
-//		if err := ioInfo.Close(); err != nil {
+//	if WInfo != nil {
+//		if err := WInfo.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioWarn != nil {
-//		if err := ioWarn.Close(); err != nil {
+//	if WWarn != nil {
+//		if err := WWarn.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioErr != nil {
-//		if err := ioErr.Close(); err != nil {
+//	if WErr != nil {
+//		if err := WErr.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioStack != nil {
-//		if err := ioStack.Close(); err != nil {
+//	if WStack != nil {
+//		if err := WStack.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioStat != nil {
-//		if err := ioStat.Close(); err != nil {
+//	if WStat != nil {
+//		if err := WStat.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioSlow != nil {
-//		if err := ioSlow.Close(); err != nil {
+//	if WSlow != nil {
+//		if err := WSlow.Close(); err != nil {
 //			return err
 //		}
 //	}
-//	if ioTimer != nil {
-//		if err := ioTimer.Close(); err != nil {
+//	if WTimer != nil {
+//		if err := WTimer.Close(); err != nil {
 //			return err
 //		}
 //	}
@@ -219,10 +212,10 @@ func (l *Logger) setupForVolume() error {
 //	initOnce.Do(func() {
 //		//atomic.StoreUint32(&initialized, 1)
 //
-//		//ioInfo = iox.NopCloser(ioutil.Discard)
-//		//ioErr = iox.NopCloser(ioutil.Discard)
-//		//ioSlow = iox.NopCloser(ioutil.Discard)
-//		//ioStat = iox.NopCloser(ioutil.Discard)
-//		//ioStack = ioutil.Discard
+//		//WInfo = iox.NopCloser(ioutil.Discard)
+//		//WErr = iox.NopCloser(ioutil.Discard)
+//		//WSlow = iox.NopCloser(ioutil.Discard)
+//		//WStat = iox.NopCloser(ioutil.Discard)
+//		//WStack = ioutil.Discard
 //	})
 //}

@@ -8,9 +8,9 @@ import (
 )
 
 type LogConfig struct {
-	AppName   string `v:"def=AppName"`                                     // 应用名称
-	HostName  string `v:"def=HostName"`                                    // 主机名称
-	LogLevel  string `v:"def=info,enum=stack|debug|info|warn|err|discard"` // 记录日志的级别
+	AppName   string `v:"def=App"`                                         // 应用名称
+	HostName  string `v:"def=Host"`                                        // 运行主机名称
+	LogLevel  string `v:"def=info,enum=trace|debug|info|warn|err|discard"` // 记录日志的级别
 	LogStyle  string `v:"def=sdx,enum=sdx|json|cdo|custom"`                // 日志样式
 	LogMedium string `v:"def=console,enum=console|file|volume|custom"`     // 记录存储媒介
 
@@ -37,7 +37,7 @@ const (
 	// 日志级别的设定，主要是用来控制日志输出的多少
 	// Note: 日志级别不需要太多，如果你觉得自己需要，多半都是打印日志的逻辑出问题了
 	// 默认下面几个日志级别，足够了。可以自定义扩展，但我不推荐
-	LevelStack   int8 = -8  // 1
+	LevelTrace   int8 = -8  // 1
 	LevelDebug   int8 = -4  // 2
 	LevelInfo    int8 = 0   // 3
 	LevelWarn    int8 = 4   // 4
@@ -45,18 +45,33 @@ const (
 	LevelDiscard int8 = 127 // 6 禁用日志
 
 	// 用于区分日志分类的 Label。这和日志级别是不同的概念
-	labelStack   = "stack"   // 1
-	labelDebug   = "debug"   // 2
-	labelInfo    = "info"    // 3
-	labelReq     = "req"     // 3 请求日志
-	labelTimer   = "timer"   // 3 定时器执行的任务日志，一般为定时脚本准备
-	labelStat    = "stat"    // 3 运行状态日志
-	labelWarn    = "warn"    // 4
-	labelSlow    = "slow"    // 4 慢日志
-	labelErr     = "err"     // 5
-	labelPanic   = "panic"   // 5
-	labelDiscard = "discard" // 6
+	LabelTrace   = "trace"   // 1
+	LabelDebug   = "debug"   // 2
+	LabelInfo    = "info"    // 3
+	LabelReq     = "req"     // 3 请求日志
+	LabelTimer   = "timer"   // 3 定时器执行的任务日志，一般为定时脚本准备
+	LabelStat    = "stat"    // 3 运行状态日志
+	LabelWarn    = "warn"    // 4
+	LabelSlow    = "slow"    // 4 慢日志
+	LabelErr     = "err"     // 5
+	LabelPanic   = "panic"   // 5
+	LabelDiscard = "discard" // 6
 )
+
+//var (
+//	labels = [11]string{"trace", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}
+//)
+//iTrace   int8 = 0
+//iDebug   int8 = 1
+//iInfo    int8 = 2
+//iReq     int8 = 3
+//iTimer   int8 = 4
+//iStat    int8 = 5
+//iWarn    int8 = 6
+//iSlow    int8 = 7
+//iErr     int8 = 8
+//iPanic   int8 = 9
+//iDiscard int8 = 10
 
 const (
 	callerSkipDepth = 4 // 这里的4最好别动，刚好能打印出错误发生的地方。
@@ -68,42 +83,34 @@ const (
 	toCustom  = "custom"
 )
 
-type LogBuilder interface {
-	Output(msg string)
-}
+type (
+	Logger struct {
+		*LogConfig
+		Record
+		//App  string `json:"app"`
+		//Host string `json:"host"`
 
-type Logger struct {
-	// 每种分类可以有单独输出到不同的日志文件
-	ioStack io.WriteCloser
-	ioDebug io.WriteCloser
-	ioInfo  io.WriteCloser
-	ioReq   io.WriteCloser
-	ioTimer io.WriteCloser
-	ioStat  io.WriteCloser
-	ioWarn  io.WriteCloser
-	ioSlow  io.WriteCloser
-	ioErr   io.WriteCloser
-	ioPanic io.WriteCloser
-	//ioDiscard io.WriteCloser
+		// 每种分类可以单独输出到不同的介质
+		WStack io.WriteCloser
+		WDebug io.WriteCloser
+		WInfo  io.WriteCloser
+		WReq   io.WriteCloser
+		WTimer io.WriteCloser
+		WStat  io.WriteCloser
+		WWarn  io.WriteCloser
+		WSlow  io.WriteCloser
+		WErr   io.WriteCloser
+		WPanic io.WriteCloser
+		//WDiscard io.WriteCloser
 
-	initOnce sync.Once
-	cnf      *LogConfig
+		initOnce sync.Once
+		cnf      *LogConfig
 
-	iLevel int8 // 日志级别
-	iStyle int8 // 日志样式类型
-}
+		iLevel int8 // 日志级别
+		iStyle int8 // 日志样式类型
+	}
 
-//var (
-//	labels = [11]string{"stack", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}
-//)
-//iStack   int8 = 0
-//iDebug   int8 = 1
-//iInfo    int8 = 2
-//iReq     int8 = 3
-//iTimer   int8 = 4
-//iStat    int8 = 5
-//iWarn    int8 = 6
-//iSlow    int8 = 7
-//iErr     int8 = 8
-//iPanic   int8 = 9
-//iDiscard int8 = 10
+	LogBuilder interface {
+		Output(msg string)
+	}
+)

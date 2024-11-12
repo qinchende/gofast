@@ -39,7 +39,7 @@ func TestHistogramObserve(t *testing.T) {
 		counts_bucket{method="/Users",le="1"} 0
 		counts_bucket{method="/Users",le="2"} 1
 		counts_bucket{method="/Users",le="3"} 1
-		counts_bucket{method="/Users",le="+Inf"} 1
+		counts_bucket{method="/Users",le="+Info"} 1
 		counts_sum{method="/Users"} 2
         counts_count{method="/Users"} 1
 `

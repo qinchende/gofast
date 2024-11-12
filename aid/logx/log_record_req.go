@@ -65,7 +65,7 @@ func newReqRecord(w io.WriteCloser, label string) *ReqRecord {
 	r := getReqRecordFromPool()
 
 	// Record记录的数据
-	r.Ts = timex.NowDur()
+	r.Time = timex.NowDur()
 	r.Label = label
 	r.iow = w
 	r.out = r
@@ -74,8 +74,8 @@ func newReqRecord(w io.WriteCloser, label string) *ReqRecord {
 }
 
 func InfoReq() *ReqRecord {
-	if myLogger.ShowInfo() {
-		return newReqRecord(myLogger.ioReq, labelReq)
+	if DefLogger.ShowInfo() {
+		return newReqRecord(DefLogger.WReq, LabelReq)
 	}
 	return nil
 }

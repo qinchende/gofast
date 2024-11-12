@@ -8,46 +8,46 @@ package logx
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Stack() *Record {
-	return myLogger.Stack()
+	return DefLogger.Trace()
 }
 
 func Debug() *Record {
-	return myLogger.Debug()
+	return DefLogger.Debug()
 }
 
 func Info() *Record {
-	return myLogger.Info()
+	return DefLogger.Info()
 }
 
 func InfoTimer() *Record {
-	return myLogger.InfoTimer()
+	return DefLogger.InfoTimer()
 }
 
 func InfoStat() *Record {
-	return myLogger.InfoStat()
+	return DefLogger.InfoStat()
 }
 
 func Warn() *Record {
-	return myLogger.Warn()
+	return DefLogger.Warn()
 }
 
 func WarnSlow() *Record {
-	return myLogger.WarnSlow()
+	return DefLogger.WarnSlow()
 }
 
 func Err() *Record {
-	return myLogger.Err()
+	return DefLogger.Err()
 }
 
 func ErrPanic() *Record {
-	return myLogger.ErrPanic()
+	return DefLogger.ErrPanic()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// Logger Methods
+// Logger instance methods
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (l *Logger) ShowStack() bool {
-	return l.iLevel <= LevelStack
+	return l.iLevel <= LevelTrace
 }
 
 func (l *Logger) ShowDebug() bool {
@@ -75,71 +75,71 @@ func (l *Logger) ShowSlow() bool {
 }
 
 // @@++@@
-func (l *Logger) Stack() *Record {
+func (l *Logger) Trace() *Record {
 	if l.ShowStack() {
-		return newRecord(l.ioStack, labelStack)
+		return newRecord(l.WStack, LabelTrace)
 	}
 	return nil
 }
 
 func (l *Logger) Debug() *Record {
 	if l.ShowDebug() {
-		return newRecord(l.ioDebug, labelDebug)
+		return newRecord(l.WDebug, LabelDebug)
 	}
 	return nil
 }
 
 func (l *Logger) Info() *Record {
 	if l.ShowInfo() {
-		return newRecord(l.ioInfo, labelInfo)
+		return newRecord(l.WInfo, LabelInfo)
 	}
 	return nil
 }
 
 func (l *Logger) InfoTimer() *Record {
 	if l.ShowInfo() {
-		return newRecord(l.ioTimer, labelTimer)
+		return newRecord(l.WTimer, LabelTimer)
 	}
 	return nil
 }
 
 func (l *Logger) InfoStat() *Record {
 	if l.ShowStat() {
-		return newRecord(l.ioStat, labelStat)
+		return newRecord(l.WStat, LabelStat)
 	}
 	return nil
 }
 
 func (l *Logger) Warn() *Record {
 	if l.ShowWarn() {
-		return newRecord(l.ioWarn, labelWarn)
+		return newRecord(l.WWarn, LabelWarn)
 	}
 	return nil
 }
 
 func (l *Logger) WarnSlow() *Record {
 	if l.ShowSlow() {
-		return newRecord(l.ioSlow, labelSlow)
+		return newRecord(l.WSlow, LabelSlow)
 	}
 	return nil
 }
 
 func (l *Logger) Err() *Record {
 	if l.ShowErr() {
-		return newRecord(l.ioErr, labelErr)
+		return newRecord(l.WErr, LabelErr)
 	}
 	return nil
 }
 
 func (l *Logger) ErrPanic() *Record {
 	if l.ShowErr() {
-		return newRecord(l.ioErr, labelPanic)
+		return newRecord(l.WErr, LabelPanic)
 	}
 	return nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func Stack(v string) {
+//func Trace(v string) {
 //	stackSync(v)
 //}
 //
@@ -154,25 +154,25 @@ func (l *Logger) ErrPanic() *Record {
 //// +++
 //func Debug(v string) {
 //	if cnf.iLevel <= LevelDebug {
-//		output(ioDebug, labelDebug, v)
+//		output(WDebug, LabelDebug, v)
 //	}
 //}
 //
 //func Debugs(v ...any) {
 //	if cnf.iLevel <= LevelDebug {
-//		output(ioDebug, labelDebug, fmt.Sprint(v...))
+//		output(WDebug, LabelDebug, fmt.Sprint(v...))
 //	}
 //}
 //
 //func DebugF(format string, v ...any) {
 //	if cnf.iLevel <= LevelDebug {
-//		output(ioDebug, labelDebug, fmt.Sprintf(format, v...))
+//		output(WDebug, LabelDebug, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //func DebugDirect(v string) {
 //	if cnf.iLevel <= LevelDebug {
-//		output(ioDebug, labelDebug, v)
+//		output(WDebug, LabelDebug, v)
 //	}
 //}
 
@@ -180,25 +180,25 @@ func (l *Logger) ErrPanic() *Record {
 //
 //	func Info(v string) {
 //		if cnf.iLevel <= LevelInfo {
-//			output(ioInfo, labelInfo, v)
+//			output(WInfo, LabelInfo, v)
 //		}
 //	}
 //
 //	func InfoKV(v cst.KV) {
 //		if cnf.iLevel <= LevelInfo {
-//			output(ioInfo, labelInfo, v)
+//			output(WInfo, LabelInfo, v)
 //		}
 //	}
 //
 //	func Infos(v ...any) {
 //		if cnf.iLevel <= LevelInfo {
-//			output(ioInfo, labelInfo, fmt.Sprint(v...))
+//			output(WInfo, LabelInfo, fmt.Sprint(v...))
 //		}
 //	}
 //
 //	func InfoF(format string, v ...any) {
 //		if cnf.iLevel <= LevelInfo {
-//			output(ioInfo, labelInfo, fmt.Sprintf(format, v...))
+//			output(WInfo, LabelInfo, fmt.Sprintf(format, v...))
 //		}
 //	}
 //
@@ -206,7 +206,7 @@ func (l *Logger) ErrPanic() *Record {
 //
 //	func InfoDirect(v string) {
 //		if cnf.iLevel <= LevelInfo {
-//			output(ioInfo, labelInfo, v)
+//			output(WInfo, LabelInfo, v)
 //		}
 //	}
 //
@@ -251,76 +251,76 @@ func (l *Logger) ErrPanic() *Record {
 // // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 //func Stat(v string) {
 //	if !cnf.DisableStat {
-//		output(ioStat, labelStat, v)
+//		output(WStat, LabelStat, v)
 //	}
 //}
 //
 //func StatKV(data cst.KV) {
 //	if !cnf.DisableStat {
-//		output(ioStat, labelStat, data)
+//		output(WStat, LabelStat, data)
 //	}
 //}
 
 //
 //func Stats(v ...any) {
 //	if cnf.EnableStat {
-//		output(ioStat, labelStat, fmt.Sprint(v...))
+//		output(WStat, LabelStat, fmt.Sprint(v...))
 //	}
 //}
 //
 //func StatF(format string, v ...any) {
 //	if cnf.EnableStat {
-//		output(ioStat, labelStat, fmt.Sprintf(format, v...))
+//		output(WStat, LabelStat, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //// +++
 //func Slow(v string) {
 //	if cnf.EnableStat {
-//		output(ioSlow, labelSlow, v)
+//		output(WSlow, LabelSlow, v)
 //	}
 //}
 //
 //func Slows(v ...any) {
 //	if cnf.EnableStat {
-//		output(ioSlow, labelSlow, fmt.Sprint(v...))
+//		output(WSlow, LabelSlow, fmt.Sprint(v...))
 //	}
 //}
 //
 //func SlowF(format string, v ...any) {
 //	if cnf.EnableStat {
-//		output(ioSlow, labelSlow, fmt.Sprintf(format, v...))
+//		output(WSlow, LabelSlow, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //// +++
 //func Timer(v string) {
 //	if cnf.EnableStat {
-//		output(ioTimer, labelTimer, v)
+//		output(WTimer, LabelTimer, v)
 //	}
 //}
 //
 //func TimerKV(data cst.KV) {
 //	if cnf.EnableStat {
-//		output(ioTimer, labelTimer, data)
+//		output(WTimer, LabelTimer, data)
 //	}
 //}
 //
 //func Timers(v ...any) {
 //	if cnf.EnableStat {
-//		output(ioTimer, labelTimer, fmt.Sprint(v...))
+//		output(WTimer, LabelTimer, fmt.Sprint(v...))
 //	}
 //}
 //
 //func TimerF(format string, v ...any) {
 //	if cnf.EnableStat {
-//		output(ioTimer, labelTimer, fmt.Sprintf(format, v...))
+//		output(WTimer, LabelTimer, fmt.Sprintf(format, v...))
 //	}
 //}
 //
 //func TimerError(v string) {
 //	if cnf.EnableStat {
-//		output(ioErr, labelErr, msgWithStack(v))
+//		output(WErr, LabelErr, msgWithStack(v))
 //	}
 //}
 //
@@ -328,18 +328,18 @@ func (l *Logger) ErrPanic() *Record {
 //// inner call apis
 //func warnSync(msg string) {
 //	if ShowWarn() {
-//		output(ioWarn, labelWarn, msg)
+//		output(WWarn, LabelWarn, msg)
 //	}
 //}
 //
 //func errorSync(msg string, skip int) {
 //	if ShowErr() {
-//		output(ioErr, labelErr, msgWithCaller(msg, skip))
+//		output(WErr, LabelErr, msgWithCaller(msg, skip))
 //	}
 //}
 //
 //func stackSync(msg string) {
 //	if ShowStack() {
-//		output(ioStack, labelStack, fmt.Sprintf("MSG: %s Stack: %s", msg, debug.Stack()))
+//		output(WStack, LabelTrace, fmt.Sprintf("MSG: %s Trace: %s", msg, debug.Trace()))
 //	}
 //}

@@ -19,12 +19,11 @@ import (
 //}
 
 type Record struct {
-	Ts    time.Duration `json:"ts"`
-	App   string        `json:"app"`
-	Host  string        `json:"host"`
-	Label string        `json:"label"`
+	Time  time.Duration `json:"ts"`
+	Label string        `json:"lb"`
 	//Msg   string
 
+	log *Logger
 	iow io.WriteCloser
 	out LogBuilder
 	bf  *[]byte
@@ -45,8 +44,6 @@ var (
 func (r *Record) init() {
 	r.bf = pool.GetBytes()
 	r.bs = *r.bf
-	r.App = myLogger.cnf.AppName
-	r.Host = myLogger.cnf.HostName
 }
 
 func getRecordFromPool() *Record {
@@ -68,7 +65,6 @@ func putRecordToPool(r *Record) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func newRecord(w io.WriteCloser, label string) *Record {
 	r := getRecordFromPool()
-	r.Ts = timex.NowDur()
 	r.Label = label
 	r.iow = w
 	r.out = r
@@ -76,6 +72,8 @@ func newRecord(w io.WriteCloser, label string) *Record {
 }
 
 func (r *Record) Output(msg string) {
+	r.Time = timex.NowDur() // 此时才是日志记录时间
+
 	r.bs = jde.AppendStrField(r.bs, "msg", msg)
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
 	r.bs = append(r.bs, "\n"...)
@@ -120,6 +118,7 @@ func (r *Record) MsgFunc(createMsg func() string) {
 	}
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) Str(k, v string) *Record {
 	if r == nil {
 		return nil
