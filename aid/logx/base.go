@@ -4,7 +4,7 @@ package logx
 
 import (
 	"io"
-	"sync"
+	"time"
 )
 
 type LogConfig struct {
@@ -83,9 +83,16 @@ const (
 	toCustom  = "custom"
 )
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type (
+	LogBuilder interface {
+		output(msg string)
+	}
+
 	Logger struct {
-		*LogConfig
+		//*LogConfig
+
+		// 自己也需要集成一个记录器
 		Record
 		//App  string `json:"app"`
 		//Host string `json:"host"`
@@ -103,14 +110,30 @@ type (
 		WPanic io.WriteCloser
 		//WDiscard io.WriteCloser
 
-		initOnce sync.Once
-		cnf      *LogConfig
+		StyleFunc func(*Logger, []byte) []byte
+
+		//initOnce sync.Once
+		cnf *LogConfig
 
 		iLevel int8 // 日志级别
 		iStyle int8 // 日志样式类型
 	}
 
-	LogBuilder interface {
-		Output(msg string)
+	Field struct {
+		Key string
+		Val any
+	}
+
+	Record struct {
+		Time  time.Duration `json:"ts"`
+		Label string        `json:"lb"`
+		//Msg   string
+
+		log *Logger
+		iow io.WriteCloser
+		out LogBuilder
+		bf  *[]byte
+		bs  []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
+		//fls []Field // 用来记录key-value
 	}
 )

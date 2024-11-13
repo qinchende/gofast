@@ -46,6 +46,18 @@ func ErrPanic() *Record {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // Logger instance methods
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// @@++@@
+func (l *Logger) Clone() *Logger {
+	if l == nil {
+		return nil
+	}
+	newL := *l
+	newL.bs = make([]byte, 0, cap(l.bs))
+	copy(newL.bs, l.bs)
+	return &newL
+}
+
+// @@++@@
 func (l *Logger) ShowStack() bool {
 	return l.iLevel <= LevelTrace
 }

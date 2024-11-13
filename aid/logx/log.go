@@ -86,21 +86,19 @@ func (l *Logger) initLogger() error {
 
 // 第一种：打印在console
 func (l *Logger) setupForConsole() error {
-	l.initOnce.Do(func() {
-		w1 := os.Stdout
-		l.WStack = w1
-		l.WDebug = w1
-		l.WInfo = w1
-		l.WReq = w1
-		l.WTimer = w1
-		l.WStat = w1
+	w1 := os.Stdout
+	l.WStack = w1
+	l.WDebug = w1
+	l.WInfo = w1
+	l.WReq = w1
+	l.WTimer = w1
+	l.WStat = w1
 
-		w2 := os.Stderr
-		l.WWarn = w2
-		l.WSlow = w2
-		l.WErr = w2
-		l.WPanic = w2
-	})
+	w2 := os.Stderr
+	l.WWarn = w2
+	l.WSlow = w2
+	l.WErr = w2
+	l.WPanic = w2
 	return nil
 }
 
@@ -110,23 +108,21 @@ func (l *Logger) setupForFiles() error {
 	if len(c.FilePath) == 0 {
 		return errors.New("log file folder must be set")
 	}
-	l.initOnce.Do(func() {
-		// 初始化日志文件, 用 writer-rotate 策略写日志文件
-		l.WInfo = l.createFile(LabelInfo)
-		// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
-		*os.Stdout = *l.WInfo.(*RotateWriter).fp
-		*os.Stderr = *os.Stdout
-		log.SetOutput(l.WInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
+	// 初始化日志文件, 用 writer-rotate 策略写日志文件
+	l.WInfo = l.createFile(LabelInfo)
+	// os.Stderr + os.Stdout + os.Stdin (将标准输出重定向到文件中)
+	*os.Stdout = *l.WInfo.(*RotateWriter).fp
+	*os.Stderr = *os.Stdout
+	log.SetOutput(l.WInfo) // 这里不用写了，系统自带的Logger系统默认用的就是 os.stdout 和 os.stderr
 
-		fStep := 0
-		fiNames := strings.Split(c.FileSplit, "|")
+	fStep := 0
+	fiNames := strings.Split(c.FileSplit, "|")
 
-		if fiNames[fStep] != "debug" {
-			l.WDebug = l.createFile(LabelDebug)
-		} else {
-			l.WDebug = l.WInfo
-		}
-	})
+	if fiNames[fStep] != "debug" {
+		l.WDebug = l.createFile(LabelDebug)
+	} else {
+		l.WDebug = l.WInfo
+	}
 
 	return nil
 }

@@ -10,25 +10,7 @@ import (
 	"io"
 	"os"
 	"sync"
-	"time"
 )
-
-//type Field struct {
-//	Key string
-//	Val any
-//}
-
-type Record struct {
-	Time  time.Duration `json:"ts"`
-	Label string        `json:"lb"`
-	//Msg   string
-
-	log *Logger
-	iow io.WriteCloser
-	out LogBuilder
-	bf  *[]byte
-	bs  []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
-}
 
 var (
 	recordPool = &sync.Pool{
@@ -71,12 +53,15 @@ func newRecord(w io.WriteCloser, label string) *Record {
 	return r
 }
 
-func (r *Record) Output(msg string) {
+func (r *Record) output(msg string) {
 	r.Time = timex.NowDur() // 此时才是日志记录时间
 
 	r.bs = jde.AppendStrField(r.bs, "msg", msg)
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
 	r.bs = append(r.bs, "\n"...)
+
+	// 合成最后的输出结果
+	r.bs = r.log.StyleFunc(r.log, r.bs)
 
 	if _, err := r.iow.Write(r.bs); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "logx: write record error: %s\n", err.Error())
@@ -85,6 +70,14 @@ func (r *Record) Output(msg string) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (r *Record) SetWriter(w io.WriteCloser) *Record {
+	if r == nil {
+		return nil
+	}
+	r.iow = w
+	return r
+}
+
 func (r *Record) SetLabel(label string) *Record {
 	if r == nil {
 		return nil
@@ -93,52 +86,82 @@ func (r *Record) SetLabel(label string) *Record {
 	return r
 }
 
+// 可以先输出一条完整的日志，但是不回收Record，而是继续下一条
+func (r *Record) Flush() *Record {
+	return r
+}
+
 func (r *Record) Send() {
 	if r != nil {
-		r.out.Output("")
+		r.out.output("")
 	}
 }
 
 func (r *Record) Msg(msg string) {
 	if r != nil {
-		r.out.Output(msg)
+		r.out.output(msg)
 	}
 }
 
 // MsgF虽然方便，但不推荐使用
 func (r *Record) MsgF(str string, v ...any) {
 	if r != nil {
-		r.out.Output(fmt.Sprintf(str, v...))
+		r.out.output(fmt.Sprintf(str, v...))
 	}
 }
 
 func (r *Record) MsgFunc(createMsg func() string) {
 	if r != nil {
-		r.out.Output(createMsg())
+		r.out.output(createMsg())
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) Str(k, v string) *Record {
-	if r == nil {
-		return nil
+	if r != nil {
+		r.bs = jde.AppendStrField(r.bs, k, v)
 	}
-	r.bs = jde.AppendStrField(r.bs, k, v)
 	return r
 }
 
 func (r *Record) Int(k string, v int) *Record {
-	if r == nil {
-		return nil
+	if r != nil {
+		r.bs = jde.AppendIntField(r.bs, k, v)
 	}
-	r.bs = jde.AppendIntField(r.bs, k, v)
 	return r
 }
 
 func (r *Record) Bool(k string, v bool) *Record {
-	if r == nil {
-		return nil
+	if r != nil {
+		r.bs = jde.AppendBoolField(r.bs, k, v)
 	}
-	r.bs = jde.AppendBoolField(r.bs, k, v)
+	return r
+}
+
+func (r *Record) F32(k string, v float32) *Record {
+	if r != nil {
+		//r.bs = jde.AppendBoolField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) F64(k string, v float64) *Record {
+	if r != nil {
+		//r.bs = jde.AppendBoolField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) Obj(k string, v any) *Record {
+	if r != nil {
+		//r.bs = jde.AppendBoolField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) Any(k string, v any) *Record {
+	if r != nil {
+		//r.bs = jde.AppendBoolField(r.bs, k, v)
+	}
 	return r
 }
