@@ -309,6 +309,13 @@ func appendKey(bf []byte, k string) []byte {
 	return bf
 }
 
+func AppendStr(bf []byte, s string) []byte {
+	bf = append(bf, '"')
+	bf = append(bf, s...)
+	bf = append(bf, '"')
+	return bf
+}
+
 // TODO：need check escape chars
 func AppendStrField(bf []byte, k, v string) []byte {
 	bf = append(bf, '"')

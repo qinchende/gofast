@@ -1,11 +1,11 @@
-// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
+// Copyright 2022 GoFast Author(sdx: http://chende.ren). All rights reserved.
+// Use of this source code is governed by an Apache-2.0 license that can be found in the LICENSE file.
 package logx
 
 import (
 	"errors"
-	"io"
-	"time"
+	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/store/jde"
 )
 
 // NOTE：系统内置了几个系列的请求日志输出样式，当然你也可以自定义输出样式
@@ -25,13 +25,9 @@ const (
 	styleCustomStr = "custom"
 )
 
-var (
-	Formatter        func(w io.WriteCloser, level string, data any)
-	CustomOutputFunc func(logLevel string, data any) string
-	RequestsLog      func(p *ReqRecord, flag int8) string
-	TimeToStr        func(tm time.Time) string
-	WriteRecord      func(r *Record, flag int8) string
-	WriteReqRecord   func(r *ReqRecord, flag int8) string
+const (
+	timeFormat     = "2006-01-02 15:04:05"
+	timeFormatMini = "01-02 15:04:05"
 )
 
 // 将名称字符串转换成整数类型，提高判断性能
@@ -40,71 +36,59 @@ func (l *Logger) initStyle() error {
 
 	case styleSdxStr:
 		l.iStyle = StyleSdx
-		{
-			Formatter = outputSdxStyle
-			RequestsLog = buildSdxReqLog
-		}
+		l.StyleSummary = SdxSummary
+		l.StyleGroupBegin = SdxGroupBegin
+		l.StyleGroupEnd = SdxGroupEnd
 	case styleCdoStr:
 		l.iStyle = StyleCdo
-		//Formatter =
+		l.StyleSummary = SdxSummary
+		l.StyleGroupBegin = SdxGroupBegin
+		l.StyleGroupEnd = SdxGroupEnd
 	case styleJsonStr:
 		l.iStyle = StyleJson
-		Formatter = outputPrometheusStyle
+		l.StyleSummary = SdxSummary
+		l.StyleGroupBegin = SdxGroupBegin
+		l.StyleGroupEnd = SdxGroupEnd
 	case styleCustomStr:
 		l.iStyle = StyleCustom
-		//Formatter = outputCustomStyle
 	default:
-		//Formatter = outputDirect
 		return errors.New("item LogStyle not match")
 	}
 	return nil
 }
 
+// Sdx-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Output(w io.WriteCloser, logLevel string, data any) {
-	Formatter(w, logLevel, data)
+func SdxSummary(r *Record) []byte {
+	bs := r.bs
+
+	// 每条日志的第一行样式
+	bf := bs[len(bs):]
+	bf = timex.ToTime(r.Time).AppendFormat(bf, timeFormat)
+	bf = append(bf, " ["...)
+	bf = append(bf, r.Label...)
+	bf = append(bf, "]: {"...)
+	bf = append(bf, r.log.bs...)
+	//bf = append(bf, "}\n"...)
+
+	bf = append(bf, bs...)
+	bf = append(bf, "}\n"...)
+	return bf
 }
 
-//// 打印请求日志，可以指定不同的输出样式
-//func RequestsLog(p *ReqLogEntity, flag int8) {
-//	switch cnf.iStyle {
-//	case StyleSdx:
-//		InfoDirect()
-//	case StyleCdo:
-//		InfoDirect(buildElkReqLog(p, flag))
-//	case StyleJson:
-//		InfoDirect(buildPrometheusReqLog(p, flag))
-//	case StyleCustom:
-//		InfoDirect(buildCustomReqLog(p, flag))
-//	default:
-//	}
-//}
+func SdxGroupBegin(bs []byte, k string) []byte {
+	if len(bs) > 0 {
+		bs = append(bs, "}\n    "...)
+	}
+	bs = jde.AppendStr(bs, k)
+	bs = append(bs, ": {"...)
+	return bs
+}
 
+func SdxGroupEnd(bs []byte) []byte {
+	bs = append(bs, "}"...)
+	return bs
+}
+
+// JSON-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 日志的输出，最后都要到这个方法进行输出
-//
-//	func output(w WriterCloser, logLevel string, data any, useStyle bool) {
-//		// 自定义了 sdx 这种输出样式，否则就是默认的 json 样式
-//		//log.SetPrefix("[GoFast]")    // 前置字符串加上特定标记
-//		//log.SetFlags(log.Lmsgprefix) // 取消前置字符串
-//		//log.SetFlags(log.LstdFlags)  // 设置成日期+时间 格式
-//
-//		if useStyle == true {
-//			switch cnf.iStyle {
-//			case StyleCustom:
-//				outputCustomStyle(w, logLevel, data)
-//			case StyleSdx:
-//				outputSdxStyle(w, logLevel, data)
-//			case LogStyleSdxJson:
-//				outputSdxJsonStyle(w, logLevel, data)
-//			case LogStyleELK:
-//				outputElkStyle(w, logLevel, data)
-//			case StyleJson:
-//				outputPrometheusStyle(w, logLevel, data)
-//			default:
-//				outputDirectString(w, lang.ToString(data))
-//			}
-//		} else {
-//			outputDirectString(w, lang.ToString(data))
-//		}
-//	}

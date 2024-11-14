@@ -1,5 +1,5 @@
-// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
+// Copyright 2022 GoFast Author(sdx: http://chende.ren). All rights reserved.
+// Use of this source code is governed by an Apache-2.0 license that can be found in the LICENSE file.
 package logx
 
 import (
@@ -8,11 +8,11 @@ import (
 )
 
 type LogConfig struct {
-	AppName   string `v:"def=App"`                                         // 应用名称
-	HostName  string `v:"def=Host"`                                        // 运行主机名称
-	LogLevel  string `v:"def=info,enum=trace|debug|info|warn|err|discard"` // 记录日志的级别
-	LogStyle  string `v:"def=sdx,enum=sdx|json|cdo|custom"`                // 日志样式
-	LogMedium string `v:"def=console,enum=console|file|volume|custom"`     // 记录存储媒介
+	AppName   string `v:"def=App"`                                     // 应用名称
+	HostName  string `v:"def=Host"`                                    // 运行主机名称
+	LogLevel  string `v:"def=INF,enum=TRC|DBG|INF|WRN|ERR|discard"`    // 记录日志的级别
+	LogStyle  string `v:"def=sdx,enum=sdx|json|cdo|custom"`            // 日志样式
+	LogMedium string `v:"def=console,enum=console|file|volume|custom"` // 记录存储媒介
 
 	// 当LogMedium为 file 或 volume 有效
 	FilePath     string `v:"def=_logs_"`            // 文件路径
@@ -45,16 +45,16 @@ const (
 	LevelDiscard int8 = 127 // 6 禁用日志
 
 	// 用于区分日志分类的 Label。这和日志级别是不同的概念
-	LabelTrace   = "trace"   // 1
-	LabelDebug   = "debug"   // 2
-	LabelInfo    = "info"    // 3
-	LabelReq     = "req"     // 3 请求日志
-	LabelTimer   = "timer"   // 3 定时器执行的任务日志，一般为定时脚本准备
-	LabelStat    = "stat"    // 3 运行状态日志
-	LabelWarn    = "warn"    // 4
-	LabelSlow    = "slow"    // 4 慢日志
-	LabelErr     = "err"     // 5
-	LabelPanic   = "panic"   // 5
+	LabelTrace   = "TRC"     // 1
+	LabelDebug   = "DBG"     // 2
+	LabelInfo    = "INF"     // 3
+	LabelReq     = "REQ"     // 3 请求日志
+	LabelTimer   = "Tim"     // 3 定时器执行的任务日志，一般为定时脚本准备
+	LabelStat    = "STA"     // 3 运行状态日志
+	LabelWarn    = "WRN"     // 4
+	LabelSlow    = "SLO"     // 4 慢日志
+	LabelErr     = "ERR"     // 5
+	LabelPanic   = "PIC"     // 5
 	LabelDiscard = "discard" // 6
 )
 
@@ -110,7 +110,9 @@ type (
 		WPanic io.WriteCloser
 		//WDiscard io.WriteCloser
 
-		StyleFunc func(*Logger, []byte) []byte
+		StyleSummary    func(r *Record) []byte
+		StyleGroupBegin func([]byte, string) []byte
+		StyleGroupEnd   func([]byte) []byte
 
 		//initOnce sync.Once
 		cnf *LogConfig

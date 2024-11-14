@@ -14,6 +14,20 @@ import (
 	"time"
 )
 
+func LoggerDemo(c *fst.Context) {
+	// 执行完后面的请求，再打印日志
+	c.Next()
+
+	r := logx.Info()
+
+	r.Int("Latency", int(timex.SdxNowDur()-c.EnterTime))
+	r.Str("RemoteAddr", c.ClientIP())
+	r.Int("BodySize", len(c.Res.WrittenData()))
+	r.Str("RemoteAddr", c.ClientIP())
+
+	r.Send()
+}
+
 func Logger(c *fst.Context) {
 	// 执行完后面的请求，再打印日志
 	c.Next()

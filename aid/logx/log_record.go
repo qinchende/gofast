@@ -1,5 +1,5 @@
-// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
+// Copyright 2022 GoFast Author(sdx: http://chende.ren). All rights reserved.
+// Use of this source code is governed by an Apache-2.0 license that can be found in the LICENSE file.
 package logx
 
 import (
@@ -45,9 +45,10 @@ func putRecordToPool(r *Record) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func newRecord(w io.WriteCloser, label string) *Record {
+func (l *Logger) newRecord(w io.WriteCloser, label string) *Record {
 	r := getRecordFromPool()
 	r.Label = label
+	r.log = l
 	r.iow = w
 	r.out = r
 	return r
@@ -58,12 +59,11 @@ func (r *Record) output(msg string) {
 
 	r.bs = jde.AppendStrField(r.bs, "msg", msg)
 	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
-	r.bs = append(r.bs, "\n"...)
+	//r.bs = append(r.bs, "\n"...)
 
 	// 合成最后的输出结果
-	r.bs = r.log.StyleFunc(r.log, r.bs)
-
-	if _, err := r.iow.Write(r.bs); err != nil {
+	data := r.log.StyleSummary(r)
+	if _, err := r.iow.Write(data); err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "logx: write record error: %s\n", err.Error())
 	}
 	putRecordToPool(r)
@@ -117,6 +117,13 @@ func (r *Record) MsgFunc(createMsg func() string) {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (r *Record) Group(k string) *Record {
+	if r != nil {
+		r.bs = r.log.StyleGroupBegin(r.bs, k)
+	}
+	return r
+}
+
 func (r *Record) Str(k, v string) *Record {
 	if r != nil {
 		r.bs = jde.AppendStrField(r.bs, k, v)

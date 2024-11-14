@@ -1,5 +1,5 @@
-// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
+// Copyright 2022 GoFast Author(sdx: http://chende.ren). All rights reserved.
+// Use of this source code is governed by an Apache-2.0 license that can be found in the LICENSE file.
 package logx
 
 import (
@@ -19,7 +19,7 @@ var DefLogger *Logger
 // 指定LogConfig初始化默认日志记录器
 func SetupDefault(cnf *LogConfig) {
 	if DefLogger != nil {
-		DefLogger.Warn().Msg("logx: default logger already existed")
+		Warn().Msg("logx: default logger already existed")
 		return
 	}
 	if cnf == nil {
@@ -70,6 +70,10 @@ func (l *Logger) initLogger() error {
 		return err
 	}
 
+	// 全局内容
+	l.Str("AppName", l.cnf.AppName)
+	l.Str("HostName", l.cnf.HostName)
+
 	switch l.cnf.LogMedium {
 	case toConsole:
 		return l.setupForConsole()
@@ -94,7 +98,7 @@ func (l *Logger) setupForConsole() error {
 	l.WTimer = w1
 	l.WStat = w1
 
-	w2 := os.Stderr
+	w2 := os.Stdout
 	l.WWarn = w2
 	l.WSlow = w2
 	l.WErr = w2
