@@ -18,12 +18,12 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 		if extra.total == 0 {
 			continue
 		}
-		logx2.StatKV(cst.KV{
+		logx2.InfoStat().Any("Status", cst.KV{
 			"typ": logx2.LogStatRouteReq.Type,
 			"pth": specialRouteMethod + rb.extraPaths[idx],
 			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
 			"val": [6]any{extra.total, 0, 0, 0.00, 0.00, 0},
-		})
+		}).End()
 	}
 
 	// 输出路由统计
@@ -39,12 +39,12 @@ func (rb *reqCounter) logPrintReqCounter(data *printData) {
 			aveTimeMS = rt.totalTimeMS / int64(rt.accepts)
 		}
 
-		logx2.StatKV(cst.KV{
+		logx2.InfoStat().Any("Status", cst.KV{
 			"typ": logx2.LogStatRouteReq.Type,
 			"pth": rb.paths[idx],
 			//"fls": []string{"accept", "timeout", "drop", "qps", "ave", "max"}
 			"val": [6]any{rt.accepts, rt.timeouts, rt.drops, lang.Round32(qps, 2), aveTimeMS, rt.maxTimeMS},
-		})
+		}).End()
 	}
 }
 

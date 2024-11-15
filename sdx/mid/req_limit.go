@@ -22,12 +22,12 @@ func HttpMaxConnections(limit int32) fst.HttpHandler {
 			if latch.TryBorrow() {
 				defer func() {
 					if err := latch.Return(); err != nil {
-						logx.ErrorF("Error: MaxConnections return err, info -> %s", err)
+						logx.Err().MsgF("Error: MaxConnections return err, info -> %s", err)
 					}
 				}()
 				next(w, r)
 			} else {
-				logx.ErrorF("req %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
+				logx.Err().MsgF("req %d over %d, rejected with code %d", latch.Curr, limit, http.StatusServiceUnavailable)
 				w.WriteHeader(http.StatusServiceUnavailable) // 返回客户端服务器错误
 			}
 		}

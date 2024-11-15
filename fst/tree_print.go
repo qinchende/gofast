@@ -106,11 +106,11 @@ func debugPrintRoute(gft *GoFast, ri *RouteItem) {
 	lastHdsIdx := ri.eHds[nuHandlers-1]
 	fun := ri.group.app.fstMem.allCtxHandlers[lastHdsIdx]
 
-	logx.DebugF("%-6s %-25s %s (%d hds)", ri.method, ri.fullPath, lang.FuncFullName(fun), nuHandlers)
+	logx.Debug().MsgF("%-6s %-25s %s (%d hds)", ri.method, ri.fullPath, lang.FuncFullName(fun), nuHandlers)
 }
 
 func debugPrintRouteTree(gft *GoFast, strTree *strings.Builder) {
 	if gft.IsDebugging() {
-		logx.DebugDirect(strTree.String())
+		logx.Info().Msg(strTree.String())
 	}
 }

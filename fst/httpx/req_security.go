@@ -122,7 +122,7 @@ package httpx
 //
 //	passed := securityHeader.Signature == actualSignature
 //	if !passed {
-//		logx.InfoF("signature different, expect: %s, actual: %s",
+//		logx.Info().MsgF("signature different, expect: %s, actual: %s",
 //			securityHeader.Signature, actualSignature)
 //	}
 //

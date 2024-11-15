@@ -13,7 +13,7 @@ import (
 
 func panicIfSqlErr(err error) {
 	if err != nil {
-		logx.Error("sqlx: " + err.Error())
+		logx.Err().Msg("sqlx: " + err.Error())
 		cst.PanicIfErr(err)
 	}
 }

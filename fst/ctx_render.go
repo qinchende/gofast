@@ -256,7 +256,7 @@ func (c *Context) tryToRender() bool {
 	c.lock.Lock()
 	if c.rendered {
 		c.lock.Unlock()
-		logx.Warn("Double render, the call canceled.")
+		logx.Warn().Msg("Double render, the call canceled.")
 		return false
 	}
 	c.rendered = true

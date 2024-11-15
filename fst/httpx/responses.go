@@ -49,9 +49,9 @@ package httpx
 //		// http.ErrHandlerTimeout has been handled by http.TimeoutHandler,
 //		// so it's ignored here.
 //		if err != http.ErrHandlerTimeout {
-//			//logx.ErrorF("write response failed, error: %s", err)
+//			//logx.Err().MsgF("write response failed, error: %s", err)
 //		}
 //	} else if n < len(bs) {
-//		//logx.ErrorF("actual bytes: %d, written bytes: %d", len(bs), n)
+//		//logx.Err().MsgF("actual bytes: %d, written bytes: %d", len(bs), n)
 //	}
 //}

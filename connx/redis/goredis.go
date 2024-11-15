@@ -59,10 +59,10 @@ func NewGoRedis(cf *ConnCnf) *GfRedis {
 			//	return nil
 			//},
 		})
-		logx.Info(fmt.Sprintf("Redis alone %s created.", cf.Addr))
+		logx.Info().Msg(fmt.Sprintf("Redis alone %s created.", cf.Addr))
 		_, err := rds.Ping()
 		if err != nil {
-			logx.Error(fmt.Sprintf("Redis alone %s connection error: %s", cf.Addr, err))
+			logx.Err().Msg(fmt.Sprintf("Redis alone %s connection error: %s", cf.Addr, err))
 		}
 	} else if cf.SentinelNodes != nil {
 		// 通过sentinel连接 redis
@@ -88,10 +88,10 @@ func NewGoRedis(cf *ConnCnf) *GfRedis {
 		if cf.ReplicaOnly == true {
 			roleName = "replica"
 		}
-		logx.Info(fmt.Sprintf("Redis sentinels %s for %s(%s) created.", cf.SentinelNodes, cf.MasterName, roleName))
+		logx.Info().MsgF("Redis sentinels %s for %s(%s) created.", cf.SentinelNodes, cf.MasterName, roleName)
 		_, err := rds.Ping()
 		if err != nil {
-			logx.Error(fmt.Sprintf("Redis %s(%s) connection error: %s", cf.MasterName, roleName, err))
+			logx.Err().Msg(fmt.Sprintf("Redis %s(%s) connection error: %s", cf.MasterName, roleName, err))
 		}
 	}
 

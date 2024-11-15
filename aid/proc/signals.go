@@ -35,7 +35,7 @@ func init() {
 			case syscall.SIGTERM:
 				gracefulStop(signals)
 			default:
-				logx.Error("Got unregistered signal:", v)
+				logx.Err("Got unregistered signal:", v)
 			}
 		}
 	}()

@@ -49,14 +49,12 @@ func (conn *StmtConn) ExecCtx(ctx context.Context, args ...any) int64 {
 	}
 
 	args = formatArgs(args)
-	if logx.ShowDebug() {
-		logx.Debug(realSql(conn.sqlStr, args...))
-	}
+	logx.Debug().Msg(realSql(conn.sqlStr, args...))
 	startTime := timex.NowDur()
 	ret, err := conn.stmt.ExecContext(ctx, args...)
 	dur := timex.NowDiffDur(startTime)
 	if dur > slowThreshold {
-		logx.SlowF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
+		logx.WarnSlow().MsgF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
 	}
 
 	panicIfSqlErr(err)
@@ -89,14 +87,12 @@ func (conn *StmtConn) QueryRowsCtx(ctx context.Context, objs any, args ...any) i
 
 func (conn *StmtConn) queryContext(ctx context.Context, args ...any) (sqlRows *sql.Rows, err error) {
 	args = formatArgs(args)
-	if logx.ShowDebug() {
-		logx.Debug(realSql(conn.sqlStr, args...))
-	}
+	logx.Debug().Msg(realSql(conn.sqlStr, args...))
 	startTime := timex.NowDur()
 	sqlRows, err = conn.stmt.QueryContext(ctx, args...)
 	dur := timex.NowDiffDur(startTime)
 	if dur > slowThreshold {
-		logx.SlowF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
+		logx.WarnSlow().MsgF("[SQL][%dms] slow-call - %s", dur/time.Millisecond, realSql(conn.sqlStr, args...))
 	}
 	return
 }

@@ -73,7 +73,7 @@ func (w *ResponseWrap) Flush() bool {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn(errAlreadyRendered + "Can't Flush.")
+			logx.Warn().Msg(errAlreadyRendered + "Can't Flush.")
 		}
 		return false
 	}
@@ -90,13 +90,13 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.WarnF("%sCan't WriteHeader from %d to %d.", errAlreadyRendered, w.status, newStatus)
+			logx.Warn().MsgF("%sCan't WriteHeader from %d to %d.", errAlreadyRendered, w.status, newStatus)
 		}
 		return
 	}
 
 	if w.status != int16(newStatus) && w.status != defaultStatus {
-		logx.WarnF("Response status already %d, but now change to %d.", w.status, newStatus)
+		logx.Warn().MsgF("Response status already %d, but now change to %d.", w.status, newStatus)
 	}
 	w.status = int16(newStatus)
 }
@@ -110,7 +110,7 @@ func (w *ResponseWrap) Write(data []byte) (n int, err error) {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn(errAlreadyRendered + "Can't Write.")
+			logx.Warn().Msg(errAlreadyRendered + "Can't Write.")
 		}
 		return 0, nil
 	}
@@ -124,7 +124,7 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn(errAlreadyRendered + "Can't WriteString.")
+			logx.Warn().MsgF(errAlreadyRendered + "Can't WriteString.")
 		}
 		return 0, nil
 	}
@@ -145,7 +145,7 @@ func (w *ResponseWrap) Send() (n int, err error) {
 	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
-		logx.StackF("realSend error: %s", err)
+		logx.Trace().MsgF("realSend error: %s", err)
 	}
 	return
 }
@@ -161,7 +161,7 @@ func (w *ResponseWrap) SendHijack(resStatus int, data []byte) (n int) {
 	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
-		logx.StackF("realSend error: %s", err)
+		logx.Trace().MsgF("realSend error: %s", err)
 	}
 	return
 }
@@ -187,7 +187,7 @@ func (w *ResponseWrap) SendByTimeoutGoroutine(resStatus int, data []byte) bool {
 	w.respLock.Unlock() // 因为tryToCommit没有解锁
 
 	if err != nil {
-		logx.StackF("realSend error: %s", err)
+		logx.Trace().MsgF("realSend error: %s", err)
 	}
 	return true
 }
@@ -205,7 +205,7 @@ func (w *ResponseWrap) tryToCommit(tip string) bool {
 	if w.committed {
 		w.respLock.Unlock()
 		if !w.isTimeout {
-			logx.Warn(errAlreadyRendered + tip)
+			logx.Warn().Msg(errAlreadyRendered + tip)
 		}
 		return false
 	}

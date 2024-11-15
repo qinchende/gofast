@@ -78,7 +78,7 @@ func printSysResourceStatus(cpuAvaUsage float64) {
 	var m runtime.MemStats
 	runtime.ReadMemStats(&m)
 
-	logx.StatKV(cst.KV{
+	logx.InfoStat().Any("Status", cst.KV{
 		"typ": logx.LogStatSysMonitor.Type,
 		//"fls": []string{"cpu", "mem", "gor", "gc"},
 		"val": []any{
@@ -87,7 +87,7 @@ func printSysResourceStatus(cpuAvaUsage float64) {
 			runtime.NumGoroutine(),
 			m.NumGC,
 		},
-	})
+	}).End()
 }
 
 // 字节 到 MB 的转换.
@@ -108,7 +108,7 @@ func bToMb(b uint64) float32 {
 //
 //	decimalPlace2(totalPercent)
 //	decimalPlace2(perPercents)
-//	logx.InfoF("CPU-Usage -> total: %v, per: %v", totalPercent, perPercents)
+//	logx.Info().MsgF("CPU-Usage -> total: %v, per: %v", totalPercent, perPercents)
 //	// ==++ NED
 //}
 //

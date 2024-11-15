@@ -71,8 +71,8 @@ func (l *Logger) initLogger() error {
 	}
 
 	// 全局内容
-	l.Str("AppName", l.cnf.AppName)
-	l.Str("HostName", l.cnf.HostName)
+	l.Str(fApp, l.cnf.AppName)
+	l.Str(fHost, l.cnf.HostName)
 
 	switch l.cnf.LogMedium {
 	case toConsole:

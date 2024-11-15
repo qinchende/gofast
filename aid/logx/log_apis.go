@@ -7,7 +7,7 @@ package logx
 
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Stack() *Record {
+func Trace() *Record {
 	return DefLogger.Trace()
 }
 
@@ -17,6 +17,10 @@ func Debug() *Record {
 
 func Info() *Record {
 	return DefLogger.Info()
+}
+
+func InfoReq() *Record {
+	return DefLogger.InfoReq()
 }
 
 func InfoTimer() *Record {
@@ -108,6 +112,13 @@ func (l *Logger) Info() *Record {
 	return nil
 }
 
+func (l *Logger) InfoReq() *Record {
+	if l.ShowInfo() {
+		return l.newRecord(l.WReq, LabelReq)
+	}
+	return nil
+}
+
 func (l *Logger) InfoTimer() *Record {
 	if l.ShowInfo() {
 		return l.newRecord(l.WTimer, LabelTimer)
@@ -149,209 +160,3 @@ func (l *Logger) ErrPanic() *Record {
 	}
 	return nil
 }
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func Trace(v string) {
-//	stackSync(v)
-//}
-//
-//func Stacks(v ...any) {
-//	stackSync(fmt.Sprint(v...))
-//}
-//
-//func StackF(format string, v ...any) {
-//	stackSync(fmt.Sprintf(format, v...))
-//}
-//
-//// +++
-//func Debug(v string) {
-//	if cnf.iLevel <= LevelDebug {
-//		output(WDebug, LabelDebug, v)
-//	}
-//}
-//
-//func Debugs(v ...any) {
-//	if cnf.iLevel <= LevelDebug {
-//		output(WDebug, LabelDebug, fmt.Sprint(v...))
-//	}
-//}
-//
-//func DebugF(format string, v ...any) {
-//	if cnf.iLevel <= LevelDebug {
-//		output(WDebug, LabelDebug, fmt.Sprintf(format, v...))
-//	}
-//}
-//
-//func DebugDirect(v string) {
-//	if cnf.iLevel <= LevelDebug {
-//		output(WDebug, LabelDebug, v)
-//	}
-//}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-//	func Info(v string) {
-//		if cnf.iLevel <= LevelInfo {
-//			output(WInfo, LabelInfo, v)
-//		}
-//	}
-//
-//	func InfoKV(v cst.KV) {
-//		if cnf.iLevel <= LevelInfo {
-//			output(WInfo, LabelInfo, v)
-//		}
-//	}
-//
-//	func Infos(v ...any) {
-//		if cnf.iLevel <= LevelInfo {
-//			output(WInfo, LabelInfo, fmt.Sprint(v...))
-//		}
-//	}
-//
-//	func InfoF(format string, v ...any) {
-//		if cnf.iLevel <= LevelInfo {
-//			output(WInfo, LabelInfo, fmt.Sprintf(format, v...))
-//		}
-//	}
-//
-// // 直接打印所给的数据
-//
-//	func InfoDirect(v string) {
-//		if cnf.iLevel <= LevelInfo {
-//			output(WInfo, LabelInfo, v)
-//		}
-//	}
-//
-// // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//
-//	func Warn(v string) {
-//		warnSync(v)
-//	}
-//
-//	func Warns(v ...any) {
-//		warnSync(fmt.Sprint(v...))
-//	}
-//
-//	func WarnF(format string, v ...any) {
-//		warnSync(fmt.Sprintf(format, v...))
-//	}
-//
-// // +++
-//
-//	func Error(v string) {
-//		errorSync(v, callerSkipDepth)
-//	}
-//
-//	func Errors(v ...any) {
-//		errorSync(fmt.Sprint(v...), callerSkipDepth)
-//	}
-//
-//	func ErrorF(format string, v ...any) {
-//		errorSync(fmt.Sprintf(format, v...), callerSkipDepth)
-//	}
-//
-//	func ErrorFatal(v ...any) {
-//		errorSync(fmt.Sprint(v...), callerSkipDepth)
-//		os.Exit(1)
-//	}
-//
-//	func ErrorFatalF(format string, v ...any) {
-//		errorSync(fmt.Sprintf(format, v...), callerSkipDepth)
-//		os.Exit(1)
-//	}
-//
-// // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func Stat(v string) {
-//	if !cnf.DisableStat {
-//		output(WStat, LabelStat, v)
-//	}
-//}
-//
-//func StatKV(data cst.KV) {
-//	if !cnf.DisableStat {
-//		output(WStat, LabelStat, data)
-//	}
-//}
-
-//
-//func Stats(v ...any) {
-//	if cnf.EnableStat {
-//		output(WStat, LabelStat, fmt.Sprint(v...))
-//	}
-//}
-//
-//func StatF(format string, v ...any) {
-//	if cnf.EnableStat {
-//		output(WStat, LabelStat, fmt.Sprintf(format, v...))
-//	}
-//}
-//
-//// +++
-//func Slow(v string) {
-//	if cnf.EnableStat {
-//		output(WSlow, LabelSlow, v)
-//	}
-//}
-//
-//func Slows(v ...any) {
-//	if cnf.EnableStat {
-//		output(WSlow, LabelSlow, fmt.Sprint(v...))
-//	}
-//}
-//
-//func SlowF(format string, v ...any) {
-//	if cnf.EnableStat {
-//		output(WSlow, LabelSlow, fmt.Sprintf(format, v...))
-//	}
-//}
-//
-//// +++
-//func Timer(v string) {
-//	if cnf.EnableStat {
-//		output(WTimer, LabelTimer, v)
-//	}
-//}
-//
-//func TimerKV(data cst.KV) {
-//	if cnf.EnableStat {
-//		output(WTimer, LabelTimer, data)
-//	}
-//}
-//
-//func Timers(v ...any) {
-//	if cnf.EnableStat {
-//		output(WTimer, LabelTimer, fmt.Sprint(v...))
-//	}
-//}
-//
-//func TimerF(format string, v ...any) {
-//	if cnf.EnableStat {
-//		output(WTimer, LabelTimer, fmt.Sprintf(format, v...))
-//	}
-//}
-//
-//func TimerError(v string) {
-//	if cnf.EnableStat {
-//		output(WErr, LabelErr, msgWithStack(v))
-//	}
-//}
-//
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//// inner call apis
-//func warnSync(msg string) {
-//	if ShowWarn() {
-//		output(WWarn, LabelWarn, msg)
-//	}
-//}
-//
-//func errorSync(msg string, skip int) {
-//	if ShowErr() {
-//		output(WErr, LabelErr, msgWithCaller(msg, skip))
-//	}
-//}
-//
-//func stackSync(msg string) {
-//	if ShowStack() {
-//		output(WStack, LabelTrace, fmt.Sprintf("MSG: %s Trace: %s", msg, debug.Trace()))
-//	}
-//}

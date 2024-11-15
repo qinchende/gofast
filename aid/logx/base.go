@@ -4,7 +4,6 @@ package logx
 
 import (
 	"io"
-	"time"
 )
 
 type LogConfig struct {
@@ -42,9 +41,9 @@ const (
 	LevelInfo    int8 = 0   // 3
 	LevelWarn    int8 = 4   // 4
 	LevelErr     int8 = 8   // 5
-	LevelDiscard int8 = 127 // 6 禁用日志
+	LevelDiscard int8 = 127 // 6 丢弃日志
 
-	// 用于区分日志分类的 Label。这和日志级别是不同的概念
+	// 日志分类Label。这和日志级别是不同的概念，Label可以有很多，但是日志级别不要太多
 	LabelTrace   = "TRC"     // 1
 	LabelDebug   = "DBG"     // 2
 	LabelInfo    = "INF"     // 3
@@ -81,21 +80,32 @@ const (
 	toFile    = "file"
 	toVolume  = "volume"
 	toCustom  = "custom"
+
+	fMessage   = "msg"
+	fTimeStamp = "ts"
+	fLabel     = "label"
+	fApp       = "app"
+	fHost      = "host"
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type (
-	LogBuilder interface {
-		output(msg string)
+	// 对象自定义输出方法，实现此接口用来自定义处理敏感信息
+	Printer interface {
+		Print([]byte) []byte
+	}
+
+	RecordWriter interface {
+		write()
 	}
 
 	Logger struct {
-		//*LogConfig
+		// *LogConfig
 
 		// 自己也需要集成一个记录器
 		Record
-		//App  string `json:"app"`
-		//Host string `json:"host"`
+		// App  string `json:"app"`
+		// Host string `json:"host"`
 
 		// 每种分类可以单独输出到不同的介质
 		WStack io.WriteCloser
@@ -108,34 +118,17 @@ type (
 		WSlow  io.WriteCloser
 		WErr   io.WriteCloser
 		WPanic io.WriteCloser
-		//WDiscard io.WriteCloser
+		// WDiscard io.WriteCloser
 
+		// 指定下面的方法即可自定义输出日志样式
 		StyleSummary    func(r *Record) []byte
 		StyleGroupBegin func([]byte, string) []byte
 		StyleGroupEnd   func([]byte) []byte
 
-		//initOnce sync.Once
+		// initOnce sync.Once
 		cnf *LogConfig
 
 		iLevel int8 // 日志级别
 		iStyle int8 // 日志样式类型
-	}
-
-	Field struct {
-		Key string
-		Val any
-	}
-
-	Record struct {
-		Time  time.Duration `json:"ts"`
-		Label string        `json:"lb"`
-		//Msg   string
-
-		log *Logger
-		iow io.WriteCloser
-		out LogBuilder
-		bf  *[]byte
-		bs  []byte // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
-		//fls []Field // 用来记录key-value
 	}
 )

@@ -50,6 +50,6 @@ func redirectTrailingSlash(c *Context) {
 	}
 
 	rURL := req.Raw.URL.String()
-	logx.InfoF("redirecting request %d: %s --> %s", code, req.Raw.URL.Path, rURL)
+	logx.Info().MsgF("redirecting request %d: %s --> %s", code, req.Raw.URL.Path, rURL)
 	c.AbortRedirect(code, rURL)
 }

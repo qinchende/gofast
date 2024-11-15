@@ -51,7 +51,7 @@ func Timeout(kp *gate.RequestKeeper, useTimeout bool) fst.CtxHandler {
 					// NOTE：这里必须使用带缓冲的通道，否则本G可能因为父G的提前退出，而卡死在这里，导致G泄露
 					panicChan <- pic
 					// TODO：无法确定上面的异常是否传递出去，下面的日志还是需要打印的。
-					logx.ErrorF("ReqTimeout-Panic: ", pic)
+					logx.Err().MsgF("ReqTimeout-Panic: ", pic)
 				}
 			}()
 			// 不管超不超时，本次请求都会执行完毕，或者等到自己超时退出

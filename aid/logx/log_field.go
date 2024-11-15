@@ -33,15 +33,15 @@ package logx
 //
 //func getReqRecordFromPool() *ReqRecord {
 //	r := reqRecordPool.Get().(*ReqRecord)
-//	r.bf = pool.GetBytes()
-//	r.bs = *r.bf
+//	r.buf = pool.GetBytes()
+//	r.bs = *r.buf
 //	return r
 //}
 //
 //func putReqRecordToPool(r *ReqRecord) {
-//	*r.bf = r.bs
-//	pool.FreeBytes(r.bf)
-//	r.bf = nil
+//	*r.buf = r.bs
+//	pool.FreeBytes(r.buf)
+//	r.buf = nil
 //	r.bs = nil
 //	reqRecordPool.Put(r)
 //}

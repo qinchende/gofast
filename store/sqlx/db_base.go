@@ -33,9 +33,7 @@ func (conn *OrmDB) ExecSql(sqlStr string, args ...any) sql.Result {
 
 func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) sql.Result {
 	args = formatArgs(args)
-	if logx.ShowDebug() {
-		logx.Debug(realSql(sqlStr, args...))
-	}
+	logx.Debug().Msg(realSql(sqlStr, args...))
 
 	var result sql.Result
 	var err error
@@ -47,7 +45,7 @@ func (conn *OrmDB) ExecSqlCtx(ctx context.Context, sqlStr string, args ...any) s
 	}
 	dur := timex.NowDiffDur(startTime)
 	if dur > slowThreshold {
-		logx.SlowF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
+		logx.WarnSlow().MsgF("[SQL][%dms] exec: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
 	panicIfSqlErr(err)
 	return result
@@ -59,9 +57,7 @@ func (conn *OrmDB) QuerySql(sqlStr string, args ...any) *sql.Rows {
 
 func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) *sql.Rows {
 	args = formatArgs(args)
-	if logx.ShowDebug() {
-		logx.Debug(realSql(sqlStr, args...))
-	}
+	logx.Debug().Msg(realSql(sqlStr, args...))
 
 	var rows *sql.Rows
 	var err error
@@ -73,7 +69,7 @@ func (conn *OrmDB) QuerySqlCtx(ctx context.Context, sqlStr string, args ...any) 
 	}
 	dur := timex.NowDiffDur(startTime)
 	if dur > slowThreshold {
-		logx.SlowF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
+		logx.WarnSlow().MsgF("[SQL][%dms] query: slow-call - %s", dur/time.Millisecond, realSql(sqlStr, args...))
 	}
 	panicIfSqlErr(err)
 	return rows

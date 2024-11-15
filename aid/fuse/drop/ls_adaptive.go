@@ -154,7 +154,7 @@ func (as *adaptiveShedder) shouldDrop() bool {
 			msg := fmt.Sprintf(
 				"dropreq, cpu: %d, maxPass: %d, minRt: %.2f, hot: %t, flying: %d, avgFlying: %.2f",
 				sysx.CpuSmoothUsage, as.maxPass(), as.minRt(), as.stillHot(), flying, avgFlying)
-			logx.Error(msg)
+			logx.Err().Msg(msg)
 			logx.InfoReport(cst.KV{msg: msg})
 			return true
 		}

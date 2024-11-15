@@ -19,7 +19,7 @@ func getTransport(proxyUrl string) *http.Transport {
 
 	netURL, err := url.Parse(proxyUrl)
 	if err != nil {
-		logx.Debugs(err)
+		logx.Debug().Msg(err.Error())
 		return nil
 	}
 

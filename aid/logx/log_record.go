@@ -10,66 +10,32 @@ import (
 	"io"
 	"os"
 	"sync"
+	"time"
 )
 
 var (
-	recordPool = &sync.Pool{
-		New: func() interface{} {
-			r := &Record{}
-			r.init()
-			return r
-		},
-	}
-	_recordDefValue Record
+	_recordDef Record
+	recordPool = &sync.Pool{New: func() interface{} { return &Record{} }}
 )
 
-func (r *Record) init() {
-	r.bf = pool.GetBytes()
-	r.bs = *r.bf
-}
+type (
+	Record struct {
+		Time  time.Duration
+		Label string
+		//Message string
 
-func getRecordFromPool() *Record {
-	r := recordPool.Get().(*Record)
-	r.bf = pool.GetBytes()
-	r.bs = *r.bf
-	//r.bs = r.bs[0:0]
-	return r
-}
+		log *Logger
+		iow io.WriteCloser
+		out RecordWriter
 
-func putRecordToPool(r *Record) {
-	*r.bf = r.bs
-	pool.FreeBytes(r.bf)
-	r.bf = nil
-	r.bs = nil
-	recordPool.Put(r)
-}
+		//fls []Field // 用来记录key-value
+		buf *[]byte // 来自于全局缓存
+		bs  []byte  // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (l *Logger) newRecord(w io.WriteCloser, label string) *Record {
-	r := getRecordFromPool()
-	r.Label = label
-	r.log = l
-	r.iow = w
-	r.out = r
-	return r
-}
-
-func (r *Record) output(msg string) {
-	r.Time = timex.NowDur() // 此时才是日志记录时间
-
-	r.bs = jde.AppendStrField(r.bs, "msg", msg)
-	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
-	//r.bs = append(r.bs, "\n"...)
-
-	// 合成最后的输出结果
-	data := r.log.StyleSummary(r)
-	if _, err := r.iow.Write(data); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "logx: write record error: %s\n", err.Error())
+		isGroup bool // 当前是否处于分组阶段
 	}
-	putRecordToPool(r)
-}
+)
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) SetWriter(w io.WriteCloser) *Record {
 	if r == nil {
 		return nil
@@ -86,40 +52,115 @@ func (r *Record) SetLabel(label string) *Record {
 	return r
 }
 
-// 可以先输出一条完整的日志，但是不回收Record，而是继续下一条
-func (r *Record) Flush() *Record {
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func getRecord() *Record {
+	r := recordPool.Get().(*Record)
+	r.buf = pool.GetBytes()
+	r.bs = *r.buf
 	return r
 }
 
-func (r *Record) Send() {
+func backRecord(r *Record) {
+	*r.buf = r.bs
+	pool.FreeBytes(r.buf)
+	r.buf = nil
+	r.bs = nil
+	recordPool.Put(r)
+}
+
+func (l *Logger) newRecord(w io.WriteCloser, label string) *Record {
+	r := getRecord()
+	r.Label = label
+	r.log = l
+	r.iow = w
+	r.out = r
+	return r
+}
+func (r *Record) reuse() {
+	r.bs = r.bs[:0]
+}
+
+func (r *Record) write() {
+	// 此时才是日志记录时间
+	r.Time = timex.NowDur()
+	// 合成最后的输出内容
+	data := r.log.StyleSummary(r)
+
+	if _, err := r.iow.Write(data); err != nil {
+		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
+	}
+}
+
+func (r *Record) endWithMsg(msg string) {
+	if r.isGroup {
+		r.GEnd()
+	}
+
+	r.bs = jde.AppendStrField(r.bs, fMessage, msg)
+	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
+
+	r.out.write()
+	backRecord(r)
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// 可以先输出一条完整的日志，但是不回收Record，而是继续下一条
+func (r *Record) Next() *Record {
 	if r != nil {
-		r.out.output("")
+		if r.isGroup {
+			r.GEnd()
+		}
+		r.out.write()
+		r.reuse()
+	}
+	return r
+}
+
+func (r *Record) End() {
+	if r != nil {
+		if r.isGroup {
+			r.GEnd()
+		}
+		r.out.write()
+		backRecord(r)
 	}
 }
 
 func (r *Record) Msg(msg string) {
 	if r != nil {
-		r.out.output(msg)
+		r.endWithMsg(msg)
 	}
 }
 
 // MsgF虽然方便，但不推荐使用
 func (r *Record) MsgF(str string, v ...any) {
 	if r != nil {
-		r.out.output(fmt.Sprintf(str, v...))
+		r.endWithMsg(fmt.Sprintf(str, v...))
 	}
 }
 
 func (r *Record) MsgFunc(createMsg func() string) {
 	if r != nil {
-		r.out.output(createMsg())
+		r.endWithMsg(createMsg())
 	}
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) Group(k string) *Record {
 	if r != nil {
+		if r.isGroup {
+			r.GEnd()
+		}
+		r.isGroup = true
 		r.bs = r.log.StyleGroupBegin(r.bs, k)
+	}
+	return r
+}
+
+func (r *Record) GEnd() *Record {
+	if r != nil && r.isGroup {
+		r.isGroup = false
+		r.bs = r.log.StyleGroupEnd(r.bs)
 	}
 	return r
 }
@@ -131,9 +172,16 @@ func (r *Record) Str(k, v string) *Record {
 	return r
 }
 
-func (r *Record) Int(k string, v int) *Record {
+func (r *Record) Int(k string, v int64) *Record {
 	if r != nil {
 		r.bs = jde.AppendIntField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) Uint(k string, v uint64) *Record {
+	if r != nil {
+		r.bs = jde.AppendUintField(r.bs, k, v)
 	}
 	return r
 }
@@ -147,14 +195,14 @@ func (r *Record) Bool(k string, v bool) *Record {
 
 func (r *Record) F32(k string, v float32) *Record {
 	if r != nil {
-		//r.bs = jde.AppendBoolField(r.bs, k, v)
+		r.bs = jde.AppendF32Field(r.bs, k, v)
 	}
 	return r
 }
 
 func (r *Record) F64(k string, v float64) *Record {
 	if r != nil {
-		//r.bs = jde.AppendBoolField(r.bs, k, v)
+		r.bs = jde.AppendF64Field(r.bs, k, v)
 	}
 	return r
 }

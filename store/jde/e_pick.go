@@ -326,12 +326,32 @@ func AppendStrField(bf []byte, k, v string) []byte {
 	return bf
 }
 
-func AppendIntField(bf []byte, k string, v int) []byte {
+func AppendIntField(bf []byte, k string, v int64) []byte {
 	bf = appendKey(bf, k)
-	bf = strconv.AppendInt(bf, int64(v), 10)
+	bf = strconv.AppendInt(bf, v, 10)
 	bf = append(bf, ',')
 	return bf
+}
 
+func AppendUintField(bf []byte, k string, v uint64) []byte {
+	bf = appendKey(bf, k)
+	bf = strconv.AppendUint(bf, v, 10)
+	bf = append(bf, ',')
+	return bf
+}
+
+func AppendF32Field(bf []byte, k string, v float32) []byte {
+	bf = appendKey(bf, k)
+	bf = strconv.AppendFloat(bf, float64(v), 'g', -1, 32)
+	bf = append(bf, ',')
+	return bf
+}
+
+func AppendF64Field(bf []byte, k string, v float64) []byte {
+	bf = appendKey(bf, k)
+	bf = strconv.AppendFloat(bf, v, 'g', -1, 64)
+	bf = append(bf, ',')
+	return bf
 }
 
 func AppendBoolField(bf []byte, k string, v bool) []byte {
