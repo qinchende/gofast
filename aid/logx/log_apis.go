@@ -8,43 +8,43 @@ package logx
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func Trace() *Record {
-	return DefLogger.Trace()
+	return Def.Trace()
 }
 
 func Debug() *Record {
-	return DefLogger.Debug()
+	return Def.Debug()
 }
 
 func Info() *Record {
-	return DefLogger.Info()
+	return Def.Info()
 }
 
 func InfoReq() *Record {
-	return DefLogger.InfoReq()
+	return Def.InfoReq()
 }
 
 func InfoTimer() *Record {
-	return DefLogger.InfoTimer()
+	return Def.InfoTimer()
 }
 
 func InfoStat() *Record {
-	return DefLogger.InfoStat()
+	return Def.InfoStat()
 }
 
 func Warn() *Record {
-	return DefLogger.Warn()
+	return Def.Warn()
 }
 
 func WarnSlow() *Record {
-	return DefLogger.WarnSlow()
+	return Def.WarnSlow()
 }
 
 func Err() *Record {
-	return DefLogger.Err()
+	return Def.Err()
 }
 
 func ErrPanic() *Record {
-	return DefLogger.ErrPanic()
+	return Def.ErrPanic()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

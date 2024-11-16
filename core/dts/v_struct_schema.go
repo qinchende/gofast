@@ -7,7 +7,6 @@ package dts
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/aid/validx"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/lang"
 	"github.com/qinchende/gofast/core/rt"
@@ -52,7 +51,7 @@ type (
 	fieldAttr struct {
 		RefIndex []int                // 字段定位（反射用到）
 		RefField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
-		Valid    *validx.ValidOptions // 验证
+		Valid    *ValidOptions        // 验证
 
 		Type      reflect.Type   // 字段最终的类型，剥开指针(Pointer)之后的类型
 		TypeAbi   unsafe.Pointer // 模拟*runtime.abiType
@@ -66,7 +65,7 @@ type (
 	}
 
 	fieldOptions struct {
-		valid  *validx.ValidOptions // 验证
+		valid  *ValidOptions        // 验证
 		sField *reflect.StructField // 原始值，方便后期自定义验证特殊Tag
 	}
 )
@@ -318,7 +317,7 @@ func structFields(typ reflect.Type, parentIdx []int, opts *BindOptions) ([]strin
 
 		// 4. options
 		optStr := fi.Tag.Get(opts.ValidTag)
-		vOpt, err := validx.ParseOptions(&fi, optStr)
+		vOpt, err := ParseOptions(&fi, optStr)
 		cst.PanicIfErr(err) // 解析不对，直接抛异常
 		fOptions = append(fOptions, fieldOptions{valid: vOpt, sField: &fi})
 	}

@@ -122,8 +122,8 @@ func LoggerMini(c *fst.Context) {
 //}
 //
 //func InfoReq() *ReqRecord {
-//	if logx.DefLogger.ShowInfo() {
-//		return newReqRecord(logx.DefLogger.WReq, logx.LabelReq)
+//	if logx.Def.ShowInfo() {
+//		return newReqRecord(logx.Def.WReq, logx.LabelReq)
 //	}
 //	return nil
 //}

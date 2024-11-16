@@ -2,7 +2,6 @@ package bind
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/aid/validx"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/dts"
 	"reflect"
@@ -49,7 +48,7 @@ func validStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOption
 			continue
 		}
 		fPtr = dts.PeelPtr(fPtr, fa.PtrLevel)
-		if err = validx.ValidateFieldPtr(fPtr, fKind, vOpt); err != nil {
+		if err = dts.ValidateFieldPtr(fPtr, fKind, vOpt); err != nil {
 			return
 		}
 	}

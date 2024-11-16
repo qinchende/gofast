@@ -14,11 +14,11 @@ import (
 	"strings"
 )
 
-var DefLogger *Logger
+var Def *Logger
 
 // 指定LogConfig初始化默认日志记录器
 func SetupDefault(cnf *LogConfig) {
-	if DefLogger != nil {
+	if Def != nil {
 		Warn().Msg("logx: default logger already existed")
 		return
 	}
@@ -26,7 +26,7 @@ func SetupDefault(cnf *LogConfig) {
 		cnf = &LogConfig{}
 		_ = conf.LoadFromJson(cnf, []byte("{}"))
 	}
-	DefLogger = NewMust(cnf)
+	Def = NewMust(cnf)
 }
 
 func NewMust(cnf *LogConfig) *Logger {

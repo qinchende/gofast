@@ -60,8 +60,8 @@ package logx
 //}
 //
 //func InfoReq() *ReqRecord {
-//	if DefLogger.ShowInfo() {
-//		return newReqRecord(DefLogger.WReq, LabelReq)
+//	if Def.ShowInfo() {
+//		return newReqRecord(Def.WReq, LabelReq)
 //	}
 //	return nil
 //}

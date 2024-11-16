@@ -4,7 +4,6 @@ package bind
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/aid/validx"
 	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/core/dts"
 	"github.com/qinchende/gofast/core/rt"
@@ -93,7 +92,7 @@ func bindKVToStructIter(ptr unsafe.Pointer, dstT reflect.Type, kvs cst.SuperKV, 
 	validField:
 		// 是否需要验证字段数据的合法性
 		if opts.UseValid && vOpt != nil {
-			if err = validx.ValidateFieldPtr(fPtr, fa.Kind, vOpt); err != nil {
+			if err = dts.ValidateFieldPtr(fPtr, fa.Kind, vOpt); err != nil {
 				return
 			}
 		}
@@ -211,7 +210,7 @@ func optimizeStructIter(ptr unsafe.Pointer, dstT reflect.Type, opts *dts.BindOpt
 
 		// Check: 是否需要验证字段数据的合法性
 		if opts.UseValid {
-			if err = validx.ValidateFieldPtr(fPtr, fKind, vOpt); err != nil {
+			if err = dts.ValidateFieldPtr(fPtr, fKind, vOpt); err != nil {
 				return
 			}
 		}
