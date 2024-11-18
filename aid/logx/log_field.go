@@ -47,7 +47,7 @@ package logx
 //}
 //
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func newReqRecord(w io.WriteCloser, label string) *ReqRecord {
+//func newReqRecord(w io.Writer, label string) *ReqRecord {
 //	r := getReqRecordFromPool()
 //
 //	// Record记录的数据

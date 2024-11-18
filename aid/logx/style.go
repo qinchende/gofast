@@ -64,11 +64,11 @@ func SdxSummary(r *Record) []byte {
 	bf := bs[len(bs):] // 利用[]byte没使用的内存空间
 
 	// 每条日志的第一行，特定格式输出
-	bf = timex.ToTime(r.Time).AppendFormat(bf, timeFormat)
+	bf = timex.ToTime(r.TS).AppendFormat(bf, timeFormat)
 	bf = append(bf, " ["...)
 	bf = append(bf, r.Label...)
 	bf = append(bf, "]: {"...)
-	bf = append(bf, r.log.bs...) // 公有
+	bf = append(bf, r.myL.r.bs...) // 公有
 
 	// 加上每条日志自己的数据
 	bf = append(bf, bs...)
@@ -102,9 +102,9 @@ func JsonSummary(r *Record) []byte {
 
 	// 每条日志的第一行，特定格式输出
 	bf = append(bf, '{')
-	bf = jde.AppendStrField(bf, fTimeStamp, timex.ToTime(r.Time).Format(timeFormat))
+	bf = jde.AppendStrField(bf, fTimeStamp, timex.ToTime(r.TS).Format(timeFormat))
 	bf = jde.AppendStrField(bf, fLabel, r.Label)
-	bf = append(bf, r.log.bs...) // 公有
+	bf = append(bf, r.myL.r.bs...) // 公有
 
 	// 加上每条日志自己的数据
 	bf = append(bf, bs...)

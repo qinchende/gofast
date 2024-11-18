@@ -16,15 +16,17 @@ import (
 
 var Def *Logger
 
+func NewDefaultConfig() *LogConfig {
+	cnf := &LogConfig{}
+	_ = conf.LoadFromJson(cnf, []byte("{}"))
+	return cnf
+}
+
 // 指定LogConfig初始化默认日志记录器
 func SetupDefault(cnf *LogConfig) {
 	if Def != nil {
 		Warn().Msg("logx: default logger already existed")
 		return
-	}
-	if cnf == nil {
-		cnf = &LogConfig{}
-		_ = conf.LoadFromJson(cnf, []byte("{}"))
 	}
 	Def = NewMust(cnf)
 }
@@ -40,6 +42,9 @@ func NewMust(cnf *LogConfig) *Logger {
 }
 
 func New(cnf *LogConfig) (l *Logger, err error) {
+	if cnf == nil {
+		cnf = NewDefaultConfig()
+	}
 	l = &Logger{cnf: cnf}
 	if err = l.initLogger(); err != nil {
 		return nil, err
@@ -60,8 +65,8 @@ func (l *Logger) initLogger() error {
 		l.iLevel = LevelWarn
 	case LabelErr:
 		l.iLevel = LevelErr
-	case LabelDiscard:
-		l.iLevel = LevelDiscard
+	case LabelDisable:
+		l.iLevel = LevelDisable
 	default:
 		return errors.New("Wrong LogLevel of config")
 	}
@@ -90,7 +95,13 @@ func (l *Logger) initLogger() error {
 
 // 第一种：打印在console
 func (l *Logger) setupForConsole() error {
-	w1 := os.Stdout
+	w1 := io.Writer(os.Stdout)
+	w2 := io.Writer(os.Stderr)
+	if l.cnf.DiscardIO {
+		w1 = io.Discard
+		w2 = io.Discard
+	}
+
 	l.WStack = w1
 	l.WDebug = w1
 	l.WInfo = w1
@@ -98,7 +109,6 @@ func (l *Logger) setupForConsole() error {
 	l.WTimer = w1
 	l.WStat = w1
 
-	w2 := os.Stdout
 	l.WWarn = w2
 	l.WSlow = w2
 	l.WErr = w2
@@ -131,7 +141,7 @@ func (l *Logger) setupForFiles() error {
 	return nil
 }
 
-func (l *Logger) createWriterFile(path string) io.WriteCloser {
+func (l *Logger) createWriterFile(path string) io.Writer {
 	rr := DefDailyRotateRule(path, backupFileDelimiter, l.cnf.FileKeepDays, l.cnf.FileGzip)
 	wr, err := NewRotateWriter(path, rr, l.cnf.FileGzip)
 	if err != nil {
@@ -140,7 +150,7 @@ func (l *Logger) createWriterFile(path string) io.WriteCloser {
 	return wr
 }
 
-func (l *Logger) createFile(label string) io.WriteCloser {
+func (l *Logger) createFile(label string) io.Writer {
 	if l.cnf.FileName == "" {
 		l.cnf.FileName = "[FileName]"
 	}
@@ -158,64 +168,18 @@ func (l *Logger) setupForVolume() error {
 	return l.setupForFiles()
 }
 
-//// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-//func CloseFiles() error {
-//	if myCnf.LogMedium == toConsole {
-//		return nil
-//	}
-//
-//	if WDebug != nil {
-//		if err := WDebug.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WInfo != nil {
-//		if err := WInfo.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WWarn != nil {
-//		if err := WWarn.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WErr != nil {
-//		if err := WErr.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WStack != nil {
-//		if err := WStack.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WStat != nil {
-//		if err := WStat.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WSlow != nil {
-//		if err := WSlow.Close(); err != nil {
-//			return err
-//		}
-//	}
-//	if WTimer != nil {
-//		if err := WTimer.Close(); err != nil {
-//			return err
-//		}
-//	}
-//
-//	return nil
-//}
-//
-//func Disable() {
-//	initOnce.Do(func() {
-//		//atomic.StoreUint32(&initialized, 1)
-//
-//		//WInfo = iox.NopCloser(ioutil.Discard)
-//		//WErr = iox.NopCloser(ioutil.Discard)
-//		//WSlow = iox.NopCloser(ioutil.Discard)
-//		//WStat = iox.NopCloser(ioutil.Discard)
-//		//WStack = ioutil.Discard
-//	})
-//}
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (lr *LogRecord) Str(k, v string) *LogRecord {
+	lr.r.Str(k, v)
+	return lr
+}
+
+func (lr *LogRecord) Int(k string, v int) *LogRecord {
+	lr.r.Int(k, v)
+	return lr
+}
+
+func (lr *LogRecord) Bool(k string, v bool) *LogRecord {
+	lr.r.Bool(k, v)
+	return lr
+}

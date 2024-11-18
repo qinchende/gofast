@@ -18,7 +18,7 @@ const (
 
 //
 //type WriterCloser interface {
-//	io.WriteCloser
+//	io.Writer
 //	//Writeln(data string) (err error)
 //	//WritelnBytes(data []byte) (err error)
 //	//WritelnBuilder(sb *strings.Builder) (err error)
@@ -26,16 +26,16 @@ const (
 
 type syncWriter struct {
 	mu sync.Mutex
-	lw io.WriteCloser
+	lw io.Writer
 }
 
 type consoleWriter struct {
 	*limitedExecutor
-	lw io.WriteCloser
+	lw io.Writer
 }
 
 type multiWriter struct {
-	lws []io.WriteCloser
+	lws []io.Writer
 }
 
 //// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

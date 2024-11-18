@@ -300,18 +300,20 @@ func encAny(bf *[]byte, ptr unsafe.Pointer, typ reflect.Type) {
 	//return bf
 }
 
-// 一些方法可以供外部使用
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// NOTE: 一些方法可以供外部使用 Build JSON String
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// ++ string
 func appendKey(bf []byte, k string) []byte {
 	bf = append(bf, '"') // need check escape chars
-	bf = append(bf, k...)
+	bf = appendEscapedStr(bf, k)
 	bf = append(bf, "\":"...)
 	return bf
 }
 
 func AppendStr(bf []byte, s string) []byte {
 	bf = append(bf, '"')
-	bf = append(bf, s...)
+	bf = appendEscapedStr(bf, s)
 	bf = append(bf, '"')
 	return bf
 }
@@ -319,20 +321,61 @@ func AppendStr(bf []byte, s string) []byte {
 // TODO：need check escape chars
 func AppendStrField(bf []byte, k, v string) []byte {
 	bf = append(bf, '"')
-	bf = append(bf, k...)
+	bf = appendEscapedStr(bf, k)
 	bf = append(bf, "\":\""...)
-	bf = append(bf, v...)
+	bf = appendEscapedStr(bf, v)
 	bf = append(bf, "\","...)
 	return bf
 }
 
-func AppendIntField(bf []byte, k string, v int64) []byte {
+func AppendStrListField(bf []byte, k string, list []string) []byte {
 	bf = appendKey(bf, k)
-	bf = strconv.AppendInt(bf, v, 10)
+
+	if len(list) == 0 {
+		return append(bf, "[],"...)
+	}
+
+	bf = append(bf, '[')
+	for idx := range list {
+		bf = append(bf, '"')
+		bf = appendEscapedStr(bf, list[idx])
+		bf = append(bf, "\","...)
+	}
+	bf = bf[:len(bf)-1]
+	bf = append(bf, "],"...)
+	return bf
+}
+
+// ++ int
+func AppendIntField[T constraints.Signed](bf []byte, k string, v T) []byte {
+	bf = appendKey(bf, k)
+	bf = strconv.AppendInt(bf, int64(v), 10)
 	bf = append(bf, ',')
 	return bf
 }
 
+func AppendIntListField[T constraints.Signed](bf []byte, k string, v []T) []byte {
+	bf = appendKey(bf, k)
+	bf = appendIntList[T](bf, v)
+	bf = append(bf, ',')
+	return bf
+}
+
+func appendIntList[T constraints.Signed](bf []byte, list []T) []byte {
+	if len(list) == 0 {
+		return append(bf, '[', ']')
+	}
+	bf = append(bf, '[')
+	for idx := range list {
+		bf = strconv.AppendInt(bf, int64(list[idx]), 10)
+		bf = append(bf, ',')
+	}
+	bf = bf[:len(bf)-1]
+	bf = append(bf, ']')
+	return bf
+}
+
+// ++ uint
 func AppendUintField(bf []byte, k string, v uint64) []byte {
 	bf = appendKey(bf, k)
 	bf = strconv.AppendUint(bf, v, 10)
@@ -340,6 +383,28 @@ func AppendUintField(bf []byte, k string, v uint64) []byte {
 	return bf
 }
 
+func AppendUintListField[T constraints.Unsigned](bf []byte, k string, v []T) []byte {
+	bf = appendKey(bf, k)
+	bf = appendUintList[T](bf, v)
+	bf = append(bf, ',')
+	return bf
+}
+
+func appendUintList[T constraints.Unsigned](bf []byte, list []T) []byte {
+	if len(list) == 0 {
+		return append(bf, '[', ']')
+	}
+	bf = append(bf, '[')
+	for idx := range list {
+		bf = strconv.AppendUint(bf, uint64(list[idx]), 10)
+		bf = append(bf, ',')
+	}
+	bf = bf[:len(bf)-1]
+	bf = append(bf, ']')
+	return bf
+}
+
+// ++ float
 func AppendF32Field(bf []byte, k string, v float32) []byte {
 	bf = appendKey(bf, k)
 	bf = strconv.AppendFloat(bf, float64(v), 'g', -1, 32)
@@ -361,5 +426,15 @@ func AppendBoolField(bf []byte, k string, v bool) []byte {
 	} else {
 		bf = append(bf, "false,"...)
 	}
+	return bf
+}
+
+// ++ time.Time
+func AppendTimeField(bf []byte, k string, v time.Time) []byte {
+	bf = append(bf, '"')
+	bf = appendEscapedStr(bf, k)
+	bf = append(bf, "\":\""...)
+	bf = v.AppendFormat(bf, "2006-01-02 15:04:05")
+	bf = append(bf, "\","...)
 	return bf
 }

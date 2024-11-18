@@ -56,8 +56,8 @@ func (l *Logger) Clone() *Logger {
 		return nil
 	}
 	newL := *l
-	newL.bs = make([]byte, 0, cap(l.bs))
-	copy(newL.bs, l.bs)
+	newL.r.bs = make([]byte, 0, cap(l.r.bs))
+	copy(newL.r.bs, l.r.bs)
 	return &newL
 }
 
