@@ -4,7 +4,7 @@ package logx
 
 import (
 	"fmt"
-	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/pool"
 	"github.com/qinchende/gofast/store/jde"
 	"io"
 	"os"
@@ -14,13 +14,13 @@ import (
 
 var (
 	_recordDef Record
-	recordPool = &sync.Pool{New: func() interface{} { return &Record{bs: make([]byte, 0, 1024)} }}
+	recordPool = &sync.Pool{New: func() interface{} { return &Record{} }}
 )
 
 type (
 	Record struct {
-		TS    time.Duration
-		Label string
+		//TDur  time.Duration
+		//Label string
 		//Message string
 
 		myL *Logger
@@ -47,33 +47,33 @@ func (r *Record) SetLabel(label string) *Record {
 	if r == nil {
 		return nil
 	}
-	r.Label = label
+	//r.Label = label
 	return r
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func getRecord() *Record {
 	r := recordPool.Get().(*Record)
-	//r.buf = pool.GetBytes()
-	//r.bs = *r.buf
-	r.bs = r.bs[:0]
+	r.buf = pool.GetBytesMin(512)
+	r.bs = *r.buf
 	return r
 }
 
 func backRecord(r *Record) {
-	//*r.buf = r.bs
-	//pool.FreeBytes(r.buf)
-	//r.buf = nil
-	//r.bs = nil
+	*r.buf = r.bs
+	pool.FreeBytes(r.buf)
+	r.buf = nil
+	r.bs = nil
 	recordPool.Put(r)
 }
 
 func (l *Logger) newRecord(w io.Writer, label string) *Record {
 	r := getRecord()
-	r.Label = label
+	//r.Label = label
 	r.myL = l
 	r.iow = w
 	r.out = r
+	r.myL.StyleBegin(r, label)
 	return r
 }
 func (r *Record) reuse() {
@@ -82,7 +82,7 @@ func (r *Record) reuse() {
 
 func (r *Record) write() {
 	// 此时才是日志记录时间
-	r.TS = timex.NowDur()
+	//r.TDur = timex.NowDur()
 	// 合成最后的输出内容
 	data := r.myL.StyleSummary(r)
 
@@ -289,7 +289,7 @@ func (r *Record) Strs(k string, v []string) *Record {
 // +++++ time.Time
 func (r *Record) Time(k string, v time.Time) *Record {
 	if r != nil {
-		r.bs = jde.AppendTimeField(r.bs, k, v)
+		r.bs = jde.AppendTimeField(r.bs, k, v, timeFormat)
 	}
 	return r
 }

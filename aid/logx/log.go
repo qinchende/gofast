@@ -76,8 +76,8 @@ func (l *Logger) initLogger() error {
 	}
 
 	// 全局内容
-	l.Str(fApp, l.cnf.AppName)
-	l.Str(fHost, l.cnf.HostName)
+	//l.Str(fApp, l.cnf.AppName)
+	//l.Str(fHost, l.cnf.HostName)
 
 	switch l.cnf.LogMedium {
 	case toConsole:
@@ -169,17 +169,17 @@ func (l *Logger) setupForVolume() error {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (lr *LogRecord) Str(k, v string) *LogRecord {
+func (lr *TopRecord) Str(k, v string) *TopRecord {
 	lr.r.Str(k, v)
 	return lr
 }
 
-func (lr *LogRecord) Int(k string, v int) *LogRecord {
+func (lr *TopRecord) Int(k string, v int) *TopRecord {
 	lr.r.Int(k, v)
 	return lr
 }
 
-func (lr *LogRecord) Bool(k string, v bool) *LogRecord {
+func (lr *TopRecord) Bool(k string, v bool) *TopRecord {
 	lr.r.Bool(k, v)
 	return lr
 }

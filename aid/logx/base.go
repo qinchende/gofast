@@ -28,8 +28,9 @@ type LogConfig struct {
 	DisableStat  bool `v:"def=false"` // 是否记录统计数据
 	DisableSlow  bool `v:"def=false"` // 是否记录慢日志
 	// 控制2
-	DisableMark  bool   `v:"def=false"` // 是否打印应用标记
-	CdoGroupSize uint16 `v:"def=100"`   // Cdo编码时分页大小
+	DisableMark  bool   `v:"def=false"`               // 是否打印应用标记
+	CdoGroupSize uint16 `v:"def=100"`                 // Cdo编码时分页大小
+	TimeFormat   string `v:"def=2006-01-02 15:04:05"` // YY-MM-DD HH:mm:ss
 }
 
 const (
@@ -99,7 +100,7 @@ type (
 		write()
 	}
 
-	LogRecord struct {
+	TopRecord struct {
 		r Record
 	}
 
@@ -123,11 +124,12 @@ type (
 		//WDiscard io.Writer
 
 		// 指定下面的方法即可自定义输出日志样式
+		StyleBegin      func(r *Record, label string)
 		StyleSummary    func(r *Record) []byte
 		StyleGroupBegin func([]byte, string) []byte
 		StyleGroupEnd   func([]byte) []byte
 
-		LogRecord
+		TopRecord
 
 		// initOnce sync.Once
 		cnf *LogConfig

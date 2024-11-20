@@ -5,11 +5,13 @@ import (
 )
 
 const (
-	bytesSizeMini  = 128         // 128B
-	bytesSizeDef   = 1024        // 1KB 默认 1KB -> 8KB 随机大小的内存
-	bytesSizeLarge = 1024 * 8    // 8KB
-	bytesSizeMax   = 1024 * 1024 // 1MB 超过这个就直接丢
+	bytesSizeMini  = 128        // 0. 128B
+	bytesSizeDef   = 1024       // 1. 1KB 默认 1KB -> 8KB 随机大小的内存
+	bytesSizeLarge = 1024 * 8   // 2. 8KB
+	bytesSizeMax   = 1024 * 512 // 3. 512KB 超过这个就直接丢
 )
+
+//var steps = [4]int{bytesSizeMini, bytesSizeDef, bytesSizeLarge, bytesSizeMax}
 
 var (
 	bytesPoolMini  = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeMini); return &bs }}  // 小字节序列 < 1K
@@ -38,10 +40,18 @@ var (
 //}
 
 func GetBytes() *[]byte {
+	return getBySize(lastSize)
+}
+
+func GetBytesMin(minSize int) *[]byte {
+	return getBySize(minSize)
+}
+
+func getBySize(needSize int) *[]byte {
 	var bf *[]byte
-	if lastSize <= bytesSizeMini {
+	if needSize <= bytesSizeMini {
 		bf = bytesPoolMini.Get().(*[]byte)
-	} else if lastSize <= bytesSizeDef {
+	} else if needSize <= bytesSizeDef {
 		bf = bytesPoolDef.Get().(*[]byte)
 	} else {
 		bf = bytesPoolLarge.Get().(*[]byte)

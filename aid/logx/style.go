@@ -4,8 +4,9 @@ package logx
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/aid/timex"
+	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/jde"
+	"time"
 )
 
 // NOTE：系统内置了几个系列的请求日志输出样式，当然你也可以自定义输出样式
@@ -26,27 +27,31 @@ const (
 )
 
 const (
-	timeFormat     = "2006-01-02 15:04:05"
-	timeFormatMini = "01-02 15:04:05"
+	//timeFormatMini = cst.TimeFmtMdHms
+	//timeFormat = cst.TimeFmtYmdHms
+	timeFormat = cst.TimeFmtRFC3339
 )
 
-// 将名称字符串转换成整数类型，提高判断性能
+// 将名称字符串转换成整数类型，提高判断性能s
 func (l *Logger) initStyle() error {
 	switch l.cnf.LogStyle {
 
 	case styleSdxStr:
 		l.iStyle = StyleSdx
+		l.StyleBegin = SdxBegin
 		l.StyleSummary = SdxSummary
 		l.StyleGroupBegin = SdxGroupBegin
 		l.StyleGroupEnd = SdxGroupEnd
 	case styleCdoStr:
 		l.iStyle = StyleCdo
-		l.StyleSummary = JsonSummary
+		l.StyleBegin = JsonBegin
+		l.StyleSummary = JsonEnd
 		l.StyleGroupBegin = JsonGroupBegin
 		l.StyleGroupEnd = JsonGroupEnd
 	case styleJsonStr:
 		l.iStyle = StyleJson
-		l.StyleSummary = JsonSummary
+		l.StyleBegin = JsonBegin
+		l.StyleSummary = JsonEnd
 		l.StyleGroupBegin = JsonGroupBegin
 		l.StyleGroupEnd = JsonGroupEnd
 	case styleCustomStr:
@@ -59,14 +64,19 @@ func (l *Logger) initStyle() error {
 
 // Sdx-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func SdxBegin(r *Record, label string) {
+	r.bs = append(append(append(time.Now().AppendFormat(r.bs, timeFormat), " ["...), label...), "]: {"...)
+}
+
 func SdxSummary(r *Record) []byte {
 	bs := r.bs         // Record中的信息
 	bf := bs[len(bs):] // 利用[]byte没使用的内存空间
 
 	// 每条日志的第一行，特定格式输出
-	bf = timex.ToTime(r.TS).AppendFormat(bf, timeFormat)
+	bf = time.Now().AppendFormat(bf, timeFormat)
+	//bf = timex.ToTime(r.TDur).AppendFormat(bf, timeFormat)
 	bf = append(bf, " ["...)
-	bf = append(bf, r.Label...)
+	//bf = append(bf, r.Label...)
 	bf = append(bf, "]: {"...)
 	bf = append(bf, r.myL.r.bs...) // 公有
 
@@ -80,9 +90,9 @@ func SdxSummary(r *Record) []byte {
 }
 
 func SdxGroupBegin(bs []byte, k string) []byte {
-	bs = append(bs, "\n    "...)
-	bs = jde.AppendStr(bs, k)
-	bs = append(bs, ": {"...)
+	bs = append(bs, "\n    \""...)
+	bs = jde.AppendStrNoQuotes(bs, k)
+	bs = append(bs, "\": {"...)
 	return bs
 }
 
@@ -96,35 +106,25 @@ func SdxGroupEnd(bs []byte) []byte {
 
 // JSON-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func JsonSummary(r *Record) []byte {
-	bs := r.bs         // Record中的信息
-	bf := bs[len(bs):] // 利用[]byte没使用的内存空间
+func JsonBegin(r *Record, label string) {
+	r.bs = jde.AppendStrField(jde.AppendTimeField(append(r.bs, '{'), fTimeStamp, time.Now(), timeFormat), fLabel, label)
+}
 
-	// 每条日志的第一行，特定格式输出
-	bf = append(bf, '{')
-	bf = jde.AppendStrField(bf, fTimeStamp, timex.ToTime(r.TS).Format(timeFormat))
-	bf = jde.AppendStrField(bf, fLabel, r.Label)
-	bf = append(bf, r.myL.r.bs...) // 公有
-
-	// 加上每条日志自己的数据
-	bf = append(bf, bs...)
+func JsonEnd(r *Record) []byte {
+	bf := r.bs // Record中的信息
 	if bf[len(bf)-1] == ',' {
 		bf = bf[:len(bf)-1]
 	}
-	bf = append(bf, "}\n"...)
-	return bf
+	return append(bf, "}\n"...)
 }
 
 func JsonGroupBegin(bs []byte, k string) []byte {
-	bs = jde.AppendStr(bs, k)
-	bs = append(bs, ":{"...)
-	return bs
+	return append(jde.AppendKey(bs, k), '{')
 }
 
 func JsonGroupEnd(bs []byte) []byte {
 	if len(bs) > 0 && bs[len(bs)-1] == ',' {
 		bs = bs[:len(bs)-1]
 	}
-	bs = append(bs, "},"...)
-	return bs
+	return append(bs, "},"...)
 }
