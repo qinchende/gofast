@@ -99,6 +99,23 @@ func AppendBoolField(bs []byte, k string, v bool) []byte {
 	}
 }
 
+func AppendBoolListField(bs []byte, k string, v []bool) []byte {
+	bs = AppendKey(bs, k)
+	if len(v) == 0 {
+		return append(bs, "[],"...)
+	}
+
+	bs = append(bs, '[')
+	for idx := range v {
+		if v[idx] {
+			bs = append(bs, "true,"...)
+		} else {
+			bs = append(bs, "false,"...)
+		}
+	}
+	return append(bs[:len(bs)-1], "],"...)
+}
+
 // ++ time.Time
 func AppendTimeField(bs []byte, k string, v time.Time, fmt string) []byte {
 	bs = append(addStrNoQuotes(append(bs, '"'), k), "\":\""...)
@@ -107,7 +124,6 @@ func AppendTimeField(bs []byte, k string, v time.Time, fmt string) []byte {
 
 func AppendTimeListField(bs []byte, k string, list []time.Time, fmt string) []byte {
 	bs = AppendKey(bs, k)
-
 	if len(list) == 0 {
 		return append(bs, "[],"...)
 	}

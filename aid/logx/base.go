@@ -41,7 +41,7 @@ const (
 	toCustom  = "custom"
 
 	fMessage   = "msg"
-	fError     = "msg"
+	fError     = "err"
 	fTimeStamp = "ts"
 	fLabel     = "label"
 	fApp       = "app"

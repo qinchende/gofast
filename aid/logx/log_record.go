@@ -73,6 +73,7 @@ func (l *Logger) newRecord(w io.Writer, label string) *Record {
 	r.iow = w
 	r.out = r
 	l.FnRecordBegin(r, label)
+	r.bs = append(r.bs, l.r.bs...)
 	return r
 }
 func (r *Record) reuse() {
@@ -80,7 +81,8 @@ func (r *Record) reuse() {
 }
 
 func (r *Record) write() {
-	if _, err := r.iow.Write(r.myL.FnRecordEnd(r)); err != nil {
+	data := r.myL.FnRecordEnd(r)
+	if _, err := r.iow.Write(data); err != nil {
 		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
 	}
 }
@@ -260,6 +262,13 @@ func (r *Record) U64s(k string, v []uint64) *Record {
 func (r *Record) Bool(k string, v bool) *Record {
 	if r != nil {
 		r.bs = jde.AppendBoolField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) Bools(k string, v []bool) *Record {
+	if r != nil {
+		r.bs = jde.AppendBoolListField(r.bs, k, v)
 	}
 	return r
 }

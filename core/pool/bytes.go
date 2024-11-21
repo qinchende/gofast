@@ -5,18 +5,20 @@ import (
 )
 
 const (
-	bytesSizeMini  = 128        // 0. 128B
-	bytesSizeDef   = 1024       // 1. 1KB 默认 1KB -> 8KB 随机大小的内存
-	bytesSizeLarge = 1024 * 8   // 2. 8KB
-	bytesSizeMax   = 1024 * 512 // 3. 512KB 超过这个就直接丢
+	bsSizeMini  = 128        // 0. 128B
+	bsSizeDef   = 1024       // 1. 1KB 默认 1KB -> 8KB 随机大小的内存
+	bsSizeLarge = 1024 * 8   // 2. 8KB
+	bsSizeHuge  = 1024 * 64  // 3. 64KB
+	bsSizeMax   = 1024 * 512 // 4. 512KB 超过这个就直接丢
 )
 
 //var steps = [4]int{bytesSizeMini, bytesSizeDef, bytesSizeLarge, bytesSizeMax}
 
 var (
-	bytesPoolMini  = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeMini); return &bs }}  // 小字节序列 < 1K
-	bytesPoolDef   = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeDef); return &bs }}   // 普通字节序列 < 8K
-	bytesPoolLarge = sync.Pool{New: func() any { bs := make([]byte, 0, bytesSizeLarge); return &bs }} // 超大字节序列 > 8K
+	bsPoolMini  = sync.Pool{New: func() any { bs := make([]byte, 0, bsSizeMini); return &bs }}  // 小字节序列 	< 1K
+	bsPoolDef   = sync.Pool{New: func() any { bs := make([]byte, 0, bsSizeDef); return &bs }}   // 普通字节序列 < 8K
+	bsPoolLarge = sync.Pool{New: func() any { bs := make([]byte, 0, bsSizeLarge); return &bs }} // 大字节序列 	< 64K
+	bsPoolHuge  = sync.Pool{New: func() any { bs := make([]byte, 0, bsSizeHuge); return &bs }}  // 超大字节序列 < 512KB
 )
 
 // TODO：这里需要完善
@@ -49,12 +51,14 @@ func GetBytesMin(minSize int) *[]byte {
 
 func getBySize(needSize int) *[]byte {
 	var bf *[]byte
-	if needSize <= bytesSizeMini {
-		bf = bytesPoolMini.Get().(*[]byte)
-	} else if needSize <= bytesSizeDef {
-		bf = bytesPoolDef.Get().(*[]byte)
+	if needSize <= bsSizeMini {
+		bf = bsPoolMini.Get().(*[]byte)
+	} else if needSize <= bsSizeDef {
+		bf = bsPoolDef.Get().(*[]byte)
+	} else if needSize <= bsSizeLarge {
+		bf = bsPoolLarge.Get().(*[]byte)
 	} else {
-		bf = bytesPoolLarge.Get().(*[]byte)
+		bf = bsPoolHuge.Get().(*[]byte)
 	}
 	*bf = (*bf)[0:0]
 	return bf
@@ -62,14 +66,16 @@ func getBySize(needSize int) *[]byte {
 
 func FreeBytes(bs *[]byte) {
 	lastSize = cap(*bs)
-	if lastSize > bytesSizeMax {
+	if lastSize > bsSizeMax {
 		return
-	} else if lastSize >= bytesSizeLarge {
-		bytesPoolLarge.Put(bs)
-	} else if lastSize >= bytesSizeDef {
-		bytesPoolDef.Put(bs)
+	} else if lastSize >= bsSizeHuge {
+		bsPoolHuge.Put(bs)
+	} else if lastSize >= bsSizeLarge {
+		bsPoolLarge.Put(bs)
+	} else if lastSize >= bsSizeDef {
+		bsPoolDef.Put(bs)
 	} else {
-		bytesPoolMini.Put(bs)
+		bsPoolMini.Put(bs)
 	}
 }
 
