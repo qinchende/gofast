@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	_recordDef Record
+	//_recordDefVal Record
 	recordPool = &sync.Pool{New: func() interface{} { return &Record{} }}
 )
 
@@ -28,10 +28,9 @@ type (
 		out RecordWriter
 
 		//fls []Field // 用来记录key-value
-		buf *[]byte // 来自于全局缓存
-		bs  []byte  // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
-
-		isGroup bool // 当前是否处于分组阶段
+		buf     *[]byte // 来自于全局缓存
+		bs      []byte  // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
+		isGroup bool    // 当前是否处于分组阶段
 	}
 )
 
@@ -43,18 +42,18 @@ func (r *Record) SetWriter(w io.Writer) *Record {
 	return r
 }
 
-func (r *Record) SetLabel(label string) *Record {
-	if r == nil {
-		return nil
-	}
-	//r.Label = label
-	return r
-}
+//func (r *Record) SetLabel(label string) *Record {
+//	if r == nil {
+//		return nil
+//	}
+//	//r.Label = label
+//	return r
+//}
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func getRecord() *Record {
 	r := recordPool.Get().(*Record)
-	r.buf = pool.GetBytesMin(512)
+	r.buf = pool.GetBytesMin(512) // 最少512字节
 	r.bs = *r.buf
 	return r
 }
@@ -73,7 +72,7 @@ func (l *Logger) newRecord(w io.Writer, label string) *Record {
 	r.myL = l
 	r.iow = w
 	r.out = r
-	r.myL.StyleBegin(r, label)
+	l.FnRecordBegin(r, label)
 	return r
 }
 func (r *Record) reuse() {
@@ -81,12 +80,7 @@ func (r *Record) reuse() {
 }
 
 func (r *Record) write() {
-	// 此时才是日志记录时间
-	//r.TDur = timex.NowDur()
-	// 合成最后的输出内容
-	data := r.myL.StyleSummary(r)
-
-	if _, err := r.iow.Write(data); err != nil {
+	if _, err := r.iow.Write(r.myL.FnRecordEnd(r)); err != nil {
 		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
 	}
 }
@@ -152,7 +146,7 @@ func (r *Record) Group(k string) *Record {
 			r.GEnd()
 		}
 		r.isGroup = true
-		r.bs = r.myL.StyleGroupBegin(r.bs, k)
+		r.bs = r.myL.FnGroupBegin(r.bs, k)
 	}
 	return r
 }
@@ -160,13 +154,20 @@ func (r *Record) Group(k string) *Record {
 func (r *Record) GEnd() *Record {
 	if r != nil && r.isGroup {
 		r.isGroup = false
-		r.bs = r.myL.StyleGroupEnd(r.bs)
+		r.bs = r.myL.FnGroupEnd(r.bs)
 	}
 	return r
 }
 
 // +++++ int
 func (r *Record) Int(k string, v int) *Record {
+	if r != nil {
+		r.bs = jde.AppendIntField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) I64(k string, v int64) *Record {
 	if r != nil {
 		r.bs = jde.AppendIntField(r.bs, k, v)
 	}
@@ -206,7 +207,14 @@ func (r *Record) I64s(k string, v []int64) *Record {
 }
 
 // +++++ uint
-func (r *Record) Uint(k string, v uint64) *Record {
+func (r *Record) Uint(k string, v uint) *Record {
+	if r != nil {
+		r.bs = jde.AppendUintField(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) U64(k string, v uint64) *Record {
 	if r != nil {
 		r.bs = jde.AppendUintField(r.bs, k, v)
 	}
@@ -294,17 +302,63 @@ func (r *Record) Time(k string, v time.Time) *Record {
 	return r
 }
 
-//func (r *Record) Times(k string, v []time.Time) *Record {
-//	if r != nil {
-//		r.bs = jde.AppendStrListField(r.bs, k, v)
-//	}
-//	return r
-//}
+func (r *Record) Times(k string, v []time.Time) *Record {
+	if r != nil {
+		r.bs = jde.AppendTimeListField(r.bs, k, v, timeFormat)
+	}
+	return r
+}
+
+// +++++ error
+func (r *Record) Err(v error) *Record {
+	if r != nil && v != nil {
+		r.bs = jde.AppendStrField(r.bs, fError, v.Error())
+	}
+	return r
+}
 
 // +++++ struct
-func (r *Record) Obj(k string, v any) *Record {
-	if r != nil {
-		//r.bs = jde.AppendBoolField(r.bs, k, v)
+func (r *Record) Obj(k string, v ObjEncoder) *Record {
+	if r != nil && v != nil {
+		r.bs = append(jde.AppendKey(r.bs, k), '{')
+		v.EncodeLogX(r)
+
+		bf := r.bs
+		if bf[len(bf)-1] == ',' {
+			bf = bf[:len(bf)-1]
+		}
+		r.bs = append(bf, "},"...)
+	}
+	return r
+}
+
+// 任意struct切片类型转换成LogX输出的切片类型
+func ToObjs[T ObjEncoder](list []T) []ObjEncoder {
+	arr := make([]ObjEncoder, len(list))
+	for idx := range list {
+		arr[idx] = list[idx]
+	}
+	return arr
+}
+
+func (r *Record) Objs(k string, v []ObjEncoder) *Record {
+	if r != nil && v != nil {
+		bf := jde.AppendKey(r.bs, k)
+		if len(v) == 0 {
+			r.bs = append(bf, "[],"...)
+		} else {
+			bf = append(bf, '[')
+			for idx := range v {
+				r.bs = append(bf, '{')
+				v[idx].EncodeLogX(r)
+				bf = r.bs
+				if bf[len(bf)-1] == ',' {
+					bf = bf[:len(bf)-1]
+				}
+				bf = append(bf, "},"...)
+			}
+			r.bs = append(bf[:len(bf)-1], "],"...)
+		}
 	}
 	return r
 }

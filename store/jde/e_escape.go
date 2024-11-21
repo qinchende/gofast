@@ -27,12 +27,10 @@ func addStrQuotes(bs []byte, s string, c byte) []byte {
 	bs = append(bs, '"')
 	for i := 0; i < len(s); i++ {
 		if !noEscapeTable[s[i]] {
-			bs = appendComplexStr(bs, s, i)
-			return append(bs, '"', c)
+			return append(appendComplexStr(bs, s, i), '"', c)
 		}
 	}
-	bs = append(bs, s...)
-	return append(bs, '"', c)
+	return append(append(bs, s...), '"', c)
 }
 
 func appendComplexStr(bs []byte, s string, i int) []byte {

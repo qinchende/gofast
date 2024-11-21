@@ -38,22 +38,22 @@ func (l *Logger) initStyle() error {
 
 	case styleSdxStr:
 		l.iStyle = StyleSdx
-		l.StyleBegin = SdxBegin
-		l.StyleSummary = SdxSummary
-		l.StyleGroupBegin = SdxGroupBegin
-		l.StyleGroupEnd = SdxGroupEnd
+		l.FnRecordBegin = SdxBegin
+		l.FnRecordEnd = SdxEnd
+		l.FnGroupBegin = SdxGroupBegin
+		l.FnGroupEnd = SdxGroupEnd
 	case styleCdoStr:
 		l.iStyle = StyleCdo
-		l.StyleBegin = JsonBegin
-		l.StyleSummary = JsonEnd
-		l.StyleGroupBegin = JsonGroupBegin
-		l.StyleGroupEnd = JsonGroupEnd
+		l.FnRecordBegin = JsonBegin
+		l.FnRecordEnd = JsonEnd
+		l.FnGroupBegin = JsonGroupBegin
+		l.FnGroupEnd = JsonGroupEnd
 	case styleJsonStr:
 		l.iStyle = StyleJson
-		l.StyleBegin = JsonBegin
-		l.StyleSummary = JsonEnd
-		l.StyleGroupBegin = JsonGroupBegin
-		l.StyleGroupEnd = JsonGroupEnd
+		l.FnRecordBegin = JsonBegin
+		l.FnRecordEnd = JsonEnd
+		l.FnGroupBegin = JsonGroupBegin
+		l.FnGroupEnd = JsonGroupEnd
 	case styleCustomStr:
 		l.iStyle = StyleCustom
 	default:
@@ -68,25 +68,25 @@ func SdxBegin(r *Record, label string) {
 	r.bs = append(append(append(time.Now().AppendFormat(r.bs, timeFormat), " ["...), label...), "]: {"...)
 }
 
-func SdxSummary(r *Record) []byte {
+func SdxEnd(r *Record) []byte {
 	bs := r.bs         // Record中的信息
 	bf := bs[len(bs):] // 利用[]byte没使用的内存空间
 
-	// 每条日志的第一行，特定格式输出
-	bf = time.Now().AppendFormat(bf, timeFormat)
-	//bf = timex.ToTime(r.TDur).AppendFormat(bf, timeFormat)
-	bf = append(bf, " ["...)
-	//bf = append(bf, r.Label...)
-	bf = append(bf, "]: {"...)
-	bf = append(bf, r.myL.r.bs...) // 公有
+	//// 每条日志的第一行，特定格式输出
+	//bf = time.Now().AppendFormat(bf, timeFormat)
+	////bf = timex.ToTime(r.TDur).AppendFormat(bf, timeFormat)
+	//bf = append(bf, " ["...)
+	////bf = append(bf, r.Label...)
+	//bf = append(bf, "]: {"...)
+	//bf = append(bf, r.myL.r.bs...) // 公有
+	//
+	//// 加上每条日志自己的数据
+	//bf = append(bf, bs...)
 
-	// 加上每条日志自己的数据
-	bf = append(bf, bs...)
 	if bf[len(bf)-1] == ',' {
 		bf = bf[:len(bf)-1]
 	}
-	bf = append(bf, "}\n"...)
-	return bf
+	return append(bf, "}\n"...)
 }
 
 func SdxGroupBegin(bs []byte, k string) []byte {

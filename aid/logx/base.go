@@ -6,6 +6,49 @@ import (
 	"io"
 )
 
+const (
+	// 日志级别的设定，主要是用来控制日志输出的多少
+	// Note: 日志级别不需要太多，如果你觉得自己需要，多半都是打印日志的逻辑出问题了
+	// 默认下面几个日志级别，足够了。可以自定义扩展，但我不推荐
+	LevelTrace   int8 = -8  // 1
+	LevelDebug   int8 = -4  // 2
+	LevelInfo    int8 = 0   // 3
+	LevelWarn    int8 = 4   // 4
+	LevelErr     int8 = 8   // 5
+	LevelDisable int8 = 127 // 6 丢弃日志
+
+	// 日志分类Label。这和日志级别是不同的概念，Label可以有很多，但是日志级别不要太多
+	LabelTrace   = "TRC"     // 1
+	LabelDebug   = "DBG"     // 2
+	LabelInfo    = "INF"     // 3
+	LabelReq     = "REQ"     // 3 请求日志
+	LabelTimer   = "TIM"     // 3 定时器执行的任务日志，一般为定时脚本准备
+	LabelStat    = "STA"     // 3 运行状态日志
+	LabelWarn    = "WRN"     // 4
+	LabelSlow    = "SLO"     // 4 慢日志
+	LabelErr     = "ERR"     // 5
+	LabelPanic   = "PIC"     // 5
+	LabelDisable = "disable" // 6
+)
+
+const (
+	callerSkipDepth = 4 // 这里的4最好别动，刚好能打印出错误发生的地方。
+
+	// 日志输出媒介
+	toConsole = "console"
+	toFile    = "file"
+	toVolume  = "volume"
+	toCustom  = "custom"
+
+	fMessage   = "msg"
+	fError     = "msg"
+	fTimeStamp = "ts"
+	fLabel     = "label"
+	fApp       = "app"
+	fHost      = "host"
+)
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type LogConfig struct {
 	AppName   string `v:"def=App"`                                     // 应用名称
 	HostName  string `v:"def=Host"`                                    // 运行主机名称
@@ -33,29 +76,51 @@ type LogConfig struct {
 	TimeFormat   string `v:"def=2006-01-02 15:04:05"` // YY-MM-DD HH:mm:ss
 }
 
-const (
-	// 日志级别的设定，主要是用来控制日志输出的多少
-	// Note: 日志级别不需要太多，如果你觉得自己需要，多半都是打印日志的逻辑出问题了
-	// 默认下面几个日志级别，足够了。可以自定义扩展，但我不推荐
-	LevelTrace   int8 = -8  // 1
-	LevelDebug   int8 = -4  // 2
-	LevelInfo    int8 = 0   // 3
-	LevelWarn    int8 = 4   // 4
-	LevelErr     int8 = 8   // 5
-	LevelDisable int8 = 127 // 6 丢弃日志
+type (
+	Logger struct {
+		TopRecord
 
-	// 日志分类Label。这和日志级别是不同的概念，Label可以有很多，但是日志级别不要太多
-	LabelTrace   = "TRC"     // 1
-	LabelDebug   = "DBG"     // 2
-	LabelInfo    = "INF"     // 3
-	LabelReq     = "REQ"     // 3 请求日志
-	LabelTimer   = "TIM"     // 3 定时器执行的任务日志，一般为定时脚本准备
-	LabelStat    = "STA"     // 3 运行状态日志
-	LabelWarn    = "WRN"     // 4
-	LabelSlow    = "SLO"     // 4 慢日志
-	LabelErr     = "ERR"     // 5
-	LabelPanic   = "PIC"     // 5
-	LabelDisable = "disable" // 6
+		// 每种分类可以单独输出到不同的介质
+		WStack io.Writer
+		WDebug io.Writer
+		WInfo  io.Writer
+		WReq   io.Writer
+		WTimer io.Writer
+		WStat  io.Writer
+		WWarn  io.Writer
+		WSlow  io.Writer
+		WErr   io.Writer
+		WPanic io.Writer
+		//WDiscard io.Writer
+
+		// 指定下面的方法即可自定义输出日志样式
+		FnRecordBegin func(r *Record, label string)
+		FnRecordEnd   func(r *Record) []byte
+		FnGroupBegin  func(bs []byte, name string) []byte
+		FnGroupEnd    func(bs []byte) []byte
+
+		// initOnce sync.Once
+		cnf    *LogConfig
+		iLevel int8 // 日志级别
+		iStyle int8 // 日志样式类型
+	}
+
+	// 对象自定义输出方法，实现此接口用来自定义处理敏感信息
+	Printer interface {
+		Print([]byte) []byte
+	}
+
+	RecordWriter interface {
+		write()
+	}
+
+	TopRecord struct {
+		r Record
+	}
+
+	ObjEncoder interface {
+		EncodeLogX(r *Record)
+	}
 )
 
 //var (
@@ -72,69 +137,3 @@ const (
 //iErr     int8 = 8
 //iPanic   int8 = 9
 //iDiscard int8 = 10
-
-const (
-	callerSkipDepth = 4 // 这里的4最好别动，刚好能打印出错误发生的地方。
-
-	// 日志输出媒介
-	toConsole = "console"
-	toFile    = "file"
-	toVolume  = "volume"
-	toCustom  = "custom"
-
-	fMessage   = "msg"
-	fTimeStamp = "ts"
-	fLabel     = "label"
-	fApp       = "app"
-	fHost      = "host"
-)
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-type (
-	// 对象自定义输出方法，实现此接口用来自定义处理敏感信息
-	Printer interface {
-		Print([]byte) []byte
-	}
-
-	RecordWriter interface {
-		write()
-	}
-
-	TopRecord struct {
-		r Record
-	}
-
-	Logger struct {
-		// *LogConfig
-		// 自己也需要集成一个记录器
-		// App  string `json:"app"`
-		// Host string `json:"host"`
-
-		// 每种分类可以单独输出到不同的介质
-		WStack io.Writer
-		WDebug io.Writer
-		WInfo  io.Writer
-		WReq   io.Writer
-		WTimer io.Writer
-		WStat  io.Writer
-		WWarn  io.Writer
-		WSlow  io.Writer
-		WErr   io.Writer
-		WPanic io.Writer
-		//WDiscard io.Writer
-
-		// 指定下面的方法即可自定义输出日志样式
-		StyleBegin      func(r *Record, label string)
-		StyleSummary    func(r *Record) []byte
-		StyleGroupBegin func([]byte, string) []byte
-		StyleGroupEnd   func([]byte) []byte
-
-		TopRecord
-
-		// initOnce sync.Once
-		cnf *LogConfig
-
-		iLevel int8 // 日志级别
-		iStyle int8 // 日志样式类型
-	}
-)
