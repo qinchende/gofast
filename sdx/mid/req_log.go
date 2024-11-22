@@ -19,7 +19,7 @@ func LoggerDemo(c *fst.Context) {
 	r.Str("RemoteAddr", c.ClientIP())
 	r.Int("BodySize", int64(len(c.Res.WrittenData())))
 	r.Str("RemoteAddr", c.ClientIP())
-	r.End()
+	r.Send()
 }
 
 //[GET] /admin/sdx (127.0.0.1/08-23 15:41:07) [200/63/0]
@@ -42,7 +42,7 @@ func Logger(c *fst.Context) {
 	r.Group("P").GEnd()
 	r.Group("R").GEnd()
 
-	r.End()
+	r.Send()
 }
 
 func LoggerMini(c *fst.Context) {
@@ -60,7 +60,7 @@ func LoggerMini(c *fst.Context) {
 	r.Group("P").GEnd()
 	r.Group("R").GEnd()
 
-	r.End()
+	r.Send()
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++

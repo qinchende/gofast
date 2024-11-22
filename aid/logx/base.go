@@ -94,10 +94,10 @@ type (
 		//WDiscard io.Writer
 
 		// 指定下面的方法即可自定义输出日志样式
-		FnRecordBegin func(r *Record, label string)
-		FnRecordEnd   func(r *Record) []byte
-		FnGroupBegin  func(bs []byte, name string) []byte
-		FnGroupEnd    func(bs []byte) []byte
+		FnLogBegin   func(r *Record, label string)
+		FnLogEnd     func(r *Record) []byte
+		FnGroupBegin func(bs []byte, name string) []byte
+		FnGroupEnd   func(bs []byte) []byte
 
 		// initOnce sync.Once
 		cnf    *LogConfig

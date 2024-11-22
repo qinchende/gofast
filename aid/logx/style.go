@@ -28,8 +28,7 @@ const (
 
 const (
 	//timeFormatMini = cst.TimeFmtMdHms
-	//timeFormat = cst.TimeFmtYmdHms
-	timeFormat = cst.TimeFmtRFC3339
+	timeFormat = cst.TimeFmtYmdHms
 )
 
 // 将名称字符串转换成整数类型，提高判断性能s
@@ -38,20 +37,20 @@ func (l *Logger) initStyle() error {
 
 	case styleSdxStr:
 		l.iStyle = StyleSdx
-		l.FnRecordBegin = SdxBegin
-		l.FnRecordEnd = SdxEnd
+		l.FnLogBegin = SdxBegin
+		l.FnLogEnd = SdxEnd
 		l.FnGroupBegin = SdxGroupBegin
 		l.FnGroupEnd = SdxGroupEnd
 	case styleCdoStr:
 		l.iStyle = StyleCdo
-		l.FnRecordBegin = JsonBegin
-		l.FnRecordEnd = JsonEnd
+		l.FnLogBegin = JsonBegin
+		l.FnLogEnd = JsonEnd
 		l.FnGroupBegin = JsonGroupBegin
 		l.FnGroupEnd = JsonGroupEnd
 	case styleJsonStr:
 		l.iStyle = StyleJson
-		l.FnRecordBegin = JsonBegin
-		l.FnRecordEnd = JsonEnd
+		l.FnLogBegin = JsonBegin
+		l.FnLogEnd = JsonEnd
 		l.FnGroupBegin = JsonGroupBegin
 		l.FnGroupEnd = JsonGroupEnd
 	case styleCustomStr:
@@ -65,24 +64,12 @@ func (l *Logger) initStyle() error {
 // Sdx-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func SdxBegin(r *Record, label string) {
-	r.bs = append(append(append(time.Now().AppendFormat(r.bs, timeFormat), " ["...), label...), "]: {"...)
+	bf := append(time.Now().AppendFormat(r.bs, timeFormat), " ["...)
+	r.bs = append(append(bf, label...), "]: {"...)
 }
 
 func SdxEnd(r *Record) []byte {
-	bs := r.bs         // Record中的信息
-	bf := bs[len(bs):] // 利用[]byte没使用的内存空间
-
-	//// 每条日志的第一行，特定格式输出
-	//bf = time.Now().AppendFormat(bf, timeFormat)
-	////bf = timex.ToTime(r.TDur).AppendFormat(bf, timeFormat)
-	//bf = append(bf, " ["...)
-	////bf = append(bf, r.Label...)
-	//bf = append(bf, "]: {"...)
-	//bf = append(bf, r.myL.r.bs...) // 公有
-	//
-	//// 加上每条日志自己的数据
-	//bf = append(bf, bs...)
-
+	bf := r.bs
 	if bf[len(bf)-1] == ',' {
 		bf = bf[:len(bf)-1]
 	}
@@ -111,7 +98,7 @@ func JsonBegin(r *Record, label string) {
 }
 
 func JsonEnd(r *Record) []byte {
-	bf := r.bs // Record中的信息
+	bf := r.bs
 	if bf[len(bf)-1] == ',' {
 		bf = bf[:len(bf)-1]
 	}

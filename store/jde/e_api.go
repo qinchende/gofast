@@ -46,18 +46,16 @@ func AppendIntField[T constraints.Signed](bs []byte, k string, v T) []byte {
 }
 
 func AppendIntListField[T constraints.Signed](bs []byte, k string, v []T) []byte {
-	return append(appendIntListField[T](AppendKey(bs, k), v), ',')
-}
+	bs = AppendKey(bs, k)
+	if len(v) == 0 {
+		return append(bs, "[],"...)
+	}
 
-func appendIntListField[T constraints.Signed](bs []byte, list []T) []byte {
-	if len(list) == 0 {
-		return append(bs, '[', ']')
-	}
 	bs = append(bs, '[')
-	for idx := range list {
-		bs = append(strconv.AppendInt(bs, int64(list[idx]), 10), ',')
+	for idx := range v {
+		bs = append(strconv.AppendInt(bs, int64(v[idx]), 10), ',')
 	}
-	return append(bs[:len(bs)-1], ']')
+	return append(bs[:len(bs)-1], "],"...)
 }
 
 // ++ uint
@@ -66,18 +64,16 @@ func AppendUintField[T constraints.Unsigned](bs []byte, k string, v T) []byte {
 }
 
 func AppendUintListField[T constraints.Unsigned](bs []byte, k string, v []T) []byte {
-	return append(appendUintListField[T](AppendKey(bs, k), v), ',')
-}
+	bs = AppendKey(bs, k)
+	if len(v) == 0 {
+		return append(bs, "[],"...)
+	}
 
-func appendUintListField[T constraints.Unsigned](bs []byte, list []T) []byte {
-	if len(list) == 0 {
-		return append(bs, '[', ']')
-	}
 	bs = append(bs, '[')
-	for idx := range list {
-		bs = append(strconv.AppendUint(bs, uint64(list[idx]), 10), ',')
+	for idx := range v {
+		bs = append(strconv.AppendUint(bs, uint64(v[idx]), 10), ',')
 	}
-	return append(bs[:len(bs)-1], ']')
+	return append(bs[:len(bs)-1], "],"...)
 }
 
 // ++ float
@@ -85,8 +81,34 @@ func AppendF32Field(bs []byte, k string, v float32) []byte {
 	return append(strconv.AppendFloat(AppendKey(bs, k), float64(v), 'g', -1, 32), ',')
 }
 
+func AppendF32sField(bs []byte, k string, v []float32) []byte {
+	bs = AppendKey(bs, k)
+	if len(v) == 0 {
+		return append(bs, "[],"...)
+	}
+
+	bs = append(bs, '[')
+	for idx := range v {
+		bs = append(strconv.AppendFloat(bs, float64(v[idx]), 'g', -1, 32), ',')
+	}
+	return append(bs[:len(bs)-1], "],"...)
+}
+
 func AppendF64Field(bs []byte, k string, v float64) []byte {
 	return append(strconv.AppendFloat(AppendKey(bs, k), v, 'g', -1, 64), ',')
+}
+
+func AppendF64sField(bs []byte, k string, v []float64) []byte {
+	bs = AppendKey(bs, k)
+	if len(v) == 0 {
+		return append(bs, "[],"...)
+	}
+
+	bs = append(bs, '[')
+	for idx := range v {
+		bs = append(strconv.AppendFloat(bs, float64(v[idx]), 'g', -1, 64), ',')
+	}
+	return append(bs[:len(bs)-1], "],"...)
 }
 
 // ++ bool

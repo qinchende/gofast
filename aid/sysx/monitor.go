@@ -87,7 +87,7 @@ func printSysResourceStatus(cpuAvaUsage float64) {
 			runtime.NumGoroutine(),
 			m.NumGC,
 		},
-	}).End()
+	}).Send()
 }
 
 // 字节 到 MB 的转换.

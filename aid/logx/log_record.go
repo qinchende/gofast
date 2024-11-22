@@ -72,16 +72,18 @@ func (l *Logger) newRecord(w io.Writer, label string) *Record {
 	r.myL = l
 	r.iow = w
 	r.out = r
-	l.FnRecordBegin(r, label)
+	l.FnLogBegin(r, label)
 	r.bs = append(r.bs, l.r.bs...)
 	return r
 }
+
 func (r *Record) reuse() {
-	r.bs = r.bs[:0]
+	//r.myL.FnLogBegin(r, label)
+	r.bs = append(r.bs[:0], r.myL.r.bs...)
 }
 
 func (r *Record) write() {
-	data := r.myL.FnRecordEnd(r)
+	data := r.myL.FnLogEnd(r)
 	if _, err := r.iow.Write(data); err != nil {
 		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
 	}
@@ -101,7 +103,7 @@ func (r *Record) endWithMsg(msg string) {
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 可以先输出一条完整的日志，但是不回收Record，而是继续下一条
-func (r *Record) Next() *Record {
+func Next(r *Record) *Record {
 	if r != nil {
 		if r.isGroup {
 			r.GEnd()
@@ -112,7 +114,7 @@ func (r *Record) Next() *Record {
 	return r
 }
 
-func (r *Record) End() {
+func (r *Record) Send() {
 	if r != nil {
 		if r.isGroup {
 			r.GEnd()
@@ -141,7 +143,6 @@ func (r *Record) MsgFunc(createMsg func() string) {
 	}
 }
 
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) Group(k string) *Record {
 	if r != nil {
 		if r.isGroup {
@@ -161,6 +162,7 @@ func (r *Record) GEnd() *Record {
 	return r
 }
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // +++++ int
 func (r *Record) Int(k string, v int) *Record {
 	if r != nil {
@@ -281,9 +283,23 @@ func (r *Record) F32(k string, v float32) *Record {
 	return r
 }
 
+func (r *Record) F32s(k string, v []float32) *Record {
+	if r != nil {
+		r.bs = jde.AppendF32sField(r.bs, k, v)
+	}
+	return r
+}
+
 func (r *Record) F64(k string, v float64) *Record {
 	if r != nil {
 		r.bs = jde.AppendF64Field(r.bs, k, v)
+	}
+	return r
+}
+
+func (r *Record) F64s(k string, v []float64) *Record {
+	if r != nil {
+		r.bs = jde.AppendF64sField(r.bs, k, v)
 	}
 	return r
 }
