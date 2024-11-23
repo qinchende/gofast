@@ -34,12 +34,13 @@ const (
 const (
 	callerSkipDepth = 4 // 这里的4最好别动，刚好能打印出错误发生的地方。
 
-	// 日志输出媒介
+	// 日志输出媒介形式
 	toConsole = "console"
 	toFile    = "file"
 	toVolume  = "volume"
 	toCustom  = "custom"
 
+	// Note: 先用常量，以后可能需要改成Logger的变量，从而支持自定义
 	fMessage   = "msg"
 	fError     = "err"
 	fTimeStamp = "ts"
@@ -77,6 +78,10 @@ type LogConfig struct {
 }
 
 type (
+	TopRecord struct {
+		r Record
+	}
+
 	Logger struct {
 		TopRecord
 
@@ -94,9 +99,9 @@ type (
 		//WDiscard io.Writer
 
 		// 指定下面的方法即可自定义输出日志样式
-		FnLogBegin   func(r *Record, label string)
-		FnLogEnd     func(r *Record) []byte
-		FnGroupBegin func(bs []byte, name string) []byte
+		FnLogBegin   func(bs []byte, v string) []byte
+		FnLogEnd     func(bs []byte) []byte
+		FnGroupBegin func(bs []byte, v string) []byte
 		FnGroupEnd   func(bs []byte) []byte
 
 		// initOnce sync.Once
@@ -112,10 +117,6 @@ type (
 
 	RecordWriter interface {
 		write()
-	}
-
-	TopRecord struct {
-		r Record
 	}
 
 	ObjEncoder interface {

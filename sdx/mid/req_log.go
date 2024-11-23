@@ -14,12 +14,14 @@ func LoggerDemo(c *fst.Context) {
 	// 执行完后面的请求，再打印日志
 	c.Next()
 
-	r := logx.Info()
-	r.Int("Latency", int64(timex.SdxNowDur()-c.EnterTime))
-	r.Str("RemoteAddr", c.ClientIP())
-	r.Int("BodySize", int64(len(c.Res.WrittenData())))
-	r.Str("RemoteAddr", c.ClientIP())
-	r.Send()
+	//r := logx.Info()
+	//r.Int("Latency", int64(timex.SdxNowDur()-c.EnterTime))
+	//r.Str("RemoteAddr", c.ClientIP())
+	//r.Int("BodySize", int64(len(c.Res.WrittenData())))
+	//r.Str("RemoteAddr", c.ClientIP())
+	//r.Send()
+
+	r := logx.InfoReqX()
 }
 
 //[GET] /admin/sdx (127.0.0.1/08-23 15:41:07) [200/63/0]

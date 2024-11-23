@@ -28,7 +28,7 @@ const (
 
 const (
 	//timeFormatMini = cst.TimeFmtMdHms
-	timeFormat = cst.TimeFmtYmdHms
+	timeFormat = cst.TimeFmtRFC3339
 )
 
 // 将名称字符串转换成整数类型，提高判断性能s
@@ -63,17 +63,16 @@ func (l *Logger) initStyle() error {
 
 // Sdx-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func SdxBegin(r *Record, label string) {
-	bf := append(time.Now().AppendFormat(r.bs, timeFormat), " ["...)
-	r.bs = append(append(bf, label...), "]: {"...)
+func SdxBegin(bs []byte, label string) []byte {
+	bs = append(time.Now().AppendFormat(bs, timeFormat), " ["...)
+	return append(append(bs, label...), "]: {"...)
 }
 
-func SdxEnd(r *Record) []byte {
-	bf := r.bs
-	if bf[len(bf)-1] == ',' {
-		bf = bf[:len(bf)-1]
+func SdxEnd(bs []byte) []byte {
+	if bs[len(bs)-1] == ',' {
+		bs = bs[:len(bs)-1]
 	}
-	return append(bf, "}\n"...)
+	return append(bs, "}\n"...)
 }
 
 func SdxGroupBegin(bs []byte, k string) []byte {
@@ -87,22 +86,21 @@ func SdxGroupEnd(bs []byte) []byte {
 	if len(bs) > 0 && bs[len(bs)-1] == ',' {
 		bs = bs[:len(bs)-1]
 	}
-	bs = append(bs, "},"...)
-	return bs
+	return append(bs, "},"...)
 }
 
 // JSON-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func JsonBegin(r *Record, label string) {
-	r.bs = jde.AppendStrField(jde.AppendTimeField(append(r.bs, '{'), fTimeStamp, time.Now(), timeFormat), fLabel, label)
+func JsonBegin(bs []byte, label string) []byte {
+	bs = jde.AppendTimeField(append(bs, '{'), fTimeStamp, time.Now(), timeFormat)
+	return jde.AppendStrField(bs, fLabel, label)
 }
 
-func JsonEnd(r *Record) []byte {
-	bf := r.bs
-	if bf[len(bf)-1] == ',' {
-		bf = bf[:len(bf)-1]
+func JsonEnd(bs []byte) []byte {
+	if bs[len(bs)-1] == ',' {
+		bs = bs[:len(bs)-1]
 	}
-	return append(bf, "}\n"...)
+	return append(bs, "}\n"...)
 }
 
 func JsonGroupBegin(bs []byte, k string) []byte {

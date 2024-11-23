@@ -93,70 +93,70 @@ func (l *Logger) ShowSlow() bool {
 // @@++@@
 func (l *Logger) Trace() *Record {
 	if l.ShowStack() {
-		return l.newRecord(l.WStack, LabelTrace)
+		return NewRecord(l, l.WStack, LabelTrace)
 	}
 	return nil
 }
 
 func (l *Logger) Debug() *Record {
 	if l.ShowDebug() {
-		return l.newRecord(l.WDebug, LabelDebug)
+		return NewRecord(l, l.WDebug, LabelDebug)
 	}
 	return nil
 }
 
 func (l *Logger) Info() *Record {
 	if l.ShowInfo() {
-		return l.newRecord(l.WInfo, LabelInfo)
+		return NewRecord(l, l.WInfo, LabelInfo)
 	}
 	return nil
 }
 
 func (l *Logger) InfoReq() *Record {
 	if l.ShowInfo() {
-		return l.newRecord(l.WReq, LabelReq)
+		return NewRecord(l, l.WReq, LabelReq)
 	}
 	return nil
 }
 
 func (l *Logger) InfoTimer() *Record {
 	if l.ShowInfo() {
-		return l.newRecord(l.WTimer, LabelTimer)
+		return NewRecord(l, l.WTimer, LabelTimer)
 	}
 	return nil
 }
 
 func (l *Logger) InfoStat() *Record {
 	if l.ShowStat() {
-		return l.newRecord(l.WStat, LabelStat)
+		return NewRecord(l, l.WStat, LabelStat)
 	}
 	return nil
 }
 
 func (l *Logger) Warn() *Record {
 	if l.ShowWarn() {
-		return l.newRecord(l.WWarn, LabelWarn)
+		return NewRecord(l, l.WWarn, LabelWarn)
 	}
 	return nil
 }
 
 func (l *Logger) WarnSlow() *Record {
 	if l.ShowSlow() {
-		return l.newRecord(l.WSlow, LabelSlow)
+		return NewRecord(l, l.WSlow, LabelSlow)
 	}
 	return nil
 }
 
 func (l *Logger) Err() *Record {
 	if l.ShowErr() {
-		return l.newRecord(l.WErr, LabelErr)
+		return NewRecord(l, l.WErr, LabelErr)
 	}
 	return nil
 }
 
 func (l *Logger) ErrPanic() *Record {
 	if l.ShowErr() {
-		return l.newRecord(l.WErr, LabelPanic)
+		return NewRecord(l, l.WErr, LabelPanic)
 	}
 	return nil
 }

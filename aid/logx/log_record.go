@@ -12,28 +12,59 @@ import (
 	"time"
 )
 
+type Record struct {
+	myL *Logger      // 日志记录器
+	iow io.Writer    // 最终日志写入的介质
+	out RecordWriter // Build日志数据
+
+	pBuf    *[]byte // 来自于全局缓存
+	bs      []byte  // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
+	isGroup bool    // 当前是否处于分组阶段
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 var (
 	//_recordDefVal Record
 	recordPool = &sync.Pool{New: func() interface{} { return &Record{} }}
 )
 
-type (
-	Record struct {
-		//TDur  time.Duration
-		//Label string
-		//Message string
+func getRecord() *Record {
+	r := recordPool.Get().(*Record)
+	r.pBuf = pool.GetBytesMin(2048) // 最少512字节，这里可以改进算法，动态计算最优大小
+	r.bs = *r.pBuf
+	return r
+}
 
-		myL *Logger
-		iow io.Writer
-		out RecordWriter
+func backRecord(r *Record) {
+	*r.pBuf = r.bs
+	pool.FreeBytes(r.pBuf)
+	r.pBuf = nil
+	r.bs = nil
+	recordPool.Put(r)
+}
 
-		//fls []Field // 用来记录key-value
-		buf     *[]byte // 来自于全局缓存
-		bs      []byte  // 用来辅助上面的bf指针，防止24个字节的切片对象堆分配
-		isGroup bool    // 当前是否处于分组阶段
+func NewRecord(l *Logger, w io.Writer, label string) *Record {
+	r := getRecord()
+	r.myL = l
+	r.iow = w
+	r.out = r
+	r.bs = append(l.FnLogBegin(r.bs, label), l.r.bs...)
+	return r
+}
+
+func (r *Record) reuse(w io.Writer, label string) {
+	r.iow = w
+	r.bs = append(r.myL.FnLogBegin(r.bs[0:0], label), r.myL.r.bs...)
+}
+
+func (r *Record) write() {
+	data := r.myL.FnLogEnd(r.bs)
+	if _, err := r.iow.Write(data); err != nil {
+		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
 	}
-)
+}
 
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) SetWriter(w io.Writer) *Record {
 	if r == nil {
 		return nil
@@ -42,74 +73,14 @@ func (r *Record) SetWriter(w io.Writer) *Record {
 	return r
 }
 
-//func (r *Record) SetLabel(label string) *Record {
-//	if r == nil {
-//		return nil
-//	}
-//	//r.Label = label
-//	return r
-//}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func getRecord() *Record {
-	r := recordPool.Get().(*Record)
-	r.buf = pool.GetBytesMin(512) // 最少512字节
-	r.bs = *r.buf
-	return r
-}
-
-func backRecord(r *Record) {
-	*r.buf = r.bs
-	pool.FreeBytes(r.buf)
-	r.buf = nil
-	r.bs = nil
-	recordPool.Put(r)
-}
-
-func (l *Logger) newRecord(w io.Writer, label string) *Record {
-	r := getRecord()
-	//r.Label = label
-	r.myL = l
-	r.iow = w
-	r.out = r
-	l.FnLogBegin(r, label)
-	r.bs = append(r.bs, l.r.bs...)
-	return r
-}
-
-func (r *Record) reuse() {
-	//r.myL.FnLogBegin(r, label)
-	r.bs = append(r.bs[:0], r.myL.r.bs...)
-}
-
-func (r *Record) write() {
-	data := r.myL.FnLogEnd(r)
-	if _, err := r.iow.Write(data); err != nil {
-		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
-	}
-}
-
-func (r *Record) endWithMsg(msg string) {
-	if r.isGroup {
-		r.GEnd()
-	}
-
-	r.bs = jde.AppendStrField(r.bs, fMessage, msg)
-	r.bs = r.bs[:len(r.bs)-1] // 去掉最后面一个逗号
-
-	r.out.write()
-	backRecord(r)
-}
-
-// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-// 可以先输出一条完整的日志，但是不回收Record，而是继续下一条
-func Next(r *Record) *Record {
+// 可以先输出一条完整的日志，但是不回收Record，而是继续打印下一条
+func (r *Record) SendReuse(w io.Writer, label string) *Record {
 	if r != nil {
 		if r.isGroup {
 			r.GEnd()
 		}
 		r.out.write()
-		r.reuse()
+		r.reuse(w, label)
 	}
 	return r
 }
@@ -122,6 +93,18 @@ func (r *Record) Send() {
 		r.out.write()
 		backRecord(r)
 	}
+}
+
+func (r *Record) endWithMsg(msg string) {
+	if r.isGroup {
+		r.GEnd()
+	}
+
+	bf := jde.AppendStrField(r.bs, fMessage, msg)
+	r.bs = bf[:len(bf)-1] // 去掉最后面一个逗号
+
+	r.out.write()
+	backRecord(r)
 }
 
 func (r *Record) Msg(msg string) {
