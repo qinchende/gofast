@@ -4,6 +4,7 @@ package logx
 
 import (
 	"io"
+	"time"
 )
 
 const (
@@ -47,12 +48,16 @@ const (
 	fLabel     = "label"
 	fApp       = "app"
 	fHost      = "host"
+
+	// 时间格式
+	//timeFormatMini = "01-02 15:04:05"
+	timeFormat = time.RFC3339 // 这个是性能比较好的输出格式
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 type LogConfig struct {
-	AppName   string `v:"def=App"`                                     // 应用名称
-	HostName  string `v:"def=Host"`                                    // 运行主机名称
+	AppName   string `v:""`                                            // 应用名称
+	HostName  string `v:""`                                            // 运行主机名称
 	LogLevel  string `v:"def=INF,enum=TRC|DBG|INF|WRN|ERR|disable"`    // 记录日志的级别
 	LogStyle  string `v:"def=json,enum=sdx|json|cdo|custom"`           // 日志样式
 	LogMedium string `v:"def=console,enum=console|file|volume|custom"` // 记录存储媒介
@@ -72,7 +77,6 @@ type LogConfig struct {
 	DisableStat  bool `v:"def=false"` // 是否记录统计数据
 	DisableSlow  bool `v:"def=false"` // 是否记录慢日志
 	// 控制2
-	DisableMark  bool   `v:"def=false"`               // 是否打印应用标记
 	CdoGroupSize uint16 `v:"def=100"`                 // Cdo编码时分页大小
 	TimeFormat   string `v:"def=2006-01-02 15:04:05"` // YY-MM-DD HH:mm:ss
 }
@@ -99,10 +103,10 @@ type (
 		//WDiscard io.Writer
 
 		// 指定下面的方法即可自定义输出日志样式
-		FnLogBegin   func(bs []byte, v string) []byte
-		FnLogEnd     func(bs []byte) []byte
-		FnGroupBegin func(bs []byte, v string) []byte
-		FnGroupEnd   func(bs []byte) []byte
+		LogBegin   func(bs []byte, v string) []byte
+		LogEnd     func(bs []byte) []byte
+		GroupBegin func(bs []byte, v string) []byte
+		GroupEnd   func(bs []byte) []byte
 
 		// initOnce sync.Once
 		cnf    *LogConfig
@@ -111,16 +115,14 @@ type (
 	}
 
 	// 对象自定义输出方法，实现此接口用来自定义处理敏感信息
-	Printer interface {
-		Print([]byte) []byte
-	}
-
+	//Printer interface {
+	//	Print([]byte) []byte
+	//}
 	RecordWriter interface {
 		write()
 	}
-
 	ObjEncoder interface {
-		EncodeLogX(r *Record)
+		EncodeLogx(r *Record)
 	}
 )
 

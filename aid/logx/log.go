@@ -76,9 +76,13 @@ func (l *Logger) initLogger() error {
 		return err
 	}
 
-	//// 全局内容
-	//l.Str(fApp, l.cnf.AppName)
-	//l.Str(fHost, l.cnf.HostName)
+	// 全局内容
+	if len(l.cnf.AppName) > 0 {
+		l.Str(fApp, l.cnf.AppName)
+	}
+	if len(l.cnf.HostName) > 0 {
+		l.Str(fHost, l.cnf.HostName)
+	}
 
 	switch l.cnf.LogMedium {
 	case toConsole:

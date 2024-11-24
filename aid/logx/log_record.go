@@ -48,20 +48,35 @@ func NewRecord(l *Logger, w io.Writer, label string) *Record {
 	r.myL = l
 	r.iow = w
 	r.out = r
-	r.bs = append(l.FnLogBegin(r.bs, label), l.r.bs...)
+	r.bs = append(l.LogBegin(r.bs, label), l.r.bs...)
 	return r
 }
 
 func (r *Record) reuse(w io.Writer, label string) {
 	r.iow = w
-	r.bs = append(r.myL.FnLogBegin(r.bs[0:0], label), r.myL.r.bs...)
+	r.bs = append(r.myL.LogBegin(r.bs[0:0], label), r.myL.r.bs...)
 }
 
 func (r *Record) write() {
-	data := r.myL.FnLogEnd(r.bs)
+	data := r.myL.LogEnd(r.bs)
 	if _, err := r.iow.Write(data); err != nil {
 		fmt.Fprintf(os.Stderr, "logx: write error: %s\n", err.Error())
 	}
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (r *Record) PullBytes() []byte {
+	if r != nil {
+		return r.bs
+	}
+	return nil
+}
+
+func (r *Record) PushBytes(bs []byte) *Record {
+	if r != nil {
+		r.bs = bs
+	}
+	return r
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -132,7 +147,7 @@ func (r *Record) Group(k string) *Record {
 			r.GEnd()
 		}
 		r.isGroup = true
-		r.bs = r.myL.FnGroupBegin(r.bs, k)
+		r.bs = r.myL.GroupBegin(r.bs, k)
 	}
 	return r
 }
@@ -140,7 +155,7 @@ func (r *Record) Group(k string) *Record {
 func (r *Record) GEnd() *Record {
 	if r != nil && r.isGroup {
 		r.isGroup = false
-		r.bs = r.myL.FnGroupEnd(r.bs)
+		r.bs = r.myL.GroupEnd(r.bs)
 	}
 	return r
 }
@@ -288,6 +303,13 @@ func (r *Record) F64s(k string, v []float64) *Record {
 }
 
 // +++++ string
+func (r *Record) Append(v []byte) *Record {
+	if r != nil {
+		r.bs = append(r.bs, v...)
+	}
+	return r
+}
+
 func (r *Record) Str(k, v string) *Record {
 	if r != nil {
 		r.bs = jde.AppendStrField(r.bs, k, v)
@@ -327,11 +349,17 @@ func (r *Record) Err(v error) *Record {
 
 // +++++ struct
 func (r *Record) Obj(k string, v ObjEncoder) *Record {
-	if r != nil && v != nil {
-		r.bs = append(jde.AppendKey(r.bs, k), '{')
-		v.EncodeLogX(r)
+	if r != nil {
+		bf := jde.AppendKey(r.bs, k)
+		if v == nil {
+			r.bs = append(bf, "null"...)
+			return r
+		}
 
-		bf := r.bs
+		r.bs = append(bf, '{')
+		v.EncodeLogx(r)
+
+		bf = r.bs
 		if bf[len(bf)-1] == ',' {
 			bf = bf[:len(bf)-1]
 		}
@@ -358,7 +386,7 @@ func (r *Record) Objs(k string, v []ObjEncoder) *Record {
 			bf = append(bf, '[')
 			for idx := range v {
 				r.bs = append(bf, '{')
-				v[idx].EncodeLogX(r)
+				v[idx].EncodeLogx(r)
 				bf = r.bs
 				if bf[len(bf)-1] == ',' {
 					bf = bf[:len(bf)-1]

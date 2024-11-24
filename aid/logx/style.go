@@ -4,7 +4,6 @@ package logx
 
 import (
 	"errors"
-	"github.com/qinchende/gofast/core/cst"
 	"github.com/qinchende/gofast/store/jde"
 	"time"
 )
@@ -26,35 +25,33 @@ const (
 	styleCustomStr = "custom"
 )
 
-const (
-	//timeFormatMini = cst.TimeFmtMdHms
-	timeFormat = cst.TimeFmtRFC3339
-)
-
 // 将名称字符串转换成整数类型，提高判断性能s
 func (l *Logger) initStyle() error {
 	switch l.cnf.LogStyle {
-
 	case styleSdxStr:
 		l.iStyle = StyleSdx
-		l.FnLogBegin = SdxBegin
-		l.FnLogEnd = SdxEnd
-		l.FnGroupBegin = SdxGroupBegin
-		l.FnGroupEnd = SdxGroupEnd
-	case styleCdoStr:
-		l.iStyle = StyleCdo
-		l.FnLogBegin = JsonBegin
-		l.FnLogEnd = JsonEnd
-		l.FnGroupBegin = JsonGroupBegin
-		l.FnGroupEnd = JsonGroupEnd
+		l.LogBegin = SdxBegin
+		l.LogEnd = SdxEnd
+		l.GroupBegin = SdxGroupBegin
+		l.GroupEnd = SdxGroupEnd
 	case styleJsonStr:
 		l.iStyle = StyleJson
-		l.FnLogBegin = JsonBegin
-		l.FnLogEnd = JsonEnd
-		l.FnGroupBegin = JsonGroupBegin
-		l.FnGroupEnd = JsonGroupEnd
+		l.LogBegin = JsonBegin
+		l.LogEnd = JsonEnd
+		l.GroupBegin = JsonGroupBegin
+		l.GroupEnd = JsonGroupEnd
+	case styleCdoStr: // TODO: need to impl
+		l.iStyle = StyleCdo
+		l.LogBegin = JsonBegin
+		l.LogEnd = JsonEnd
+		l.GroupBegin = JsonGroupBegin
+		l.GroupEnd = JsonGroupEnd
 	case styleCustomStr:
 		l.iStyle = StyleCustom
+		l.LogBegin = CustomBegin
+		l.LogEnd = CustomEnd
+		l.GroupBegin = CustomGroupBegin
+		l.GroupEnd = CustomGroupEnd
 	default:
 		return errors.New("item LogStyle not match")
 	}
@@ -65,21 +62,18 @@ func (l *Logger) initStyle() error {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func SdxBegin(bs []byte, label string) []byte {
 	bs = append(time.Now().AppendFormat(bs, timeFormat), " ["...)
-	return append(append(bs, label...), "]: {"...)
+	return append(append(bs, label...), "]: "...)
 }
 
 func SdxEnd(bs []byte) []byte {
 	if bs[len(bs)-1] == ',' {
 		bs = bs[:len(bs)-1]
 	}
-	return append(bs, "}\n"...)
+	return append(bs, "\n"...)
 }
 
 func SdxGroupBegin(bs []byte, k string) []byte {
-	bs = append(bs, "\n    \""...)
-	bs = jde.AppendStrNoQuotes(bs, k)
-	bs = append(bs, "\": {"...)
-	return bs
+	return append(jde.AppendStrNoQuotes(append(bs, "\n  "...), k), ": {"...)
 }
 
 func SdxGroupEnd(bs []byte) []byte {
@@ -112,4 +106,22 @@ func JsonGroupEnd(bs []byte) []byte {
 		bs = bs[:len(bs)-1]
 	}
 	return append(bs, "},"...)
+}
+
+// Custom-style
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func CustomBegin(bs []byte, label string) []byte {
+	return bs
+}
+
+func CustomEnd(bs []byte) []byte {
+	return bs
+}
+
+func CustomGroupBegin(bs []byte, k string) []byte {
+	return bs
+}
+
+func CustomGroupEnd(bs []byte) []byte {
+	return bs
 }
