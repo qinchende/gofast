@@ -5,8 +5,14 @@
 // 提取封装函数再调用能简化代码，但都采用封装调用的方式，很有可能条件不满足，大量的fmt.Sprint函数做无用功。
 package logx
 
+import "io"
+
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func Custom(w io.Writer, level int8, label string) *Record {
+	return Def.Custom(w, level, label)
+}
+
 func Trace() *Record {
 	return Def.Trace()
 }
@@ -56,12 +62,14 @@ func (l *Logger) Clone() *Logger {
 		return nil
 	}
 	newL := *l
-	newL.r.bs = make([]byte, 0, cap(l.r.bs))
+	// 主要是用到 Logger.Record.r.bs Bytes缓冲，其它都没有用
+	newL.r.bs = make([]byte, len(l.r.bs), cap(l.r.bs))
 	copy(newL.r.bs, l.r.bs)
+	// +++ end +++
 	return &newL
 }
 
-// @@++@@
+// @@++@@ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (l *Logger) ShowStack() bool {
 	return l.iLevel <= LevelTrace
 }
@@ -90,73 +98,80 @@ func (l *Logger) ShowSlow() bool {
 	return l.ShowWarn() && !l.cnf.DisableSlow
 }
 
-// @@++@@
+// @@++@@ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (l *Logger) Custom(w io.Writer, level int8, label string) *Record {
+	if l.iLevel <= level {
+		return newRecord(l, w, label)
+	}
+	return nil
+}
+
 func (l *Logger) Trace() *Record {
 	if l.ShowStack() {
-		return NewRecord(l, l.WStack, LabelTrace)
+		return newRecord(l, l.WStack, LabelTrace)
 	}
 	return nil
 }
 
 func (l *Logger) Debug() *Record {
 	if l.ShowDebug() {
-		return NewRecord(l, l.WDebug, LabelDebug)
+		return newRecord(l, l.WDebug, LabelDebug)
 	}
 	return nil
 }
 
 func (l *Logger) Info() *Record {
 	if l.ShowInfo() {
-		return NewRecord(l, l.WInfo, LabelInfo)
+		return newRecord(l, l.WInfo, LabelInfo)
 	}
 	return nil
 }
 
 func (l *Logger) InfoReq() *Record {
 	if l.ShowInfo() {
-		return NewRecord(l, l.WReq, LabelReq)
+		return newRecord(l, l.WReq, LabelReq)
 	}
 	return nil
 }
 
 func (l *Logger) InfoTimer() *Record {
 	if l.ShowInfo() {
-		return NewRecord(l, l.WTimer, LabelTimer)
+		return newRecord(l, l.WTimer, LabelTimer)
 	}
 	return nil
 }
 
 func (l *Logger) InfoStat() *Record {
 	if l.ShowStat() {
-		return NewRecord(l, l.WStat, LabelStat)
+		return newRecord(l, l.WStat, LabelStat)
 	}
 	return nil
 }
 
 func (l *Logger) Warn() *Record {
 	if l.ShowWarn() {
-		return NewRecord(l, l.WWarn, LabelWarn)
+		return newRecord(l, l.WWarn, LabelWarn)
 	}
 	return nil
 }
 
 func (l *Logger) WarnSlow() *Record {
 	if l.ShowSlow() {
-		return NewRecord(l, l.WSlow, LabelSlow)
+		return newRecord(l, l.WSlow, LabelSlow)
 	}
 	return nil
 }
 
 func (l *Logger) Err() *Record {
 	if l.ShowErr() {
-		return NewRecord(l, l.WErr, LabelErr)
+		return newRecord(l, l.WErr, LabelErr)
 	}
 	return nil
 }
 
 func (l *Logger) ErrPanic() *Record {
 	if l.ShowErr() {
-		return NewRecord(l, l.WErr, LabelPanic)
+		return newRecord(l, l.WErr, LabelPanic)
 	}
 	return nil
 }

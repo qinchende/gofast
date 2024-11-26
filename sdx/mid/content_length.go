@@ -18,7 +18,7 @@ func HttpMaxContentLength(limit int64) fst.HttpHandler {
 		return func(w http.ResponseWriter, r *http.Request) {
 			// request body length
 			if r.ContentLength > limit {
-				logx.Err().MsgF("Request body limit is %d, but got %d, rejected with code %d", limit,
+				logx.Err().SendMsgF("Request body limit is %d, but got %d, rejected with code %d", limit,
 					r.ContentLength, http.StatusRequestEntityTooLarge)
 				w.WriteHeader(http.StatusRequestEntityTooLarge)
 			} else {

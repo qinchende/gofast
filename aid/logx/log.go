@@ -26,7 +26,7 @@ func NewDefaultConfig() *LogConfig {
 // 指定LogConfig初始化默认日志记录器
 func SetupDefault(cnf *LogConfig) {
 	if Def != nil {
-		Warn().Msg("logx: default logger already existed")
+		Warn().SendMsg("logx: default logger already existed")
 		return
 	}
 	Def = NewMust(cnf)
@@ -76,7 +76,7 @@ func (l *Logger) initLogger() error {
 		return err
 	}
 
-	// 全局内容
+	// 所有日志记录共同属性
 	if len(l.cnf.AppName) > 0 {
 		l.Str(fApp, l.cnf.AppName)
 	}

@@ -58,6 +58,6 @@ func (bk *Breaker) LogError(err error) {
 			Str("proc", proc.ProcessName()+"/"+lang.ToString(proc.Pid())).
 			Str("callee", bk.name).
 			Int("skip", int(skipTimes)).
-			Msg(bk.Breaker.Errors(","))
+			SendMsg(bk.Breaker.Errors(","))
 	})
 }

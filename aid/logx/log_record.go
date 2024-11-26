@@ -30,7 +30,8 @@ var (
 
 func getRecord() *Record {
 	r := recordPool.Get().(*Record)
-	r.pBuf = pool.GetBytesMin(2048) // 最少512字节，这里可以改进算法，动态计算最优大小
+	// 最少2048字节，这里可以改进算法，动态计算最优大小，或者按Label分类给大小
+	r.pBuf = pool.GetBytesMin(2048)
 	r.bs = *r.pBuf
 	return r
 }
@@ -43,7 +44,7 @@ func backRecord(r *Record) {
 	recordPool.Put(r)
 }
 
-func NewRecord(l *Logger, w io.Writer, label string) *Record {
+func newRecord(l *Logger, w io.Writer, label string) *Record {
 	r := getRecord()
 	r.myL = l
 	r.iow = w
@@ -65,14 +66,22 @@ func (r *Record) write() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (r *Record) PullBytes() []byte {
+func (r *Record) UseWriter(w io.Writer) *Record {
+	if r == nil {
+		return nil
+	}
+	r.iow = w
+	return r
+}
+
+func (r *Record) GetBuf() []byte {
 	if r != nil {
 		return r.bs
 	}
 	return nil
 }
 
-func (r *Record) PushBytes(bs []byte) *Record {
+func (r *Record) SetBuf(bs []byte) *Record {
 	if r != nil {
 		r.bs = bs
 	}
@@ -80,12 +89,35 @@ func (r *Record) PushBytes(bs []byte) *Record {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (r *Record) SetWriter(w io.Writer) *Record {
-	if r == nil {
-		return nil
+func (r *Record) Send() {
+	r.sendWithMessage("")
+}
+
+func (r *Record) SendMsg(msg string) {
+	r.sendWithMessage(msg)
+}
+
+// MsgF虽然方便，但不推荐使用
+func (r *Record) SendMsgF(str string, v ...any) {
+	r.sendWithMessage(fmt.Sprintf(str, v...))
+}
+
+func (r *Record) SendMsgFunc(createMsg func() string) {
+	r.sendWithMessage(createMsg())
+}
+
+func (r *Record) sendWithMessage(msg string) {
+	if r != nil {
+		if r.isGroup {
+			r.GEnd()
+		}
+		if len(msg) > 0 {
+			bf := jde.AppendStrField(r.bs, fMessage, msg)
+			r.bs = bf[:len(bf)-1] // 去掉最后面一个逗号
+		}
+		r.out.write()
+		backRecord(r)
 	}
-	r.iow = w
-	return r
 }
 
 // 可以先输出一条完整的日志，但是不回收Record，而是继续打印下一条
@@ -98,47 +130,6 @@ func (r *Record) SendReuse(w io.Writer, label string) *Record {
 		r.reuse(w, label)
 	}
 	return r
-}
-
-func (r *Record) Send() {
-	if r != nil {
-		if r.isGroup {
-			r.GEnd()
-		}
-		r.out.write()
-		backRecord(r)
-	}
-}
-
-func (r *Record) endWithMsg(msg string) {
-	if r.isGroup {
-		r.GEnd()
-	}
-
-	bf := jde.AppendStrField(r.bs, fMessage, msg)
-	r.bs = bf[:len(bf)-1] // 去掉最后面一个逗号
-
-	r.out.write()
-	backRecord(r)
-}
-
-func (r *Record) Msg(msg string) {
-	if r != nil {
-		r.endWithMsg(msg)
-	}
-}
-
-// MsgF虽然方便，但不推荐使用
-func (r *Record) MsgF(str string, v ...any) {
-	if r != nil {
-		r.endWithMsg(fmt.Sprintf(str, v...))
-	}
-}
-
-func (r *Record) MsgFunc(createMsg func() string) {
-	if r != nil {
-		r.endWithMsg(createMsg())
-	}
 }
 
 func (r *Record) Group(k string) *Record {

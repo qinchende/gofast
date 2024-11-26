@@ -103,9 +103,9 @@ type (
 		//WDiscard io.Writer
 
 		// 指定下面的方法即可自定义输出日志样式
-		LogBegin   func(bs []byte, v string) []byte
+		LogBegin   func(bs []byte, label string) []byte
 		LogEnd     func(bs []byte) []byte
-		GroupBegin func(bs []byte, v string) []byte
+		GroupBegin func(bs []byte, name string) []byte
 		GroupEnd   func(bs []byte) []byte
 
 		// initOnce sync.Once

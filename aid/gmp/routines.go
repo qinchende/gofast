@@ -26,7 +26,7 @@ func RoutineId() uint64 {
 func RunSafe(fn func()) {
 	defer func() {
 		if p := recover(); p != nil {
-			logx.Trace().MsgF("%v", p)
+			logx.Trace().SendMsgF("%v", p)
 		}
 	}()
 

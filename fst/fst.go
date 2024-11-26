@@ -256,11 +256,11 @@ func (gft *GoFast) Listen(addr ...string) {
 
 	go func() {
 		err := gft.httpSrv.ListenAndServe()
-		logx.Err().Msg(err.Error())
+		logx.Err().SendMsg(err.Error())
 		quitSignal <- syscall.SIGABRT // 应用异常退出
 	}()
 	gft.GracefulShutdown()
-	logx.Info().Msg("Listen exit, bye...")
+	logx.Info().SendMsg("Listen exit, bye...")
 	return
 }
 
@@ -275,7 +275,7 @@ func (gft *GoFast) GracefulShutdown() {
 	signal.Notify(quitSignal, syscall.SIGINT, syscall.SIGQUIT, syscall.SIGTERM) // 监听指定信号
 	sign := <-quitSignal
 	if sign != syscall.SIGABRT {
-		logx.Info().MsgF("Signal: %s(pid: %d), starting shutdown...", sign, os.Getpid())
+		logx.Info().SendMsgF("Signal: %s(pid: %d), starting shutdown...", sign, os.Getpid())
 	}
 
 	// 执行 onClose 事件订阅函数
@@ -287,7 +287,7 @@ func (gft *GoFast) GracefulShutdown() {
 	// 系统信号触发，就要主动关闭http server
 	if sign != syscall.SIGABRT {
 		if err := gft.httpSrv.Shutdown(ctx); err != nil {
-			logx.Err().MsgF("Http: shutdown error: ", err)
+			logx.Err().SendMsgF("Http: shutdown error: ", err)
 		}
 	}
 	<-ctx.Done() // 延迟返回，尽量让收尾工作执行完

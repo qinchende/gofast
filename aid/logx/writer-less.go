@@ -57,7 +57,7 @@ func (le *limitedExecutor) logOrDiscard(execute func()) {
 		discarded := atomic.SwapUint32(&le.discarded, 0)
 		if discarded > 0 {
 			//logx.info()((),, discarded)
-			Err().MsgF("Discarded %d error messages", discarded)
+			Err().SendMsgF("Discarded %d error messages", discarded)
 		}
 		execute()
 	}

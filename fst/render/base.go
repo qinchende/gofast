@@ -44,6 +44,6 @@ func setContentType(w http.ResponseWriter, value []string) {
 	if val := header["Content-Type"]; len(val) == 0 {
 		header["Content-Type"] = value
 	} else {
-		logx.Info().Msg("The content-type already set.")
+		logx.Info().SendMsg("The content-type already set.")
 	}
 }

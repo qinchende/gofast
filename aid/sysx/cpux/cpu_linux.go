@@ -25,14 +25,14 @@ var (
 func init() {
 	cpus, err := perCpuUsage()
 	if err != nil {
-		logx.Err().Msg(err)
+		logx.Err().SendMsg(err)
 		return
 	}
 
 	cores = uint64(len(cpus))
 	sets, err := cpuSets()
 	if err != nil {
-		logx.Err().Msg(err)
+		logx.Err().SendMsg(err)
 		return
 	}
 
@@ -42,7 +42,7 @@ func init() {
 		if cq != -1 {
 			period, err := cpuPeriod()
 			if err != nil {
-				logx.Err().Msg(err)
+				logx.Err().SendMsg(err)
 				return
 			}
 
@@ -55,13 +55,13 @@ func init() {
 
 	preSystem, err = systemCpuUsage()
 	if err != nil {
-		logx.Err().Msg(err)
+		logx.Err().SendMsg(err)
 		return
 	}
 
 	preTotal, err = totalCpuUsage()
 	if err != nil {
-		logx.Err().Msg(err)
+		logx.Err().SendMsg(err)
 		return
 	}
 }

@@ -46,7 +46,7 @@ func gracefulStop(signals chan os.Signal) {
 	shutdownListeners.notifyListeners()
 
 	time.Sleep(delayTimeBeforeForceQuit - wrapUpTime)
-	logx.Info().MsgF("Still alive after %v, going to force kill the process...", delayTimeBeforeForceQuit)
+	logx.Info().SendMsgF("Still alive after %v, going to force kill the process...", delayTimeBeforeForceQuit)
 	syscall.Kill(syscall.Getpid(), syscall.SIGTERM)
 }
 

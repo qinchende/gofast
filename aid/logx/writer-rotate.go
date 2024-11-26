@@ -78,7 +78,7 @@ func (r *DailyRotateRule) OutdatedFiles() []string {
 
 	files, err := filepath.Glob(pattern)
 	if err != nil {
-		Err().MsgF("failed to delete outdated log files, error: %s", err)
+		Err().SendMsgF("failed to delete outdated log files, error: %s", err)
 		return nil
 	}
 
@@ -150,7 +150,7 @@ func (rl *RotateWriter) Write(bytes []byte) (int, error) {
 // 每次调用都会在 str 后面自动判断并加上 \n
 func (rl *RotateWriter) Writeln(str string) (err error) {
 	if str[len(str)-1] != '\n' {
-		Debug().MsgF("NOTE: A line break is recommended by this log info.")
+		Debug().SendMsgF("NOTE: A line break is recommended by this log info.")
 
 		bytes := []byte(str)
 		if len(bytes) == 0 || bytes[len(bytes)-1] != '\n' {
@@ -220,7 +220,7 @@ func (rl *RotateWriter) maybeDeleteOutdatedFiles() {
 	files := rl.rule.OutdatedFiles()
 	for _, file := range files {
 		if err := os.Remove(file); err != nil {
-			Err().MsgF("logx failed to remove outdated file: %s", file)
+			Err().SendMsgF("logx failed to remove outdated file: %s", file)
 		}
 	}
 }
@@ -292,11 +292,11 @@ func (rl *RotateWriter) writeExec(bytes []byte) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func compressLogFile(file string) {
 	start := timex.NowDur()
-	Err().MsgF("compressing log file: %s", file)
+	Err().SendMsgF("compressing log file: %s", file)
 	if err := gzipFile(file); err != nil {
-		Err().MsgF("compress error: %s", err)
+		Err().SendMsgF("compress error: %s", err)
 	} else {
-		Info().MsgF("compressed log file: %s, took %s", file, timex.NowDiffDur(start))
+		Info().SendMsgF("compressed log file: %s, took %s", file, timex.NowDiffDur(start))
 	}
 }
 

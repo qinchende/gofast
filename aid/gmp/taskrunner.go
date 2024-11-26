@@ -27,7 +27,7 @@ func (rp *TaskRunner) Schedule(task func()) {
 			<-rp.limitChan
 
 			if p := recover(); p != nil {
-				logx.Trace().MsgF("%v", p)
+				logx.Trace().SendMsgF("%v", p)
 			}
 		}()
 

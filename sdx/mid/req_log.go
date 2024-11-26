@@ -13,20 +13,6 @@ import (
 	"time"
 )
 
-func LoggerDemo(c *fst.Context) {
-	// 执行完后面的请求，再打印日志
-	c.Next()
-
-	//r := logx.Info()
-	//r.Int("Latency", int64(timex.SdxNowDur()-c.EnterTime))
-	//r.Str("RemoteAddr", c.ClientIP())
-	//r.Int("BodySize", int64(len(c.Res.WrittenData())))
-	//r.Str("RemoteAddr", c.ClientIP())
-	//r.Send()
-
-	//r := logx.InfoReqX()
-}
-
 // [GET] /admin/sdx (127.0.0.1/08-23 15:41:07) [200/63/0]
 // B: {}
 // P: {"nowTime":"2024-08-22T15:41:07+08:00"}
@@ -36,7 +22,7 @@ func Logger(c *fst.Context) {
 	c.Next()
 
 	r := logx.InfoReq()
-	//bs := r.PullBytes()
+	//bs := r.GetBuf()
 
 	pbs := pool.GetBytesMin(256)
 	bf := *pbs
@@ -56,7 +42,7 @@ func Logger(c *fst.Context) {
 	r.Str("A", lang.B2S(bf))
 	pool.FreeBytes(pbs)
 
-	//r.PushBytes(bf)
+	//r.SetBuf(bf)
 
 	//// 请求处理完，并成功返回了，接下来就是打印请求日志
 	//r := logx.InfoReq().

@@ -13,7 +13,7 @@ import (
 func (gft *GoFast) printRouteTrees() {
 	strTree := new(strings.Builder)
 	strTree.WriteString("\n+++++++++++++++The route tree:\n")
-
+	
 	for i := range gft.routerTrees {
 		printTree(gft.routerTrees[i], strTree)
 	}
@@ -34,7 +34,7 @@ func printTree(tree *methodTree, strTree *strings.Builder) {
 
 func (n *radixNode) prettyPrint(str *strings.Builder, prefix string, isTail bool) {
 	str.WriteString(prefix)
-
+	
 	nextPrefix := prefix
 	if isTail {
 		str.WriteString("└── ")
@@ -43,7 +43,7 @@ func (n *radixNode) prettyPrint(str *strings.Builder, prefix string, isTail bool
 		str.WriteString("├── ")
 		nextPrefix += "│   "
 	}
-
+	
 	// 要显示的节点内容
 	str.WriteString(n.match)
 	curLen := len([]rune(prefix)) + len([]rune(n.match))
@@ -66,7 +66,7 @@ func (n *radixNode) prettyPrint(str *strings.Builder, prefix string, isTail bool
 	//genPrintNode(str, []string{fmt.Sprint(len(n.hdsItem)), n.indices})
 	genPrintNode(str, []string{fmt.Sprint(n.leafItem != nil), n.indices})
 	//genPrintNode(str, []string{n.indices})
-
+	
 	chLen := len(n.children)
 	for i := 0; i < chLen-1; i++ {
 		n.children[i].prettyPrint(str, nextPrefix, false)
@@ -101,16 +101,16 @@ func debugPrintRoute(gft *GoFast, ri *RouteItem) {
 	if !gft.IsDebugging() {
 		return
 	}
-
+	
 	nuHandlers := len(ri.eHds)
 	lastHdsIdx := ri.eHds[nuHandlers-1]
 	fun := ri.group.app.fstMem.allCtxHandlers[lastHdsIdx]
-
-	logx.Debug().MsgF("%-6s %-25s %s (%d hds)", ri.method, ri.fullPath, lang.FuncFullName(fun), nuHandlers)
+	
+	logx.Debug().SendMsgF("%-6s %-25s %s (%d hds)", ri.method, ri.fullPath, lang.FuncFullName(fun), nuHandlers)
 }
 
 func debugPrintRouteTree(gft *GoFast, strTree *strings.Builder) {
 	if gft.IsDebugging() {
-		logx.Debug().Msg(strTree.String())
+		logx.Debug().SendMsg(strTree.String())
 	}
 }
