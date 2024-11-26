@@ -66,7 +66,7 @@ func (r *Record) write() {
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (r *Record) UseWriter(w io.Writer) *Record {
+func (r *Record) SetWriter(w io.Writer) *Record {
 	if r == nil {
 		return nil
 	}
@@ -84,6 +84,84 @@ func (r *Record) GetBuf() []byte {
 func (r *Record) SetBuf(bs []byte) *Record {
 	if r != nil {
 		r.bs = bs
+	}
+	return r
+}
+
+// +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+func (r *Record) Reuse(w io.Writer, level int8, label string) *Record {
+	if r != nil && r.myL.iLevel <= level {
+		r.reuse(w, label)
+	}
+	return r
+}
+
+func (r *Record) Trace() *Record {
+	if r != nil && r.myL.ShowTrace() {
+		r.reuse(r.myL.WTrace, LabelTrace)
+	}
+	return r
+}
+
+func (r *Record) Debug() *Record {
+	if r != nil && r.myL.ShowDebug() {
+		r.reuse(r.myL.WDebug, LabelDebug)
+	}
+	return r
+}
+
+func (r *Record) Info() *Record {
+	if r != nil && r.myL.ShowInfo() {
+		r.reuse(r.myL.WInfo, LabelInfo)
+	}
+	return r
+}
+
+func (r *Record) InfoTimer() *Record {
+	if r != nil && r.myL.ShowInfo() {
+		r.reuse(r.myL.WTimer, LabelTimer)
+	}
+	return r
+}
+
+func (r *Record) InfoReq() *Record {
+	if r != nil && r.myL.ShowInfo() {
+		r.reuse(r.myL.WReq, LabelReq)
+	}
+	return r
+}
+
+func (r *Record) InfoStat() *Record {
+	if r != nil && r.myL.ShowInfo() {
+		r.reuse(r.myL.WStat, LabelStat)
+	}
+	return r
+}
+
+func (r *Record) Warn() *Record {
+	if r != nil && r.myL.ShowWarn() {
+		r.reuse(r.myL.WWarn, LabelWarn)
+	}
+	return r
+}
+
+func (r *Record) WarnSlow() *Record {
+	if r != nil && r.myL.ShowWarn() {
+		r.reuse(r.myL.WSlow, LabelSlow)
+	}
+	return r
+}
+
+func (r *Record) Error() *Record {
+	if r != nil && r.myL.ShowErr() {
+		r.reuse(r.myL.WErr, LabelErr)
+	}
+	return r
+}
+
+func (r *Record) ErrPanic() *Record {
+	if r != nil && r.myL.ShowErr() {
+		r.reuse(r.myL.WPanic, LabelPanic)
 	}
 	return r
 }
@@ -121,13 +199,12 @@ func (r *Record) sendWithMessage(msg string) {
 }
 
 // 可以先输出一条完整的日志，但是不回收Record，而是继续打印下一条
-func (r *Record) SendReuse(w io.Writer, label string) *Record {
+func (r *Record) SendBack() *Record {
 	if r != nil {
 		if r.isGroup {
 			r.GEnd()
 		}
 		r.out.write()
-		r.reuse(w, label)
 	}
 	return r
 }

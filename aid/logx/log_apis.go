@@ -9,8 +9,12 @@ import "io"
 
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func Custom(w io.Writer, level int8, label string) *Record {
-	return Def.Custom(w, level, label)
+func GetRecord() *Record {
+	return Def.GetRecord()
+}
+
+func Raw(w io.Writer, level int8, label string) *Record {
+	return Def.Raw(w, level, label)
 }
 
 func Trace() *Record {
@@ -70,7 +74,7 @@ func (l *Logger) Clone() *Logger {
 }
 
 // @@++@@ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (l *Logger) ShowStack() bool {
+func (l *Logger) ShowTrace() bool {
 	return l.iLevel <= LevelTrace
 }
 
@@ -99,7 +103,13 @@ func (l *Logger) ShowSlow() bool {
 }
 
 // @@++@@ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (l *Logger) Custom(w io.Writer, level int8, label string) *Record {
+func (l *Logger) GetRecord() *Record {
+	r := getRecord()
+	r.myL = l
+	return r
+}
+
+func (l *Logger) Raw(w io.Writer, level int8, label string) *Record {
 	if l.iLevel <= level {
 		return newRecord(l, w, label)
 	}
@@ -107,8 +117,8 @@ func (l *Logger) Custom(w io.Writer, level int8, label string) *Record {
 }
 
 func (l *Logger) Trace() *Record {
-	if l.ShowStack() {
-		return newRecord(l, l.WStack, LabelTrace)
+	if l.ShowTrace() {
+		return newRecord(l, l.WTrace, LabelTrace)
 	}
 	return nil
 }

@@ -107,7 +107,7 @@ func (l *Logger) setupForConsole() error {
 		w2 = io.Discard
 	}
 
-	l.WStack = w1
+	l.WTrace = w1
 	l.WDebug = w1
 	l.WInfo = w1
 	l.WReq = w1

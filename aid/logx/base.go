@@ -90,7 +90,7 @@ type (
 		TopRecord
 
 		// 每种分类可以单独输出到不同的介质
-		WStack io.Writer
+		WTrace io.Writer
 		WDebug io.Writer
 		WInfo  io.Writer
 		WReq   io.Writer
