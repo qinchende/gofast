@@ -92,103 +92,124 @@ func (r *Record) SetBuf(bs []byte) *Record {
 func (r *Record) Reuse(w io.Writer, level int8, label string) *Record {
 	if r != nil && r.myL.iLevel <= level {
 		r.reuse(w, label)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) Trace() *Record {
 	if r != nil && r.myL.ShowTrace() {
 		r.reuse(r.myL.WTrace, LabelTrace)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) Debug() *Record {
 	if r != nil && r.myL.ShowDebug() {
 		r.reuse(r.myL.WDebug, LabelDebug)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) Info() *Record {
 	if r != nil && r.myL.ShowInfo() {
 		r.reuse(r.myL.WInfo, LabelInfo)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) InfoTimer() *Record {
 	if r != nil && r.myL.ShowInfo() {
 		r.reuse(r.myL.WTimer, LabelTimer)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) InfoReq() *Record {
 	if r != nil && r.myL.ShowInfo() {
 		r.reuse(r.myL.WReq, LabelReq)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) InfoStat() *Record {
 	if r != nil && r.myL.ShowInfo() {
 		r.reuse(r.myL.WStat, LabelStat)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) Warn() *Record {
 	if r != nil && r.myL.ShowWarn() {
 		r.reuse(r.myL.WWarn, LabelWarn)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) WarnSlow() *Record {
 	if r != nil && r.myL.ShowWarn() {
 		r.reuse(r.myL.WSlow, LabelSlow)
+		return r
 	}
-	return r
+	return nil
 }
 
-func (r *Record) Error() *Record {
+func (r *Record) Err() *Record {
 	if r != nil && r.myL.ShowErr() {
 		r.reuse(r.myL.WErr, LabelErr)
+		return r
 	}
-	return r
+	return nil
 }
 
 func (r *Record) ErrPanic() *Record {
 	if r != nil && r.myL.ShowErr() {
 		r.reuse(r.myL.WPanic, LabelPanic)
+		return r
 	}
-	return r
+	return nil
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func (r *Record) Send() {
-	r.sendWithMessage("")
+	r.endWithMessage("")
+}
+
+func (r *Record) SendErr(v error) {
+	if r != nil {
+		r.checkGroupEnd()
+		if v != nil {
+			bf := jde.AppendStrField(r.bs, fError, v.Error())
+			r.bs = bf[:len(bf)-1] // 去掉最后面一个逗号
+		}
+		r.out.write()
+		backRecord(r)
+	}
 }
 
 func (r *Record) SendMsg(msg string) {
-	r.sendWithMessage(msg)
+	r.endWithMessage(msg)
 }
 
 // MsgF虽然方便，但不推荐使用
 func (r *Record) SendMsgF(str string, v ...any) {
-	r.sendWithMessage(fmt.Sprintf(str, v...))
+	r.endWithMessage(fmt.Sprintf(str, v...))
 }
 
 func (r *Record) SendMsgFunc(createMsg func() string) {
-	r.sendWithMessage(createMsg())
+	r.endWithMessage(createMsg())
 }
 
-func (r *Record) sendWithMessage(msg string) {
+func (r *Record) endWithMessage(msg string) {
 	if r != nil {
-		if r.isGroup {
-			r.GEnd()
-		}
+		r.checkGroupEnd()
 		if len(msg) > 0 {
 			bf := jde.AppendStrField(r.bs, fMessage, msg)
 			r.bs = bf[:len(bf)-1] // 去掉最后面一个逗号
@@ -201,9 +222,7 @@ func (r *Record) sendWithMessage(msg string) {
 // 可以先输出一条完整的日志，但是不回收Record，而是继续打印下一条
 func (r *Record) SendBack() *Record {
 	if r != nil {
-		if r.isGroup {
-			r.GEnd()
-		}
+		r.checkGroupEnd()
 		r.out.write()
 	}
 	return r
@@ -211,16 +230,14 @@ func (r *Record) SendBack() *Record {
 
 func (r *Record) Group(k string) *Record {
 	if r != nil {
-		if r.isGroup {
-			r.GEnd()
-		}
+		r.checkGroupEnd()
 		r.isGroup = true
 		r.bs = r.myL.GroupBegin(r.bs, k)
 	}
 	return r
 }
 
-func (r *Record) GEnd() *Record {
+func (r *Record) GroupEnd() *Record {
 	if r != nil && r.isGroup {
 		r.isGroup = false
 		r.bs = r.myL.GroupEnd(r.bs)
@@ -228,7 +245,35 @@ func (r *Record) GEnd() *Record {
 	return r
 }
 
+func (r *Record) checkGroupEnd() {
+	if r.isGroup {
+		r.GroupEnd()
+	}
+}
+
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+// +++++ add special
+func (r *Record) Append(v []byte) *Record {
+	if r != nil {
+		r.bs = append(r.bs, v...)
+	}
+	return r
+}
+
+func (r *Record) AddMsg(v string) *Record {
+	if r != nil {
+		r.bs = jde.AppendStrField(r.bs, fMessage, v)
+	}
+	return r
+}
+
+func (r *Record) AddErr(v error) *Record {
+	if r != nil {
+		r.bs = jde.AppendStrField(r.bs, fError, v.Error())
+	}
+	return r
+}
+
 // +++++ int
 func (r *Record) Int(k string, v int) *Record {
 	if r != nil {
@@ -371,13 +416,6 @@ func (r *Record) F64s(k string, v []float64) *Record {
 }
 
 // +++++ string
-func (r *Record) Append(v []byte) *Record {
-	if r != nil {
-		r.bs = append(r.bs, v...)
-	}
-	return r
-}
-
 func (r *Record) Str(k, v string) *Record {
 	if r != nil {
 		r.bs = jde.AppendStrField(r.bs, k, v)
@@ -403,14 +441,6 @@ func (r *Record) Time(k string, v time.Time) *Record {
 func (r *Record) Times(k string, v []time.Time) *Record {
 	if r != nil {
 		r.bs = jde.AppendTimeListField(r.bs, k, v, timeFormat)
-	}
-	return r
-}
-
-// +++++ error
-func (r *Record) Err(v error) *Record {
-	if r != nil && v != nil {
-		r.bs = jde.AppendStrField(r.bs, fError, v.Error())
 	}
 	return r
 }

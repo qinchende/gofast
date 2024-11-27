@@ -9,12 +9,12 @@ import "io"
 
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func GetRecord() *Record {
-	return Def.GetRecord()
+func NewRecord() *Record {
+	return Def.NewRecord()
 }
 
-func Raw(w io.Writer, level int8, label string) *Record {
-	return Def.Raw(w, level, label)
+func With(w io.Writer, level int8, label string) *Record {
+	return Def.With(w, level, label)
 }
 
 func Trace() *Record {
@@ -103,13 +103,13 @@ func (l *Logger) ShowSlow() bool {
 }
 
 // @@++@@ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (l *Logger) GetRecord() *Record {
+func (l *Logger) NewRecord() *Record {
 	r := getRecord()
 	r.myL = l
 	return r
 }
 
-func (l *Logger) Raw(w io.Writer, level int8, label string) *Record {
+func (l *Logger) With(w io.Writer, level int8, label string) *Record {
 	if l.iLevel <= level {
 		return newRecord(l, w, label)
 	}

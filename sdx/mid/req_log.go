@@ -51,9 +51,9 @@ func Logger(c *fst.Context) {
 	//	Str("IP", c.ClientIP()).
 	//	Str("Mark", fmt.Sprintf("%d/%d/%d", c.Res.Status(), len(c.Res.WrittenData()), (timex.SdxNowDur()-c.EnterTime)/time.Millisecond))
 
-	r.Group("B").GEnd()
-	r.Group("P").GEnd()
-	r.Group("R").Append(c.Res.WrittenData()).GEnd()
+	r.Group("B").GroupEnd()
+	r.Group("P").GroupEnd()
+	r.Group("R").Append(c.Res.WrittenData()).GroupEnd()
 
 	r.Send()
 }
@@ -74,9 +74,9 @@ func LoggerSdxMini2(c *fst.Context) {
 		Str("IP", c.ClientIP()).
 		Str("Mark", fmt.Sprintf("%d/%d/%d", c.Res.Status(), len(c.Res.WrittenData()), (timex.SdxNowDur()-c.EnterTime)/time.Millisecond))
 
-	r.Group("B").GEnd()
-	r.Group("P").GEnd()
-	r.Group("R").GEnd()
+	r.Group("B").GroupEnd()
+	r.Group("P").GroupEnd()
+	r.Group("R").GroupEnd()
 
 	r.Send()
 }
