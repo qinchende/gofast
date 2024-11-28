@@ -1,20 +1,18 @@
 // Copyright 2022 GoFast Author(sdx: http://chende.ren). All rights reserved.
 // Use of this source code is governed by an Apache-2.0 license that can be found in the LICENSE file.
 
-// Note: 这里debug,info,stat,slow采用直接调用output的方式，而warn,error,stack采用封装调用的方式是特意设计的。
-// 提取封装函数再调用能简化代码，但都采用封装调用的方式，很有可能条件不满足，大量的fmt.Sprint函数做无用功。
 package logx
 
 import "io"
 
 // Default logger
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func NewRecord() *Record {
-	return Def.NewRecord()
+func GetRecord() *Record {
+	return Def.GetRecord()
 }
 
-func With(w io.Writer, level int8, label string) *Record {
-	return Def.With(w, level, label)
+func NewRecord(w io.Writer, level int8, label string) *Record {
+	return Def.NewRecord(w, level, label)
 }
 
 func Trace() *Record {
@@ -103,13 +101,13 @@ func (l *Logger) ShowSlow() bool {
 }
 
 // @@++@@ ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (l *Logger) NewRecord() *Record {
+func (l *Logger) GetRecord() *Record {
 	r := getRecord()
 	r.myL = l
 	return r
 }
 
-func (l *Logger) With(w io.Writer, level int8, label string) *Record {
+func (l *Logger) NewRecord(w io.Writer, level int8, label string) *Record {
 	if l.iLevel <= level {
 		return newRecord(l, w, label)
 	}

@@ -11,6 +11,11 @@ import (
 
 // 打印 路由树
 func (gft *GoFast) printRouteTrees() {
+	r := logx.Debug()
+	if r == nil {
+		return
+	}
+
 	strTree := new(strings.Builder)
 	strTree.WriteString("\n+++++++++++++++The route tree:\n")
 
@@ -19,7 +24,7 @@ func (gft *GoFast) printRouteTrees() {
 	}
 	strTree.WriteString("++++++++++++++++++++++++++++++\n")
 	// 打印到控制台
-	debugPrintRouteTree(gft, strTree)
+	r.Append(lang.S2B(strTree.String())).Send()
 }
 
 func printTree(tree *methodTree, strTree *strings.Builder) {
@@ -98,7 +103,8 @@ func genPrintNode(str *strings.Builder, arr []string) {
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // debug print
 func debugPrintRoute(gft *GoFast, ri *RouteItem) {
-	if !gft.IsDebugging() {
+	r := logx.Debug()
+	if r == nil {
 		return
 	}
 
@@ -106,11 +112,5 @@ func debugPrintRoute(gft *GoFast, ri *RouteItem) {
 	lastHdsIdx := ri.eHds[nuHandlers-1]
 	fun := ri.group.app.fstMem.allCtxHandlers[lastHdsIdx]
 
-	logx.Debug().SendMsgF("%-6s %-25s %s (%d hds)", ri.method, ri.fullPath, lang.FuncFullName(fun), nuHandlers)
-}
-
-func debugPrintRouteTree(gft *GoFast, strTree *strings.Builder) {
-	if gft.IsDebugging() {
-		logx.Debug().SendMsg(strTree.String())
-	}
+	r.SendMsgF("%-6s %-25s %s (%d hds)", ri.method, ri.fullPath, lang.FuncFullName(fun), nuHandlers)
 }

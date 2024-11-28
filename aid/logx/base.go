@@ -65,7 +65,7 @@ type LogConfig struct {
 	// 当LogMedium为 file 或 volume 有效
 	FilePath     string `v:"def=_logs_"`            // 文件路径
 	FileName     string `v:"def=[AppName]"`         // 文件名称(默认是AppName)
-	FileSplit    string `v:"def=no,range=[0:255]"`  // 日志拆分(比如: no; stack|info|req|warn|err)
+	FileSplit    string `v:"def=no,range=[0:255]"`  // 日志拆分(比如: no; trace|info|req|warn|err)
 	FileKeepDays int    `v:"def=30,range=[0:3650]"` // 日志文件保留天数
 	FileGzip     bool   `v:"def=false"`             // 是否Gzip压缩日志文件
 	// FileStackArchiveMillis int  `v:"def=100"`   // 日志文件堆栈毫秒数
@@ -114,18 +114,19 @@ type (
 		iStyle int8 // 日志样式类型
 	}
 
-	// 对象自定义输出方法，实现此接口用来自定义处理敏感信息
-	//Printer interface {
-	//	Print([]byte) []byte
-	//}
 	RecordWriter interface {
 		write()
 	}
+
 	ObjEncoder interface {
 		EncodeLogx(r *Record)
 	}
 )
 
+// 对象自定义输出方法，实现此接口用来自定义处理敏感信息
+//Printer interface {
+//	Print([]byte) []byte
+//}
 //var (
 //	labels = [11]string{"trace", "debug", "info", "req", "timer", "stat", "warn", "slow", "err", "panic", "discard"}
 //)
