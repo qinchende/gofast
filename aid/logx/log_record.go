@@ -497,10 +497,22 @@ func (r *Record) Objs(k string, v []ObjEncoder) *Record {
 	return r
 }
 
+// +++++ Json Bytes
+func (r *Record) Json(k string, v []byte) *Record {
+	if r != nil {
+		r.bs = jde.AppendJsonField(r.bs, k, v)
+	}
+	return r
+}
+
 // +++++ any
 func (r *Record) Any(k string, v any) *Record {
-	if r != nil {
-		//r.bs = jde.AppendBoolField(r.bs, k, v)
+	if r == nil {
+		return r
+	}
+
+	switch v.(type) {
+	case interface{}:
 	}
 	return r
 }

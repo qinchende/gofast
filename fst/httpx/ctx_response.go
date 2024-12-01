@@ -13,8 +13,9 @@ import (
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 // 对标准 http.ResponseWriter 的包裹，加入对响应的状态管理
 const (
-	defaultStatus      = 0
-	errAlreadyRendered = "ResWarp: already committed. "
+	defaultStatus = 0
+	warnKey       = "maj"
+	warnRendered  = "already committed"
 )
 
 // 自定义 ResponseWriter, 对标准库的一层包裹处理，需要对返回的数据做缓存，做到更灵活的控制。
@@ -73,7 +74,7 @@ func (w *ResponseWrap) Flush() bool {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn().SendMsg(errAlreadyRendered + "Can't Flush.")
+			logx.Warn().Str(warnKey, warnRendered).SendMsg("Can't Flush.")
 		}
 		return false
 	}
@@ -90,7 +91,7 @@ func (w *ResponseWrap) WriteHeader(newStatus int) {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn().SendMsgF("%sCan't WriteHeader from %d to %d.", errAlreadyRendered, w.status, newStatus)
+			logx.Warn().Str(warnKey, warnRendered).SendMsgF("Can't WriteHeader from %d to %d.", w.status, newStatus)
 		}
 		return
 	}
@@ -110,7 +111,7 @@ func (w *ResponseWrap) Write(data []byte) (n int, err error) {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn().SendMsg(errAlreadyRendered + "Can't Write.")
+			logx.Warn().Str(warnKey, warnRendered).SendMsg("Can't Write.")
 		}
 		return 0, nil
 	}
@@ -124,7 +125,7 @@ func (w *ResponseWrap) WriteString(s string) (n int, err error) {
 
 	if w.committed {
 		if !w.isTimeout {
-			logx.Warn().SendMsgF(errAlreadyRendered + "Can't WriteString.")
+			logx.Warn().Str(warnKey, warnRendered).SendMsg("Can't WriteString.")
 		}
 		return 0, nil
 	}
@@ -205,7 +206,7 @@ func (w *ResponseWrap) tryToCommit(tip string) bool {
 	if w.committed {
 		w.respLock.Unlock()
 		if !w.isTimeout {
-			logx.Warn().SendMsg(errAlreadyRendered + tip)
+			logx.Warn().Str(warnKey, warnRendered).SendMsg(tip)
 		}
 		return false
 	}

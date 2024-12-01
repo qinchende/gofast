@@ -61,6 +61,7 @@ func (l *Logger) initStyle() error {
 // Sdx-style
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 func SdxBegin(bs []byte, label string) []byte {
+	//bs = append(time.Now().AppendFormat(append(bs, '\n'), timeFormat), " ["...)
 	bs = append(time.Now().AppendFormat(bs, timeFormat), " ["...)
 	return append(append(bs, label...), "]: "...)
 }

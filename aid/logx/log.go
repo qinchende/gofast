@@ -102,6 +102,7 @@ func (l *Logger) initLogger() error {
 func (l *Logger) setupForConsole() error {
 	w1 := io.Writer(os.Stdout)
 	w2 := io.Writer(os.Stderr)
+
 	if l.cnf.DiscardIO {
 		w1 = io.Discard
 		w2 = io.Discard
@@ -109,6 +110,7 @@ func (l *Logger) setupForConsole() error {
 
 	l.WTrace = w1
 	l.WDebug = w1
+
 	l.WInfo = w1
 	l.WReq = w1
 	l.WTimer = w1
@@ -118,6 +120,7 @@ func (l *Logger) setupForConsole() error {
 	l.WSlow = w2
 	l.WErr = w2
 	l.WPanic = w2
+
 	return nil
 }
 

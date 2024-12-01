@@ -40,6 +40,10 @@ func AppendStrListField(bs []byte, k string, list []string) []byte {
 	return append(bs[:len(bs)-1], "],"...)
 }
 
+func AppendJsonField(bs []byte, k string, v []byte) []byte {
+	return append(append(addStrQuotes(bs, k, ':'), v...), ',')
+}
+
 // ++ int
 func AppendIntField[T constraints.Signed](bs []byte, k string, v T) []byte {
 	return append(strconv.AppendInt(AppendKey(bs, k), int64(v), 10), ',')

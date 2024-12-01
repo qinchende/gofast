@@ -77,7 +77,7 @@ func SuperHandlers(app *fst.GoFast) *fst.GoFast {
 	// 正确匹配路由之外的情况，比如特殊的404,504等路由处理链
 	if cnf.EnableSpecialHandlers {
 		app.SpecialBefore(mid.ReqCount(keeper)) // 数量统计
-		app.SpecialBefore(mid.LoggerSdxMini())  // 特殊路径的日志
+		app.SpecialBefore(mid.LoggerMini)       // 特殊路径的日志
 	}
 	return app
 }
