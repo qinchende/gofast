@@ -11,11 +11,11 @@ var rHandlers []*RHandler // 所有配置项汇总
 type (
 	newSuperKV func() cst.SuperKV
 	RHandler   struct {
-		rIndex    uint16           // 索引位置
-		handler   CtxHandler       // 处理函数
-		pmsNew    newSuperKV       // 解析到具体的struct对象
-		pmsFields []string         // 从结构体类型解析出的字段，需要排序，相当于解析到 map
-		bOpts     *dts.BindOptions // 绑定相关控制
+		rIndex  uint16           // 索引位置
+		handler CtxHandler       // 处理函数
+		pmsNew  newSuperKV       // 解析到具体的struct对象
+		pmsKeys []string         // 从结构体类型解析出的字段，需要排序，相当于解析到 map
+		bOpts   *dts.BindOptions // 绑定相关控制
 	}
 )
 
@@ -45,7 +45,7 @@ func RebuildRHandlers(routesLen uint16) {
 	rHandlers = make([]*RHandler, routesLen)
 
 	for i := range raw {
-		lang.SortByLen(raw[i].pmsFields)
+		lang.SortByLen(raw[i].pmsKeys)
 		rHandlers[raw[i].rIndex] = raw[i]
 	}
 }
@@ -60,10 +60,10 @@ func WrapHandler(hd CtxHandler, fn newSuperKV, cls []string) *RHandler {
 
 func WrapHandlerX(hd CtxHandler, fn newSuperKV, cls []string, opts *dts.BindOptions) *RHandler {
 	return &RHandler{
-		handler:   hd,
-		pmsNew:    fn,
-		pmsFields: cls,
-		bOpts:     opts,
+		handler: hd,
+		pmsNew:  fn,
+		pmsKeys: cls,
+		bOpts:   opts,
 	}
 }
 

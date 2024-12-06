@@ -84,10 +84,10 @@ func (ss *StructSchema) ColumnIndex(k string) int {
 	if len(kv.lenOff) <= len(k) {
 		return -1
 	}
-	if idx := lang.SearchSortedSkip(kv.items, int(kv.lenOff[len(k)]), k); idx < 0 {
-		return -1
-	} else {
+	if idx := lang.SearchSortedSkip(kv.items, int(kv.lenOff[len(k)]), k); idx >= 0 {
 		return int(kv.idxes[idx])
+	} else {
+		return -1
 	}
 }
 
@@ -96,10 +96,10 @@ func (ss *StructSchema) FieldIndex(k string) int {
 	if len(kv.lenOff) <= len(k) {
 		return -1
 	}
-	if idx := lang.SearchSortedSkip(kv.items, int(kv.lenOff[len(k)]), k); idx < 0 {
-		return -1
-	} else {
+	if idx := lang.SearchSortedSkip(kv.items, int(kv.lenOff[len(k)]), k); idx >= 0 {
 		return int(kv.idxes[idx])
+	} else {
+		return -1
 	}
 }
 
