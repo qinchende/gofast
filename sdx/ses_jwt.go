@@ -46,13 +46,13 @@ func JwtSessBuilder(c *fst.Context) {
 
 	ss.payload = reqPayload
 	if err := ss.parsePayloadValues(); err != nil {
-		c.CarryMsg(err.Error())
+		c.LogStr("err", err.Error())
 		c.AbortFai(110, "Load jwt data error.", nil)
 	}
 
 	// token过期就需要给出提示
 	if err := ss.checkExpire(); err != nil {
-		c.CarryMsg(err.Error())
+		c.LogStr("err", err.Error())
 		c.AbortFai(110, "Jwt expiration time error.", nil)
 	}
 }

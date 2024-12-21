@@ -35,7 +35,7 @@ func (c *Context) UrlParamOk(key string) (string, bool) {
 // 解析 Url 中的参数
 func (c *Context) QueryValues() cst.WebKV {
 	// 单独调用这个还是会解析一下Get请求中携带的URL参数，即使ParseForm已解析了一次URL参数
-	val := c.queryCache()
+	val := c.getQueryCache()
 	if val == nil {
 		val = make(cst.WebKV)
 		httpx.ParseQuery(val, c.Req.Raw.URL.RawQuery)

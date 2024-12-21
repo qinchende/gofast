@@ -1,6 +1,4 @@
-// Copyright 2022 GoFast Author(http://chende.ren). All rights reserved.
-// Use of this source code is governed by a MIT license
-package bag
+package wit
 
 import (
 	"github.com/qinchende/gofast/aid/jsonx"
@@ -9,68 +7,57 @@ import (
 )
 
 type (
-	CarryType uint
-	CarryItem struct {
-		Type CarryType // 数据分类
-		Msg  string    // 描述信息
-		Meta any       // 详细数据
+	KVItemGroup struct {
+		KVItem      // KV键值对
+		Group  uint // 分组标记
 	}
-	CarryList []*CarryItem
-)
-
-const (
-	CarryTypeAny CarryType = 0
+	KVListGroup []KVItemGroup
 )
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (it *CarryItem) SetType(flags CarryType) *CarryItem {
-	it.Type = flags
+func (it *KVItemGroup) SetGroup(flags uint) *KVItemGroup {
+	it.Group = flags
 	return it
 }
 
-func (it *CarryItem) SetMeta(data any) *CarryItem {
-	it.Meta = data
-	return it
+func (it *KVItemGroup) IsGroup(flags uint) bool {
+	return (it.Group & flags) > 0
 }
 
-func (it *CarryItem) IsType(flags CarryType) bool {
-	return (it.Type & flags) > 0
-}
-
-func (it *CarryItem) JSON() any {
+func (it *KVItemGroup) JSON() any {
 	hash := cst.KV{}
-	if it.Meta != nil {
-		value := reflect.ValueOf(it.Meta)
+	if it.Val != nil {
+		value := reflect.ValueOf(it.Val)
 		switch value.Kind() {
 		case reflect.Struct:
-			return it.Meta
+			return it.Val
 		case reflect.Map:
 			keys := value.MapKeys()
 			for i := range keys {
 				hash[keys[i].String()] = value.MapIndex(keys[i]).Interface()
 			}
 		default:
-			hash["meta"] = it.Meta
+			hash["meta"] = it.Val
 		}
 	}
 	return hash
 }
 
-func (it *CarryItem) MarshalJSON() ([]byte, error) {
+func (it *KVItemGroup) MarshalJSON() ([]byte, error) {
 	return jsonx.Marshal(it.JSON())
 }
 
 // +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-func (list CarryList) ByType(typ CarryType) CarryList {
+func (list KVListGroup) ByGroup(typ uint) KVListGroup {
 	if len(list) == 0 {
 		return nil
 	}
-	if typ == CarryTypeAny {
-		return list
+	if typ == 0 {
+		return list // 默认初始值
 	}
-	var bsTmp CarryList
+	var bsTmp KVListGroup
 	for i := range list {
-		if list[i].IsType(typ) {
+		if list[i].IsGroup(typ) {
 			bsTmp = append(bsTmp, list[i])
 		}
 	}
@@ -78,35 +65,35 @@ func (list CarryList) ByType(typ CarryType) CarryList {
 }
 
 // 知道第一个符合类型的项
-func (list CarryList) FirstOne(typ CarryType) *CarryItem {
+func (list KVListGroup) FirstOne(typ uint) *KVItemGroup {
 	for i := range list {
-		if list[i].IsType(typ) {
-			return list[i]
+		if list[i].IsGroup(typ) {
+			return &list[i]
 		}
 	}
 	return nil
 }
 
-func (list CarryList) Last() *CarryItem {
+func (list KVListGroup) Last() *KVItemGroup {
 	if length := len(list); length > 0 {
-		return list[length-1]
+		return &list[length-1]
 	}
 	return nil
 }
 
 // 收集 items 中的 Msg 字段
-func (list CarryList) CollectMessages() []string {
+func (list KVListGroup) CollectMessages() []string {
 	if len(list) == 0 {
 		return nil
 	}
 	msgStrings := make([]string, len(list), len(list))
 	for i := range list {
-		msgStrings[i] = list[i].Msg
+		msgStrings[i] = *list[i].Val.(*string)
 	}
 	return msgStrings
 }
 
-func (list CarryList) JSON() any {
+func (list KVListGroup) JSON() any {
 	switch len(list) {
 	case 0:
 		return nil
@@ -121,6 +108,6 @@ func (list CarryList) JSON() any {
 	}
 }
 
-func (list CarryList) MarshalJSON() ([]byte, error) {
+func (list KVListGroup) MarshalJSON() ([]byte, error) {
 	return jsonx.Marshal(list.JSON())
 }

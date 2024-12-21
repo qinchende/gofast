@@ -8,7 +8,7 @@ import (
 )
 
 // 异常处理逻辑的接口定义
-type panicHandler interface {
+type PanicHandler interface {
 	Callback()
 }
 
@@ -25,7 +25,7 @@ func (pw PanicFunc) Callback() { pw.Func() }
 // 取出只作为消息传递的项
 func (c *Context) PanicCatch(ret any) {
 	if pic := recover(); pic != nil {
-		c.CarryMsg(lang.ToString(pic))
+		c.LogStr("panic", lang.ToString(pic))
 		switch ret.(type) {
 		case string:
 			c.FaiMsg(ret.(string))
@@ -46,7 +46,7 @@ func (c *Context) PanicIfErr(err error, ret any) {
 		cst.Panic(err)
 		return
 	}
-	c.CarryMsg(err.Error())
+	c.LogStr("panic", err.Error())
 	cst.Panic(ret)
 }
 

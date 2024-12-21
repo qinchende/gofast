@@ -74,6 +74,7 @@ func (gr *GsonRow) Init(cls []string) {
 	size := len(cls)
 	tmp := make([]any, size*2)
 
+	// TODO: 这里需要确认这种拆分内存的方法是否安全？
 	gr.Row = tmp[:size]
 	ptr := unsafe.SliceData(tmp[size:])
 	gr.str = unsafe.Slice((*string)(unsafe.Pointer(ptr)), size)

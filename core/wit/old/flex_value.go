@@ -1,7 +1,7 @@
 // Copyright 2024 GoFast Author(sdx: http://chende.ren). All rights reserved.
 // Use of this source code is governed by an Apache-2.0 license that can be found in the LICENSE file.
 // Note: this is copy from stand-lib ~/log/slog
-package bag
+package old
 
 import (
 	"fmt"

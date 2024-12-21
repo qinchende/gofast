@@ -15,14 +15,14 @@ func Recovery(c *fst.Context) {
 	defer func() {
 		if pic := recover(); pic != nil {
 			// 可能需要重定向异常结果的返回
-			if c.PanicPet != nil {
-				switch ret := c.PanicPet.(type) {
+			if pet := c.GetPanicPet(); pet != nil {
+				switch ret := pet.(type) {
 				case *cst.Ret:
-					c.CarryMsg(lang.ToString(pic))
+					c.LogStr("panic", lang.ToString(pic))
 					c.AbortRet(ret)
 					return
 				case fst.PanicFunc, *fst.PanicFunc: // 执行自定义异常函数，比如变量初始化等
-					c.PanicPet.Callback()
+					ret.Callback()
 				}
 			}
 

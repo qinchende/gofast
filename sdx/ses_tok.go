@@ -48,7 +48,7 @@ func TokSessBuilder(c *fst.Context) {
 
 	ss.guid = reqGuid
 	if err := ss.loadSessFromRedis(); err != nil {
-		c.CarryMsg(err.Error())
+		c.LogStr("err", err.Error())
 		c.AbortFai(110, "Load session data from redis error.", nil)
 	}
 }

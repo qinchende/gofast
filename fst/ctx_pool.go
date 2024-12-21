@@ -13,7 +13,7 @@ import (
 type reqPools struct {
 	ctxPool   sync.Pool    // 第二级所有的handler有context对象传递(第一级是标准http handler，不需要缓冲池)
 	pmsPools  []*sync.Pool // 单项值可能为nil, 不是所有路由都需要Pms缓冲，访问量不大，用Pool缓冲cst.KV无意义
-	nilValues []any        // 类型零值数据，将来给脏内存初始化
+	nilValues []any        // 辅助变量，用来快速重置GsonRow对象的内存
 }
 
 func (gft *GoFast) initRoutePools() {
@@ -90,7 +90,7 @@ func (c *Context) newPms() {
 	if gr.Cls == nil {
 		gr.Init(ra.pmsKeys)
 	} else {
-		copy(gr.Row, c.app.pools.nilValues[:len(gr.Cls)]) // reset member
+		copy(gr.Row, c.app.pools.nilValues[:len(gr.Cls)]) // faster to reset member
 	}
 	c.Pms = gr
 }
